@@ -12,6 +12,7 @@ class NivelEscolar extends Model
 
     protected $fillable = [
         'nombre',
+        'revoe',
         'orden',
         'activo',
     ];

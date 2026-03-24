@@ -10,10 +10,10 @@ class NivelEscolarSeeder extends Seeder
     public function run(): void
     {
         DB::table('nivel_escolar')->insert([
-            ['nombre' => 'Maternal',   'orden' => 1, 'activo' => true],
-            ['nombre' => 'Preescolar', 'orden' => 2, 'activo' => true],
-            ['nombre' => 'Primaria',   'orden' => 3, 'activo' => true],
-            ['nombre' => 'Secundaria', 'orden' => 4, 'activo' => true],
+            ['nombre' => 'Maternal',   'revoe' => null,         'orden' => 1, 'activo' => true],
+            ['nombre' => 'Preescolar', 'revoe' => 'REVOE-12345','orden' => 2, 'activo' => true],
+            ['nombre' => 'Primaria',   'revoe' => 'REVOE-23456','orden' => 3, 'activo' => true],
+            ['nombre' => 'Secundaria', 'revoe' => 'REVOE-34567','orden' => 4, 'activo' => true],
         ]);
     }
 }

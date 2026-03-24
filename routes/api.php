@@ -71,3 +71,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('razones-sociales',                  [PortalPadreController::class, 'razonesSociales']);
     });
 });
+
+// ── Niveles escolares ────────────────────────────────────
+Route::apiResource('niveles', \App\Http\Controllers\NivelEscolarController::class);
