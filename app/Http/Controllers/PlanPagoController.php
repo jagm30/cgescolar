@@ -2,64 +2,83 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StorePlanPagoRequest;
 use App\Http\Requests\StoreAsignacionPlanRequest;
+use App\Http\Requests\StorePlanPagoRequest;
 use App\Models\AsignacionPlan;
 use App\Models\Auditoria;
+use App\Models\CicloEscolar;
+use App\Models\ConceptoCobro;
+use App\Models\Inscripcion;
+use App\Models\NivelEscolar;
 use App\Models\PlanPago;
 use App\Models\PlanPagoConcepto;
 use App\Models\PoliticaDescuento;
 use App\Models\PoliticaRecargo;
-use Illuminate\Http\JsonResponse;
+use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PlanPagoController extends Controller
 {
+    use RespondsWithJson;
+
     /** GET /planes */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? \App\Models\CicloEscolar::activo()->value('id');
+            ?? CicloEscolar::activo()->value('id');
 
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('nivel_id'), fn($q) => $q->where('nivel_id', $request->nivel_id))
-            ->when($request->filled('activo'),   fn($q) => $q->where('activo', $request->boolean('activo')))
             ->orderBy('nivel_id')
             ->get();
 
-        return response()->json($planes);
+        if ($request->ajax()) {
+            return response()->json($planes);
+        }
+
+        $niveles = NivelEscolar::activo()->get();
+
+        return view('planes.index', compact('planes', 'niveles'));
     }
 
     /** GET /planes/{id} */
-    public function show(int $id): JsonResponse
+    public function show(int $id)
     {
         $plan = PlanPago::with([
-            'ciclo',
-            'nivel',
+            'ciclo', 'nivel',
             'planPagoConceptos.concepto',
             'politicasDescuento',
             'politicasRecargo',
             'asignaciones',
         ])->findOrFail($id);
 
-        return response()->json($plan);
+        if (request()->ajax()) {
+            return response()->json($plan);
+        }
+
+        return view('planes.show', compact('plan'));
     }
 
-    /**
-     * POST /planes
-     * Crea plan con conceptos, políticas de descuento y recargo
-     * en una sola transacción.
-     */
-    public function store(StorePlanPagoRequest $request): JsonResponse
+    /** GET /planes/create */
+    public function create()
+    {
+        $cicloId  = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+        $ciclos   = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $niveles  = NivelEscolar::activo()->get();
+        $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
+
+        return view('planes.create', compact('ciclos', 'niveles', 'conceptos', 'cicloId'));
+    }
+
+    /** POST /planes */
+    public function store(StorePlanPagoRequest $request)
     {
         $data = $request->validated();
 
         DB::beginTransaction();
-
         try {
-            // ── Plan ──────────────────────────────────────
             $plan = PlanPago::create([
                 'ciclo_id'    => $data['ciclo_id'],
                 'nivel_id'    => $data['nivel_id'],
@@ -70,7 +89,6 @@ class PlanPagoController extends Controller
                 'activo'      => true,
             ]);
 
-            // ── Conceptos ─────────────────────────────────
             foreach ($data['conceptos'] as $concepto) {
                 PlanPagoConcepto::create([
                     'plan_id'    => $plan->id,
@@ -79,7 +97,6 @@ class PlanPagoController extends Controller
                 ]);
             }
 
-            // ── Políticas de descuento ────────────────────
             foreach ($data['descuentos'] ?? [] as $descuento) {
                 PoliticaDescuento::create([
                     'plan_id'    => $plan->id,
@@ -91,7 +108,6 @@ class PlanPagoController extends Controller
                 ]);
             }
 
-            // ── Política de recargo (máximo 1) ─────────────
             if (!empty($data['recargo'])) {
                 PoliticaRecargo::create([
                     'plan_id'         => $plan->id,
@@ -104,82 +120,111 @@ class PlanPagoController extends Controller
             }
 
             Auditoria::registrar('plan_pago', $plan->id, 'insert', null, $plan->toArray());
-
             DB::commit();
 
-            return response()->json(
-                $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo']),
-                201
+            return $this->respuestaExito(
+                redirectRoute: 'planes.show',
+                jsonData: ['plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])],
+                mensaje: "Plan '{$plan->nombre}' creado correctamente.",
+                jsonStatus: 201
             );
-
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al crear el plan: ' . $e->getMessage()], 500);
+            return $this->respuestaError('Error al crear el plan: ' . $e->getMessage());
         }
     }
 
-    /** DELETE /planes/{id} — solo desactiva, no elimina */
-    public function destroy(int $id): JsonResponse
+    /** GET /planes/{id}/edit */
+    public function edit(int $id)
     {
-        $this->soloAdmin();
+        $plan     = PlanPago::with(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])->findOrFail($id);
+        $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
 
+        if (request()->ajax()) {
+            return response()->json($plan);
+        }
+
+        return view('planes.edit', compact('plan', 'conceptos'));
+    }
+
+    /** PUT /planes/{id} — solo nombre y fechas */
+    public function update(Request $request, int $id)
+    {
+        $plan     = PlanPago::findOrFail($id);
+        $anterior = $plan->toArray();
+
+        $data = $request->validate([
+            'nombre'       => ['sometimes', 'required', 'string', 'max:200'],
+            'fecha_inicio' => ['sometimes', 'required', 'date'],
+            'fecha_fin'    => ['sometimes', 'required', 'date', 'after:fecha_inicio'],
+            'activo'       => ['boolean'],
+        ]);
+
+        $plan->update($data);
+        Auditoria::registrar('plan_pago', $plan->id, 'update', $anterior, $plan->fresh()->toArray());
+
+        return $this->respuestaExito(
+            redirectRoute: 'planes.index',
+            jsonData: ['plan' => $plan->fresh()],
+            mensaje: "Plan '{$plan->nombre}' actualizado correctamente."
+        );
+    }
+
+    /** DELETE /planes/{id} */
+    public function destroy(int $id)
+    {
         $plan = PlanPago::findOrFail($id);
 
-        // Verificar que no tenga asignaciones activas
         if ($plan->asignaciones()->exists()) {
-            return response()->json([
-                'message' => 'No se puede desactivar el plan porque tiene asignaciones activas.',
-            ], 422);
+            return $this->respuestaError('No se puede desactivar el plan porque tiene asignaciones activas.');
         }
 
         $plan->update(['activo' => false]);
-
         Auditoria::registrar('plan_pago', $plan->id, 'update', ['activo' => true], ['activo' => false]);
 
-        return response()->json(['message' => 'Plan desactivado correctamente.']);
+        return $this->respuestaExito(
+            redirectRoute: 'planes.index',
+            mensaje: "Plan '{$plan->nombre}' desactivado correctamente."
+        );
     }
 
-    /**
-     * POST /planes/asignar
-     * Asigna un plan a alumno, grupo o nivel.
-     */
-    public function asignar(StoreAsignacionPlanRequest $request): JsonResponse
+    /** POST /planes/asignar */
+    public function asignar(StoreAsignacionPlanRequest $request)
     {
-        $this->soloAdmin();
-
-        $data = $request->validated();
-
-        $asignacion = AsignacionPlan::create($data);
-
+        $asignacion = AsignacionPlan::create($request->validated());
         Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
 
-        return response()->json($asignacion->load('plan'), 201);
+        return $this->respuestaExito(
+            redirectRoute: 'planes.index',
+            jsonData: ['asignacion' => $asignacion->load('plan')],
+            mensaje: 'Plan asignado correctamente.',
+            jsonStatus: 201
+        );
     }
 
-    /**
-     * GET /planes/asignacion/{alumnoId}
-     * Obtiene el plan vigente de un alumno según jerarquía:
-     * individual > grupo > nivel.
-     */
-    public function asignacionDeAlumno(int $alumnoId): JsonResponse
+    /** GET /planes/asignacion/{alumnoId} — solo AJAX */
+    public function asignacionDeAlumno(int $alumnoId)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? \App\Models\CicloEscolar::activo()->value('id');
+            ?? CicloEscolar::activo()->value('id');
 
-        $inscripcion = \App\Models\Inscripcion::with('grupo.grado')
+        $inscripcion = Inscripcion::with('grupo.grado')
             ->where('alumno_id', $alumnoId)
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
             ->first();
 
         if (!$inscripcion) {
-            return response()->json(['message' => 'El alumno no tiene inscripción activa en este ciclo.'], 404);
+            return response()->json(['message' => 'Sin inscripción activa en este ciclo.'], 404);
         }
 
         $nivelId = $inscripcion->grupo->grado->nivel_id;
 
-        // Prioridad: individual > grupo > nivel
-        $asignacion = AsignacionPlan::with(['plan.planPagoConceptos.concepto', 'plan.politicasDescuentoActivas', 'plan.politicaRecargoActiva'])
+        $asignacion = AsignacionPlan::with([
+                'plan.planPagoConceptos.concepto',
+                'plan.politicasDescuentoActivas',
+                'plan.politicaRecargoActiva',
+            ])
             ->where(function ($q) use ($alumnoId, $inscripcion, $nivelId) {
                 $q->where(fn($q) => $q->where('origen', 'individual')->where('alumno_id', $alumnoId))
                   ->orWhere(fn($q) => $q->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id))
@@ -193,18 +238,6 @@ class PlanPagoController extends Controller
             return response()->json(['message' => 'El alumno no tiene plan de pago asignado.'], 404);
         }
 
-        return response()->json([
-            'asignacion' => $asignacion,
-            'origen'     => $asignacion->origen,
-        ]);
-    }
-
-    // ── Helper ───────────────────────────────────────────
-
-    private function soloAdmin(): void
-    {
-        if (auth()->user()->rol !== 'administrador') {
-            abort(403, 'Solo el administrador puede realizar esta acción.');
-        }
+        return response()->json(['asignacion' => $asignacion, 'origen' => $asignacion->origen]);
     }
 }

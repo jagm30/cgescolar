@@ -7,6 +7,21 @@
                     <i class="fa fa-dashboard"></i> <span>Dashboard</span>
                 </a>
             </li>
+            <li class="treeview {{ request()->routeIs(['tables','datatables','ui-elements','forms','icons','widgets']) ? 'active menu-open' : '' }}">
+                <a href="#">
+                    <i class="fa fa-users"></i>
+                    <span>Configuración Escolar</span>
+                    <span class="pull-right-container">
+                        <i class="fa fa-angle-left pull-right"></i>
+                    </span>
+                </a>
+                <ul class="treeview-menu">
+                    <li class="{{ request()->routeIs('ciclos.index') ? 'active' : '' }}"><a href="{{ route('ciclos.index') }}"><i class="fa fa-circle-o"></i> Ciclos Escolares</a></li>
+                    <li class="{{ request()->routeIs('datatables') ? 'active' : '' }}"><a href="{{ route('datatables') }}"><i class="fa fa-circle-o"></i> Niveles Escolares</a></li>
+                    <li><a href="{{ route('ui-elements') }}"><i class="fa fa-circle-o"></i>Grados</a></li>
+                    <li><a href="{{ route('forms') }}"><i class="fa fa-circle-o"></i> Grupos></li>                    
+                </ul>
+            </li>
             <li class="treeview">
                 <a href="#">
                     <i class="fa fa-users"></i>
@@ -37,7 +52,6 @@
                     <li><a href="{{ route('widgets') }}"><i class="fa fa-circle-o"></i> Widgets</a></li>
                 </ul>
             </li>
-
-            </ul>
+        </ul>
     </section>
 </aside>
