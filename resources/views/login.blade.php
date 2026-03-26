@@ -39,7 +39,7 @@
         <div class="login-box-body">
             <p class="login-box-msg">Inicia sesión para comenzar</p>
 
-            <form action="../../index2.html" method="post">
+            <form action="{{ route('login') }}" method="post">
                 <div class="form-group has-feedback">
                     <input type="email" class="form-control" placeholder="Email">
                     <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
@@ -52,7 +52,7 @@
                         style="cursor: pointer; pointer-events: auto;"></span>
                 </div>
                 <div class="row">
-                    <div class="col-xs-8">
+                    <div class="col-xs-7">
                         <div class="checkbox icheck">
                             <label>
                                 <input type="checkbox"> Recuerdame
@@ -60,7 +60,7 @@
                         </div>
                     </div>
                     <!-- /.col -->
-                    <div class="col-xs-4">
+                    <div class="col-xs-5">
                         <button type="submit" class="btn btn-primary btn-block btn-flat">Iniciar Sesión</button>
                     </div>
                     <!-- /.col -->
