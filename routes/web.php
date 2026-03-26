@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('dashboard');
 
 Route::get('/tables', function () {return view('tables');})->name('tables');
 Route::get('/datatables', function () {return view('data');})->name('datatables');
