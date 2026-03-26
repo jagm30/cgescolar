@@ -1,17 +1,13 @@
 <aside class="main-sidebar">
     <section class="sidebar">
-        
-
-
         <ul class="sidebar-menu" data-widget="tree">
             <li class="header">NAVEGACIÓN PRINCIPAL</li>
-            
+
             <li class="active">
                 <a href="/">
                     <i class="fa fa-dashboard"></i> <span>Dashboard</span>
                 </a>
             </li>
-
             <li class="treeview">
                 <a href="#">
                     <i class="fa fa-users"></i>
@@ -25,7 +21,7 @@
                     <li><a href="#"><i class="fa fa-circle-o"></i> Registrar Nuevo</a></li>
                 </ul>
             </li>
-                        <li class="treeview">
+            <li class="treeview">
                 <a href="#">
                     <i class="fa fa-users"></i>
                     <span>Componentes</span>
@@ -42,7 +38,6 @@
                     <li><a href="{{ route('widgets') }}"><i class="fa fa-circle-o"></i> Widgets</a></li>
                 </ul>
             </li>
-
-            </ul>
+        </ul>
     </section>
 </aside>
