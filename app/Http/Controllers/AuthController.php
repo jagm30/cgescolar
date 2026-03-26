@@ -50,6 +50,7 @@ class AuthController extends Controller
 
         // Actualizar último acceso
         $usuario->update(['ultimo_acceso' => now()]);
+        $usuario->save();
 
         // Si es usuario interno y no tiene ciclo seleccionado, asignar el activo
         if ($usuario->esInterno() && !$usuario->ciclo_seleccionado_id) {
