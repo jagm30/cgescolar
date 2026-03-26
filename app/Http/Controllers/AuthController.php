@@ -3,81 +3,91 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
+use App\Models\CicloEscolar;
 use App\Models\Usuario;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    /**
-     * POST /auth/login
-     * Autentica al usuario y devuelve un token Sanctum.
-     */
-    public function login(Request $request): JsonResponse
+    /** GET /login */
+    public function showLogin()
+    {
+        if (Auth::check()) {
+            return redirect()->route($this->rutaPorRol(Auth::user()->rol));
+        }
+
+        return view('auth.login');
+    }
+
+    /** POST /login */
+    public function login(Request $request)
     {
         $request->validate([
             'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
+        ], [
+            'email.required'    => 'El correo electrónico es obligatorio.',
+            'password.required' => 'La contraseña es obligatoria.',
         ]);
 
+        // Buscar usuario activo
         $usuario = Usuario::where('email', $request->email)
             ->where('activo', true)
             ->first();
 
         if (!$usuario || !Hash::check($request->password, $usuario->password_hash)) {
-            return response()->json(['message' => 'Credenciales incorrectas.'], 401);
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'Credenciales incorrectas.']);
         }
 
-        // Actualizar último acceso y cargar ciclo seleccionado
+        // Login con el guard por defecto usando el modelo Usuario
+        Auth::login($usuario, $request->boolean('remember'));
+
+        // Actualizar último acceso
         $usuario->update(['ultimo_acceso' => now()]);
 
         // Si es usuario interno y no tiene ciclo seleccionado, asignar el activo
         if ($usuario->esInterno() && !$usuario->ciclo_seleccionado_id) {
-            $cicloActivo = \App\Models\CicloEscolar::activo()->first();
+            $cicloActivo = CicloEscolar::activo()->first();
             if ($cicloActivo) {
                 $usuario->update(['ciclo_seleccionado_id' => $cicloActivo->id]);
             }
         }
-
-        $token = $usuario->createToken('sge-token')->plainTextToken;
 
         Auditoria::registrar('usuario', $usuario->id, 'login', null, [
             'email' => $usuario->email,
             'rol'   => $usuario->rol,
         ]);
 
-        return response()->json([
-            'token'   => $token,
-            'usuario' => [
-                'id'                   => $usuario->id,
-                'nombre'               => $usuario->nombre,
-                'email'                => $usuario->email,
-                'rol'                  => $usuario->rol,
-                'ciclo_seleccionado_id'=> $usuario->ciclo_seleccionado_id,
-            ],
-        ]);
+        $request->session()->regenerate();
+
+        return redirect()->intended(route($this->rutaPorRol($usuario->rol)));
     }
 
-    /**
-     * POST /auth/logout
-     * Revoca el token actual.
-     */
-    public function logout(Request $request): JsonResponse
+    /** POST /logout */
+    public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
 
-        return response()->json(['message' => 'Sesión cerrada correctamente.']);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
     }
 
-    /**
-     * GET /auth/me
-     * Devuelve el usuario autenticado con su ciclo activo.
-     */
-    public function me(): JsonResponse
-    {
-        $usuario = auth()->user()->load('cicloSeleccionado');
+    // ── Helper ───────────────────────────────────────────
 
-        return response()->json($usuario);
+    private function rutaPorRol(string $rol): string
+    {
+        return match($rol) {
+            'administrador' => 'admin.dashboard',
+            'caja'          => 'caja.dashboard',
+            'recepcion'     => 'recepcion.dashboard',
+            'padre'         => 'portal.dashboard',
+            default         => 'login',
+        };
     }
 }

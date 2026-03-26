@@ -4,101 +4,130 @@ namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
 use App\Models\NivelEscolar;
-use Illuminate\Http\JsonResponse;
+use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class NivelEscolarController extends Controller
 {
+    use RespondsWithJson;
+
     /** GET /niveles */
-    public function index(Request $request): JsonResponse
+    public function index()
     {
-        $niveles = NivelEscolar::when(
-                $request->filled('activo'),
-                fn($q) => $q->where('activo', $request->boolean('activo'))
-            )
+        $niveles = NivelEscolar::with(['grados' => fn($q) => $q->orderBy('numero')])
             ->orderBy('orden')
             ->get();
 
-        return response()->json($niveles);
+        // Si es AJAX devuelve JSON (para recargar tabla con jQuery)
+        if (request()->ajax()) {
+            return response()->json($niveles);
+        }
+
+        return view('niveles.index', compact('niveles'));
     }
 
-    /** GET /niveles/{id} */
-    public function show(int $id): JsonResponse
+    /** GET /niveles/{id} — solo AJAX */
+    public function show(int $id)
     {
         $nivel = NivelEscolar::with(['grados'])->findOrFail($id);
 
         return response()->json($nivel);
     }
 
-    /** POST /niveles */
-    public function store(Request $request): JsonResponse
+    /** GET /niveles/create */
+    public function create()
     {
-        $this->soloAdmin();
+        return view('niveles.create');
+    }
 
+    /** POST /niveles */
+    public function store(Request $request)
+    {
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:100', 'unique:nivel_escolar,nombre'],
-            'revoe'  => ['nullable', 'string', 'max:50'],
+            'revoe'  => ['nullable', 'string', 'max:50',
+                         Rule::unique('nivel_escolar', 'revoe')->whereNotNull('revoe')],
             'orden'  => ['required', 'integer', 'min:1'],
             'activo' => ['boolean'],
+        ], [
+            'nombre.required' => 'El nombre del nivel es obligatorio.',
+            'nombre.unique'   => 'Ya existe un nivel con este nombre.',
+            'revoe.unique'    => 'Este REVOE ya está registrado en otro nivel.',
+            'orden.required'  => 'El orden es obligatorio.',
         ]);
 
         $nivel = NivelEscolar::create($data);
 
         Auditoria::registrar('nivel_escolar', $nivel->id, 'insert', null, $nivel->toArray());
 
-        return response()->json($nivel, 201);
+        return $this->respuestaExito(
+            redirectRoute: 'niveles.index',
+            jsonData: ['nivel' => $nivel],
+            mensaje: "Nivel '{$nivel->nombre}' creado correctamente.",
+            jsonStatus: 201
+        );
+    }
+
+    /** GET /niveles/{id}/edit */
+    public function edit(int $id)
+    {
+        $nivel = NivelEscolar::findOrFail($id);
+
+        if (request()->ajax()) {
+            return response()->json($nivel);
+        }
+
+        return view('niveles.edit', compact('nivel'));
     }
 
     /** PUT /niveles/{id} */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int $id)
     {
-        $this->soloAdmin();
-
         $nivel    = NivelEscolar::findOrFail($id);
         $anterior = $nivel->toArray();
 
         $data = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:100',
-                         \Illuminate\Validation\Rule::unique('nivel_escolar', 'nombre')->ignore($id)],
-            'revoe'  => ['nullable', 'string', 'max:50'],
+                         Rule::unique('nivel_escolar', 'nombre')->ignore($id)],
+            'revoe'  => ['nullable', 'string', 'max:50',
+                         Rule::unique('nivel_escolar', 'revoe')->ignore($id)->whereNotNull('revoe')],
             'orden'  => ['sometimes', 'required', 'integer', 'min:1'],
             'activo' => ['boolean'],
+        ], [
+            'nombre.unique' => 'Ya existe otro nivel con este nombre.',
+            'revoe.unique'  => 'Este REVOE ya está registrado en otro nivel.',
         ]);
 
         $nivel->update($data);
 
         Auditoria::registrar('nivel_escolar', $nivel->id, 'update', $anterior, $nivel->fresh()->toArray());
 
-        return response()->json($nivel->fresh());
+        return $this->respuestaExito(
+            redirectRoute: 'niveles.index',
+            jsonData: ['nivel' => $nivel->fresh()],
+            mensaje: "Nivel '{$nivel->nombre}' actualizado correctamente."
+        );
     }
 
-    /** DELETE /niveles/{id} — solo desactiva */
-    public function destroy(int $id): JsonResponse
+    /** DELETE /niveles/{id} */
+    public function destroy(int $id)
     {
-        $this->soloAdmin();
-
         $nivel = NivelEscolar::findOrFail($id);
 
-        // Verificar que no tenga grupos activos
         if ($nivel->grados()->whereHas('grupos', fn($q) => $q->where('activo', true))->exists()) {
-            return response()->json([
-                'message' => 'No se puede desactivar el nivel porque tiene grupos activos asignados.',
-            ], 422);
+            return $this->respuestaError(
+                "No se puede desactivar '{$nivel->nombre}' porque tiene grupos activos."
+            );
         }
 
         $nivel->update(['activo' => false]);
 
         Auditoria::registrar('nivel_escolar', $nivel->id, 'update', ['activo' => true], ['activo' => false]);
 
-        return response()->json(['message' => "Nivel '{$nivel->nombre}' desactivado correctamente."]);
-    }
-
-    // ── Helper ───────────────────────────────────────────
-
-    private function soloAdmin(): void
-    {
-        if (auth()->user()->rol !== 'administrador') {
-            abort(403, 'Solo el administrador puede realizar esta acción.');
-        }
+        return $this->respuestaExito(
+            redirectRoute: 'niveles.index',
+            mensaje: "Nivel '{$nivel->nombre}' desactivado correctamente."
+        );
     }
 }

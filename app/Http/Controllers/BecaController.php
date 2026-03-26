@@ -6,24 +6,30 @@ use App\Http\Requests\StoreBecaAlumnoRequest;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\CatalogoBeca;
-use Illuminate\Http\JsonResponse;
+use App\Models\CicloEscolar;
+use App\Models\ConceptoCobro;
+use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 
 class BecaController extends Controller
 {
+    use RespondsWithJson;
+
     /** GET /becas/catalogo */
-    public function catalogo(): JsonResponse
+    public function catalogo()
     {
         $catalogo = CatalogoBeca::activo()->orderBy('nombre')->get();
 
-        return response()->json($catalogo);
+        if (request()->ajax()) {
+            return response()->json($catalogo);
+        }
+
+        return view('becas.catalogo', compact('catalogo'));
     }
 
     /** POST /becas/catalogo */
-    public function storeCatalogo(Request $request): JsonResponse
+    public function storeCatalogo(Request $request)
     {
-        $this->soloAdmin();
-
         $data = $request->validate([
             'nombre'      => ['required', 'string', 'max:100'],
             'descripcion' => ['nullable', 'string', 'max:500'],
@@ -33,14 +39,19 @@ class BecaController extends Controller
 
         $beca = CatalogoBeca::create($data);
 
-        return response()->json($beca, 201);
+        return $this->respuestaExito(
+            redirectRoute: 'becas.catalogo',
+            jsonData: ['beca' => $beca],
+            mensaje: "Beca '{$beca->nombre}' agregada al catálogo.",
+            jsonStatus: 201
+        );
     }
 
-    /** GET /becas — becas asignadas en el ciclo activo */
-    public function index(Request $request): JsonResponse
+    /** GET /becas */
+    public function index(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? \App\Models\CicloEscolar::activo()->value('id');
+            ?? CicloEscolar::activo()->value('id');
 
         $becas = BecaAlumno::with(['catalogoBeca', 'alumno', 'concepto', 'creadoPor'])
             ->where('ciclo_id', $cicloId)
@@ -49,26 +60,37 @@ class BecaController extends Controller
             ->orderBy('alumno_id')
             ->get();
 
-        return response()->json($becas);
+        if ($request->ajax()) {
+            return response()->json($becas);
+        }
+
+        $catalogo  = CatalogoBeca::activo()->get();
+        $conceptos = ConceptoCobro::where('aplica_beca', true)->activo()->get();
+
+        return view('becas.index', compact('becas', 'catalogo', 'conceptos'));
     }
 
     /** POST /becas */
-    public function store(StoreBecaAlumnoRequest $request): JsonResponse
+    public function store(StoreBecaAlumnoRequest $request)
     {
-        $data = array_merge($request->validated(), ['creado_por' => auth()->id()]);
-
-        $beca = BecaAlumno::create($data);
+        $beca = BecaAlumno::create(array_merge(
+            $request->validated(),
+            ['creado_por' => auth()->id()]
+        ));
 
         Auditoria::registrar('beca_alumno', $beca->id, 'insert', null, $beca->toArray());
 
-        return response()->json($beca->load(['catalogoBeca', 'alumno', 'concepto']), 201);
+        return $this->respuestaExito(
+            redirectRoute: 'becas.index',
+            jsonData: ['beca' => $beca->load(['catalogoBeca', 'alumno', 'concepto'])],
+            mensaje: 'Beca asignada correctamente.',
+            jsonStatus: 201
+        );
     }
 
-    /** DELETE /becas/{id} — desactiva la beca */
-    public function destroy(int $id): JsonResponse
+    /** DELETE /becas/{id} */
+    public function destroy(int $id)
     {
-        $this->soloAdmin();
-
         $beca     = BecaAlumno::findOrFail($id);
         $anterior = $beca->toArray();
 
@@ -76,13 +98,9 @@ class BecaController extends Controller
 
         Auditoria::registrar('beca_alumno', $beca->id, 'update', $anterior, ['activo' => false]);
 
-        return response()->json(['message' => 'Beca desactivada correctamente.']);
-    }
-
-    private function soloAdmin(): void
-    {
-        if (auth()->user()->rol !== 'administrador') {
-            abort(403, 'Solo el administrador puede realizar esta acción.');
-        }
+        return $this->respuestaExito(
+            redirectRoute: 'becas.index',
+            mensaje: 'Beca desactivada correctamente.'
+        );
     }
 }

@@ -7,48 +7,67 @@ use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoContacto;
 use App\Models\Auditoria;
+use App\Models\CicloEscolar;
 use App\Models\ContactoFamiliar;
 use App\Models\DocumentoAlumno;
 use App\Models\Familia;
+use App\Models\Grupo;
 use App\Models\Inscripcion;
+use App\Models\NivelEscolar;
 use App\Models\Prospecto;
-use Illuminate\Http\JsonResponse;
+use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AlumnoController extends Controller
 {
+    use RespondsWithJson;
+
     /** GET /alumnos */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? \App\Models\CicloEscolar::activo()->value('id');
+            ?? CicloEscolar::activo()->value('id');
 
-        $query = Alumno::with(['familia', 'inscripciones' => function ($q) use ($cicloId) {
-                $q->where('ciclo_id', $cicloId)->with('grupo.grado.nivel');
-            }])
+        $query = Alumno::with([
+                'familia',
+                'inscripciones' => fn($q) => $q
+                    ->where('ciclo_id', $cicloId)
+                    ->with('grupo.grado.nivel'),
+            ])
             ->when($request->filled('estado'), fn($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas('inscripciones', function ($q) use ($request, $cicloId) {
-                $q->where('ciclo_id', $cicloId)
-                  ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id));
-            }))
-            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas('inscripciones', fn($q) =>
-                $q->where('ciclo_id', $cicloId)->where('grupo_id', $request->grupo_id)
+            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
+                'inscripciones', fn($q) => $q
+                    ->where('ciclo_id', $cicloId)
+                    ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id))
+            ))
+            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas(
+                'inscripciones', fn($q) => $q
+                    ->where('ciclo_id', $cicloId)
+                    ->where('grupo_id', $request->grupo_id)
             ))
             ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
-                $q->where('nombre', 'like', "%{$request->buscar}%")
+                $q->where('nombre',    'like', "%{$request->buscar}%")
                   ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
-                  ->orWhere('matricula', 'like', "%{$request->buscar}%")
-                  ->orWhere('curp', 'like', "%{$request->buscar}%");
+                  ->orWhere('matricula',  'like', "%{$request->buscar}%")
+                  ->orWhere('curp',       'like', "%{$request->buscar}%");
             }))
             ->orderBy('ap_paterno')
             ->orderBy('nombre');
 
-        return response()->json($query->paginate($request->get('per_page', 20)));
+        if ($request->ajax()) {
+            return response()->json($query->paginate($request->get('per_page', 20)));
+        }
+
+        $alumnos = $query->paginate(20);
+        $niveles = NivelEscolar::activo()->get();
+        $grupos  = Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get();
+
+        return view('alumnos.index', compact('alumnos', 'niveles', 'grupos', 'cicloId'));
     }
 
     /** GET /alumnos/{id} */
-    public function show(int $id): JsonResponse
+    public function show(int $id)
     {
         $alumno = Alumno::with([
             'familia',
@@ -58,15 +77,33 @@ class AlumnoController extends Controller
             'becas.catalogoBeca',
         ])->findOrFail($id);
 
-        return response()->json($alumno);
+        if (request()->ajax()) {
+            return response()->json($alumno);
+        }
+
+        return view('alumnos.show', compact('alumno'));
+    }
+
+    /** GET /alumnos/create */
+    public function create()
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        $ciclos   = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $niveles  = NivelEscolar::activo()->get();
+        $grupos   = Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get();
+        $familias = Familia::where('activo', true)->orderBy('apellido_familia')->get();
+
+        return view('alumnos.create', compact('ciclos', 'niveles', 'grupos', 'familias', 'cicloId'));
     }
 
     /**
      * POST /alumnos
-     * Registra alumno, familia (si es nueva), contactos, inscripción
-     * y documentos requeridos en una sola transacción.
+     * Registra familia (si es nueva) + alumno + inscripción +
+     * contactos + documentos en una sola transacción.
      */
-    public function store(StoreAlumnoRequest $request): JsonResponse
+    public function store(StoreAlumnoRequest $request)
     {
         $data = $request->validated();
 
@@ -110,24 +147,20 @@ class AlumnoController extends Controller
 
             // ── 4. Contactos ──────────────────────────────
             foreach ($data['contactos'] as $contactoData) {
-                // Buscar contacto existente por CURP o teléfono
                 $contacto = null;
 
                 if (!empty($contactoData['curp'])) {
                     $contacto = ContactoFamiliar::where('curp', $contactoData['curp'])->first();
                 }
-
                 if (!$contacto && !empty($contactoData['telefono_celular'])) {
                     $contacto = ContactoFamiliar::where('telefono_celular', $contactoData['telefono_celular'])->first();
                 }
 
                 if ($contacto) {
-                    // Actualizar familia_id si no lo tenía
                     if (!$contacto->familia_id) {
                         $contacto->update(['familia_id' => $familiaId]);
                     }
                 } else {
-                    // Crear nuevo contacto
                     $contacto = ContactoFamiliar::create([
                         'familia_id'          => $familiaId,
                         'tiene_acceso_portal' => $contactoData['tiene_acceso_portal'] ?? false,
@@ -142,7 +175,6 @@ class AlumnoController extends Controller
                     ]);
                 }
 
-                // Vincular contacto con alumno
                 AlumnoContacto::create([
                     'alumno_id'           => $alumno->id,
                     'contacto_id'         => $contacto->id,
@@ -156,8 +188,7 @@ class AlumnoController extends Controller
             }
 
             // ── 5. Documentos requeridos ──────────────────
-            $documentos = $this->documentosPorNivel($data['ciclo_id'], $data['grupo_id']);
-            foreach ($documentos as $doc) {
+            foreach ($this->documentosPorGrupo($data['grupo_id']) as $doc) {
                 DocumentoAlumno::create([
                     'alumno_id'      => $alumno->id,
                     'tipo_documento' => $doc,
@@ -165,10 +196,10 @@ class AlumnoController extends Controller
                 ]);
             }
 
-            // ── 6. Actualizar prospecto si aplica ─────────
+            // ── 6. Vincular prospecto si aplica ───────────
             if (!empty($data['prospecto_id'])) {
                 Prospecto::where('id', $data['prospecto_id'])
-                         ->update(['alumno_id' => $alumno->id, 'etapa' => 'inscrito']);
+                    ->update(['alumno_id' => $alumno->id, 'etapa' => 'inscrito']);
             }
 
             // ── 7. Auditoría ──────────────────────────────
@@ -176,19 +207,33 @@ class AlumnoController extends Controller
 
             DB::commit();
 
-            return response()->json(
-                $alumno->load(['familia', 'inscripciones.grupo', 'contactos', 'documentos']),
-                201
+            return $this->respuestaExito(
+                redirectRoute: 'alumnos.show',
+                jsonData: ['alumno' => $alumno->load(['familia', 'inscripciones.grupo', 'contactos'])],
+                mensaje: "Alumno '{$alumno->nombre} {$alumno->ap_paterno}' registrado. Matrícula: {$alumno->matricula}",
+                jsonStatus: 201
             );
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al registrar el alumno: ' . $e->getMessage()], 500);
+            return $this->respuestaError('Error al registrar el alumno: ' . $e->getMessage());
         }
     }
 
+    /** GET /alumnos/{id}/edit */
+    public function edit(int $id)
+    {
+        $alumno = Alumno::with(['familia', 'contactos'])->findOrFail($id);
+
+        if (request()->ajax()) {
+            return response()->json($alumno);
+        }
+
+        return view('alumnos.edit', compact('alumno'));
+    }
+
     /** PUT /alumnos/{id} */
-    public function update(UpdateAlumnoRequest $request, int $id): JsonResponse
+    public function update(UpdateAlumnoRequest $request, int $id)
     {
         $alumno   = Alumno::findOrFail($id);
         $anterior = $alumno->toArray();
@@ -197,14 +242,18 @@ class AlumnoController extends Controller
 
         Auditoria::registrar('alumno', $alumno->id, 'update', $anterior, $alumno->fresh()->toArray());
 
-        return response()->json($alumno->fresh());
+        return $this->respuestaExito(
+            redirectRoute: 'alumnos.show',
+            jsonData: ['alumno' => $alumno->fresh()],
+            mensaje: 'Datos del alumno actualizados correctamente.'
+        );
     }
 
     /**
      * GET /alumnos/{id}/hermanos
-     * Devuelve los hermanos del alumno en la misma familia.
+     * Solo AJAX — usada desde la ficha del alumno.
      */
-    public function hermanos(int $id): JsonResponse
+    public function hermanos(int $id)
     {
         $alumno = Alumno::findOrFail($id);
 
@@ -222,13 +271,13 @@ class AlumnoController extends Controller
 
     /**
      * GET /alumnos/{id}/estado-cuenta
-     * Devuelve todos los cargos del alumno en el ciclo actual con su estado.
+     * Devuelve cargos del ciclo activo. Usada tanto en vista como AJAX.
      */
-    public function estadoCuenta(int $id): JsonResponse
+    public function estadoCuenta(int $id)
     {
         $alumno  = Alumno::findOrFail($id);
         $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? \App\Models\CicloEscolar::activo()->value('id');
+            ?? CicloEscolar::activo()->value('id');
 
         $inscripcion = $alumno->inscripciones()
             ->where('ciclo_id', $cicloId)
@@ -236,55 +285,57 @@ class AlumnoController extends Controller
             ->first();
 
         if (!$inscripcion) {
-            return response()->json(['message' => 'El alumno no tiene inscripción activa en este ciclo.'], 404);
+            if (request()->ajax()) {
+                return response()->json(['message' => 'Sin inscripción activa en este ciclo.'], 404);
+            }
+            return back()->with('error', 'El alumno no tiene inscripción activa en este ciclo.');
         }
 
         $cargos = $inscripcion->cargos()
             ->with('concepto', 'pagosVigentes', 'descuentos')
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(function ($cargo) {
-                return [
-                    'id'               => $cargo->id,
-                    'concepto'         => $cargo->concepto->nombre,
-                    'periodo'          => $cargo->periodo,
-                    'monto_original'   => $cargo->monto_original,
-                    'saldo_abonado'    => $cargo->saldo_abonado,
-                    'saldo_pendiente'  => $cargo->saldo_pendiente_base,
-                    'estado_real'      => $cargo->estado_real,
-                    'fecha_vencimiento'=> $cargo->fecha_vencimiento,
-                ];
-            });
+            ->map(fn($cargo) => [
+                'id'                => $cargo->id,
+                'concepto'          => $cargo->concepto->nombre,
+                'periodo'           => $cargo->periodo,
+                'monto_original'    => $cargo->monto_original,
+                'saldo_abonado'     => $cargo->saldo_abonado,
+                'saldo_pendiente'   => $cargo->saldo_pendiente_base,
+                'estado_real'       => $cargo->estado_real,
+                'fecha_vencimiento' => $cargo->fecha_vencimiento,
+            ]);
 
         $resumen = [
-            'total_cargos'    => $cargos->count(),
             'total_pagado'    => $cargos->sum('saldo_abonado'),
             'total_pendiente' => $cargos->sum('saldo_pendiente'),
             'cargos_vencidos' => $cargos->filter(fn($c) => str_contains($c['estado_real'], 'vencido'))->count(),
         ];
 
-        return response()->json(['resumen' => $resumen, 'cargos' => $cargos]);
+        if (request()->ajax()) {
+            return response()->json(['resumen' => $resumen, 'cargos' => $cargos]);
+        }
+
+        return view('alumnos.estado-cuenta', compact('alumno', 'cargos', 'resumen'));
     }
 
     // ── Helpers privados ─────────────────────────────────
 
     private function generarMatricula(int $cicloId): string
     {
-        $ciclo = \App\Models\CicloEscolar::find($cicloId);
-        $año   = substr($ciclo->nombre, 0, 4);
-        $ultimo = Alumno::where('matricula', 'like', "{$año}-%")
+        $ciclo     = CicloEscolar::find($cicloId);
+        $año       = substr($ciclo->nombre, 0, 4);
+        $ultimo    = Alumno::where('matricula', 'like', "{$año}-%")
             ->orderByDesc('matricula')
             ->value('matricula');
-
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
         return $año . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 
-    private function documentosPorNivel(int $cicloId, int $grupoId): array
+    private function documentosPorGrupo(int $grupoId): array
     {
-        $grupo  = \App\Models\Grupo::with('grado.nivel')->find($grupoId);
-        $nivel  = $grupo?->grado?->nivel?->nombre ?? '';
+        $nivel = Grupo::with('grado.nivel')->find($grupoId)?->grado?->nivel?->nombre ?? '';
 
         $base = ['Acta de nacimiento', 'CURP', 'Comprobante de domicilio', 'Fotos tamaño infantil'];
 

@@ -8,15 +8,17 @@ use App\Models\Auditoria;
 use App\Models\Cargo;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
-use Illuminate\Http\JsonResponse;
+use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PagoController extends Controller
 {
+    use RespondsWithJson;
+
     /** GET /pagos */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Pago::with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
             ->when($request->filled('alumno_id'), fn($q) => $q->whereHas(
@@ -30,49 +32,59 @@ class PagoController extends Controller
             ->orderByDesc('fecha_pago')
             ->orderByDesc('id');
 
-        return response()->json($query->paginate($request->get('per_page', 30)));
+        $pagos = $query->paginate($request->get('per_page', 30));
+
+        if ($request->ajax()) {
+            return response()->json($pagos);
+        }
+
+        return view('pagos.index', compact('pagos'));
     }
 
     /** GET /pagos/{id} */
-    public function show(int $id): JsonResponse
+    public function show(int $id)
     {
         $pago = Pago::with([
-            'cajero',
-            'autorizadoPor',
+            'cajero', 'autorizadoPor',
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
             'cfdis',
         ])->findOrFail($id);
 
-        return response()->json(array_merge($pago->toArray(), [
-            'total_descuentos' => $pago->total_descuentos,
-            'total_recargos'   => $pago->total_recargos,
-        ]));
+        if (request()->ajax()) {
+            return response()->json(array_merge($pago->toArray(), [
+                'total_descuentos' => $pago->total_descuentos,
+                'total_recargos'   => $pago->total_recargos,
+            ]));
+        }
+
+        return view('pagos.show', compact('pago'));
+    }
+
+    /** GET /pagos/create */
+    public function create(Request $request)
+    {
+        // Puede venir con cargo_id preseleccionado desde la pantalla del alumno
+        $cargo = $request->filled('cargo_id')
+            ? Cargo::with(['inscripcion.alumno', 'concepto', 'asignacion.plan'])->find($request->cargo_id)
+            : null;
+
+        return view('pagos.create', compact('cargo'));
     }
 
     /**
      * POST /pagos
      * Registra un pago con uno o varios cargos en una sola exhibición.
-     *
-     * Flujo:
-     *   1. Calcular preview de cada cargo (beca, descuento, recargo)
-     *   2. Crear encabezado pago con monto_total = suma de monto_final
-     *   3. Crear un pago_detalle por cada cargo
-     *   4. Actualizar estado de cada cargo (pagado / parcial)
-     *   5. Auditoría
      */
-    public function store(StorePagoRequest $request): JsonResponse
+    public function store(StorePagoRequest $request)
     {
         $data = $request->validated();
 
         DB::beginTransaction();
-
         try {
             $cajeroId    = auth()->id();
             $montoTotal  = 0;
             $detallesData = [];
-
-            // ── Paso 1: Calcular preview de cada cargo ────
             $cargoController = app(CargoController::class);
 
             foreach ($data['detalles'] as $detalle) {
@@ -80,24 +92,20 @@ class PagoController extends Controller
                 $preview = $cargoController->calcularPreviewCobro($cargo);
 
                 $montoFinal = round(
-                    $detalle['monto']
-                    - $preview['descuento_beca']
-                    - $preview['descuento_otros']
-                    + $preview['recargo'],
+                    $detalle['monto'] - $preview['descuento_beca'] - $preview['descuento_otros'] + $preview['recargo'],
                     2
                 );
 
-                $montoTotal += $montoFinal;
-
+                $montoTotal    += max(0, $montoFinal);
                 $detallesData[] = [
-                    'cargo'           => $cargo,
-                    'preview'         => $preview,
-                    'monto_abonado'   => $detalle['monto'],
-                    'monto_final'     => max(0, $montoFinal),
+                    'cargo'         => $cargo,
+                    'preview'       => $preview,
+                    'monto_abonado' => $detalle['monto'],
+                    'monto_final'   => max(0, $montoFinal),
                 ];
             }
 
-            // ── Paso 2: Crear encabezado del pago ─────────
+            // Encabezado del pago
             $pago = Pago::create([
                 'cajero_id'    => $cajeroId,
                 'monto_total'  => round($montoTotal, 2),
@@ -108,7 +116,6 @@ class PagoController extends Controller
                 'estado'       => 'vigente',
             ]);
 
-            // ── Paso 3: Crear detalles y actualizar cargos ─
             foreach ($detallesData as $item) {
                 $cargo   = $item['cargo'];
                 $preview = $item['preview'];
@@ -123,15 +130,12 @@ class PagoController extends Controller
                     'monto_final'      => $item['monto_final'],
                 ]);
 
-                // ── Paso 4: Actualizar estado del cargo ────
-                $nuevoSaldoAbonado = $cargo->saldo_abonado + $item['monto_abonado'];
-                $montoACobrarTotal = $preview['total_a_cobrar'] + $cargo->saldo_abonado;
-
-                $nuevoEstado = $nuevoSaldoAbonado >= $montoACobrarTotal ? 'pagado' : 'parcial';
-                $cargo->update(['estado' => $nuevoEstado]);
+                // Actualizar estado del cargo
+                $nuevoSaldo  = $cargo->saldo_abonado + $item['monto_abonado'];
+                $montoTotal  = $preview['total_a_cobrar'] + $cargo->saldo_abonado;
+                $cargo->update(['estado' => $nuevoSaldo >= $montoTotal ? 'pagado' : 'parcial']);
             }
 
-            // ── Paso 5: Auditoría ─────────────────────────
             Auditoria::registrar('pago', $pago->id, 'insert', null, [
                 'folio_recibo' => $pago->folio_recibo,
                 'monto_total'  => $pago->monto_total,
@@ -140,68 +144,59 @@ class PagoController extends Controller
 
             DB::commit();
 
-            return response()->json(
-                $pago->load(['cajero', 'detalles.cargo.concepto']),
-                201
+            return $this->respuestaExito(
+                redirectRoute: 'pagos.show',
+                jsonData: ['pago' => $pago->load(['cajero', 'detalles.cargo.concepto'])],
+                mensaje: "Pago registrado. Folio: {$pago->folio_recibo}",
+                jsonStatus: 201
             );
-
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al registrar el pago: ' . $e->getMessage()], 500);
+            return $this->respuestaError('Error al registrar el pago: ' . $e->getMessage());
         }
     }
 
     /**
      * POST /pagos/{id}/anular
-     * Anula el pago completo y todos sus detalles.
-     * Los cargos afectados regresan a pendiente o parcial.
+     * Anula el pago y revierte el estado de todos los cargos afectados.
      */
-    public function anular(AnularPagoRequest $request, int $id): JsonResponse
+    public function anular(AnularPagoRequest $request, int $id)
     {
         $pago = Pago::with('detalles.cargo')->findOrFail($id);
 
         DB::beginTransaction();
-
         try {
             $anterior = $pago->toArray();
 
-            // Anular encabezado
             $pago->update([
                 'estado'         => 'anulado',
                 'motivo'         => $request->motivo,
                 'autorizado_por' => auth()->id(),
             ]);
 
-            // Recalcular estado de cada cargo afectado
             foreach ($pago->detalles as $detalle) {
-                $cargo = $detalle->cargo;
-
-                // El saldo abonado ya no incluye este pago anulado
+                $cargo         = $detalle->cargo;
                 $saldoRestante = $cargo->fresh()->saldo_abonado;
-                $nuevoEstado   = $saldoRestante > 0 ? 'parcial' : 'pendiente';
-                $cargo->update(['estado' => $nuevoEstado]);
+                $cargo->update(['estado' => $saldoRestante > 0 ? 'parcial' : 'pendiente']);
             }
 
             Auditoria::registrar('pago', $pago->id, 'anulacion', $anterior, $pago->fresh()->toArray());
 
             DB::commit();
 
-            return response()->json([
-                'message' => 'Pago anulado correctamente.',
-                'pago'    => $pago->fresh()->load('detalles.cargo'),
-            ]);
-
+            return $this->respuestaExito(
+                redirectRoute: 'pagos.show',
+                jsonData: ['pago' => $pago->fresh()->load('detalles.cargo')],
+                mensaje: "Pago {$pago->folio_recibo} anulado correctamente."
+            );
         } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Error al anular el pago: ' . $e->getMessage()], 500);
+            return $this->respuestaError('Error al anular el pago: ' . $e->getMessage());
         }
     }
 
-    /**
-     * GET /pagos/corte
-     * Resumen del día para el cajero.
-     */
-    public function corte(Request $request): JsonResponse
+    /** GET /pagos/corte */
+    public function corte(Request $request)
     {
         $fecha    = $request->get('fecha', now()->toDateString());
         $cajeroId = auth()->id();
@@ -213,20 +208,21 @@ class PagoController extends Controller
             ->get();
 
         $resumen = [
-            'fecha'          => $fecha,
-            'total_pagos'    => $pagos->count(),
-            'total_cargos'   => $pagos->sum(fn($p) => $p->detalles->count()),
-            'total_cobrado'  => $pagos->sum('monto_total'),
-            'por_forma_pago' => $pagos->groupBy('forma_pago')->map(fn($g) => [
+            'fecha'         => $fecha,
+            'total_pagos'   => $pagos->count(),
+            'total_cargos'  => $pagos->sum(fn($p) => $p->detalles->count()),
+            'total_cobrado' => $pagos->sum('monto_total'),
+            'por_forma_pago'=> $pagos->groupBy('forma_pago')->map(fn($g) => [
                 'cantidad' => $g->count(),
                 'total'    => $g->sum('monto_total'),
             ]),
         ];
 
-        return response()->json([
-            'resumen' => $resumen,
-            'pagos'   => $pagos,
-        ]);
+        if ($request->ajax()) {
+            return response()->json(['resumen' => $resumen, 'pagos' => $pagos]);
+        }
+
+        return view('pagos.corte', compact('resumen', 'pagos', 'fecha'));
     }
 
     // ── Helper ───────────────────────────────────────────
