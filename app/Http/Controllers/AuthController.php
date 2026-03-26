@@ -12,14 +12,16 @@ use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
     /** GET /login */
+    
     public function showLogin()
     {
         if (Auth::check()) {
             return redirect()->route($this->rutaPorRol(Auth::user()->rol));
         }
 
-        return view('auth.login');
+        return view('login');
     }
+    
 
     /** POST /login */
     public function login(Request $request)

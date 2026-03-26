@@ -11,7 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Alias para usar ->middleware('rol:administrador') en rutas
+    $middleware->alias([
+        'rol'               => \App\Http\Middleware\CheckRol::class,
+        'force.json.on.ajax'=> \App\Http\Middleware\ForceJsonOnAjax::class,
+    ]);
+
+    // Agregar ForceJsonOnAjax al grupo 'web' para que aplique en todas las rutas
+    $middleware->appendToGroup('web', \App\Http\Middleware\ForceJsonOnAjax::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

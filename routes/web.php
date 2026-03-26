@@ -15,9 +15,7 @@ use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('dashboard');
+
 
 Route::get('/tables', function () {return view('tables');})->name('tables');
 Route::get('/datatables', function () {return view('data');})->name('datatables');
@@ -29,7 +27,7 @@ Route::get('/widgets', function () {return view('widgets');})->name('widgets');
 // Rutas públicas — sin autenticación
 // =======================================================
 Route::middleware('guest')->group(function () {
-    Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
+    Route::get('/',  [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 });
 
