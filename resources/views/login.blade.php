@@ -39,13 +39,18 @@
         <div class="login-box-body">
             <p class="login-box-msg">Inicia sesión para comenzar</p>
 
-            <form action="{{ route('login') }}" method="post">
+            <form action="{{ route('login.submit') }}" method="post">
+                @csrf
                 <div class="form-group has-feedback">
-                    <input type="email" class="form-control" placeholder="Email">
+                    <input type="email" name="email" class="form-control" placeholder="Email"
+                        value="{{ old('email') }}">
                     <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+                    @error('email')
+                        <span class="text-danger">{{ $message }}</span>
+                    @enderror
                 </div>
                 <div class="form-group has-feedback">
-                    <label>Contraseña</label><input type="password" class="form-control" id="password"
+                    <label>Contraseña</label><input type="password" name="password" class="form-control" id="password"
                         placeholder="Contraseña">
 
                     <span class="glyphicon glyphicon-eye-open form-control-feedback toggle-password"
@@ -55,7 +60,7 @@
                     <div class="col-xs-7">
                         <div class="checkbox icheck">
                             <label>
-                                <input type="checkbox"> Recuerdame
+                                <input type="checkbox" name="remember"> Recuerdame
                             </label>
                         </div>
                     </div>
