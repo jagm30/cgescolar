@@ -76,6 +76,13 @@
                     <li><a href="{{ route('widgets') }}"><i class="fa fa-circle-o"></i> Widgets</a></li>
                 </ul>
             </li>
+            <li class="{{ request()->routeIs('prospectos.index') ? 'active' : '' }}">
+                <a href="{{route('prospectos.index')}}">
+                    <i class="fa fa-th"></i> <span>Admisiones</span>
+                    <span class="pull-right-container">
+                    </span>
+                </a>
+            </li>
         </ul>
     </section>
 </aside>
