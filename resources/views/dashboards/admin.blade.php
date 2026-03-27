@@ -195,7 +195,7 @@
                 </div>
             </a>
             <!-- /.info-box -->
-            <a href="#" class="info-box-link">
+            <a href="{{ route('familias.index') }}" class="info-box-link">
                 <div class="info-box bg-green">
                     <span class="info-box-icon"><i class="ion ion-ios-heart-outline"></i></span>
 
@@ -214,37 +214,41 @@
                 </div>
             </a>
             <!-- /.info-box -->
-            <div class="info-box bg-red">
-                <span class="info-box-icon"><i class="ion ion-ios-cloud-download-outline"></i></span>
+            <a href="#" class="info-box-link">
+                <div class="info-box bg-red">
+                    <span class="info-box-icon"><i class="ion ion-ios-cloud-download-outline"></i></span>
 
-                <div class="info-box-content">
-                    <span class="info-box-text">Reportes</span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Reportes</span>
 
-                    <div class="progress">
-                        <div class="progress-bar"></div>
+                        <div class="progress">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <span class="progress-description">
+                            Descargar reportes de cobros, alumnos, grupos,
+                        </span>
                     </div>
-                    <span class="progress-description">
-                        Descargar reportes de cobros, alumnos, grupos,
-                    </span>
+                    <!-- /.info-box-content -->
                 </div>
-                <!-- /.info-box-content -->
-            </div>
+            </a>
             <!-- /.info-box -->
-            <div class="info-box bg-aqua">
-                <span class="info-box-icon"><i class="ion-ios-chatbubble-outline"></i></span>
+            <a href="{{ route('usuarios.index') }}" class="info-box-link">
+                <div class="info-box bg-aqua">
+                    <span class="info-box-icon"><i class="ion-ios-chatbubble-outline"></i></span>
 
-                <div class="info-box-content">
-                    <span class="info-box-text">Usuarios Padres</span>
+                    <div class="info-box-content">
+                        <span class="info-box-text">Usuarios Padres</span>
 
-                    <div class="progress">
-                        <div class="progress-bar"></div>
+                        <div class="progress">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <span class="progress-description">
+                            Gestionar los usuarios de familiares
+                        </span>
                     </div>
-                    <span class="progress-description">
-                        Gestionar los usuarios de familiares
-                    </span>
+                    <!-- /.info-box-content -->
                 </div>
-                <!-- /.info-box-content -->
-            </div>
+            </a>
         </div>
         <!-- /.col -->
     </div>
