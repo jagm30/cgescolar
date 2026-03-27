@@ -5,6 +5,63 @@
         <div class="box-header with-border">
           <h3 class="box-title">Select2</h3>
 
+          <div class="box">
+    <div class="box-header">
+        <h3 class="box-title">Gestión de Ciclos Escolares</h3>
+    </div>
+    <div class="box-body">
+        <table id="example1" class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Nombre del Ciclo</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Fin</th>
+                    <th>Estado</th>
+                    <th>Editar</th>
+                    <th>Seleccionar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($ciclos as $ciclo)
+                <tr>
+                    <td>{{ $ciclo->nombre }}</td>
+                    <td>{{ $ciclo->fecha_inicio }}</td>
+                    <td>{{ $ciclo->fecha_fin }}</td>
+                    <td>
+                        <span class="label {{ $ciclo->estado == 'activo' ? 'label-success' : 'label-default' }}">
+                            {{ ucfirst($ciclo->estado) }}
+                        </span>
+                    </td>
+                    <!-- BOTÓN EDITAR (Abre el Modal) -->
+                    <td>
+                        <button type="button" 
+                                class="btn btn-block btn-primary btn-editar"
+                                data-toggle="modal" 
+                                data-target="#modal-editar"
+                                data-id="{{ $ciclo->id }}"
+                                data-nombre="{{ $ciclo->nombre }}"
+                                data-cupo="{{ $ciclo->cupo_maximo ?? 100 }}"
+                                data-estado="{{ $ciclo->estado }}">
+                            Editar
+                        </button>
+                    </td>
+                    <!-- BOTÓN SELECCIONAR (Envía el Formulario) -->
+                    <td>
+                        <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-block btn-info">
+                                Seleccionar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
           <div class="box-tools pull-right">
             <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
             <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-remove"></i></button>
