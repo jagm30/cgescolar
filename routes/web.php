@@ -171,6 +171,52 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/recepcion', fn() => view('dashboards.recepcion'))
         ->middleware('rol:administrador,recepcion')
         ->name('recepcion.dashboard');
+
+    Route::prefix('familias')->name('familias.')->group(function () {
+
+        // Gestión de acceso al portal — solo administrador
+        Route::post('contactos/{contactoId}/habilitar-portal',   [FamiliaController::class, 'habilitarPortal'])
+            ->middleware('rol:administrador')
+            ->name('contactos.habilitar-portal');
+    
+        Route::post('contactos/{contactoId}/deshabilitar-portal',[FamiliaController::class, 'deshabilitarPortal'])
+            ->middleware('rol:administrador')
+            ->name('contactos.deshabilitar-portal');
+    
+        Route::post('contactos/{contactoId}/crear-usuario',      [FamiliaController::class, 'crearUsuario'])
+            ->middleware('rol:administrador')
+            ->name('contactos.crear-usuario');
+    
+        Route::post('contactos/{contactoId}/resetear-password',  [FamiliaController::class, 'resetearPassword'])
+            ->middleware('rol:administrador')
+            ->name('contactos.resetear-password');
+    
+        // Contactos de una familia (AJAX)
+        Route::get('{id}/contactos', [FamiliaController::class, 'contactos'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos');
+    });
+        
+    // Resource de familias — admin y recepción ven, solo admin crea/edita
+    Route::resource('familias', FamiliaController::class)
+        ->middleware('rol:administrador,recepcion')
+        ->only(['index', 'show', 'create', 'store', 'edit', 'update']);
+    
+    // =======================================================
+    // Endpoints generados:
+    //
+    // GET    /familias                                    → index
+    // GET    /familias/create                             → create (solo admin)
+    // POST   /familias                                    → store  (solo admin)
+    // GET    /familias/{id}                               → show
+    // GET    /familias/{id}/edit                          → edit   (solo admin)
+    // PUT    /familias/{id}                               → update (solo admin)
+    // GET    /familias/{id}/contactos                     → contactos (AJAX)
+    // POST   /familias/contactos/{id}/habilitar-portal    → habilitarPortal
+    // POST   /familias/contactos/{id}/deshabilitar-portal → deshabilitarPortal
+    // POST   /familias/contactos/{id}/crear-usuario       → crearUsuario
+    // POST   /familias/contactos/{id}/resetear-password   → resetearPassword
+    // =======================================================
 });
 
 // =======================================================
