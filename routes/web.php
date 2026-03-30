@@ -10,6 +10,7 @@ use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\BecaController;
+use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
@@ -177,30 +178,30 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::post('contactos/{contactoId}/habilitar-portal',   [FamiliaController::class, 'habilitarPortal'])
             ->middleware('rol:administrador')
             ->name('contactos.habilitar-portal');
-    
+
         Route::post('contactos/{contactoId}/deshabilitar-portal',[FamiliaController::class, 'deshabilitarPortal'])
             ->middleware('rol:administrador')
             ->name('contactos.deshabilitar-portal');
-    
+
         Route::post('contactos/{contactoId}/crear-usuario',      [FamiliaController::class, 'crearUsuario'])
             ->middleware('rol:administrador')
             ->name('contactos.crear-usuario');
-    
+
         Route::post('contactos/{contactoId}/resetear-password',  [FamiliaController::class, 'resetearPassword'])
             ->middleware('rol:administrador')
             ->name('contactos.resetear-password');
-    
+
         // Contactos de una familia (AJAX)
         Route::get('{id}/contactos', [FamiliaController::class, 'contactos'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos');
     });
-        
+
     // Resource de familias — admin y recepción ven, solo admin crea/edita
     Route::resource('familias', FamiliaController::class)
         ->middleware('rol:administrador,recepcion')
         ->only(['index', 'show', 'create', 'store', 'edit', 'update']);
-    
+
     // =======================================================
     // Endpoints generados:
     //
