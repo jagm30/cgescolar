@@ -1,6 +1,8 @@
 <?php
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CicloEscolarController;
+use App\Http\Controllers\ConceptoController;
+use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\NivelEscolarController;
@@ -10,7 +12,6 @@ use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\BecaController;
-use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,9 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // Rutas internas — administrador, caja, recepción
 // =======================================================
 Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
+    //── Coceptos ───────────────────────────────────────────
+    Route::resource('conceptos', ConceptoController::class)
+        ->middleware('rol:administrador');
 
     // ── Ciclos ───────────────────────────────────────────
     // IMPORTANTE: rutas con segmento fijo ANTES del resource
