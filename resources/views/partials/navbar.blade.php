@@ -1,6 +1,6 @@
 <nav class="app-header navbar navbar-expand bg-body">
     <header class="main-header">
-        <a href="/" class="logo">
+        <a href="{{ auth()->user()->rutaDashboard() }}"class="logo">
             <span class="logo-mini"><b>C</b>GE</span>
             <span class="logo-lg"><b>CGes</b>Escolar</span>
         </a>
@@ -12,15 +12,23 @@
 
             <div class="navbar-custom-menu">
                 <ul class="nav navbar-nav">
-                <li><a href="#">Ciclos Escolar</a></li>
+                    <li><a href="#">Ciclos Escolar</a></li>
                     <li class="dropdown active">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ $cicloActual?->nombre ?? 'Sin ciclo' }} <span class="caret"></span></a>
+                        <a href="#" class="dropdown-toggle"
+                            data-toggle="dropdown">{{ $cicloActual?->nombre ?? 'Sin ciclo' }} <span
+                                class="caret"></span></a>
                         <ul class="dropdown-menu" role="menu">
-                            @if(auth()->check() && auth()->user()->esInterno())
+                            @if (auth()->check() && auth()->user()->esInterno())
                                 @forelse($ciclosDisponibles as $ciclo)
-                                <li value="{{ $ciclo->id }}" class="{{ $cicloActual?->id === $ciclo->id ? 'active' : '' }}"><a href="#"  class="cambiar-ciclo" data-id="{{ $ciclo->id }}" style="color:#140947;" ><b>{{ $ciclo->nombre }} ({{ ucfirst($ciclo->estado) }})</b></a></li>
+                                    <li value="{{ $ciclo->id }}"
+                                        class="{{ $cicloActual?->id === $ciclo->id ? 'active' : '' }}"><a href="#"
+                                            class="cambiar-ciclo" data-id="{{ $ciclo->id }}"
+                                            style="color:#140947;"><b>{{ $ciclo->nombre }}
+                                                ({{ ucfirst($ciclo->estado) }})
+                                            </b></a></li>
                                 @empty
-                                <li class="active"><a href="#" style="text-align: center;" >Sin ciclos activos</a></li>
+                                    <li class="active"><a href="#" style="text-align: center;">Sin ciclos
+                                            activos</a></li>
                                 @endforelse
                             @endif
                         </ul>
@@ -28,16 +36,16 @@
 
                     <li class="dropdown user user-menu">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                            <img src="{{ asset('dist/img/user2-160x160.jpg') }}" class="user-image" alt="User Image">
+                            <img src="{{ asset('dist/img/avatar5.png') }}" class="user-image" alt="User Image">
                             <span class="hidden-xs">{{ auth()->user()->name }}</span>
                         </a>
                         <ul class="dropdown-menu">
                             <li class="user-header">
-                                <img src="{{ asset('dist/img/user2-160x160.jpg') }}" class="img-circle"
-                                    alt="User Image">
+                                <img src="{{ asset('dist/img/avatar5.png') }}" class="img-circle" alt="User Image">
                                 <p>
-                                    {{ auth()->user()->name }} - {{ auth()->user()->rol }}
-                                    <small>Activo desde 2026</small>
+                                    {{ auth()->user()->nombre }}
+                                    <small>{{ auth()->user()->email }}</small>
+
                                 </p>
                             </li>
                             <li class="user-footer">
@@ -62,27 +70,27 @@
         </nav>
     </header>
 
-@push('scripts')
-<script>
-    $(document).on('click', '.cambiar-ciclo', function (e) {
-    e.preventDefault();
+    @push('scripts')
+        <script>
+            $(document).on('click', '.cambiar-ciclo', function(e) {
+                e.preventDefault();
 
-    const id     = $(this).data('id');
-    const nombre = $(this).text();
+                const id = $(this).data('id');
+                const nombre = $(this).text();
 
-    $.ajax({
-        url: '/ciclos/'+id+'/seleccionar',
-        method: 'POST',
-        data: {
-            _token: $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function (response) {
-            location.reload();
-        },
-        error: function (xhr) {
-            alert(xhr.responseJSON?.message ?? 'Error al cambiar de ciclo.');
-        }
-    });
-});
-</script>
-@endpush
+                $.ajax({
+                    url: '/ciclos/' + id + '/seleccionar',
+                    method: 'POST',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        alert(xhr.responseJSON?.message ?? 'Error al cambiar de ciclo.');
+                    }
+                });
+            });
+        </script>
+    @endpush
