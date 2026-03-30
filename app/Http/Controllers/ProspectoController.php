@@ -16,20 +16,20 @@ class ProspectoController extends Controller
 {
     use RespondsWithJson;
 
-    /** GET /prospectos */
     public function index(Request $request)
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
+        $cicloId = $request->get('ciclo_id')
+            ?? auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $prospectos = Prospecto::with(['nivelInteres', 'responsable', 'alumno'])
+        $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'responsable', 'alumno'])
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('etapa'),      fn($q) => $q->where('etapa', $request->etapa))
+            ->when($request->filled('etapa'), fn($q) => $q->where('etapa', $request->etapa))
             ->when($request->filled('en_proceso'), fn($q) => $q->enProceso())
-            ->when($request->filled('buscar'),     fn($q) => $q->where(function ($q) use ($request) {
+            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
-                  ->orWhere('contacto_nombre', 'like', "%{$request->buscar}%")
-                  ->orWhere('contacto_telefono', 'like', "%{$request->buscar}%");
+                    ->orWhere('contacto_nombre', 'like', "%{$request->buscar}%")
+                    ->orWhere('contacto_telefono', 'like', "%{$request->buscar}%");
             }))
             ->orderByDesc('fecha_primer_contacto')
             ->paginate($request->get('per_page', 20));
@@ -38,12 +38,12 @@ class ProspectoController extends Controller
             return response()->json($prospectos);
         }
 
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
         $niveles = NivelEscolar::activo()->get();
 
-        return view('prospectos.index', compact('prospectos', 'niveles'));
+        return view('prospectos.index', compact('prospectos', 'niveles', 'ciclos', 'cicloId'));
     }
 
-    /** GET /prospectos/{id} */
     public function show(int $id)
     {
         $prospecto = Prospecto::with([
@@ -58,63 +58,57 @@ class ProspectoController extends Controller
         return view('prospectos.show', compact('prospecto'));
     }
 
-    /** GET /prospectos/create */
     public function create()
     {
         $niveles = NivelEscolar::activo()->get();
-        $ciclos  = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
 
         return view('prospectos.create', compact('niveles', 'ciclos'));
     }
 
-    /** POST /prospectos */
     public function store(StoreProspectoRequest $request)
     {
         $data = array_merge($request->validated(), [
             'responsable_id' => auth()->id(),
-            'etapa'          => 'prospecto',
-            'ciclo_id'       => $request->ciclo_id
-                ?? CicloEscolar::activo()->value('id'),
+            'etapa' => 'prospecto',
+            'ciclo_id' => $request->ciclo_id ?? CicloEscolar::activo()->value('id'),
         ]);
 
         $prospecto = Prospecto::create($data);
 
         SeguimientoAdmision::create([
             'prospecto_id' => $prospecto->id,
-            'usuario_id'   => auth()->id(),
-            'fecha'        => now()->toDateString(),
-            'tipo_accion'  => 'nota',
-            'notas'        => 'Registro inicial del prospecto.',
+            'usuario_id' => auth()->id(),
+            'fecha' => now()->toDateString(),
+            'tipo_accion' => 'nota',
+            'notas' => 'Registro inicial del prospecto.',
         ]);
 
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
             jsonData: ['prospecto' => $prospecto->load(['nivelInteres', 'responsable'])],
             mensaje: "Prospecto '{$prospecto->nombre}' registrado correctamente.",
-            jsonStatus: 201
+            jsonStatus: 201,
+            routeParams: ['prospecto' => $prospecto->id]
         );
     }
 
-    /**
-     * POST /prospectos/{id}/etapa
-     * Cambia la etapa y registra seguimiento automático.
-     */
     public function cambiarEtapa(UpdateProspectoEtapaRequest $request, int $id)
     {
         $prospecto = Prospecto::findOrFail($id);
-        $anterior  = $prospecto->toArray();
+        $anterior = $prospecto->toArray();
 
         $prospecto->update([
-            'etapa'                => $request->etapa,
+            'etapa' => $request->etapa,
             'motivo_no_concrecion' => $request->motivo_no_concrecion ?? $prospecto->motivo_no_concrecion,
         ]);
 
         SeguimientoAdmision::create([
             'prospecto_id' => $prospecto->id,
-            'usuario_id'   => auth()->id(),
-            'fecha'        => now()->toDateString(),
-            'tipo_accion'  => 'cambio_etapa',
-            'notas'        => "Cambio: {$anterior['etapa']} → {$request->etapa}. {$request->notas}",
+            'usuario_id' => auth()->id(),
+            'fecha' => now()->toDateString(),
+            'tipo_accion' => 'cambio_etapa',
+            'notas' => "Cambio: {$anterior['etapa']} -> {$request->etapa}. {$request->notas}",
         ]);
 
         Auditoria::registrar('prospecto', $prospecto->id, 'update', $anterior, $prospecto->fresh()->toArray());
@@ -122,38 +116,39 @@ class ProspectoController extends Controller
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
             jsonData: ['prospecto' => $prospecto->fresh()->load(['nivelInteres', 'seguimientos.usuario'])],
-            mensaje: "Etapa actualizada a '{$request->etapa}' correctamente."
+            mensaje: "Etapa actualizada a '{$request->etapa}' correctamente.",
+            routeParams: ['prospecto' => $prospecto->id]
         );
     }
 
-    /** POST /prospectos/{id}/seguimiento */
     public function agregarSeguimiento(Request $request, int $id)
     {
         $prospecto = Prospecto::findOrFail($id);
 
         $data = $request->validate([
             'tipo_accion' => ['required', 'in:llamada,visita,email,cambio_etapa,nota'],
-            'notas'       => ['required', 'string', 'min:5', 'max:1000'],
-            'fecha'       => ['required', 'date'],
+            'notas' => ['required', 'string', 'min:5', 'max:1000'],
+            'fecha' => ['required', 'date'],
         ]);
 
         $seguimiento = SeguimientoAdmision::create(array_merge($data, [
             'prospecto_id' => $prospecto->id,
-            'usuario_id'   => auth()->id(),
+            'usuario_id' => auth()->id(),
         ]));
 
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
             jsonData: ['seguimiento' => $seguimiento->load('usuario')],
             mensaje: 'Seguimiento registrado correctamente.',
-            jsonStatus: 201
+            jsonStatus: 201,
+            routeParams: ['prospecto' => $prospecto->id]
         );
     }
 
-    /** GET /prospectos/metricas */
     public function metricas(Request $request)
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
+        $cicloId = $request->get('ciclo_id')
+            ?? auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
         $porEtapa = Prospecto::where('ciclo_id', $cicloId)
@@ -166,23 +161,25 @@ class ProspectoController extends Controller
             ->groupBy('canal_contacto')
             ->pluck('total', 'canal_contacto');
 
-        $totalInscritos  = $porEtapa['inscrito'] ?? 0;
+        $totalInscritos = $porEtapa['inscrito'] ?? 0;
         $totalProspectos = $porEtapa->sum();
-        $tasaConversion  = $totalProspectos > 0
+        $tasaConversion = $totalProspectos > 0
             ? round(($totalInscritos / $totalProspectos) * 100, 1) : 0;
 
         $datos = [
-            'por_etapa'        => $porEtapa,
-            'por_canal'        => $porCanal,
+            'por_etapa' => $porEtapa,
+            'por_canal' => $porCanal,
             'total_prospectos' => $totalProspectos,
-            'total_inscritos'  => $totalInscritos,
-            'tasa_conversion'  => $tasaConversion . '%',
+            'total_inscritos' => $totalInscritos,
+            'tasa_conversion' => $tasaConversion . '%',
         ];
 
         if ($request->ajax()) {
             return response()->json($datos);
         }
 
-        return view('prospectos.metricas', compact('datos'));
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+
+        return view('prospectos.metricas', compact('datos', 'ciclos', 'cicloId'));
     }
 }
