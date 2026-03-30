@@ -1,390 +1,304 @@
 @extends('layouts.master')
+
+@section('page_title', 'Prospectos')
+@section('page_subtitle', 'Control de admisiones')
+
 @section('content')
-<!-- SELECT2 EXAMPLE -->
-<div class="box box-default">
+    @php
+        $etapas = [
+            'prospecto' => 'Prospecto',
+            'cita' => 'Cita',
+            'visita' => 'Visita',
+            'documentacion' => 'Documentacion',
+            'aceptado' => 'Aceptado',
+            'inscrito' => 'Inscrito',
+            'no_concretado' => 'No concretado',
+        ];
+
+        $badges = [
+            'prospecto' => 'bg-light-blue',
+            'cita' => 'bg-aqua',
+            'visita' => 'bg-teal',
+            'documentacion' => 'bg-yellow',
+            'aceptado' => 'bg-green',
+            'inscrito' => 'bg-navy',
+            'no_concretado' => 'bg-red',
+        ];
+    @endphp
+
+    @if (session('success'))
+        <div class="alert alert-success">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <strong>Hay errores en el formulario.</strong>
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <div class="row">
+        <div class="col-md-3 col-sm-6 col-xs-12">
+            <div class="info-box">
+                <span class="info-box-icon bg-aqua"><i class="fa fa-users"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total</span>
+                    <span class="info-box-number">{{ $prospectos->total() }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-xs-12">
+            <div class="info-box">
+                <span class="info-box-icon bg-green"><i class="fa fa-list"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">En pagina</span>
+                    <span class="info-box-number">{{ $prospectos->count() }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-xs-12">
+            <div class="info-box">
+                <span class="info-box-icon bg-yellow"><i class="fa fa-filter"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Filtro etapa</span>
+                    <span class="info-box-number">{{ request('etapa') ? ($etapas[request('etapa')] ?? request('etapa')) : 'Todas' }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-xs-12">
+            <div class="info-box">
+                <span class="info-box-icon bg-purple"><i class="fa fa-bar-chart"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Metricas</span>
+                    <span class="info-box-number"><a href="{{ route('prospectos.metricas', ['ciclo_id' => $cicloId]) }}" class="text-black">Ver reporte</a></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="box box-primary">
         <div class="box-header with-border">
-          <h3 class="box-title">Select2</h3>
-
-          <div class="box-tools pull-right">
-            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-remove"></i></button>
-          </div>
-        </div>
-        <!-- /.box-header -->
-        <div class="box-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Minimal</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled</label>
-                <select class="form-control select2" disabled="disabled" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
+            <h3 class="box-title">Tabla de prospectos</h3>
+            <div class="box-tools pull-right">
+                <a href="{{ route('prospectos.create') }}" class="btn btn-primary btn-sm">
+                    <i class="fa fa-plus"></i> Nuevo prospecto
+                </a>
+                <a href="{{ route('prospectos.metricas', ['ciclo_id' => $cicloId]) }}" class="btn btn-default btn-sm">
+                    <i class="fa fa-line-chart"></i> Metricas
+                </a>
             </div>
-            <!-- /.col -->
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Multiple</label>
-                <select class="form-control select2" multiple="multiple" data-placeholder="Select a State"
-                        style="width: 100%;">
-                  <option>Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled Result</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option disabled="disabled">California (disabled)</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-          </div>
-          <!-- /.row -->
         </div>
-        <!-- /.box-body -->
-        <div class="box-footer">
-          Visit <a href="https://select2.github.io/">Select2 documentation</a> for more examples and information about
-          the plugin.
-        </div>
-      </div>
 
-      <div class="row">
-        <div class="col-md-6">
-
-          <div class="box box-danger">
-            <div class="box-header">
-              <h3 class="box-title">Input masks</h3>
-            </div>
+        <form method="GET" action="{{ route('prospectos.index') }}">
             <div class="box-body">
-              <!-- Date dd/mm/yyyy -->
-              <div class="form-group">
-                <label>Date masks:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date mm/dd/yyyy -->
-              <div class="form-group">
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'mm/dd/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask='"mask": "(999) 999-9999"' data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>Intl US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control"
-                         data-inputmask="'mask': ['999-999-9999 [x99999]', '+099 99 99 9999[9]-9999']" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- IP mask -->
-              <div class="form-group">
-                <label>IP mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-laptop"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'ip'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-          <div class="box box-info">
-            <div class="box-header">
-              <h3 class="box-title">Color & Time Picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker:</label>
-                <input type="text" class="form-control my-colorpicker1">
-              </div>
-              <!-- /.form group -->
-
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker with addon:</label>
-
-                <div class="input-group my-colorpicker2">
-                  <input type="text" class="form-control">
-
-                  <div class="input-group-addon">
-                    <i></i>
-                  </div>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- time Picker -->
-              <div class="bootstrap-timepicker">
-                <div class="form-group">
-                  <label>Time picker:</label>
-
-                  <div class="input-group">
-                    <input type="text" class="form-control timepicker">
-
-                    <div class="input-group-addon">
-                      <i class="fa fa-clock-o"></i>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="buscar">Buscar</label>
+                            <input type="text" class="form-control" id="buscar" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre, contacto o telefono">
+                        </div>
                     </div>
-                  </div>
-                  <!-- /.input group -->
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="ciclo_id">Ciclo</label>
+                            <select class="form-control" id="ciclo_id" name="ciclo_id">
+                                @foreach ($ciclos as $ciclo)
+                                    <option value="{{ $ciclo->id }}" {{ (string) $cicloId === (string) $ciclo->id ? 'selected' : '' }}>
+                                        {{ $ciclo->nombre }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="etapa">Etapa</label>
+                            <select class="form-control" id="etapa" name="etapa">
+                                <option value="">Todas</option>
+                                @foreach ($etapas as $valor => $etiqueta)
+                                    <option value="{{ $valor }}" {{ request('etapa') === $valor ? 'selected' : '' }}>{{ $etiqueta }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="en_proceso">Estado</label>
+                            <select class="form-control" id="en_proceso" name="en_proceso">
+                                <option value="">Todos</option>
+                                <option value="1" {{ request('en_proceso') ? 'selected' : '' }}>En proceso</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label for="per_page">Por pagina</label>
+                            <select class="form-control" id="per_page" name="per_page">
+                                @foreach ([10, 20, 50] as $size)
+                                    <option value="{{ $size }}" {{ (int) request('per_page', 20) === $size ? 'selected' : '' }}>{{ $size }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-default btn-block">Ir</button>
+                        </div>
+                    </div>
                 </div>
-                <!-- /.form group -->
-              </div>
             </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
+        </form>
 
+        <div class="box-body table-responsive no-padding">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Prospecto</th>
+                        <th>Contacto</th>
+                        <th>Nivel</th>
+                        <th>Canal</th>
+                        <th>Ciclo</th>
+                        <th>Etapa</th>
+                        <th>Fecha</th>
+                        <th>Responsable</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($prospectos as $prospecto)
+                        <tr>
+                            <td>
+                                <strong>{{ $prospecto->nombre }}</strong><br>
+                                <small class="text-muted">{{ optional($prospecto->fecha_nacimiento)->format('d/m/Y') ?: 'Sin fecha de nacimiento' }}</small>
+                            </td>
+                            <td>
+                                {{ $prospecto->contacto_nombre }}<br>
+                                <small>{{ $prospecto->contacto_telefono }}</small><br>
+                                <small class="text-muted">{{ $prospecto->contacto_email ?: 'Sin correo' }}</small>
+                            </td>
+                            <td>{{ optional($prospecto->nivelInteres)->nombre ?: 'Sin definir' }}</td>
+                            <td>{{ $prospecto->canal_contacto ? ucfirst(str_replace('_', ' ', $prospecto->canal_contacto)) : 'Sin canal' }}</td>
+                            <td>{{ optional($prospecto->ciclo)->nombre ?: 'Sin ciclo' }}</td>
+                            <td>
+                                <span class="label {{ $badges[$prospecto->etapa] ?? 'bg-gray' }}">
+                                    {{ $etapas[$prospecto->etapa] ?? $prospecto->etapa }}
+                                </span>
+                            </td>
+                            <td>{{ optional($prospecto->fecha_primer_contacto)->format('d/m/Y') ?: '-' }}</td>
+                            <td>{{ optional($prospecto->responsable)->nombre ?: 'Sin asignar' }}</td>
+                            <td class="text-right">
+                                <a href="{{ route('prospectos.show', $prospecto->id) }}" class="btn btn-xs btn-info">Ver detalle</a>
+                                <button
+                                    type="button"
+                                    class="btn btn-xs btn-warning"
+                                    data-toggle="modal"
+                                    data-target="#modalEtapa"
+                                    data-id="{{ $prospecto->id }}"
+                                    data-nombre="{{ $prospecto->nombre }}"
+                                    data-etapa="{{ $prospecto->etapa }}"
+                                    data-motivo="{{ $prospecto->motivo_no_concrecion }}">
+                                    Cambiar etapa
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" class="text-center text-muted" style="padding: 30px;">
+                                No hay prospectos registrados con los filtros actuales.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-        <!-- /.col (left) -->
-        <div class="col-md-6">
-          <div class="box box-primary">
-            <div class="box-header">
-              <h3 class="box-title">Date picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Date -->
-              <div class="form-group">
-                <label>Date:</label>
 
-                <div class="input-group date">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="datepicker">
+        @if ($prospectos->hasPages())
+            <div class="box-footer clearfix">
+                {{ $prospectos->appends(request()->query())->links() }}
+            </div>
+        @endif
+    </div>
+
+    <div class="modal fade" id="modalEtapa" tabindex="-1" role="dialog" aria-labelledby="modalEtapaLabel">
+        <div class="modal-dialog" role="document">
+            <form method="POST" id="formCambiarEtapa">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="modalEtapaLabel">Cambiar etapa</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>Prospecto: <strong id="modalProspectoNombre">-</strong></p>
+                        <div class="form-group">
+                            <label for="modal_etapa">Nueva etapa</label>
+                            <select class="form-control" id="modal_etapa" name="etapa" required>
+                                @foreach ($etapas as $valor => $etiqueta)
+                                    <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal_notas">Notas</label>
+                            <textarea class="form-control" id="modal_notas" name="notas" rows="4" required placeholder="Describe el motivo del cambio"></textarea>
+                        </div>
+                        <div class="form-group" id="contenedorMotivoNoConcrecion" style="display: none;">
+                            <label for="modal_motivo_no_concrecion">Motivo no concrecion</label>
+                            <textarea class="form-control" id="modal_motivo_no_concrecion" name="motivo_no_concrecion" rows="3" placeholder="Indica por que no se concreto"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">Guardar cambio</button>
+                    </div>
                 </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date range -->
-              <div class="form-group">
-                <label>Date range:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservation">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date and time range:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-clock-o"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservationtime">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date range button:</label>
-
-                <div class="input-group">
-                  <button type="button" class="btn btn-default pull-right" id="daterange-btn">
-                    <span>
-                      <i class="fa fa-calendar"></i> Date range picker
-                    </span>
-                    <i class="fa fa-caret-down"></i>
-                  </button>
-                </div>
-              </div>
-              <!-- /.form group -->
-
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-          <!-- iCheck -->
-          <div class="box box-success">
-            <div class="box-header">
-              <h3 class="box-title">iCheck - Checkbox &amp; Radio Inputs</h3>
-            </div>
-            <div class="box-body">
-              <!-- Minimal style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal" disabled>
-                  Minimal skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r1" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal">
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal" disabled>
-                  Minimal skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red" disabled>
-                  Minimal red skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red">
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" disabled>
-                  Minimal red skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red" disabled>
-                  Flat green skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r3" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red">
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red" disabled>
-                  Flat green skin radio
-                </label>
-              </div>
-            </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
-              Many more skins available. <a href="http://fronteed.com/iCheck/">Documentation</a>
-            </div>
-          </div>
-          <!-- /.box -->
+            </form>
         </div>
-        <!-- /.col (right) -->
-      </div>
+    </div>
 @endsection
+
+@push('scripts')
+    <script>
+        $(function () {
+            var modal = $('#modalEtapa');
+            var form = $('#formCambiarEtapa');
+            var etapaSelect = $('#modal_etapa');
+            var motivoGroup = $('#contenedorMotivoNoConcrecion');
+            var motivoInput = $('#modal_motivo_no_concrecion');
+
+            function toggleMotivo() {
+                var mostrar = etapaSelect.val() === 'no_concretado';
+                motivoGroup.toggle(mostrar);
+                motivoInput.prop('required', mostrar);
+            }
+
+            modal.on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+
+                form.attr('action', '{{ url('prospectos') }}/' + button.data('id') + '/etapa');
+                $('#modalProspectoNombre').text(button.data('nombre'));
+                etapaSelect.val(button.data('etapa'));
+                motivoInput.val(button.data('motivo') || '');
+                $('#modal_notas').val('');
+                toggleMotivo();
+            });
+
+            etapaSelect.on('change', toggleMotivo);
+        });
+    </script>
+@endpush
