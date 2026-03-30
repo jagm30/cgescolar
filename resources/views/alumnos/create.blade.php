@@ -1,4 +1,6 @@
 @extends('layouts.master')
+@section('page_title', 'Alumnos')
+@section('page_subtitle', 'Control de alumnos')
 @section('content')
 <!-- SELECT2 EXAMPLE -->
 <div class="box box-default">
