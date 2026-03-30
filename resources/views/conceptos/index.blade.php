@@ -6,6 +6,7 @@
             <h3 class="box-title">Listado de Conceptos</h3>
             <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modalNuevoConcepto">
                 <i class="fa fa-plus"></i> Nuevo Concepto
+            </button>
         </div>
         <div class="box-body">
             <table id="example1" class="table table-bordered table-striped">
@@ -65,7 +66,7 @@
 
                     <div class="form-group">
                         <label><i class="fa fa-list"></i> Tipo</label>
-                        <select name="tipo" class="form-control" required>
+                        <select name="tipo" id="select-tipo" class="form-control" required>
                             <option value="">Seleccione un tipo...</option>
                             <option value="colegiatura"> Colegiatura</option>
                             <option value="inscripcion">Inscripción</option>
@@ -76,7 +77,7 @@
 
                     <div class="form-group">
                         <label><i class="fa fa-key"></i> Clave SAT</label>
-                        <input type="text" name="clave_sat" class="form-control"
+                        <input type="text" name="clave_sat" class="form-control" maxlength="8"
                             placeholder="Clave de producto o servicio">
                     </div>
                 </div>
@@ -133,16 +134,13 @@
 
     <script>
         $(document).ready(function() {
+            // 1. Inicializar DataTable
             $('#example1').DataTable();
-        });
-    </script>
-    <script>
-        $(document).ready(function() {
-            // Escuchamos cuando el select cambie
+
+            // 2. Lógica del select-tipo
             $('#select-tipo').on('change', function() {
                 let valorSeleccionado = $(this).val();
 
-                // Si es colegiatura, marcamos el check, si no, lo desmarcamos
                 if (valorSeleccionado === 'colegiatura') {
                     $('#check-beca').prop('checked', true);
                 } else {

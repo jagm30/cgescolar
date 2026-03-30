@@ -12,7 +12,6 @@ use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\BecaController;
-use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
