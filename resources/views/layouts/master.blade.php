@@ -55,7 +55,7 @@
     <script src="{{ asset('bower_components/jquery-slimscroll/jquery.slimscroll.min.js') }}"></script>
 
     @stack('scripts')
-
+    <x-toast />
 </body>
 
 </html>

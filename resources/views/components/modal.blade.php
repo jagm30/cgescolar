@@ -18,10 +18,6 @@
                 <div class="modal-footer">
                     {{ $footer }}
                 </div>
-            @else
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-                </div>
             @endisset
         </div>
     </div>
