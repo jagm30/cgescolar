@@ -1,390 +1,247 @@
 @extends('layouts.master')
+
+@section('page_title', 'Alumnos')
+@section('page_subtitle', 'Lista de alumnos inscritos')
+
 @section('content')
-<!-- SELECT2 EXAMPLE -->
+
+{{-- ── Filtros ── --}}
 <div class="box box-default">
-        <div class="box-header with-border">
-          <h3 class="box-title">Select2</h3>
-
-          <div class="box-tools pull-right">
-            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-remove"></i></button>
-          </div>
+    <div class="box-header with-border">
+        <h3 class="box-title"><i class="fa fa-filter"></i> Filtros</h3>
+        <div class="box-tools pull-right">
+            <button type="button" class="btn btn-box-tool" data-widget="collapse">
+                <i class="fa fa-minus"></i>
+            </button>
         </div>
-        <!-- /.box-header -->
-        <div class="box-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Minimal</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled</label>
-                <select class="form-control select2" disabled="disabled" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Multiple</label>
-                <select class="form-control select2" multiple="multiple" data-placeholder="Select a State"
-                        style="width: 100%;">
-                  <option>Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled Result</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option disabled="disabled">California (disabled)</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-          </div>
-          <!-- /.row -->
-        </div>
-        <!-- /.box-body -->
-        <div class="box-footer">
-          Visit <a href="https://select2.github.io/">Select2 documentation</a> for more examples and information about
-          the plugin.
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-6">
-
-          <div class="box box-danger">
-            <div class="box-header">
-              <h3 class="box-title">Input masks</h3>
-            </div>
-            <div class="box-body">
-              <!-- Date dd/mm/yyyy -->
-              <div class="form-group">
-                <label>Date masks:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date mm/dd/yyyy -->
-              <div class="form-group">
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'mm/dd/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask='"mask": "(999) 999-9999"' data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>Intl US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control"
-                         data-inputmask="'mask': ['999-999-9999 [x99999]', '+099 99 99 9999[9]-9999']" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- IP mask -->
-              <div class="form-group">
-                <label>IP mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-laptop"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'ip'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-          <div class="box box-info">
-            <div class="box-header">
-              <h3 class="box-title">Color & Time Picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker:</label>
-                <input type="text" class="form-control my-colorpicker1">
-              </div>
-              <!-- /.form group -->
-
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker with addon:</label>
-
-                <div class="input-group my-colorpicker2">
-                  <input type="text" class="form-control">
-
-                  <div class="input-group-addon">
-                    <i></i>
-                  </div>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- time Picker -->
-              <div class="bootstrap-timepicker">
-                <div class="form-group">
-                  <label>Time picker:</label>
-
-                  <div class="input-group">
-                    <input type="text" class="form-control timepicker">
-
-                    <div class="input-group-addon">
-                      <i class="fa fa-clock-o"></i>
+    </div>
+    <div class="box-body">
+        <form method="GET" action="{{ route('alumnos.index') }}" id="form-filtros">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Buscar</label>
+                        <input type="text"
+                               name="buscar"
+                               class="form-control"
+                               placeholder="Nombre, matrícula o CURP..."
+                               value="{{ request('buscar') }}">
                     </div>
-                  </div>
-                  <!-- /.input group -->
                 </div>
-                <!-- /.form group -->
-              </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Nivel</label>
+                        <select name="nivel_id" class="form-control">
+                            <option value="">-- Todos los niveles --</option>
+                            @foreach($niveles as $nivel)
+                                <option value="{{ $nivel->id }}"
+                                    {{ request('nivel_id') == $nivel->id ? 'selected' : '' }}>
+                                    {{ $nivel->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>Grupo</label>
+                        <select name="grupo_id" class="form-control">
+                            <option value="">-- Todos los grupos --</option>
+                            @foreach($grupos as $grupo)
+                                <option value="{{ $grupo->id }}"
+                                    {{ request('grupo_id') == $grupo->id ? 'selected' : '' }}>
+                                    {{ $grupo->grado->nombre }}° {{ $grupo->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <select name="estado" class="form-control">
+                            <option value="">-- Todos --</option>
+                            <option value="activo"          {{ request('estado') === 'activo'          ? 'selected' : '' }}>Activo</option>
+                            <option value="baja_temporal"   {{ request('estado') === 'baja_temporal'   ? 'selected' : '' }}>Baja temporal</option>
+                            <option value="baja_definitiva" {{ request('estado') === 'baja_definitiva' ? 'selected' : '' }}>Baja definitiva</option>
+                            <option value="egresado"        {{ request('estado') === 'egresado'        ? 'selected' : '' }}>Egresado</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
+            <div class="row">
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fa fa-search"></i> Buscar
+                    </button>
+                    <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-sm">
+                        <i class="fa fa-times"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
+{{-- ── Tabla de alumnos ── --}}
+<div class="box box-primary">
+    <div class="box-header with-border">
+        <h3 class="box-title">
+            <i class="fa fa-users"></i>
+            Alumnos
+            <span class="badge bg-blue">{{ $alumnos->total() }}</span>
+        </h3>
+        <div class="box-tools pull-right">
+            @if(auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+            <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm">
+                <i class="fa fa-plus"></i> Registrar alumno
+            </a>
+            @endif
         </div>
-        <!-- /.col (left) -->
-        <div class="col-md-6">
-          <div class="box box-primary">
-            <div class="box-header">
-              <h3 class="box-title">Date picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Date -->
-              <div class="form-group">
-                <label>Date:</label>
+    </div>
+    <div class="box-body table-responsive no-padding">
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th style="width:60px;">Foto</th>
+                    <th>Matrícula</th>
+                    <th>Nombre completo</th>
+                    <th>Nivel / Grupo</th>
+                    <th>Familia</th>
+                    <th style="width:80px;">Estado</th>
+                    <th style="width:120px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($alumnos as $alumno)
+                    @php
+                        $inscripcion = $alumno->inscripciones->first();
+                    @endphp
+                    <tr>
+                        {{-- Foto --}}
+                        <td>
+                            @if($alumno->foto_url)
+                                <img src="{{ asset('storage/' . $alumno->foto_url) }}"
+                                     style="width:38px; height:38px; object-fit:cover; border-radius:50%; border:1px solid #ddd;"
+                                     alt="Foto">
+                            @else
+                                <div style="width:38px; height:38px; border-radius:50%; background:#ecf0f1; display:flex; align-items:center; justify-content:center; border:1px solid #ddd;">
+                                    <i class="fa fa-user" style="color:#bdc3c7; font-size:16px;"></i>
+                                </div>
+                            @endif
+                        </td>
 
-                <div class="input-group date">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="datepicker">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
+                        {{-- Matrícula --}}
+                        <td>
+                            <code>{{ $alumno->matricula }}</code>
+                        </td>
 
-              <!-- Date range -->
-              <div class="form-group">
-                <label>Date range:</label>
+                        {{-- Nombre --}}
+                        <td>
+                            <strong>{{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}</strong><br>
+                            <small class="text-muted">{{ $alumno->nombre }}</small>
+                        </td>
 
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservation">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
+                        {{-- Nivel / Grupo --}}
+                        <td>
+                            @if($inscripcion)
+                                <span class="label label-default">
+                                    {{ $inscripcion->grupo->grado->nivel->nombre }}
+                                </span>
+                                {{ $inscripcion->grupo->grado->nombre }}°
+                                <strong>{{ $inscripcion->grupo->nombre }}</strong>
+                            @else
+                                <span class="text-muted">Sin inscripción</span>
+                            @endif
+                        </td>
 
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date and time range:</label>
+                        {{-- Familia --}}
+                        <td>
+                            @if($alumno->familia)
+                                <small>{{ $alumno->familia->apellido_familia }}</small>
+                            @else
+                                <small class="text-muted">—</small>
+                            @endif
+                        </td>
 
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-clock-o"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservationtime">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
+                        {{-- Estado --}}
+                        <td>
+                            @switch($alumno->estado)
+                                @case('activo')
+                                    <span class="label label-success">Activo</span>
+                                    @break
+                                @case('baja_temporal')
+                                    <span class="label label-warning">Baja temporal</span>
+                                    @break
+                                @case('baja_definitiva')
+                                    <span class="label label-danger">Baja</span>
+                                    @break
+                                @case('egresado')
+                                    <span class="label label-info">Egresado</span>
+                                    @break
+                                @default
+                                    <span class="label label-default">{{ $alumno->estado }}</span>
+                            @endswitch
+                        </td>
 
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date range button:</label>
+                        {{-- Acciones --}}
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ route('alumnos.show', $alumno->id) }}"
+                                   class="btn btn-default btn-xs"
+                                   title="Ver detalle">
+                                    <i class="fa fa-eye"></i>
+                                </a>
+                                @if(auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                                <a href="{{ route('alumnos.edit', $alumno->id) }}"
+                                   class="btn btn-primary btn-xs"
+                                   title="Editar">
+                                    <i class="fa fa-pencil"></i>
+                                </a>
+                                @endif
+                                @if(auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                                <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                                   class="btn btn-warning btn-xs"
+                                   title="Estado de cuenta">
+                                    <i class="fa fa-dollar"></i>
+                                </a>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center" style="padding:30px;">
+                            <i class="fa fa-users" style="font-size:32px; color:#ddd;"></i>
+                            <p class="text-muted" style="margin-top:8px;">
+                                No se encontraron alumnos
+                                @if(request()->anyFilled(['buscar','nivel_id','grupo_id','estado']))
+                                    con los filtros aplicados.
+                                    <a href="{{ route('alumnos.index') }}">Limpiar filtros</a>
+                                @else
+                                    registrados en este ciclo.
+                                @endif
+                            </p>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 
-                <div class="input-group">
-                  <button type="button" class="btn btn-default pull-right" id="daterange-btn">
-                    <span>
-                      <i class="fa fa-calendar"></i> Date range picker
-                    </span>
-                    <i class="fa fa-caret-down"></i>
-                  </button>
-                </div>
-              </div>
-              <!-- /.form group -->
-
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-          <!-- iCheck -->
-          <div class="box box-success">
-            <div class="box-header">
-              <h3 class="box-title">iCheck - Checkbox &amp; Radio Inputs</h3>
-            </div>
-            <div class="box-body">
-              <!-- Minimal style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal" disabled>
-                  Minimal skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r1" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal">
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal" disabled>
-                  Minimal skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red" disabled>
-                  Minimal red skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red">
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" disabled>
-                  Minimal red skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red" disabled>
-                  Flat green skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r3" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red">
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red" disabled>
-                  Flat green skin radio
-                </label>
-              </div>
-            </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
-              Many more skins available. <a href="http://fronteed.com/iCheck/">Documentation</a>
-            </div>
-          </div>
-          <!-- /.box -->
+    {{-- Paginación --}}
+    @if($alumnos->hasPages())
+    <div class="box-footer clearfix">
+        <div class="pull-left text-muted" style="padding-top:6px;">
+            Mostrando {{ $alumnos->firstItem() }}–{{ $alumnos->lastItem() }}
+            de {{ $alumnos->total() }} alumnos
         </div>
-        <!-- /.col (right) -->
-      </div>
+        <div class="pull-right">
+            {{ $alumnos->appends(request()->query())->links() }}
+        </div>
+    </div>
+    @endif
+
+</div>{{-- /.box --}}
+
 @endsection

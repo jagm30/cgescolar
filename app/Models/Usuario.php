@@ -102,14 +102,4 @@ class Usuario extends Authenticatable
             ?->alumnos()
             ?? collect();
     }
-    public function rutaDashboard(): string
-    {
-    return match($this->rol) {
-        'administrador' => route('admin.dashboard'),
-        'caja'          => route('caja.dashboard'),
-        'recepcion'     => route('recepcion.dashboard'),
-        default         => url('/'), // Una ruta por defecto por si acaso
-        };
-    }
-    
 }
