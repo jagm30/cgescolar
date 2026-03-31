@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Alumnos')
-@section('page_subtitle', 'Lista de alumnos inscritos')
+@section('page_subtitle', 'Alumnos inscritos')
 
 @section('content')
 
