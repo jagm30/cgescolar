@@ -16,6 +16,7 @@ use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ConceptoCobroController;
 
 
 
@@ -42,9 +43,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // Rutas internas — administrador, caja, recepción
 // =======================================================
 Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
-    //── Coceptos ───────────────────────────────────────────
-    Route::resource('conceptos', ConceptoController::class)
-        ->middleware('rol:administrador');
+
 
     // ── Ciclos ───────────────────────────────────────────
     // IMPORTANTE: rutas con segmento fijo ANTES del resource
@@ -85,6 +84,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion');
 
+    // conceptos de cobro 
+    Route::resource('conceptos', ConceptoCobroController::class)
+    ->middleware('rol:administrador');
     // ── Planes de pago ───────────────────────────────────
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')

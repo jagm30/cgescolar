@@ -1,5 +1,6 @@
 @extends('layouts.master')
-@section('page_title', 'Conceptos') {{-- Esto llenará el <title> y el <h1> --}}
+@section('page_title', 'Conceptos')
+
 @section('content')
     <div class="box">
         <div class="box-header">
@@ -9,6 +10,63 @@
             </button>
         </div>
         <div class="box-body">
+
+            <div
+                style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #3c8dbc;">
+                <form method="GET" action="{{ route('conceptos.index') }}">
+                    <div class="row">
+                        {{-- Mostrar N registros --}}
+                        <div class="col-md-2">
+                            <select name="mostrar" class="form-control" title="Registros por página">
+                                <option value="10" {{ request('mostrar', '10') == '10' ? 'selected' : '' }}>10 filas
+                                </option>
+                                <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25 filas</option>
+                                <option value="50" {{ request('mostrar') == '50' ? 'selected' : '' }}>50 filas</option>
+                                <option value="-1" {{ request('mostrar') == '-1' ? 'selected' : '' }}>Todas</option>
+                            </select>
+                        </div>
+
+                        {{-- Filtro Tipo --}}
+                        <div class="col-md-3">
+                            <select name="tipo" class="form-control">
+                                <option value="">Todos los tipos</option>
+                                <option value="colegiatura" {{ request('tipo') == 'colegiatura' ? 'selected' : '' }}>
+                                    Colegiatura</option>
+                                <option value="inscripcion" {{ request('tipo') == 'inscripcion' ? 'selected' : '' }}>
+                                    Inscripción</option>
+                                <option value="cargo_unico" {{ request('tipo') == 'cargo_unico' ? 'selected' : '' }}>Cargo
+                                    Único</option>
+                                <option value="cargo_recurrente"
+                                    {{ request('tipo') == 'cargo_recurrente' ? 'selected' : '' }}>Cargo Recurrente</option>
+                            </select>
+                        </div>
+
+                        {{-- Filtro Estatus --}}
+                        <div class="col-md-2">
+                            <select name="activo" class="form-control">
+                                <option value="">Estatus...</option>
+                                <option value="1" {{ request('activo') == '1' ? 'selected' : '' }}>Activos</option>
+                                <option value="0" {{ request('activo') == '0' ? 'selected' : '' }}>Inactivos</option>
+                            </select>
+                        </div>
+
+                        {{-- Buscador --}}
+                        <div class="col-md-3">
+                            <input type="text" name="buscar" class="form-control" placeholder="Buscar concepto..."
+                                value="{{ request('buscar') }}">
+                        </div>
+
+                        {{-- Botones --}}
+                        <div class="col-md-2 text-right">
+                            <button type="submit" class="btn btn-primary" title="Filtrar BD"><i
+                                    class="fa fa-search"></i></button>
+                            <a href="{{ route('conceptos.index') }}" class="btn btn-default" title="Limpiar"><i
+                                    class="fa fa-eraser"></i> Limpiar</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <table id="example1" class="table table-bordered table-striped">
                 <thead>
                     <tr>
@@ -46,7 +104,6 @@
                             <td>{{ $concepto->clave_sat }}</td>
                             <td>{{ $concepto->activo ? 'Activo' : 'Inactivo' }}</td>
                             <td class="text-center">
-                                {{-- Botón de Editar (Abre el modal) --}}
                                 <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
                                     data-target="#modalEditarConcepto{{ $concepto->id }}" title="Editar Concepto">
                                     <i class="fa fa-pencil"></i> Editar
@@ -66,7 +123,6 @@
                         </tr>
                     @endforeach
                 </tbody>
-
             </table>
         </div>
     </div>
@@ -74,7 +130,6 @@
     <x-modal id="modalNuevoConcepto" title="<i class='fa fa-plus-circle'></i> Agregar Nuevo Concepto" size="modal-lg">
         <form action="{{ route('conceptos.store') }}" method="POST">
             @csrf
-
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -85,7 +140,8 @@
 
                     <div class="form-group">
                         <label><i class="fa fa-list"></i> Tipo</label>
-                        <select name="tipo" id="select-tipo" class="form-control" required>
+                        {{-- Cambio a CLASE en lugar de ID --}}
+                        <select name="tipo" class="form-control select-tipo-dinamico" required>
                             <option value="">Seleccione un tipo...</option>
                             <option value="colegiatura">Colegiatura</option>
                             <option value="inscripcion">Inscripción</option>
@@ -114,7 +170,8 @@
 
                         <div class="checkbox">
                             <label>
-                                <input type="checkbox" name="aplica_beca" id="check-beca">
+                                {{-- Cambio a CLASE en lugar de ID --}}
+                                <input type="checkbox" name="aplica_beca" class="checkbox-beca-dinamico">
                                 <span class="text-primary">Aplica para beca</span>
                             </label>
                         </div>
@@ -146,13 +203,12 @@
                     <i class="fa fa-save"></i> Guardar Concepto
                 </button>
             </div>
-
         </form>
     </x-modal>
+
     @foreach ($conceptos as $concepto)
         <x-modal id="modalEditarConcepto{{ $concepto->id }}"
             title="<i class='fa fa-pencil'></i> Editar Concepto: {{ $concepto->nombre }}" size="modal-lg">
-
             <form action="{{ route('conceptos.update', $concepto->id) }}" method="POST">
                 @csrf
                 @method('PUT')
@@ -167,7 +223,8 @@
 
                         <div class="form-group">
                             <label><i class="fa fa-list"></i> Tipo</label>
-                            <select name="tipo" class="form-control" required>
+                            {{-- Cambio a CLASE --}}
+                            <select name="tipo" class="form-control select-tipo-dinamico" required>
                                 <option value="colegiatura" {{ $concepto->tipo == 'colegiatura' ? 'selected' : '' }}>
                                     Colegiatura</option>
                                 <option value="inscripcion" {{ $concepto->tipo == 'inscripcion' ? 'selected' : '' }}>
@@ -199,7 +256,8 @@
 
                             <div class="checkbox">
                                 <label>
-                                    <input type="checkbox" name="aplica_beca"
+                                    {{-- Cambio a CLASE --}}
+                                    <input type="checkbox" name="aplica_beca" class="checkbox-beca-dinamico"
                                         {{ $concepto->aplica_beca ? 'checked' : '' }}>
                                     <span class="text-primary">Aplica para beca</span>
                                 </label>
@@ -235,30 +293,46 @@
                         <i class="fa fa-refresh"></i> Actualizar Concepto
                     </button>
                 </div>
-
             </form>
         </x-modal>
     @endforeach
 @endsection
+
 @push('scripts')
     <script src="{{ asset('bower_components/datatables.net/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
 
     <script>
         $(document).ready(function() {
-            // 1. Inicializar DataTable
-            $('#example1').DataTable();
+            // 1. Inicialización de DataTables
+            $('#example1').DataTable({
+                "searching": false,
+                "lengthChange": false,
+                "pageLength": {{ request('mostrar', 10) }},
+                "columnDefs": [{
+                    "targets": [1, 2, 3, 4, 5, 6, 7],
+                    "orderable": false
+                }]
+            });
 
-            // 2. Lógica del select-tipo
-            $('#select-tipo').on('change', function() {
+            // 2. Lógica Dinámica de los Selects (Aplica para Crear y Editar)
+            $('.select-tipo-dinamico').on('change', function() {
                 let valorSeleccionado = $(this).val();
+                // Encuentra el checkbox específico dentro del mismo modal/formulario
+                let checkboxBeca = $(this).closest('form').find('.checkbox-beca-dinamico');
 
                 if (valorSeleccionado === 'colegiatura') {
-                    $('#check-beca').prop('checked', true);
+                    // Se marca y habilita para que el usuario pueda interactuar si quiere
+                    checkboxBeca.prop('checked', true).prop('disabled', false);
                 } else {
-                    $('#check-beca').prop('checked', false);
+                    // Lo desmarcamos y LO BLOQUEAMOS (gris)
+                    checkboxBeca.prop('checked', false).prop('disabled', true);
                 }
             });
+
+            //  Ejecutar la validación al cargar la página
+            // Esto asegura que los modales de edición ya vengan con el checkbox bloqueado o desbloqueado correctamente
+            $('.select-tipo-dinamico').trigger('change');
         });
     </script>
 @endpush
