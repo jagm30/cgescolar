@@ -153,6 +153,9 @@
             <div class="box box-default">
                 <div class="box-header with-border">
                     <h3 class="box-title">Documentos de admision</h3>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDocumento">Agregar documento</button>
+                    </div>
                 </div>
                 <div class="box-body">
                     @forelse ($prospecto->documentos as $documento)
@@ -161,6 +164,12 @@
                             <span class="label {{ $badgeDocumento[$documento->estado] ?? 'bg-gray' }}">
                                 {{ ucfirst(str_replace('_', ' ', $documento->estado)) }}
                             </span>
+                            @if ($documento->archivo_url)
+                                <br>
+                                <a href="{{ route('prospectos.documentos.archivo', [$prospecto->id, $documento->id]) }}" class="btn btn-link btn-xs" style="padding-left: 0;" title="{{ $documento->archivo_nombre ?: 'Ver archivo' }}">
+                                    Ver archivo
+                                </a>
+                            @endif
                         </p>
                     @empty
                         <p class="text-muted">No hay documentos cargados para este prospecto.</p>
@@ -202,8 +211,9 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="fecha">Fecha</label>
+                            <label for="fecha">Fecha del seguimiento</label>
                             <input type="date" class="form-control" id="fecha" name="fecha" value="{{ old('fecha', now()->toDateString()) }}" required>
+                            <p class="help-block">Indica la fecha en que ocurrio la llamada, visita, correo o nota.</p>
                         </div>
                         <div class="form-group">
                             <label for="notas">Notas</label>
@@ -213,6 +223,47 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-success">Guardar seguimiento</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDocumento" tabindex="-1" role="dialog" aria-labelledby="modalDocumentoLabel">
+        <div class="modal-dialog" role="document">
+            <form method="POST" action="{{ route('prospectos.documentos.store', $prospecto->id) }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="modalDocumentoLabel">Agregar documento</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="tipo_documento">Tipo de documento</label>
+                            <select class="form-control" id="tipo_documento" name="tipo_documento" required>
+                                <option value="">Selecciona un documento</option>
+                                @foreach ($tiposDocumento as $tipoDocumento)
+                                    <option value="{{ $tipoDocumento }}" {{ old('tipo_documento') === $tipoDocumento ? 'selected' : '' }}>{{ $tipoDocumento }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group" id="grupo_otro_documento" style="display: {{ old('tipo_documento') === 'Otro' ? 'block' : 'none' }};">
+                            <label for="otro_documento">Cual documento es</label>
+                            <input type="text" class="form-control" id="otro_documento" name="otro_documento" value="{{ old('otro_documento') }}" maxlength="120">
+                            <p class="help-block">Escribe el nombre del documento si no aparece en la lista.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="archivo">Archivo</label>
+                            <input type="file" class="form-control" id="archivo" name="archivo" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                            <p class="help-block">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC y DOCX. Tamano maximo: 5 MB.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar documento</button>
                     </div>
                 </div>
             </form>
@@ -267,8 +318,29 @@
                 $('#motivo_no_concrecion').prop('required', show);
             }
 
+            function toggleOtroDocumento() {
+                var show = $('#tipo_documento').val() === 'Otro';
+                $('#grupo_otro_documento').toggle(show);
+                $('#otro_documento').prop('required', show);
+
+                if (!show) {
+                    $('#otro_documento').val('');
+                }
+            }
+
             $('#etapa').on('change', toggleMotivo);
+            $('#tipo_documento').on('change', toggleOtroDocumento);
+
             toggleMotivo();
+            toggleOtroDocumento();
         });
     </script>
 @endpush
+
+
+
+
+
+
+
+
