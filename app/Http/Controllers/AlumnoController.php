@@ -18,6 +18,7 @@ use App\Models\Prospecto;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AlumnoController extends Controller
 {
@@ -133,11 +134,20 @@ class AlumnoController extends Controller
                 'fecha_nacimiento'  => $data['fecha_nacimiento'],
                 'curp'              => $data['curp'] ?? null,
                 'genero'            => $data['genero'] ?? null,
-                'foto_url'          => $data['foto_url'] ?? null,
+                'foto_url'          => null, // se actualiza abajo si viene archivo
                 'observaciones'     => $data['observaciones'] ?? null,
                 'fecha_inscripcion' => $data['fecha_inscripcion'],
                 'estado'            => 'activo',
             ]);
+
+            // ── 2b. Foto del alumno ───────────────────────
+            // $request->file('foto') NO está en $data (validated) porque es un
+            // archivo, no un campo de texto. Se procesa por separado DESPUÉS
+            // de tener el id del alumno recién creado.
+            if ($request->hasFile('foto')) {
+                $ruta = $request->file('foto')->store('alumnos/fotos', 'public');
+                $alumno->update(['foto_url' => $ruta]);
+            }
 
             // ── 3. Inscripción ────────────────────────────
             Inscripcion::create([
@@ -210,12 +220,18 @@ class AlumnoController extends Controller
 
             DB::commit();
 
-            return $this->respuestaExito(
-                redirectRoute: 'alumnos.show',
-                jsonData: ['alumno' => $alumno->load(['familia', 'inscripciones.grupo', 'contactos'])],
-                mensaje: "Alumno '{$alumno->nombre} {$alumno->ap_paterno}' registrado. Matrícula: {$alumno->matricula}",
-                jsonStatus: 201
-            );
+            $mensaje = "Alumno '{$alumno->nombre} {$alumno->ap_paterno}' registrado. Matrícula: {$alumno->matricula}";
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'message' => $mensaje,
+                    'alumno'  => $alumno->load(['familia', 'inscripciones.grupo', 'contactos']),
+                ], 201);
+            }
+
+            return redirect()
+                ->route('alumnos.show', $alumno->id)
+                ->with('success', $mensaje);
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -241,15 +257,34 @@ class AlumnoController extends Controller
         $alumno   = Alumno::findOrFail($id);
         $anterior = $alumno->toArray();
 
-        $alumno->update($request->validated());
+        $campos = $request->validated();
+
+        // Procesar foto si viene en el request
+        // Al igual que en store(), el archivo no está en validated()
+        if ($request->hasFile('foto')) {
+            // Eliminar foto anterior si existe
+            if ($alumno->foto_url) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($alumno->foto_url);
+            }
+            $campos['foto_url'] = $request->file('foto')->store('alumnos/fotos', 'public');
+        }
+
+        $alumno->update($campos);
 
         Auditoria::registrar('alumno', $alumno->id, 'update', $anterior, $alumno->fresh()->toArray());
 
-        return $this->respuestaExito(
-            redirectRoute: 'alumnos.show',
-            jsonData: ['alumno' => $alumno->fresh()],
-            mensaje: 'Datos del alumno actualizados correctamente.'
-        );
+        $mensaje = 'Datos del alumno actualizados correctamente.';
+
+        if (request()->ajax()) {
+            return response()->json([
+                'message' => $mensaje,
+                'alumno'  => $alumno->fresh(),
+            ]);
+        }
+
+        return redirect()
+            ->route('alumnos.show', $alumno->id)
+            ->with('success', $mensaje);
     }
 
     /**

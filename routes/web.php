@@ -14,6 +14,8 @@ use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ConceptoCobroController;
 
 
 
@@ -77,7 +79,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion');
 
-    // Planes de pago
+    // conceptos de cobro
+    Route::resource('conceptos', ConceptoCobroController::class)
+    ->middleware('rol:administrador');
+    // ── Planes de pago ───────────────────────────────────
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')
         ->name('planes.asignar');
@@ -218,3 +223,14 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
+
+    Route::get('/', function () {
+    // 1. Verificamos si el usuario ya tiene una sesión activa
+    if (Auth::check()) {
+        // 2. Si ya está logueado, lo mandamos a SU dashboard correspondiente
+        // (Usando el método del modelo que vimos antes)
+        return redirect(Auth::user()->rutaDashboard());
+    }
+    // 3. Si NO está logueado, le mostramos la vista del login normalmente
+    return view('login');
+    })->name('login');
