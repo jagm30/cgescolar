@@ -123,6 +123,9 @@
                 <div class="box-footer">
                     <a href="{{ route('prospectos.index') }}" class="btn btn-default">Volver</a>
                     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalSeguimiento">Agregar seguimiento</button>
+                    @if ($prospecto->etapa === 'aceptado' && !$prospecto->alumno_id)
+                        <a href="{{ route('alumnos.create', ['prospecto_id' => $prospecto->id]) }}" class="btn btn-primary">Registrar como alumno</a>
+                    @endif
                     <button type="button" class="btn btn-warning pull-right" data-toggle="modal" data-target="#modalEtapa">Cambiar etapa</button>
                 </div>
             </div>
@@ -159,18 +162,22 @@
                 </div>
                 <div class="box-body">
                     @forelse ($prospecto->documentos as $documento)
-                        <p>
-                            <strong>{{ $documento->tipo_documento }}</strong><br>
-                            <span class="label {{ $badgeDocumento[$documento->estado] ?? 'bg-gray' }}">
-                                {{ ucfirst(str_replace('_', ' ', $documento->estado)) }}
-                            </span>
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 10px; background: #f8fbff; border: 1px solid #e2ebf3; border-radius: 14px;">
+                            <div style="width: 50px; height: 50px; border-radius: 12px; background: #e8eef5; color: #556270; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
+                                <i class="fa fa-file-text"></i>
+                            </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-size: 15px; font-weight: 700; color: #1f2933; line-height: 1.25; margin-bottom: 6px; word-break: break-word;">{{ $documento->tipo_documento }}</div>
+                                <span style="display: inline-block; padding: 3px 8px; border-radius: 7px; background: #e4f4ea; color: #137a4b; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">{{ str_replace('_', ' ', $documento->estado) }}</span>
+                            </div>
                             @if ($documento->archivo_url)
-                                <br>
-                                <a href="{{ route('prospectos.documentos.archivo', [$prospecto->id, $documento->id]) }}" class="btn btn-link btn-xs" style="padding-left: 0;" title="{{ $documento->archivo_nombre ?: 'Ver archivo' }}">
-                                    Ver archivo
-                                </a>
+                                <div style="flex-shrink: 0;">
+                                    <a href="{{ route('prospectos.documentos.archivo', [$prospecto->id, $documento->id]) }}" class="btn btn-default" style="border-radius: 12px; padding: 8px 14px; font-weight: 700; font-size: 13px; color: #0b6aa8; background: #eef3f8; border-color: #eef3f8;" title="{{ $documento->archivo_nombre ?: 'Ver archivo' }}">
+                                        Ver archivo
+                                    </a>
+                                </div>
                             @endif
-                        </p>
+                        </div>
                     @empty
                         <p class="text-muted">No hay documentos cargados para este prospecto.</p>
                     @endforelse
@@ -336,6 +343,9 @@
         });
     </script>
 @endpush
+
+
+
 
 
 
