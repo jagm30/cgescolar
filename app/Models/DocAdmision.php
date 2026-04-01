@@ -14,9 +14,9 @@ class DocAdmision extends Model
         'prospecto_id',
         'tipo_documento',
         'estado',
+        'archivo_url',
+        'archivo_nombre',
     ];
-
-    // ── Scopes ──────────────────────────────────────────
 
     public function scopePendiente($query)
     {
@@ -27,8 +27,6 @@ class DocAdmision extends Model
     {
         return $query->where('estado', 'entregado');
     }
-
-    // ── Relaciones ───────────────────────────────────────
 
     public function prospecto(): BelongsTo
     {

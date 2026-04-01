@@ -1,0 +1,9 @@
+{
+    "agents": [
+        "codex"
+    ],
+    "skills": [
+        "pest-testing",
+        "tailwindcss-development"
+    ]
+}
