@@ -1,4 +1,4 @@
-@extends('layouts.master')
+﻿@extends('layouts.master')
 
 @section('page_title', 'Registrar alumno')
 @section('page_subtitle', 'Nuevo ingreso')
@@ -8,6 +8,11 @@
 @endsection
 
 @section('content')
+@php
+    $alumnoPrecargado = $datosPrecargados['alumno'] ?? [];
+    $contactosPrecargados = old('contactos', $datosPrecargados['contactos'] ?? []);
+    $prospectoIdInicial = old('prospecto_id', $alumnoPrecargado['prospecto_id'] ?? '');
+@endphp
 
 <form method="POST"
       action="{{ route('alumnos.store') }}"
@@ -20,6 +25,7 @@
     {{-- ══════════════════════════════════════════════
          COLUMNA IZQUIERDA — Datos del alumno
     ══════════════════════════════════════════════ --}}
+
     <div class="col-md-8">
 
         {{-- ── Datos personales ── --}}
@@ -41,7 +47,7 @@
                                    id="nombre"
                                    class="form-control"
                                    placeholder="Ej: Juan Carlos"
-                                   value="{{ old('nombre') }}"
+                                   value="{{ old('nombre', $alumnoPrecargado['nombre'] ?? '') }}"
                                    maxlength="100">
                             @error('nombre')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
@@ -59,7 +65,7 @@
                                    id="ap_paterno"
                                    class="form-control"
                                    placeholder="Ej: López"
-                                   value="{{ old('ap_paterno') }}"
+                                   value="{{ old('ap_paterno', $alumnoPrecargado['ap_paterno'] ?? '') }}"
                                    maxlength="100">
                             @error('ap_paterno')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
@@ -74,7 +80,7 @@
                                    id="ap_materno"
                                    class="form-control"
                                    placeholder="Ej: García"
-                                   value="{{ old('ap_materno') }}"
+                                   value="{{ old('ap_materno', $alumnoPrecargado['ap_materno'] ?? '') }}"
                                    maxlength="100">
                             @error('ap_materno')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
@@ -91,7 +97,7 @@
                                    name="fecha_nacimiento"
                                    id="fecha_nacimiento"
                                    class="form-control"
-                                   value="{{ old('fecha_nacimiento') }}"
+                                   value="{{ old('fecha_nacimiento', $alumnoPrecargado['fecha_nacimiento'] ?? '') }}"
                                    max="{{ now()->subYears(2)->format('Y-m-d') }}">
                             @error('fecha_nacimiento')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
@@ -103,9 +109,9 @@
                             <label for="genero">Género</label>
                             <select name="genero" id="genero" class="form-control">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="M"    {{ old('genero') === 'M'    ? 'selected' : '' }}>Masculino</option>
-                                <option value="F"    {{ old('genero') === 'F'    ? 'selected' : '' }}>Femenino</option>
-                                <option value="Otro" {{ old('genero') === 'Otro' ? 'selected' : '' }}>Otro</option>
+                                <option value="M"    {{ old('genero', $alumnoPrecargado['genero'] ?? '') === 'M'    ? 'selected' : '' }}>Masculino</option>
+                                <option value="F"    {{ old('genero', $alumnoPrecargado['genero'] ?? '') === 'F'    ? 'selected' : '' }}>Femenino</option>
+                                <option value="Otro" {{ old('genero', $alumnoPrecargado['genero'] ?? '') === 'Otro' ? 'selected' : '' }}>Otro</option>
                             </select>
                             @error('genero')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
@@ -119,7 +125,7 @@
                                    name="fecha_inscripcion"
                                    id="fecha_inscripcion"
                                    class="form-control"
-                                   value="{{ old('fecha_inscripcion', now()->format('Y-m-d')) }}">
+                                   value="{{ old('fecha_inscripcion', $alumnoPrecargado['fecha_inscripcion'] ?? now()->format('Y-m-d')) }}">
                             @error('fecha_inscripcion')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
                             @enderror
@@ -136,7 +142,7 @@
                                    id="curp"
                                    class="form-control"
                                    placeholder="18 caracteres"
-                                   value="{{ old('curp') }}"
+                                   value="{{ old('curp', $alumnoPrecargado['curp'] ?? '') }}"
                                    maxlength="18"
                                    style="text-transform:uppercase">
                             <span class="help-block" id="curp-contador" style="color:#999;">
@@ -176,7 +182,7 @@
                               class="form-control"
                               rows="2"
                               placeholder="Notas adicionales sobre el alumno (opcional)"
-                              maxlength="1000">{{ old('observaciones') }}</textarea>
+                              maxlength="1000">{{ old('observaciones', $alumnoPrecargado['observaciones'] ?? '') }}</textarea>
                 </div>
 
             </div>{{-- /.box-body --}}
@@ -199,7 +205,7 @@
                                 <option value="">-- Seleccionar ciclo --</option>
                                 @foreach($ciclos as $ciclo)
                                     <option value="{{ $ciclo->id }}"
-                                        {{ old('ciclo_id', $cicloId) == $ciclo->id ? 'selected' : '' }}>
+                                        {{ old('ciclo_id', $alumnoPrecargado['ciclo_id'] ?? $cicloId) == $ciclo->id ? 'selected' : '' }}>
                                         {{ $ciclo->nombre }}
                                         @if($ciclo->estado === 'activo') (Activo) @endif
                                     </option>
@@ -217,7 +223,7 @@
                                 <option value="">-- Seleccionar nivel --</option>
                                 @foreach($niveles as $nivel)
                                     <option value="{{ $nivel->id }}"
-                                        {{ old('nivel_id') == $nivel->id ? 'selected' : '' }}>
+                                        {{ old('nivel_id', $alumnoPrecargado['nivel_id'] ?? '') == $nivel->id ? 'selected' : '' }}>
                                         {{ $nivel->nombre }}
                                     </option>
                                 @endforeach
@@ -318,7 +324,7 @@
                                id="apellido_familia"
                                class="form-control"
                                placeholder="Ej: Familia López García"
-                               value="{{ old('apellido_familia') }}"
+                               value="{{ old('apellido_familia', $datosPrecargados['apellido_familia'] ?? '') }}"
                                maxlength="200">
                         @error('apellido_familia')
                             <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
@@ -369,7 +375,7 @@
                            id="prospecto_id"
                            class="form-control"
                            placeholder="ID del prospecto en admisiones"
-                           value="{{ old('prospecto_id') }}"
+                           value="{{ $prospectoIdInicial }}"
                            min="1">
                     <span class="help-block">
                         Opcional. Si se especifica, el prospecto cambia a "inscrito" automáticamente.
@@ -551,14 +557,22 @@
 const MAX_CONTACTOS  = 3;
 const MAX_FOTO_BYTES = 2 * 1024 * 1024; // 2 MB
 let   numContactos   = 0;
+const contactosIniciales = @json($contactosPrecargados);
 
 // ── Al cargar la página ──────────────────────────────────
 $(document).ready(function () {
-    // Agregar el primer contacto automáticamente
-    agregarContacto();
+    // Agregar contactos precargados o uno vacío por defecto
+    if (contactosIniciales.length) {
+        contactosIniciales.slice(0, MAX_CONTACTOS).forEach(function (contacto) {
+            agregarContacto(contacto);
+        });
+    } else {
+        agregarContacto();
+    }
 
     // Si hubo error de validación y hay datos de old() en el servidor,
     // los campos se repoblan por el input[name] automáticamente con Laravel
+    $('#curp').trigger('input');
 });
 
 // ── Foto ─────────────────────────────────────────────────
@@ -654,7 +668,7 @@ $('#btn-agregar-contacto').on('click', function () {
     agregarContacto();
 });
 
-function agregarContacto() {
+function agregarContacto(contactoInicial = {}) {
     if (numContactos >= MAX_CONTACTOS) return;
 
     const index  = numContactos;
@@ -672,7 +686,28 @@ function agregarContacto() {
     template = template.replace('__RECOGER__', num === 1 ? 'checked' : '');
     template = template.replace('__PAGO__',    num === 1 ? 'checked' : '');
 
-    $('#contenedor-contactos').append(template);
+    const $contacto = $(template);
+
+    Object.entries(contactoInicial).forEach(function ([campo, valor]) {
+        const $campo = $contacto.find(`[name="contactos[${index}][${campo}]"]`);
+
+        if (!$campo.length) {
+            return;
+        }
+
+        if ($campo.attr('type') === 'checkbox') {
+            $campo.prop('checked', Boolean(Number(valor)) || valor === true || valor === '1');
+            return;
+        }
+
+        $campo.val(valor ?? '');
+    });
+
+    if (!Object.prototype.hasOwnProperty.call(contactoInicial, 'orden')) {
+        $contacto.find(`[name="contactos[${index}][orden]"]`).val(String(num));
+    }
+
+    $('#contenedor-contactos').append($contacto);
     numContactos++;
     actualizarBtnAgregar();
 }
@@ -963,3 +998,9 @@ $('#form-alumno').on('submit', function (e) {
 });
 </script>
 @endpush
+
+
+
+
+
+
