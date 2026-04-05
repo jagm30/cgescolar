@@ -53,8 +53,14 @@ class ConceptoCobroController extends Controller
     }
 
     /** POST /conceptos */
-    public function store(Request $request)
+public function store(Request $request)
     {
+        $request->merge([
+            'aplica_beca'    => $request->has('aplica_beca') ? 1 : 0,
+            'aplica_recargo' => $request->has('aplica_recargo') ? 1 : 0,
+            'activo'         => $request->has('activo') ? 1 : 0,
+        ]);
+
         $data = $request->validate([
             'nombre'        => ['required', 'string', 'max:200', 'unique:concepto_cobro,nombre'],
             'descripcion'   => ['nullable', 'string', 'max:500'],
@@ -62,6 +68,7 @@ class ConceptoCobroController extends Controller
             'aplica_beca'   => ['boolean'],
             'aplica_recargo'=> ['boolean'],
             'clave_sat'     => ['nullable', 'string', 'max:20'],
+            'activo'        => ['boolean'], 
         ], [
             'nombre.required' => 'El nombre del concepto es obligatorio.',
             'nombre.unique'   => 'Ya existe un concepto con este nombre.',
@@ -69,12 +76,10 @@ class ConceptoCobroController extends Controller
             'tipo.in'         => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
         ]);
 
-        // Solo los conceptos de tipo colegiatura pueden tener beca
         if ($data['tipo'] !== 'colegiatura') {
             $data['aplica_beca'] = false;
         }
 
-        $data['activo'] = true;
         $concepto = ConceptoCobro::create($data);
 
         Auditoria::registrar('concepto_cobro', $concepto->id, 'insert', null, $concepto->toArray());
@@ -105,6 +110,12 @@ class ConceptoCobroController extends Controller
         $concepto = ConceptoCobro::findOrFail($id);
         $anterior = $concepto->toArray();
 
+        $request->merge([
+            'aplica_beca'    => $request->has('aplica_beca') ? 1 : 0,
+            'aplica_recargo' => $request->has('aplica_recargo') ? 1 : 0,
+            'activo'         => $request->has('activo') ? 1 : 0,
+        ]);
+
         $data = $request->validate([
             'nombre'        => ['sometimes', 'required', 'string', 'max:200',
                                 Rule::unique('concepto_cobro', 'nombre')->ignore($id)],
@@ -120,7 +131,8 @@ class ConceptoCobroController extends Controller
         ]);
 
         // Validar que no se quite aplica_beca a un concepto con becas activas
-        if (isset($data['aplica_beca']) && !$data['aplica_beca']) {
+        // Como ya forzamos el 0 o 1 arriba, podemos simplemente checar si es false (0)
+        if (!$data['aplica_beca']) {
             $tieneBecas = $concepto->becasAlumno()->where('activo', true)->exists();
             if ($tieneBecas) {
                 return $this->respuestaError(
