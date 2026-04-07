@@ -57,15 +57,10 @@
         @csrf
 
         <div class="box box-primary">
-            <div class="box-header with-border">
-                <h3 class="box-title"><i class="fa fa-map-signs"></i> Registro por pasos</h3>
-                <p class="text-muted" style="margin:8px 0 0;">Completa la captura del alumno siguiendo los 4 pasos del
-                    formulario.</p>
-            </div>
             <div class="box-body">
                 <div style="background:#f4f4f4;border-radius:999px;height:8px;overflow:hidden;margin-bottom:18px;">
-                    <div id="wizard-progress-bar"
-                        style="background:#3c8dbc;height:8px;width:25%;transition:width .2s ease;"></div>
+                    <div id="wizard-progress-bar" style="background:#3c8dbc;height:8px;width:25%;transition:width .2s ease;">
+                    </div>
                 </div>
 
                 <div class="row" id="wizard-steps-nav">
@@ -130,7 +125,7 @@
                                 <div class="form-group {{ $errors->has('ap_paterno') ? 'has-error' : '' }}">
                                     <label for="ap_paterno">Apellido paterno <span class="text-red">*</span></label>
                                     <input type="text" name="ap_paterno" id="ap_paterno" class="form-control"
-                                        placeholder="Ej: Lï¿½pez"
+                                        placeholder="Ej: López"
                                         value="{{ old('ap_paterno', $alumnoPrecargado['ap_paterno'] ?? '') }}"
                                         maxlength="100">
                                     @error('ap_paterno')
@@ -143,7 +138,7 @@
                                 <div class="form-group {{ $errors->has('ap_materno') ? 'has-error' : '' }}">
                                     <label for="ap_materno">Apellido materno</label>
                                     <input type="text" name="ap_materno" id="ap_materno" class="form-control"
-                                        placeholder="Ej: Garcï¿½a"
+                                        placeholder="Ej: García"
                                         value="{{ old('ap_materno', $alumnoPrecargado['ap_materno'] ?? '') }}"
                                         maxlength="100">
                                     @error('ap_materno')
@@ -696,6 +691,13 @@
                 hacerScroll = true;
             }
 
+            if (paso > pasoActual) {
+                if(!validarPaso(pasoActual)){
+                    alert('Completa correctamente los campos del paso ' + pasoActual + ' antes de continuar.');
+                    return;
+
+                }
+            }
             pasoActual = Math.min(Math.max(paso, 1), TOTAL_PASOS);
 
             $('.wizard-step-panel').hide();
@@ -1137,5 +1139,56 @@
             $("#btn-guardar").prop('disabled', true)
                 .html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
         });
+
+        function validarPaso(paso) {
+            var valido = true;
+
+            if (paso === 1) {
+                valido &= validarCampo('#nombre', reglas['#nombre']);
+                valido &= validarCampo('#ap_paterno', reglas['#ap_paterno']);
+                valido &= validarCampo('#fecha_nacimiento', reglas['#fecha_nacimiento']);
+                valido &= validarCampo('#genero', function(v) {
+                    return v ? null : 'Debe seleccionar el genero.';
+                });
+                valido &= validarCampo('#fecha_inscripcion', reglas['#fecha_inscripcion']);
+                valido &= validarCampo('#curp', reglas['#curp']);
+            }
+            if (paso === 2) {
+                valido &= validarCampo('#ciclo_id', reglas['#ciclo_id']);
+                valido &= validarCampo('#nivel_id', reglas['#nivel_id']);
+                valido &= validarCampo('#grupo_id', reglas['#grupo_id']);
+            }
+            if (paso === 3) {
+                var tipo = $("input[name='tipo_familia']:checked").val();
+
+                if (tipo === 'nueva') {
+                    if (!$('#apellido_familia').val().trim()) {
+                        marcarError('#apellido_familia', 'El nombre de la familia es obligatorio.');
+                        valido = false;
+                    } else {
+                        marcarOk('#apellido_familia');
+                    }
+                } else {
+                    if (!$('#familia_id').val()) {
+                        marcarError('#familia_id', 'Debe seleccionar la familia.');
+                        valido = false;
+                    } else {
+                        marcarOk('#familia_id');
+                    }
+                }
+            }
+            if (paso === 4) {
+                $('.contacto-item').each(function() {
+                    var nombre = $(this).find('input[name$="[nombre]"]').val().trim();
+                    var telefono = $(this).find('input[name$="[telefono_celular]"]').val().trim();
+
+                    if (!nombre || !telefono) {
+                        valido = false;
+                    }
+                });
+            }
+
+            return !!valido;
+        }
     </script>
 @endpush

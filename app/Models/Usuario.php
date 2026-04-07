@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class Usuario extends Authenticatable
 {
@@ -31,9 +31,9 @@ class Usuario extends Authenticatable
     ];
 
     protected $casts = [
-        'activo'        => 'boolean',
+        'activo' => 'boolean',
         'ultimo_acceso' => 'datetime',
-        'creado_at'     => 'datetime',
+        'creado_at' => 'datetime',
     ];
 
     // ── Laravel Auth ─────────────────────────────────────
@@ -58,14 +58,40 @@ class Usuario extends Authenticatable
 
     // ── Helpers de rol ───────────────────────────────────
 
-    public function esAdministrador(): bool { return $this->rol === 'administrador'; }
-    public function esCajero(): bool        { return $this->rol === 'caja'; }
-    public function esRecepcion(): bool     { return $this->rol === 'recepcion'; }
-    public function esPadre(): bool         { return $this->rol === 'padre'; }
+    public function esAdministrador(): bool
+    {
+        return $this->rol === 'administrador';
+    }
+
+    public function esCajero(): bool
+    {
+        return $this->rol === 'caja';
+    }
+
+    public function esRecepcion(): bool
+    {
+        return $this->rol === 'recepcion';
+    }
+
+    public function esPadre(): bool
+    {
+        return $this->rol === 'padre';
+    }
 
     public function esInterno(): bool
     {
         return in_array($this->rol, ['administrador', 'caja', 'recepcion']);
+    }
+
+    public function rutaDashboard(): string
+    {
+        return match ($this->rol) {
+            'administrador' => route('admin.dashboard'),
+            'caja' => route('caja.dashboard'),
+            'recepcion' => route('recepcion.dashboard'),
+            'padre' => route('portal.dashboard'),
+            default => route('login'),
+        };
     }
 
     // ── Relaciones ───────────────────────────────────────
