@@ -204,6 +204,17 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::get('{id}/contactos', [FamiliaController::class, 'contactos'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos');
+        // Actualizar datos de un contacto (AJAX desde edit de alumno)
+        Route::put('contactos/{contactoId}', [\App\Http\Controllers\FamiliaController::class, 'actualizarContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.update');
+        // Crear nuevo contacto para un alumno (AJAX desde edit de alumno)
+        Route::post('contactos', [\App\Http\Controllers\FamiliaController::class, 'agregarContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.store');
+        Route::delete('contactos/{contactoId}', [\App\Http\Controllers\FamiliaController::class, 'eliminarContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.destroy');
     });
 
     Route::resource('familias', FamiliaController::class)
