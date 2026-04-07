@@ -18,8 +18,7 @@
                                 <th>Fecha Inicio</th>
                                 <th>Fecha Fin</th>
                                 <th>Estado</th>
-                                <th>Editar</th>
-                                <th>Seleccionar</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -42,8 +41,6 @@
                                             data-estado="{{ $ciclo->estado }}">
                                             Editar
                                         </button>
-                                    </td>
-                                    <!-- BOTÓN SELECCIONAR (Envía el Formulario) -->
                                     <td>
                                         <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST">
                                             @csrf
@@ -51,6 +48,7 @@
                                                 Seleccionar
                                             </button>
                                         </form>
+                                    </td>
                                     </td>
                                 </tr>
                             @endforeach
