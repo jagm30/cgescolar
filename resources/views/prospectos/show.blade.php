@@ -9,7 +9,7 @@
             'prospecto' => 'Prospecto',
             'cita' => 'Cita',
             'visita' => 'Visita',
-            'documentacion' => 'Documentacion',
+            'documentacion' => 'Documentación',
             'aceptado' => 'Aceptado',
             'inscrito' => 'Inscrito',
             'no_concretado' => 'No concretado',
@@ -77,7 +77,7 @@
                 <div class="box-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <strong>Nivel de interes</strong>
+                            <strong>Nivel de interés</strong>
                             <p>{{ optional($prospecto->nivelInteres)->nombre ?: 'Sin definir' }}</p>
                         </div>
                         <div class="col-md-6">
@@ -91,11 +91,11 @@
                             <p>{{ $prospecto->contacto_nombre }}</p>
                         </div>
                         <div class="col-md-3">
-                            <strong>Telefono</strong>
+                            <strong>Teléfono</strong>
                             <p>{{ $prospecto->contacto_telefono }}</p>
                         </div>
                         <div class="col-md-3">
-                            <strong>Correo</strong>
+                            <strong>Correo electrónico</strong>
                             <p>{{ $prospecto->contacto_email ?: 'Sin correo' }}</p>
                         </div>
                     </div>
@@ -116,7 +116,7 @@
 
                     @if ($prospecto->motivo_no_concrecion)
                         <hr>
-                        <strong>Motivo de no concrecion</strong>
+                        <strong>Motivo de no concreción</strong>
                         <p>{{ $prospecto->motivo_no_concrecion }}</p>
                     @endif
                 </div>
@@ -155,7 +155,7 @@
         <div class="col-md-4">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Documentos de admision</h3>
+                    <h3 class="box-title">Documentos de admisión</h3>
                     <div class="box-tools pull-right">
                         <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDocumento">Agregar documento</button>
                     </div>
@@ -210,7 +210,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="tipo_accion">Tipo de accion</label>
+                            <label for="tipo_accion">Tipo de acción</label>
                             <select class="form-control" id="tipo_accion" name="tipo_accion" required>
                                 @foreach ($tiposSeguimiento as $valor => $etiqueta)
                                     <option value="{{ $valor }}" {{ old('tipo_accion') === $valor ? 'selected' : '' }}>{{ $etiqueta }}</option>
@@ -220,7 +220,7 @@
                         <div class="form-group">
                             <label for="fecha">Fecha del seguimiento</label>
                             <input type="date" class="form-control" id="fecha" name="fecha" value="{{ old('fecha', now()->toDateString()) }}" required>
-                            <p class="help-block">Indica la fecha en que ocurrio la llamada, visita, correo o nota.</p>
+                            <p class="help-block">Indica la fecha en que ocurrió la llamada, visita, correo o nota.</p>
                         </div>
                         <div class="form-group">
                             <label for="notas">Notas</label>
@@ -258,14 +258,14 @@
                             </select>
                         </div>
                         <div class="form-group" id="grupo_otro_documento" style="display: {{ old('tipo_documento') === 'Otro' ? 'block' : 'none' }};">
-                            <label for="otro_documento">Cual documento es</label>
+                            <label for="otro_documento">Cuál documento es</label>
                             <input type="text" class="form-control" id="otro_documento" name="otro_documento" value="{{ old('otro_documento') }}" maxlength="120">
                             <p class="help-block">Escribe el nombre del documento si no aparece en la lista.</p>
                         </div>
                         <div class="form-group">
                             <label for="archivo">Archivo</label>
                             <input type="file" class="form-control" id="archivo" name="archivo" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
-                            <p class="help-block">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC y DOCX. Tamano maximo: 5 MB.</p>
+                            <p class="help-block">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC y DOCX. Tamaño máximo: 5 MB.</p>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -302,7 +302,7 @@
                             <textarea class="form-control" id="notas_etapa" name="notas" rows="4" required>{{ old('notas') }}</textarea>
                         </div>
                         <div class="form-group" id="grupo_motivo_no_concrecion" style="display: {{ old('etapa', $prospecto->etapa) === 'no_concretado' ? 'block' : 'none' }};">
-                            <label for="motivo_no_concrecion">Motivo no concrecion</label>
+                            <label for="motivo_no_concrecion">Motivo no concreción</label>
                             <textarea class="form-control" id="motivo_no_concrecion" name="motivo_no_concrecion" rows="3">{{ old('motivo_no_concrecion', $prospecto->motivo_no_concrecion) }}</textarea>
                         </div>
                     </div>
@@ -343,14 +343,3 @@
         });
     </script>
 @endpush
-
-
-
-
-
-
-
-
-
-
-

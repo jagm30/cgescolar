@@ -1,4 +1,4 @@
-﻿@extends('layouts.master')
+@extends('layouts.master')
 
 @section('page_title', 'Registrar alumno')
 @section('page_subtitle', 'Nuevo ingreso')
@@ -37,15 +37,55 @@
         .wizard-summary-item.is-active .text-muted {
             color: #3c8dbc;
         }
+
+        @media (max-width: 768px) {
+
+            #wizard-steps-nav .col-sm-6,
+            #wizard-steps-nav .col-lg-3 {
+                width: 25%;
+                float: left;
+                padding: 4px;
+            }
+
+            .wizard-step-trigger {
+                padding: 6px !important;
+                min-height: auto !important;
+                text-align: center !important;
+                font-size: 11px;
+            }
+
+            .wizard-step-trigger span:last-child {
+                display: none;
+                /* oculta descripción */
+            }
+
+            .wizard-step-badge {
+                width: 26px !important;
+                height: 26px !important;
+                font-size: 12px;
+                margin: 0 auto 4px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .wizard-step-trigger {
+                opacity: 0.5;
+            }
+
+            .wizard-step-trigger.is-active {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
     </style>
 @endpush
 
 @section('content')
     @php
         $pasosWizard = [
-            1 => ['titulo' => 'Datos personales', 'descripcion' => 'Informacion basica del alumno'],
-            2 => ['titulo' => 'Inscripcion', 'descripcion' => 'Ciclo escolar, nivel y grupo'],
-            3 => ['titulo' => 'Familia', 'descripcion' => 'Vinculacion familiar y admisiones'],
+            1 => ['titulo' => 'Datos personales', 'descripcion' => 'Información básica del alumno'],
+            2 => ['titulo' => 'Inscripción', 'descripcion' => 'Ciclo escolar, nivel y grupo'],
+            3 => ['titulo' => 'Familia', 'descripcion' => 'Vinculación familiar y admisiones'],
             4 => ['titulo' => 'Contactos familiares', 'descripcion' => 'Responsables y autorizados'],
         ];
         $alumnoPrecargado = $datosPrecargados['alumno'] ?? [];
@@ -208,7 +248,7 @@
                                         value="{{ old('curp', $alumnoPrecargado['curp'] ?? '') }}" maxlength="18"
                                         style="text-transform:uppercase">
                                     <span class="help-block" id="curp-contador" style="color:#999;">
-                                        <span id="curp-chars">0</span>/18 carácteres
+                                        <span id="curp-chars">0</span>/18 caracteres
                                     </span>
                                     @error('curp')
                                         <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
@@ -444,7 +484,7 @@
 
 
 
-                {{-- -- NavegaciÃ³n del wizard -- --}}
+                {{-- -- Navegación del wizard -- --}}
                 <div class="box box-default">
                     <div class="box-header with-border">
                         <h3 class="box-title">
@@ -661,8 +701,8 @@
         var TOTAL_PASOS = 4;
         var PASOS_DESCRIPCION = {
             1: 'Paso 1 de 4: completa los datos personales del alumno.',
-            2: 'Paso 2 de 4: selecciona la informacion de inscripcion.',
-            3: 'Paso 3 de 4: define la familia y el vinculo con admisiones.',
+            2: 'Paso 2 de 4: selecciona la información de inscripción.',
+            3: 'Paso 3 de 4: define la familia y el vínculo con admisiones.',
             4: 'Paso 4 de 4: captura los contactos familiares.',
         };
         var numContactos = 0;
@@ -692,7 +732,7 @@
             }
 
             if (paso > pasoActual) {
-                if(!validarPaso(pasoActual)){
+                if (!validarPaso(pasoActual)) {
                     alert('Completa correctamente los campos del paso ' + pasoActual + ' antes de continuar.');
                     return;
 
@@ -762,7 +802,7 @@
                 this.value = '';
                 $('#foto-nombre').val('');
                 alert('El archivo pesa ' + (archivo.size / 1024 / 1024).toFixed(2) +
-                    ' MB.\nEl maximo permitido es 2 MB.');
+                    ' MB.\nEl máximo permitido es 2 MB.');
                 return;
             }
 
@@ -847,7 +887,7 @@
 
         $('#btn-agregar-contacto').on('click', function() {
             if (numContactos >= MAX_CONTACTOS) {
-                alert('El maximo de contactos permitidos es ' + MAX_CONTACTOS + '.');
+                alert('El máximo de contactos permitidos es ' + MAX_CONTACTOS + '.');
                 return;
             }
 
@@ -969,12 +1009,12 @@
         var reglas = {
             '#nombre': function(v) {
                 if (!v.trim()) return 'El nombre es obligatorio.';
-                if (v.trim().length < 2) return 'Minimo 2 caracteres.';
+                if (v.trim().length < 2) return 'Mínimo 2 caracteres.';
                 return null;
             },
             '#ap_paterno': function(v) {
                 if (!v.trim()) return 'El apellido paterno es obligatorio.';
-                if (v.trim().length < 2) return 'Minimo 2 caracteres.';
+                if (v.trim().length < 2) return 'Mínimo 2 caracteres.';
                 return null;
             },
             '#fecha_nacimiento': function(v) {
@@ -986,12 +1026,12 @@
                 hoy = new Date();
                 fecha = new Date(v);
                 anios = (hoy - fecha) / (1000 * 60 * 60 * 24 * 365);
-                if (anios < 2) return 'El alumno debe tener al menos 2 anios.';
+                if (anios < 2) return 'El alumno debe tener al menos 2 años.';
                 if (anios > 25) return 'Verifica la fecha de nacimiento.';
                 return null;
             },
             '#fecha_inscripcion': function(v) {
-                if (!v) return 'La fecha de inscripcion es obligatoria.';
+                if (!v) return 'La fecha de inscripción es obligatoria.';
                 return null;
             },
             '#ciclo_id': function(v) {
@@ -1010,7 +1050,7 @@
                 if (!v) return null;
                 if (v.length !== 18) return 'La CURP debe tener exactamente 18 caracteres.';
                 if (!/^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[A-Z0-9]{2}$/.test(v)) {
-                    return 'El formato de la CURP no es valido.';
+                    return 'El formato de la CURP no es válido.';
                 }
                 return null;
             }
@@ -1082,9 +1122,9 @@
             var error = null;
 
             if (!telefono) {
-                error = 'El telefono es obligatorio.';
+                error = 'El teléfono es obligatorio.';
             } else if (!/^[0-9]{10}$/.test(telefono.replace(/\s|-/g, ''))) {
-                error = 'Debe ser un numero de 10 digitos.';
+                error = 'Debe ser un número de 10 dígitos.';
             }
 
             if (error) {
@@ -1117,7 +1157,7 @@
                     $grupo.append('<span class="help-block val-msg"></span>');
                 }
                 $grupo.find('.help-block.val-msg')
-                    .html('<i class="fa fa-exclamation-circle"></i> El formato del correo no es valido.')
+                    .html('<i class="fa fa-exclamation-circle"></i> El formato del correo no es válido.')
                     .show();
             } else {
                 $grupo.removeClass('has-error').addClass('has-success');
@@ -1148,7 +1188,7 @@
                 valido &= validarCampo('#ap_paterno', reglas['#ap_paterno']);
                 valido &= validarCampo('#fecha_nacimiento', reglas['#fecha_nacimiento']);
                 valido &= validarCampo('#genero', function(v) {
-                    return v ? null : 'Debe seleccionar el genero.';
+                    return v ? null : 'Debe seleccionar el género.';
                 });
                 valido &= validarCampo('#fecha_inscripcion', reglas['#fecha_inscripcion']);
                 valido &= validarCampo('#curp', reglas['#curp']);
