@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreDocAdmisionRequest;
 use App\Http\Requests\StoreProspectoRequest;
 use App\Http\Requests\UpdateProspectoEtapaRequest;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
+use App\Models\DocAdmision;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
 use App\Models\SeguimientoAdmision;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProspectoController extends Controller
 {
@@ -51,11 +55,13 @@ class ProspectoController extends Controller
             'seguimientos.usuario', 'documentos',
         ])->findOrFail($id);
 
+        $tiposDocumento = $this->tiposDocumento();
+
         if (request()->ajax()) {
             return response()->json($prospecto);
         }
 
-        return view('prospectos.show', compact('prospecto'));
+        return view('prospectos.show', compact('prospecto', 'tiposDocumento'));
     }
 
     public function create()
@@ -145,6 +151,63 @@ class ProspectoController extends Controller
         );
     }
 
+    public function agregarDocumento(StoreDocAdmisionRequest $request, int $id)
+    {
+        $prospecto = Prospecto::findOrFail($id);
+        $data = $request->validated();
+        $archivo = $request->file('archivo');
+
+        $nombreArchivo = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $archivo->getClientOriginalName());
+        $rutaArchivo = $archivo->storeAs("prospectos/{$prospecto->id}/documentos", $nombreArchivo, 'public');
+
+        $tipoDocumento = $data['tipo_documento'] === 'Otro'
+            ? trim($data['otro_documento'])
+            : $data['tipo_documento'];
+
+        $documentoExistente = $prospecto->documentos
+            ->first(fn($documento) => $this->normalizarTipoDocumento($documento->tipo_documento) === $this->normalizarTipoDocumento($tipoDocumento));
+
+        $documento = $documentoExistente ?: new DocAdmision([
+            'prospecto_id' => $prospecto->id,
+            'tipo_documento' => Str::squish($tipoDocumento),
+        ]);
+
+        if ($documento->exists && $documento->archivo_url) {
+            Storage::disk('public')->delete($documento->archivo_url);
+        }
+
+        $documento->fill([
+            'estado' => 'entregado',
+            'archivo_url' => $rutaArchivo,
+            'archivo_nombre' => $archivo->getClientOriginalName(),
+        ]);
+        $documento->save();
+
+        return $this->respuestaExito(
+            redirectRoute: 'prospectos.show',
+            jsonData: ['documento' => $documento],
+            mensaje: 'Documento cargado correctamente.',
+            jsonStatus: 201,
+            routeParams: ['prospecto' => $prospecto->id]
+        );
+    }
+
+    public function descargarDocumento(int $id, int $documentoId)
+    {
+        $prospecto = Prospecto::findOrFail($id);
+
+        $documento = $prospecto->documentos()
+            ->whereKey($documentoId)
+            ->firstOrFail();
+
+        abort_unless($documento->archivo_url, 404);
+
+        return Storage::disk('public')->download(
+            $documento->archivo_url,
+            $documento->archivo_nombre ?: basename($documento->archivo_url)
+        );
+    }
+
     public function metricas(Request $request)
     {
         $cicloId = $request->get('ciclo_id')
@@ -181,5 +244,44 @@ class ProspectoController extends Controller
         $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
 
         return view('prospectos.metricas', compact('datos', 'ciclos', 'cicloId'));
+    }
+
+    private function tiposDocumentoBase(): array
+    {
+        return [
+            'Acta de nacimiento',
+            'CURP',
+            'Certificado de estudios',
+            'Boletas ciclo anterior',
+            'Comprobante de domicilio',
+            'Cartilla de vacunacion',
+            'Fotos tamano infantil',
+            'INE del tutor',
+            'Comprobante de pago',
+        ];
+    }
+
+    private function tiposDocumento(): array
+    {
+        $tiposPersonalizados = DocAdmision::query()
+            ->whereNotIn('tipo_documento', $this->tiposDocumentoBase())
+            ->where('tipo_documento', '<>', 'Otro')
+            ->orderBy('tipo_documento')
+            ->pluck('tipo_documento')
+            ->map(fn($tipo) => Str::squish($tipo))
+            ->unique(fn($tipo) => $this->normalizarTipoDocumento($tipo))
+            ->values()
+            ->all();
+
+        return [
+            ...$this->tiposDocumentoBase(),
+            ...$tiposPersonalizados,
+            'Otro',
+        ];
+    }
+
+    private function normalizarTipoDocumento(string $tipoDocumento): string
+    {
+        return Str::lower(Str::squish($tipoDocumento));
     }
 }

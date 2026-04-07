@@ -86,17 +86,20 @@ class AlumnoController extends Controller
     }
 
     /** GET /alumnos/create */
-    public function create()
+    public function create(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $ciclos   = CicloEscolar::orderByDesc('fecha_inicio')->get();
-        $niveles  = NivelEscolar::activo()->get();
-        $grupos   = Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get();
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $niveles = NivelEscolar::activo()->get();
+        $grupos = Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get();
         $familias = Familia::where('activo', true)->orderBy('apellido_familia')->get();
+        $prospectoOrigen = $request->filled('prospecto_id')
+            ? Prospecto::find($request->integer('prospecto_id'))
+            : null;
 
-        return view('alumnos.create', compact('ciclos', 'niveles', 'grupos', 'familias', 'cicloId'));
+        return view('alumnos.create', compact('ciclos', 'niveles', 'grupos', 'familias', 'cicloId', 'prospectoOrigen'));
     }
 
     /**
@@ -382,3 +385,4 @@ class AlumnoController extends Controller
         };
     }
 }
+
