@@ -81,7 +81,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion');
 
     // Planes de pago
-    // conceptos de cobro 
+    // conceptos de cobro
     Route::resource('conceptos', ConceptoCobroController::class)
     ->middleware('rol:administrador');
     // ── Planes de pago ───────────────────────────────────
@@ -242,7 +242,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
     if (Auth::check()) {
         // 2. Si ya está logueado, lo mandamos a SU dashboard correspondiente
         // (Usando el método del modelo que vimos antes)
-        return redirect(Auth::user()->rutaDashboard()); 
+        return redirect(Auth::user()->rutaDashboard());
     }
     // 3. Si NO está logueado, le mostramos la vista del login normalmente
     return view('login');
