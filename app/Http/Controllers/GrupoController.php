@@ -19,13 +19,21 @@ class GrupoController extends Controller
     public function index(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
+        ?? CicloEscolar::activo()->value('id');
+
+        // Usar ciclo_id del request si viene (para el selector del wizard)
+        if ($request->filled('ciclo_id')) {
+            $cicloId = $request->ciclo_id;
+        }
 
         $grupos = Grupo::with(['grado.nivel'])
             ->where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            // ── ESTE FILTRO FALTABA ──────────────────────────────
             ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
                 'grado', fn($q) => $q->where('nivel_id', $request->nivel_id)
             ))
+            // ────────────────────────────────────────────────────
             ->when($request->filled('grado_id'), fn($q) => $q->where('grado_id', $request->grado_id))
             ->when($request->filled('activo'),   fn($q) => $q->where('activo', $request->boolean('activo')))
             ->withCount(['inscripciones as alumnos_inscritos' => fn($q) => $q->where('activo', true)])

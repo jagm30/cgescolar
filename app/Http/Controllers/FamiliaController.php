@@ -7,11 +7,15 @@ use App\Models\CicloEscolar;
 use App\Models\ContactoFamiliar;
 use App\Models\Familia;
 use App\Models\Usuario;
+use App\Models\AlumnoContacto;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+
+
+
 
 class FamiliaController extends Controller
 {
@@ -19,89 +23,52 @@ class FamiliaController extends Controller
 
     /**
      * GET /familias
-     * Lista todas las familias con sus alumnos activos.
-     * Recepción puede ver, solo admin puede crear/editar.
      */
     public function index(Request $request)
     {
-        $familias = Familia::with([
-                'alumnos' => fn($q) => $q->orderBy('ap_paterno'),
-                'contactos',
+        $query = Familia::query()
+            ->withCount([
+                'alumnos as alumnos_count',
+                'alumnos as alumnos_activos_count' => fn($q) => $q->where('estado', 'activo'),
             ])
-            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
-                $q->where('apellido_familia', 'like', "%{$request->buscar}%")
-                  ->orWhereHas('alumnos', fn($q) => $q
-                      ->where('ap_paterno', 'like', "%{$request->buscar}%")
-                      ->orWhere('nombre',   'like', "%{$request->buscar}%")
-                      ->orWhere('matricula','like', "%{$request->buscar}%")
-                  )
-                  ->orWhereHas('contactos', fn($q) => $q
-                      ->where('nombre',           'like', "%{$request->buscar}%")
-                      ->orWhere('telefono_celular','like', "%{$request->buscar}%")
-                      ->orWhere('email',           'like', "%{$request->buscar}%")
-                  );
-            }))
-            ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->boolean('activo')))
-            ->withCount('alumnos')
-            ->orderBy('apellido_familia')
-            ->paginate($request->get('per_page', 20));
+            ->with([
+                'alumnos' => fn($q) => $q->orderBy('ap_paterno'),
+                'contactos',   // sin orderBy — se ordena en la vista con sortBy('pivot.orden')
+            ]);
 
-        if ($request->ajax()) {
-            return response()->json($familias);
+        // Búsqueda por nombre de familia o alumno
+        if ($request->filled('q')) {
+            $q = $request->q;
+            $query->where(function($query) use ($q) {
+                $query->where('apellido_familia', 'like', "%{$q}%")
+                      ->orWhereHas('alumnos', fn($q2) =>
+                            $q2->where('nombre', 'like', "%{$q}%")
+                               ->orWhere('ap_paterno', 'like', "%{$q}%")
+                               ->orWhere('matricula', 'like', "%{$q}%")
+                      )
+                      ->orWhereHas('contactos', fn($q2) =>
+                            $q2->where('nombre', 'like', "%{$q}%")
+                               ->orWhere('ap_paterno', 'like', "%{$q}%")
+                               ->orWhere('telefono_celular', 'like', "%{$q}%")
+                      );
+            });
         }
+
+        // Filtro activo/inactivo (default: todas)
+        if ($request->filled('activo')) {
+            $query->where('activo', $request->boolean('activo'));
+        }
+
+        $familias = $query
+            ->orderBy('apellido_familia')
+            ->paginate(20)
+            ->withQueryString();
 
         return view('familias.index', compact('familias'));
     }
 
     /**
-     * GET /familias/{id}
-     * Detalle completo: alumnos, contactos, acceso al portal
-     * y resumen de estado de cuenta del ciclo activo.
-     */
-    public function show(int $id)
-    {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
-
-        $familia = Familia::with([
-            'alumnos' => fn($q) => $q->with([
-                'inscripciones' => fn($q) => $q
-                    ->where('ciclo_id', $cicloId)
-                    ->where('activo', true)
-                    ->with('grupo.grado.nivel'),
-                'documentos',
-            ]),
-            'contactos' => fn($q) => $q->with('usuario'),
-        ])->findOrFail($id);
-
-        // Estado de cuenta resumido por alumno
-        $estadoCuenta = $familia->alumnos->map(function ($alumno) use ($cicloId) {
-            $inscripcion = $alumno->inscripciones->first();
-            if (!$inscripcion) return null;
-
-            $cargos = $inscripcion->cargos()
-                ->with('detallesPagosVigentes')
-                ->get();
-
-            return [
-                'alumno_id'       => $alumno->id,
-                'alumno'          => $alumno->nombre . ' ' . $alumno->ap_paterno,
-                'total_pendiente' => $cargos->sum(fn($c) => $c->saldo_pendiente_base),
-                'total_pagado'    => $cargos->sum(fn($c) => $c->saldo_abonado),
-                'cargos_vencidos' => $cargos->filter(fn($c) => str_contains($c->estado_real, 'vencido'))->count(),
-            ];
-        })->filter()->values();
-
-        if (request()->ajax()) {
-            return response()->json(compact('familia', 'estadoCuenta'));
-        }
-
-        return view('familias.show', compact('familia', 'estadoCuenta', 'cicloId'));
-    }
-
-    /**
      * GET /familias/create
-     * Solo administrador.
      */
     public function create()
     {
@@ -110,28 +77,110 @@ class FamiliaController extends Controller
 
     /**
      * POST /familias
-     * Crea una familia sin alumnos (se vincularán al registrar alumnos).
      */
     public function store(Request $request)
     {
         $data = $request->validate([
-            'apellido_familia' => ['required', 'string', 'max:200'],
-            'observaciones'    => ['nullable', 'string', 'max:1000'],
+            'apellido_familia'                    => ['required', 'string', 'max:200'],
+            'observaciones'                       => ['nullable', 'string', 'max:1000'],
+            'contactos'                           => ['required', 'array', 'min:1', 'max:3'],
+            'contactos.*.nombre'                  => ['required', 'string', 'max:100'],
+            'contactos.*.ap_paterno'              => ['nullable', 'string', 'max:100'],
+            'contactos.*.ap_materno'              => ['nullable', 'string', 'max:100'],
+            'contactos.*.telefono_celular'        => ['required', 'string', 'max:20'],
+            'contactos.*.email'                   => ['nullable', 'email', 'max:200'],
+            'contactos.*.curp'                    => ['nullable', 'string', 'size:18'],
+            'contactos.*.telefono_trabajo'         => ['nullable', 'string', 'max:20'],
+            'contactos.*.tiene_acceso_portal'     => ['boolean'],
+            // parentesco, tipo, orden, autorizado_recoger, es_responsable_pago
+            // son del pivot alumno_contacto — se asignan al inscribir al alumno
         ], [
-            'apellido_familia.required' => 'El apellido de la familia es obligatorio.',
+            'apellido_familia.required'              => 'El nombre de la familia es obligatorio.',
+            'contactos.required'                     => 'Agrega al menos un contacto familiar.',
+            'contactos.*.nombre.required'            => 'El nombre del contacto es obligatorio.',
+            'contactos.*.telefono_celular.required'  => 'El teléfono del contacto es obligatorio.',
+            'contactos.*.curp.size'                  => 'La CURP debe tener exactamente 18 caracteres.',
         ]);
 
-        $data['activo'] = true;
-        $familia = Familia::create($data);
+        // Crear la familia
+        $familia = Familia::create([
+            'apellido_familia' => $data['apellido_familia'],
+            'observaciones'    => $data['observaciones'] ?? null,
+            'activo'           => true,
+        ]);
 
-        Auditoria::registrar('familia', $familia->id, 'insert', null, $familia->toArray());
+        // Crear los contactos
+        // IMPORTANTE: contacto_familiar solo tiene datos personales del contacto.
+        // Los datos del pivot (parentesco, tipo, orden, permisos) van en alumno_contacto
+        // y solo se crean cuando se vincula el contacto a un alumno específico.
+        foreach ($data['contactos'] as $ctcData) {
+            ContactoFamiliar::create([
+                'familia_id'          => $familia->id,
+                'nombre'              => $ctcData['nombre'],
+                'ap_paterno'          => $ctcData['ap_paterno']          ?? null,
+                'ap_materno'          => $ctcData['ap_materno']          ?? null,
+                'telefono_celular'    => $ctcData['telefono_celular']    ?? null,
+                'telefono_trabajo'    => $ctcData['telefono_trabajo']    ?? null,
+                'email'               => $ctcData['email']               ?? null,
+                'curp'                => $ctcData['curp']                ?? null,
+                'tiene_acceso_portal' => $ctcData['tiene_acceso_portal'] ?? false,
+                // usuario_id: null — se asigna después desde el panel de usuarios
+                // foto_url: null — se sube desde el perfil del contacto
+            ]);
+        }
 
-        return $this->respuestaExito(
-            redirectRoute: 'familias.show',
-            jsonData: ['familia' => $familia],
-            mensaje: "Familia '{$familia->apellido_familia}' creada correctamente.",
-            jsonStatus: 201
+        \App\Models\Auditoria::registrar(
+            'familia',
+            $familia->id,
+            'insert',
+            null,
+            $familia->toArray()
         );
+
+        return redirect()
+            ->route('familias.show', $familia->id)
+            ->with('success', "Familia \"{$familia->apellido_familia}\" registrada correctamente.");
+    }
+    /**
+     * GET /familias/{id}
+     * Si viene ?_modal=1 devuelve solo el partial HTML para el modal.
+     * Si no, devuelve la vista completa.
+     */
+    public function show(Request $request, int $id)
+    {
+        $familia = \App\Models\Familia::with([
+            'alumnos' => fn($q) => $q->with([
+                'inscripciones' => fn($q) => $q
+                    ->with(['grupo.grado.nivel', 'ciclo'])
+                    ->orderByDesc('id'),
+            ])->orderBy('ap_paterno'),
+    
+            'contactos' => fn($q) => $q->with([
+                'alumnoContactos' => fn($q) => $q
+                    ->with('alumno:id,nombre,ap_paterno')
+                    ->where('activo', true),
+            ]),
+        ])->findOrFail($id);
+    
+        if ($request->has('_modal')) {
+            // Devolver el partial con manejo de errores explícito
+            try {
+                $html = view('familias._modal', compact('familia'))->render();
+                return response($html, 200)
+                    ->header('Content-Type', 'text/html');
+            } catch (\Throwable $e) {
+                // Devolver el error real para poder depurarlo
+                return response(
+                    '<div class="alert alert-danger" style="margin:16px;">' .
+                    '<strong>Error:</strong> ' . e($e->getMessage()) .
+                    '<br><small>' . e($e->getFile()) . ':' . $e->getLine() . '</small>' .
+                    '</div>',
+                    500
+                )->header('Content-Type', 'text/html');
+            }
+        }
+    
+        return view('familias.show', compact('familia'));
     }
 
     /**
@@ -202,6 +251,186 @@ class FamiliaController extends Controller
             ]);
 
         return response()->json($contactos);
+    }
+    /**
+     * PUT /familias/contactos/{contactoId}
+     * Actualiza los datos de un contacto familiar y su pivot con el alumno.
+     * Solo AJAX — llamado desde la vista edit de alumno.
+     */
+    public function actualizarContacto(Request $request, int $contactoId)
+    {
+        $contacto = \App\Models\ContactoFamiliar::findOrFail($contactoId);
+
+        $data = $request->validate([
+            'nombre'              => ['required', 'string', 'max:100'],
+            'ap_paterno'          => ['nullable', 'string', 'max:100'],
+            'ap_materno'          => ['nullable', 'string', 'max:100'],
+            'telefono_celular'    => ['required', 'string', 'max:20'],
+            'email'               => ['nullable', 'email', 'max:200'],
+            'parentesco'          => ['nullable', 'string', 'in:padre,madre,abuelo,tio,otro'],
+            'autorizado_recoger'  => ['boolean'],
+            'es_responsable_pago' => ['boolean'],
+            'tiene_acceso_portal' => ['boolean'],
+        ], [
+            'nombre.required'           => 'El nombre del contacto es obligatorio.',
+            'telefono_celular.required' => 'El teléfono es obligatorio.',
+            'email.email'               => 'El formato del correo no es válido.',
+        ]);
+
+        $anterior = $contacto->toArray();
+
+        // Actualizar datos del contacto
+        $contacto->update([
+            'nombre'              => $data['nombre'],
+            'ap_paterno'          => $data['ap_paterno'] ?? null,
+            'ap_materno'          => $data['ap_materno'] ?? null,
+            'telefono_celular'    => $data['telefono_celular'],
+            'email'               => $data['email'] ?? null,
+            'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
+        ]);
+
+        // Actualizar pivot alumno_contacto (parentesco, permisos)
+        if (isset($data['parentesco'])) {
+            \App\Models\AlumnoContacto::where('contacto_id', $contacto->id)
+                ->update([
+                    'parentesco'          => $data['parentesco'],
+                    'autorizado_recoger'  => $data['autorizado_recoger']  ?? false,
+                    'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
+                ]);
+        }
+
+        \App\Models\Auditoria::registrar(
+            'contacto_familiar',
+            $contacto->id,
+            'update',
+            $anterior,
+            $contacto->fresh()->toArray()
+        );
+
+        return response()->json([
+            'message'  => "Contacto '{$contacto->nombre}' actualizado correctamente.",
+            'contacto' => $contacto->fresh(),
+        ]);
+    }
+    /**
+     * POST /familias/contactos
+     * Crea un nuevo contacto familiar y lo vincula al alumno.
+     * Solo AJAX — llamado desde la vista edit de alumno.
+     */
+    public function agregarContacto(Request $request)
+    {
+        $data = $request->validate([
+            'alumno_id'           => ['required', 'integer', 'exists:alumno,id'],
+            'familia_id'          => ['nullable', 'integer', 'exists:familia,id'],
+            'nombre'              => ['required', 'string', 'max:100'],
+            'ap_paterno'          => ['nullable', 'string', 'max:100'],
+            'ap_materno'          => ['nullable', 'string', 'max:100'],
+            'telefono_celular'    => ['required', 'string', 'max:20'],
+            'email'               => ['nullable', 'email', 'max:200'],
+            'curp'                => ['nullable', 'string', 'size:18'],
+            'parentesco'          => ['required', 'string', 'in:padre,madre,abuelo,tio,otro'],
+            'tipo'                => ['required', 'string', 'in:padre,tutor,tercero_autorizado'],
+            'orden'               => ['integer', 'min:1', 'max:3'],
+            'autorizado_recoger'  => ['boolean'],
+            'es_responsable_pago' => ['boolean'],
+            'tiene_acceso_portal' => ['boolean'],
+        ], [
+            'alumno_id.exists'          => 'El alumno no existe.',
+            'nombre.required'           => 'El nombre del contacto es obligatorio.',
+            'telefono_celular.required' => 'El teléfono es obligatorio.',
+            'parentesco.required'       => 'El parentesco es obligatorio.',
+            'tipo.required'             => 'El tipo de contacto es obligatorio.',
+            'curp.size'                 => 'La CURP debe tener exactamente 18 caracteres.',
+        ]);
+    
+        // Si el alumno tiene familia, usar ese familia_id
+        $alumno = \App\Models\Alumno::findOrFail($data['alumno_id']);
+        $familiaId = $data['familia_id'] ?? $alumno->familia_id;
+    
+        // Crear el contacto
+        $contacto = \App\Models\ContactoFamiliar::create([
+            'familia_id'          => $familiaId,
+            'nombre'              => $data['nombre'],
+            'ap_paterno'          => $data['ap_paterno'] ?? null,
+            'ap_materno'          => $data['ap_materno'] ?? null,
+            'telefono_celular'    => $data['telefono_celular'],
+            'email'               => $data['email'] ?? null,
+            'curp'                => $data['curp'] ?? null,
+            'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
+        ]);
+    
+        // Vincular al alumno en la tabla pivot alumno_contacto
+        $pivot = \App\Models\AlumnoContacto::create([
+            'alumno_id'           => $alumno->id,
+            'contacto_id'         => $contacto->id,
+            'parentesco'          => $data['parentesco'],
+            'tipo'                => $data['tipo'],
+            'orden'               => $data['orden'] ?? 2,
+            'autorizado_recoger'  => $data['autorizado_recoger']  ?? false,
+            'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
+            'activo'              => true,
+        ]);
+    
+        \App\Models\Auditoria::registrar(
+            'contacto_familiar',
+            $contacto->id,
+            'insert',
+            null,
+            $contacto->toArray()
+        );
+    
+        return response()->json([
+            'message'  => "Contacto '{$contacto->nombre}' agregado correctamente.",
+            'contacto' => $contacto->fresh(),
+            'pivot'    => $pivot,
+        ], 201);
+    }
+
+    /**
+     * DELETE /familias/contactos/{contactoId}
+     * Elimina un contacto familiar, verificando que quede al menos uno.
+     */
+    public function eliminarContacto(int $contactoId)
+    {
+        $contacto = \App\Models\ContactoFamiliar::findOrFail($contactoId);
+
+        // Buscar el vínculo activo de este contacto con un alumno
+        $alumnoContacto = \App\Models\AlumnoContacto::where('contacto_id', $contactoId)
+            ->where('activo', true)
+            ->first();
+
+        if ($alumnoContacto) {
+            // Contar cuántos contactos activos tiene ese alumno
+            $totalContactos = \App\Models\AlumnoContacto::where('alumno_id', $alumnoContacto->alumno_id)
+                ->where('activo', true)
+                ->count();
+
+            if ($totalContactos <= 1) {
+                return response()->json([
+                    'message' => 'No se puede eliminar el único contacto del alumno. Debe haber al menos uno.'
+                ], 422);
+            }
+        }
+
+        $nombre = trim($contacto->nombre . ' ' . $contacto->ap_paterno);
+
+        // Eliminar pivot primero
+        \App\Models\AlumnoContacto::where('contacto_id', $contactoId)->delete();
+
+        // Eliminar el contacto
+        $contacto->delete();
+
+        \App\Models\Auditoria::registrar(
+            'contacto_familiar',
+            $contactoId,
+            'delete',
+            ['nombre' => $nombre],
+            null
+        );
+
+        return response()->json([
+            'message' => "Contacto '{$nombre}' eliminado correctamente."
+        ]);
     }
 
     /**
