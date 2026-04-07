@@ -1,7 +1,6 @@
 <?php
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CicloEscolarController;
-use App\Http\Controllers\ConceptoController;
 use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
