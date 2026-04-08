@@ -20,7 +20,6 @@
         <div class="box-header">
             <h3 class="box-title">Catálogo de Planes de Pago</h3>
 
-            {{-- Botón que abre el x-modal --}}
             <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modalNuevoPlan">
                 <i class="fa fa-plus"></i> Nuevo Plan
             </button>
@@ -31,8 +30,6 @@
                 style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #3c8dbc;">
                 <form method="GET" action="{{ route('planes.index') }}">
                     <div class="row">
-
-                        {{-- Mostrar N registros --}}
                         <div class="col-md-2">
                             <label style="font-size: 12px; color: #666;">Registros:</label>
                             <select name="mostrar" class="form-control input-sm">
@@ -44,7 +41,6 @@
                             </select>
                         </div>
 
-                        {{-- Filtro por Nivel Escolar --}}
                         <div class="col-md-4">
                             <label style="font-size: 12px; color: #666;">Nivel Escolar:</label>
                             <select name="nivel_id" class="form-control input-sm">
@@ -58,7 +54,6 @@
                             </select>
                         </div>
 
-                        {{-- Botones (empujados a la derecha) --}}
                         <div class="col-md-6 text-right" style="margin-top: 22px;">
                             <button type="submit" class="btn btn-primary btn-sm" title="Filtrar BD">
                                 <i class="fa fa-filter"></i> Filtrar
@@ -92,40 +87,32 @@
                                     conceptos asignados</small>
                             </td>
                             <td>{{ $plan->nivel->nombre ?? 'N/A' }}</td>
-                            <td>
-                                <span class="label label-info">{{ ucfirst($plan->periodicidad) }}</span>
-                            </td>
-                            <td>
-                                {{ $plan->fecha_inicio->format('d/m/Y') }} - {{ $plan->fecha_fin->format('d/m/Y') }}
-                            </td>
+                            <td><span class="label label-info">{{ ucfirst($plan->periodicidad) }}</span></td>
+                            <td>{{ $plan->fecha_inicio->format('d/m/Y') }} - {{ $plan->fecha_fin->format('d/m/Y') }}</td>
                             <td>
                                 <span class="label {{ $plan->activo ? 'label-success' : 'label-danger' }}">
                                     {{ $plan->activo ? 'Activo' : 'Inactivo' }}
                                 </span>
                             </td>
                             <td class="text-center">
-
-                                {{-- BOTÓN PRINCIPAL: Configurar (Lleva al SHOW donde se administran los conceptos) --}}
-                                <a href="{{ route('planes.show', $plan->id) }}" class="btn btn-primary btn-sm"
+                                {{-- BOTÓN PRINCIPAL: Configurar (Lleva a la Pestaña 1: Conceptos) --}}
+                                <a href="{{ route('planes.conceptos.index', $plan->id) }}" class="btn btn-primary btn-sm"
                                     title="Configurar Plan y Conceptos">
                                     <i class="fa fa-cogs"></i> Configurar
                                 </a>
 
-                                {{-- BOTÓN SECUNDARIO: Editar nombre/fechas (Lleva al EDIT) --}}
                                 <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
                                     data-target="#modalEditarPlan{{ $plan->id }}" title="Editar Nombre o Fechas">
                                     <i class="fa fa-pencil"></i>
                                 </button>
 
-                                {{-- BOTÓN DESACTIVAR / REACTIVAR --}}
                                 @if ($plan->activo)
                                     <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
                                         style="display: inline-block;">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm"
-                                            onclick="return confirm('¿Estás seguro de que deseas desactivar el plan: {{ $plan->nombre }}?');"
-                                            title="Desactivar Plan">
+                                            onclick="return confirm('¿Estás seguro?');">
                                             <i class="fa fa-ban"></i>
                                         </button>
                                     </form>
@@ -135,10 +122,9 @@
                                         @csrf
                                         @method('PUT')
                                         <input type="hidden" name="activo" value="1">
-                                        <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
-                                            data-target="#modalEditarPlan{{ $plan->id }}"
-                                            title="Editar Nombre o Fechas">
-                                            <i class="fa fa-pencil"></i>
+                                        <button type="submit" class="btn btn-success btn-sm"
+                                            onclick="return confirm('¿Reactivar?');">
+                                            <i class="fa fa-refresh"></i>
                                         </button>
                                     </form>
                                 @endif
@@ -146,8 +132,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">No se encontraron planes para este ciclo
-                                escolar.</td>
+                            <td colspan="6" class="text-center text-muted">No se encontraron planes.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -158,7 +143,6 @@
     <x-modal id="modalNuevoPlan" title="Crear Nuevo Plan de Pago" size="modal-lg">
         <form action="{{ route('planes.store') }}" method="POST">
             @csrf
-
             <div class="row">
                 <div class="col-md-5">
                     <div class="form-group">
@@ -166,18 +150,15 @@
                         <input type="text" name="nombre" class="form-control" placeholder="Ej: Plan Anual Secundaria"
                             required>
                     </div>
-
                     <div class="form-group">
                         <label><i class="fa fa-calendar"></i> Ciclo Escolar</label>
                         <select name="ciclo_id" class="form-control" required>
                             @foreach ($ciclos as $ciclo)
                                 <option value="{{ $ciclo->id }}" {{ $cicloId == $ciclo->id ? 'selected' : '' }}>
-                                    {{ $ciclo->nombre }}
-                                </option>
+                                    {{ $ciclo->nombre }}</option>
                             @endforeach
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label><i class="fa fa-graduation-cap"></i> Nivel Escolar</label>
                         <select name="nivel_id" class="form-control" required>
@@ -187,7 +168,6 @@
                             @endforeach
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label><i class="fa fa-clock-o"></i> Periodicidad</label>
                         <select name="periodicidad" class="form-control" required>
@@ -199,19 +179,14 @@
                             <option value="unico">Pago Único</option>
                         </select>
                     </div>
-
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Fecha Inicio</label>
-                                <input type="date" name="fecha_inicio" class="form-control" required>
-                            </div>
+                            <div class="form-group"><label>Fecha Inicio</label><input type="date" name="fecha_inicio"
+                                    class="form-control" required></div>
                         </div>
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Fecha Fin</label>
-                                <input type="date" name="fecha_fin" class="form-control" required>
-                            </div>
+                            <div class="form-group"><label>Fecha Fin</label><input type="date" name="fecha_fin"
+                                    class="form-control" required></div>
                         </div>
                     </div>
                 </div>
@@ -219,12 +194,10 @@
                 <div class="col-md-7">
                     <div style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                         <h4 style="margin-top: 0; font-size: 16px;"><i class="fa fa-tags"></i> Conceptos del Plan
-                            <button type="button" id="btn-agregar-concepto" class="btn btn-success btn-xs pull-right">
-                                <i class="fa fa-plus"></i> Añadir
-                            </button>
+                            <button type="button" id="btn-agregar-concepto" class="btn btn-success btn-xs pull-right"><i
+                                    class="fa fa-plus"></i> Añadir</button>
                         </h4>
                     </div>
-
                     <table class="table table-bordered table-striped" id="tabla-conceptos-modal">
                         <thead>
                             <tr>
@@ -233,81 +206,88 @@
                                 <th style="width: 40px;"></th>
                             </tr>
                         </thead>
-                        <tbody>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
+                    <div id="mensaje-vacio-modal" class="text-center text-muted" style="padding: 10px;">No hay conceptos.
+                    </div>
 
-                    <div id="mensaje-vacio-modal" class="text-center text-muted" style="padding: 15px;">
-                        No hay conceptos. Haz clic en "Añadir" para empezar.
+                    <div
+                        style="background-color: #fcf8e3; padding: 10px; border-radius: 5px; margin-top: 15px; border: 1px solid #faebcc;">
+                        <h4 style="margin-top: 0; font-size: 15px; color: #8a6d3b;"><i class="fa fa-percent"></i>
+                            Políticas de Descuento (Pronto Pago)</h4>
+                        <div id="contenedor-descuentos"></div>
+                        <button type="button" id="btn-add-descuento" class="btn btn-warning btn-xs"><i
+                                class="fa fa-plus"></i> Agregar Descuento</button>
+                    </div>
+
+                    <div
+                        style="background-color: #f2dede; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ebccd1;">
+                        <h4 style="margin-top: 0; font-size: 15px; color: #a94442;"><i class="fa fa-calendar-times-o"></i>
+                            Política de Recargo (Mora)</h4>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label style="font-size: 11px;">Día Límite Pago</label>
+                                <input type="number" name="recargo[dia_limite_pago]" class="form-control input-sm"
+                                    placeholder="Ej: 10">
+                            </div>
+                            <div class="col-md-4">
+                                <label style="font-size: 11px;">Tipo Recargo</label>
+                                <select name="recargo[tipo_recargo]" class="form-control input-sm">
+                                    <option value="porcentaje">Porcentaje %</option>
+                                    <option value="fijo">Monto Fijo $</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label style="font-size: 11px;">Valor</label>
+                                <input type="number" step="0.01" name="recargo[valor]" class="form-control input-sm"
+                                    placeholder="0.00">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <hr style="margin-top: 10px; margin-bottom: 15px;">
-
             <div class="clearfix" style="padding-bottom: 10px;">
-                <button type="button" class="btn btn-default pull-left" data-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancelar
-                </button>
-                <button type="submit" class="btn btn-primary pull-right">
-                    <i class="fa fa-save"></i> Guardar Plan Completo
-                </button>
+                <button type="button" class="btn btn-default pull-left" data-dismiss="modal"><i
+                        class="fa fa-times"></i> Cancelar</button>
+                <button type="submit" class="btn btn-primary pull-right"><i class="fa fa-save"></i> Guardar Plan
+                    Completo</button>
             </div>
         </form>
     </x-modal>
+
     @foreach ($planes as $plan)
         <x-modal id="modalEditarPlan{{ $plan->id }}" title="Editar Plan: {{ $plan->nombre }}" size="modal-md">
             <form action="{{ route('planes.update', $plan->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-
+                @csrf @method('PUT')
                 <div class="form-group">
-                    <label><i class="fa fa-file-text-o"></i> Nombre del Plan</label>
+                    <label>Nombre del Plan</label>
                     <input type="text" name="nombre" class="form-control" value="{{ $plan->nombre }}" required>
                 </div>
-
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="form-group">
-                            <label><i class="fa fa-calendar-check-o"></i> Fecha de Inicio</label>
-                            <input type="date" name="fecha_inicio" class="form-control"
-                                value="{{ $plan->fecha_inicio->format('Y-m-d') }}" required>
-                        </div>
+                        <div class="form-group"><label>Fecha Inicio</label><input type="date" name="fecha_inicio"
+                                class="form-control" value="{{ $plan->fecha_inicio->format('Y-m-d') }}" required></div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-group">
-                            <label><i class="fa fa-calendar-times-o"></i> Fecha de Fin</label>
-                            <input type="date" name="fecha_fin" class="form-control"
-                                value="{{ $plan->fecha_fin->format('Y-m-d') }}" required>
-                        </div>
+                        <div class="form-group"><label>Fecha Fin</label><input type="date" name="fecha_fin"
+                                class="form-control" value="{{ $plan->fecha_fin->format('Y-m-d') }}" required></div>
                     </div>
                 </div>
-
                 <div class="form-group">
-                    <label><i class="fa fa-toggle-on"></i> Estatus</label>
+                    <label>Estatus</label>
                     <select name="activo" class="form-control">
                         <option value="1" {{ $plan->activo ? 'selected' : '' }}>Activo</option>
                         <option value="0" {{ !$plan->activo ? 'selected' : '' }}>Inactivo</option>
                     </select>
                 </div>
-
-                <div class="callout callout-info" style="margin-top: 15px; margin-bottom: 0; padding: 10px;">
-                    <p style="margin: 0; font-size: 13px;">
-                        <i class="fa fa-info-circle"></i> Para agregar, editar o eliminar los <strong>conceptos de
-                            cobro</strong> de este plan, debes usar el botón azul de "Configurar" en la tabla principal.
-                    </p>
+                <div class="callout callout-info">
+                    <p style="font-size: 12px;"><i class="fa fa-info-circle"></i> Edita conceptos, descuentos y recargos
+                        desde el botón "Configurar".</p>
                 </div>
-
-                <hr style="margin-top: 15px; margin-bottom: 15px;">
-
-                <div class="clearfix" style="padding-bottom: 10px;">
-                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">
-                        <i class="fa fa-times"></i> Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-warning pull-right">
-                        <i class="fa fa-save"></i> Guardar Cambios
-                    </button>
-                </div>
+                <div class="modal-footer no-padding"><button type="submit" class="btn btn-warning pull-right">Guardar
+                        Cambios</button></div>
             </form>
         </x-modal>
     @endforeach
@@ -320,59 +300,44 @@
 
     <script>
         $(document).ready(function() {
-            // 1. Inicializar DataTable
             $('#tabla-planes').DataTable({
                 "lengthChange": false,
                 "pageLength": {{ request('mostrar', 10) }},
-                "ordering": false,
-                "columnDefs": [{
-                    "targets": [5], // Quitar flechas a la columna de Acciones
-                    "orderable": false
-                }],
-                "language": {
-                    "search": "Buscar:"
-                }
+                "ordering": false
             });
 
-            // 2. Lógica Dinámica para el Modal de Crear Plan
             let indiceConcepto = 0;
-
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
-
-                let nuevaFila = `
-                    <tr id="fila-concepto-${indiceConcepto}">
-                        <td>
-                            <select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm" required>
-                                <option value="">Seleccione...</option>
-                                @foreach ($conceptos as $concepto)
-                                    <option value="{{ $concepto->id }}">{{ $concepto->nombre }}</option>
-                                @endforeach
-                            </select>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm" placeholder="0.00" required>
-                        </td>
-                        <td class="text-center">
-                            <button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-
-                $('#tabla-conceptos-modal tbody').append(nuevaFila);
+                let fila = `<tr id="fila-concepto-${indiceConcepto}">
+                    <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm" required><option value="">Seleccione...</option>@foreach ($conceptos as $c)<option value="{{ $c->id }}">{{ $c->nombre }}</option>@endforeach</select></td>
+                    <td><input type="number" step="0.01" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm" required></td>
+                    <td><button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}"><i class="fa fa-trash"></i></button></td>
+                </tr>`;
+                $('#tabla-conceptos-modal tbody').append(fila);
                 indiceConcepto++;
             });
 
-            // Eliminar fila dinámica del modal
             $('#tabla-conceptos-modal').on('click', '.btn-eliminar-fila', function() {
-                let id = $(this).data('id');
-                $('#fila-concepto-' + id).remove();
+                $('#fila-concepto-' + $(this).data('id')).remove();
+                if ($('#tabla-conceptos-modal tbody tr').length === 0) $('#mensaje-vacio-modal').show();
+            });
 
-                if ($('#tabla-conceptos-modal tbody tr').length === 0) {
-                    $('#mensaje-vacio-modal').show();
-                }
+            let indiceDesc = 0;
+            $('#btn-add-descuento').click(function() {
+                let html = `<div class="row" id="fila-desc-${indiceDesc}" style="margin-bottom: 5px;">
+                    <div class="col-md-4"><input type="text" name="descuentos[${indiceDesc}][nombre]" class="form-control input-sm" placeholder="Nombre" required></div>
+                    <div class="col-md-3"><select name="descuentos[${indiceDesc}][tipo_valor]" class="form-control input-sm"><option value="porcentaje">%</option><option value="fijo">$</option></select></div>
+                    <div class="col-md-2"><input type="number" name="descuentos[${indiceDesc}][valor]" class="form-control input-sm" required></div>
+                    <div class="col-md-2"><input type="number" name="descuentos[${indiceDesc}][dia_limite]" class="form-control input-sm" placeholder="Día"></div>
+                    <div class="col-md-1"><button type="button" class="btn btn-danger btn-xs btn-remove-desc" data-id="${indiceDesc}"><i class="fa fa-times"></i></button></div>
+                </div>`;
+                $('#contenedor-descuentos').append(html);
+                indiceDesc++;
+            });
+
+            $(document).on('click', '.btn-remove-desc', function() {
+                $('#fila-desc-' + $(this).data('id')).remove();
             });
         });
     </script>

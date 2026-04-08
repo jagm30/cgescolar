@@ -16,6 +16,8 @@ use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ConceptoCobroController;
+use App\Http\Controllers\PlanPagoConceptoController;
+use App\Http\Controllers\PoliticaController;
 
 
 
@@ -100,6 +102,24 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::resource('planes', PlanPagoController::class)
         ->middleware('rol:administrador');
+
+    // ── Conceptos y Políticas de un plan (Configuración) ──
+    Route::prefix('planes/{planId}')->name('planes.')->group(function () {
+        // Conceptos del plan
+        Route::get('conceptos',              [PlanPagoConceptoController::class, 'index'])->name('conceptos.index');
+        Route::post('conceptos',             [PlanPagoConceptoController::class, 'store'])->name('conceptos.store');
+        Route::put('conceptos/{id}',         [PlanPagoConceptoController::class, 'update'])->name('conceptos.update');
+        Route::delete('conceptos/{id}',      [PlanPagoConceptoController::class, 'destroy'])->name('conceptos.destroy');
+
+        // Políticas (descuentos + recargo)
+        Route::get('politicas',                  [PoliticaController::class, 'index'])->name('politicas.index');
+        Route::post('politicas/descuento',       [PoliticaController::class, 'storeDescuento'])->name('politicas.descuento.store');
+        Route::put('politicas/descuento/{id}',   [PoliticaController::class, 'updateDescuento'])->name('politicas.descuento.update');
+        Route::delete('politicas/descuento/{id}',[PoliticaController::class, 'destroyDescuento'])->name('politicas.descuento.destroy');
+        Route::post('politicas/recargo',         [PoliticaController::class, 'storeRecargo'])->name('politicas.recargo.store');
+        Route::put('politicas/recargo/{id}',     [PoliticaController::class, 'updateRecargo'])->name('politicas.recargo.update');
+        Route::delete('politicas/recargo/{id}',  [PoliticaController::class, 'destroyRecargo'])->name('politicas.recargo.destroy');
+    })->middleware('rol:administrador');
 
     // ── Cargos ───────────────────────────────────────────
     Route::post('/cargos/generar',       [CargoController::class, 'generar'])

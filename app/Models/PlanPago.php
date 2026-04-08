@@ -43,6 +43,7 @@ class PlanPago extends Model
     {
         return $this->hasOne(PoliticaRecargo::class, 'plan_id')->where('activo', true);
     }
+
     // ── Relaciones ───────────────────────────────────────
 
     public function ciclo(): BelongsTo
@@ -81,9 +82,16 @@ class PlanPago extends Model
                     ->where('activo', true);
     }
 
+    // Para cuando el backend necesite consultar el historial de recargos (Plural)
     public function politicasRecargo(): HasMany
     {
         return $this->hasMany(PoliticaRecargo::class, 'plan_id');
+    }
+
+    // Para la vista de configuración actual que pide el PoliticaController (Singular)
+    public function politicaRecargo(): HasOne
+    {
+        return $this->hasOne(PoliticaRecargo::class, 'plan_id');
     }
 
     public function asignaciones(): HasMany
