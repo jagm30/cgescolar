@@ -95,39 +95,49 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                {{-- BOTÓN PRINCIPAL: Configurar (Lleva a la Pestaña 1: Conceptos) --}}
-                                <a href="{{ route('planes.conceptos.index', $plan->id) }}" class="btn btn-primary btn-sm"
-                                    title="Configurar Plan y Conceptos">
-                                    <i class="fa fa-cogs"></i> Configurar
-                                </a>
+                                <div style="display: flex; gap: 2px; justify-content: center; align-items: center;">
+                                    {{-- 1. VER --}}
+                                    <a href="{{ route('planes.show', $plan->id) }}" class="btn btn-info btn-sm"
+                                        title="Ver Resumen">
+                                        <i class="fa fa-eye"></i> Ver
+                                    </a>
 
-                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
-                                    data-target="#modalEditarPlan{{ $plan->id }}" title="Editar Nombre o Fechas">
-                                    <i class="fa fa-pencil"></i>
-                                </button>
+                                    {{-- 2. EDITAR --}}
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
+                                        data-target="#modalEditarPlan{{ $plan->id }}" title="Editar Nombre o Fechas">
+                                        <i class="fa fa-pencil"></i>
+                                    </button>
 
-                                @if ($plan->activo)
-                                    <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
-                                        style="display: inline-block;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                            onclick="return confirm('¿Estás seguro?');">
-                                            <i class="fa fa-ban"></i>
-                                        </button>
-                                    </form>
-                                @else
-                                    <form action="{{ route('planes.update', $plan->id) }}" method="POST"
-                                        style="display: inline-block;">
-                                        @csrf
-                                        @method('PUT')
-                                        <input type="hidden" name="activo" value="1">
-                                        <button type="submit" class="btn btn-success btn-sm"
-                                            onclick="return confirm('¿Reactivar?');">
-                                            <i class="fa fa-refresh"></i>
-                                        </button>
-                                    </form>
-                                @endif
+                                    {{-- 3. ELIMINAR O REACTIVAR --}}
+                                    @if ($plan->activo)
+                                        <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
+                                            style="margin: 0;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('¿Estás seguro?');">
+                                                <i class="fa fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('planes.update', $plan->id) }}" method="POST"
+                                            style="margin: 0;">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="activo" value="1">
+                                            <button type="submit" class="btn btn-success btn-sm"
+                                                onclick="return confirm('¿Reactivar?');">
+                                                <i class="fa fa-refresh"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    {{-- 4. CONFIGURAR (Obligado al final) --}}
+                                    <a href="{{ route('planes.conceptos.index', $plan->id) }}"
+                                        class="btn btn-primary btn-sm" title="Configurar Plan y Conceptos">
+                                        <i class="fa fa-cogs"></i> Configurar
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty
