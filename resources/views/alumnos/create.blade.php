@@ -608,7 +608,7 @@
                         <div class="form-group">
                             <label>Teléfono celular <span class="text-red">*</span></label>
                             <input type="tel" name="contactos[__INDEX__][telefono_celular]" class="form-control"
-                                placeholder="10 dígitos" maxlength="20">
+                                placeholder="10 dígitos" maxlength="10">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -994,16 +994,7 @@
             $grupo.removeClass('has-error').addClass('has-success');
             $grupo.find('.help-block.val-msg').hide();
         }
-        if (!tVal && telEl) {
-            hayError = true;
-            var g = telEl.closest('.form-group');
-            g.classList.add('has-error');
-            if (!g.querySelector('.val-msg')) {
-                g.insertAdjacentHTML('beforeend',
-                    '<span class="help-block val-msg"><i class="fa fa-exclamation-circle"></i> El teléfono es obligatorio.</span>');
-            }
-        }
-    });
+
 
         function limpiarEstado(selector) {
             var $grupo = $(selector).closest('.form-group');
