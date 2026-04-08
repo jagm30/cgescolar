@@ -19,13 +19,20 @@
     <div class="box">
         <div class="box-header">
             <h3 class="box-title">Catálogo de Planes de Pago</h3>
+            <div class="pull-right" style="display: flex; gap: 10px;">
+                <button type="button" class="btn btn-default" id="btn-clonar-masivo" disabled data-toggle="modal"
+                    data-target="#modalClonacionMasiva">
+                    <i class="fa fa-copy"></i> Clonar Seleccionados
+                </button>
 
-            <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modalNuevoPlan">
-                <i class="fa fa-plus"></i> Nuevo Plan
-            </button>
+                <button class="btn btn-success" data-toggle="modal" data-target="#modalNuevoPlan">
+                    <i class="fa fa-plus"></i> Nuevo Plan
+                </button>
+            </div>
         </div>
         <div class="box-body">
 
+            {{-- FILTROS --}}
             <div
                 style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #3c8dbc;">
                 <form method="GET" action="{{ route('planes.index') }}">
@@ -69,6 +76,7 @@
             <table id="tabla-planes" class="table table-bordered table-striped table-hover">
                 <thead>
                     <tr>
+                        <th width="30px" class="text-center"><input type="checkbox" id="select-all-planes"></th>
                         <th>Nombre del Plan</th>
                         <th>Nivel</th>
                         <th>Periodicidad</th>
@@ -80,6 +88,9 @@
                 <tbody>
                     @forelse ($planes as $plan)
                         <tr>
+                            <td class="text-center">
+                                <input type="checkbox" class="plan-checkbox" value="{{ $plan->id }}">
+                            </td>
                             <td>
                                 <strong>{{ $plan->nombre }}</strong>
                                 <br>
@@ -96,24 +107,20 @@
                             </td>
                             <td class="text-center">
                                 <div style="display: flex; gap: 2px; justify-content: center; align-items: center;">
-                                    {{-- 1. VER --}}
                                     <a href="{{ route('planes.show', $plan->id) }}" class="btn btn-info btn-sm"
                                         title="Ver Resumen">
                                         <i class="fa fa-eye"></i> Ver
                                     </a>
 
-                                    {{-- 2. EDITAR --}}
                                     <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
                                         data-target="#modalEditarPlan{{ $plan->id }}" title="Editar Nombre o Fechas">
                                         <i class="fa fa-pencil"></i>
                                     </button>
 
-                                    {{-- 3. ELIMINAR O REACTIVAR --}}
                                     @if ($plan->activo)
                                         <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
                                             style="margin: 0;">
-                                            @csrf
-                                            @method('DELETE')
+                                            @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-danger btn-sm"
                                                 onclick="return confirm('¿Estás seguro?');">
                                                 <i class="fa fa-ban"></i>
@@ -122,8 +129,7 @@
                                     @else
                                         <form action="{{ route('planes.update', $plan->id) }}" method="POST"
                                             style="margin: 0;">
-                                            @csrf
-                                            @method('PUT')
+                                            @csrf @method('PUT')
                                             <input type="hidden" name="activo" value="1">
                                             <button type="submit" class="btn btn-success btn-sm"
                                                 onclick="return confirm('¿Reactivar?');">
@@ -132,7 +138,6 @@
                                         </form>
                                     @endif
 
-                                    {{-- 4. CONFIGURAR (Obligado al final) --}}
                                     <a href="{{ route('planes.conceptos.index', $plan->id) }}"
                                         class="btn btn-primary btn-sm" title="Configurar Plan y Conceptos">
                                         <i class="fa fa-cogs"></i> Configurar
@@ -142,7 +147,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted">No se encontraron planes.</td>
+                            <td colspan="7" class="text-center text-muted">No se encontraron planes.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -150,6 +155,7 @@
         </div>
     </div>
 
+    {{-- MODAL NUEVO PLAN --}}
     <x-modal id="modalNuevoPlan" title="Crear Nuevo Plan de Pago" size="modal-lg">
         <form action="{{ route('planes.store') }}" method="POST">
             @csrf
@@ -157,8 +163,8 @@
                 <div class="col-md-5">
                     <div class="form-group">
                         <label><i class="fa fa-file-text-o"></i> Nombre del Plan</label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Plan Anual Secundaria"
-                            required>
+                        <input type="text" name="nombre" class="form-control"
+                            placeholder="Ej: Plan Anual Secundaria" required>
                     </div>
                     <div class="form-group">
                         <label><i class="fa fa-calendar"></i> Ciclo Escolar</label>
@@ -267,6 +273,7 @@
         </form>
     </x-modal>
 
+    {{-- MODAL EDITAR PLAN --}}
     @foreach ($planes as $plan)
         <x-modal id="modalEditarPlan{{ $plan->id }}" title="Editar Plan: {{ $plan->nombre }}" size="modal-md">
             <form action="{{ route('planes.update', $plan->id) }}" method="POST">
@@ -302,6 +309,39 @@
         </x-modal>
     @endforeach
 
+    {{-- MODAL CLONACIÓN MASIVA --}}
+    <x-modal id="modalClonacionMasiva" title="Clonar Planes Seleccionados" size="modal-md">
+        <form action="{{ route('planes.clonar.masivo') }}" method="POST" id="form-clonar-masivo">
+            @csrf
+            <div id="contenedor-ids-clonar"></div>
+
+            <div class="alert alert-info">
+                <h4><i class="icon fa fa-info"></i> Instrucciones</h4>
+                Se crearán copias exactas de los planes seleccionados (incluyendo sus conceptos y políticas) en el ciclo
+                escolar de destino.
+            </div>
+
+            <div class="form-group">
+                <label>Ciclo Escolar Destino</label>
+                <select name="ciclo_destino_id" class="form-control" required>
+                    <option value="">Seleccione el ciclo destino...</option>
+                    @foreach ($ciclos as $ciclo)
+                        <option value="{{ $ciclo->id }}">{{ $ciclo->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Prefijo para los nombres (Opcional)</label>
+                <input type="text" name="prefijo" class="form-control" placeholder="Ej: COPIA - ">
+            </div>
+
+            <div class="modal-footer no-padding">
+                <button type="submit" class="btn btn-primary pull-right">Comenzar Clonación</button>
+            </div>
+        </form>
+    </x-modal>
+
 @endsection
 
 @push('scripts')
@@ -310,14 +350,14 @@
 
     <script>
         $(document).ready(function() {
-            // 1. Inicializar DataTable
+            // 1. DataTable
             $('#tabla-planes').DataTable({
                 "lengthChange": false,
                 "pageLength": {{ request('mostrar', 10) }},
                 "ordering": false
             });
 
-            // 2. Lógica para agregar/quitar conceptos
+            // 2. Lógica Conceptos
             let indiceConcepto = 0;
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
@@ -335,7 +375,7 @@
                 if ($('#tabla-conceptos-modal tbody tr').length === 0) $('#mensaje-vacio-modal').show();
             });
 
-            // 3. Lógica para agregar/quitar descuentos
+            // 3. Lógica Descuentos
             let indiceDesc = 0;
             $('#btn-add-descuento').click(function() {
                 let html = `<div class="row" id="fila-desc-${indiceDesc}" style="margin-bottom: 5px;">
@@ -353,15 +393,43 @@
                 $('#fila-desc-' + $(this).data('id')).remove();
             });
 
-            // ==========================================
-            // 4. AUTO-CERRAR ALERTAS DESPUÉS DE 5 SEGUNDOS
-            // ==========================================
+            // 4. Auto-cerrar alertas
             setTimeout(function() {
                 $('.alert-dismissible').slideUp('slow', function() {
                     $(this).remove();
                 });
             }, 5000);
 
+            // 5. Lógica Selección Masiva y Clonación
+            $('#select-all-planes').click(function() {
+                $('.plan-checkbox').prop('checked', this.checked);
+                actualizarEstadoBotonClonar();
+            });
+
+            $(document).on('change', '.plan-checkbox', function() {
+                actualizarEstadoBotonClonar();
+            });
+
+            function actualizarEstadoBotonClonar() {
+                let seleccionados = $('.plan-checkbox:checked').length;
+                let boton = $('#btn-clonar-masivo');
+                if (seleccionados > 0) {
+                    boton.prop('disabled', false).addClass('btn-primary').removeClass('btn-default');
+                    boton.html(`<i class="fa fa-copy"></i> Clonar ${seleccionados} planes`);
+                } else {
+                    boton.prop('disabled', true).addClass('btn-default').removeClass('btn-primary');
+                    boton.html('<i class="fa fa-copy"></i> Clonar Seleccionados');
+                }
+            }
+
+            $('#form-clonar-masivo').submit(function() {
+                let contenedor = $('#contenedor-ids-clonar');
+                contenedor.empty();
+                $('.plan-checkbox:checked').each(function() {
+                    contenedor.append(
+                        `<input type="hidden" name="plan_ids[]" value="${$(this).val()}">`);
+                });
+            });
         });
     </script>
 @endpush

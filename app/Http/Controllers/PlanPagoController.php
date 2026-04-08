@@ -261,4 +261,55 @@ public function index(Request $request)
 
         return response()->json(['asignacion' => $asignacion, 'origen' => $asignacion->origen]);
     }
+
+    public function clonarMasivo(Request $request)
+{
+    // Valida que vengan IDs y el ciclo destino
+    $request->validate([
+        'plan_ids' => 'required|array',
+        'ciclo_destino_id' => 'required|exists:ciclo_escolar,id'
+    ]);
+
+    DB::beginTransaction();
+    try {
+        foreach ($request->plan_ids as $id) {
+            $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
+            
+            if (!$original) continue;
+
+            // 1. Clona el Plan
+            $nuevo = $original->replicate();
+            $nuevo->ciclo_id = $request->ciclo_destino_id;
+            // Opcional: Agregarle un prefijo al nombre
+            $nuevo->nombre = $request->prefijo . " " . $original->nombre; 
+            $nuevo->save();
+
+            // 2. Clona Conceptos, Descuentos y Recargo
+            // Usamos la misma lógica del replicate() para cada relación
+            foreach ($original->planPagoConceptos as $item) {
+                $c = $item->replicate();
+                $c->plan_id = $nuevo->id;
+                $c->save();
+            }
+
+            foreach ($original->politicasDescuento as $desc) {
+                $d = $desc->replicate();
+                $d->plan_id = $nuevo->id;
+                $d->save();
+            }
+
+            if ($original->politicaRecargo) {
+                $r = $original->politicaRecargo->replicate();
+                $r->plan_id = $nuevo->id;
+                $r->save();
+            }
+        }
+
+        DB::commit();
+        return back()->with('success', '¡Planes clonados correctamente al nuevo ciclo!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Error en la clonación masiva: ' . $e->getMessage());
+    }
+}
 }

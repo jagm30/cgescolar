@@ -102,6 +102,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::resource('planes', PlanPagoController::class)
         ->middleware('rol:administrador');
+        
+    Route::post('planes/clonar-masivo', [PlanPagoController::class, 'clonarMasivo'])->name('planes.clonar.masivo');
 
     // ── Conceptos y Políticas de un plan (Configuración) ──
     Route::prefix('planes/{planId}')->name('planes.')->group(function () {
