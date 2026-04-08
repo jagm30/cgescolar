@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -38,11 +39,10 @@ class PlanPago extends Model
     // ── Helpers ──────────────────────────────────────────
 
     /** Política de recargo activa del plan */
-    public function politicaRecargoActiva(): ?PoliticaRecargo
+    public function politicaRecargoActiva(): HasOne
     {
-        return $this->politicasRecargo()->where('activo', true)->first();
+        return $this->hasOne(PoliticaRecargo::class, 'plan_id')->where('activo', true);
     }
-
     // ── Relaciones ───────────────────────────────────────
 
     public function ciclo(): BelongsTo
