@@ -9,7 +9,7 @@
             'prospecto' => 'Prospecto',
             'cita' => 'Cita',
             'visita' => 'Visita',
-            'documentacion' => 'Documentacion',
+            'documentacion' => 'Documentación',
             'aceptado' => 'Aceptado',
             'inscrito' => 'Inscrito',
             'no_concretado' => 'No concretado',
@@ -77,7 +77,7 @@
                 <div class="box-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <strong>Nivel de interes</strong>
+                            <strong>Nivel de interés</strong>
                             <p>{{ optional($prospecto->nivelInteres)->nombre ?: 'Sin definir' }}</p>
                         </div>
                         <div class="col-md-6">
@@ -91,11 +91,11 @@
                             <p>{{ $prospecto->contacto_nombre }}</p>
                         </div>
                         <div class="col-md-3">
-                            <strong>Telefono</strong>
+                            <strong>Teléfono</strong>
                             <p>{{ $prospecto->contacto_telefono }}</p>
                         </div>
                         <div class="col-md-3">
-                            <strong>Correo</strong>
+                            <strong>Correo electrónico</strong>
                             <p>{{ $prospecto->contacto_email ?: 'Sin correo' }}</p>
                         </div>
                     </div>
@@ -116,13 +116,16 @@
 
                     @if ($prospecto->motivo_no_concrecion)
                         <hr>
-                        <strong>Motivo de no concrecion</strong>
+                        <strong>Motivo de no concreción</strong>
                         <p>{{ $prospecto->motivo_no_concrecion }}</p>
                     @endif
                 </div>
                 <div class="box-footer">
                     <a href="{{ route('prospectos.index') }}" class="btn btn-default">Volver</a>
                     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalSeguimiento">Agregar seguimiento</button>
+                    @if ($prospecto->etapa === 'aceptado' && !$prospecto->alumno_id)
+                        <a href="{{ route('alumnos.create', ['prospecto_id' => $prospecto->id]) }}" class="btn btn-primary">Registrar como alumno</a>
+                    @endif
                     <button type="button" class="btn btn-warning pull-right" data-toggle="modal" data-target="#modalEtapa">Cambiar etapa</button>
                 </div>
             </div>
@@ -152,16 +155,29 @@
         <div class="col-md-4">
             <div class="box box-default">
                 <div class="box-header with-border">
-                    <h3 class="box-title">Documentos de admision</h3>
+                    <h3 class="box-title">Documentos de admisión</h3>
+                    <div class="box-tools pull-right">
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalDocumento">Agregar documento</button>
+                    </div>
                 </div>
                 <div class="box-body">
                     @forelse ($prospecto->documentos as $documento)
-                        <p>
-                            <strong>{{ $documento->tipo_documento }}</strong><br>
-                            <span class="label {{ $badgeDocumento[$documento->estado] ?? 'bg-gray' }}">
-                                {{ ucfirst(str_replace('_', ' ', $documento->estado)) }}
-                            </span>
-                        </p>
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 10px; background: #f8fbff; border: 1px solid #e2ebf3; border-radius: 14px;">
+                            <div style="width: 50px; height: 50px; border-radius: 12px; background: #e8eef5; color: #556270; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
+                                <i class="fa fa-file-text"></i>
+                            </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="font-size: 15px; font-weight: 700; color: #1f2933; line-height: 1.25; margin-bottom: 6px; word-break: break-word;">{{ $documento->tipo_documento }}</div>
+                                <span style="display: inline-block; padding: 3px 8px; border-radius: 7px; background: #e4f4ea; color: #137a4b; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;">{{ str_replace('_', ' ', $documento->estado) }}</span>
+                            </div>
+                            @if ($documento->archivo_url)
+                                <div style="flex-shrink: 0;">
+                                    <a href="{{ route('prospectos.documentos.archivo', [$prospecto->id, $documento->id]) }}" class="btn btn-default" style="border-radius: 12px; padding: 8px 14px; font-weight: 700; font-size: 13px; color: #0b6aa8; background: #eef3f8; border-color: #eef3f8;" title="{{ $documento->archivo_nombre ?: 'Ver archivo' }}">
+                                        Ver archivo
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
                     @empty
                         <p class="text-muted">No hay documentos cargados para este prospecto.</p>
                     @endforelse
@@ -194,7 +210,7 @@
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="tipo_accion">Tipo de accion</label>
+                            <label for="tipo_accion">Tipo de acción</label>
                             <select class="form-control" id="tipo_accion" name="tipo_accion" required>
                                 @foreach ($tiposSeguimiento as $valor => $etiqueta)
                                     <option value="{{ $valor }}" {{ old('tipo_accion') === $valor ? 'selected' : '' }}>{{ $etiqueta }}</option>
@@ -202,8 +218,9 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="fecha">Fecha</label>
+                            <label for="fecha">Fecha del seguimiento</label>
                             <input type="date" class="form-control" id="fecha" name="fecha" value="{{ old('fecha', now()->toDateString()) }}" required>
+                            <p class="help-block">Indica la fecha en que ocurrió la llamada, visita, correo o nota.</p>
                         </div>
                         <div class="form-group">
                             <label for="notas">Notas</label>
@@ -213,6 +230,47 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-success">Guardar seguimiento</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalDocumento" tabindex="-1" role="dialog" aria-labelledby="modalDocumentoLabel">
+        <div class="modal-dialog" role="document">
+            <form method="POST" action="{{ route('prospectos.documentos.store', $prospecto->id) }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="modalDocumentoLabel">Agregar documento</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="tipo_documento">Tipo de documento</label>
+                            <select class="form-control" id="tipo_documento" name="tipo_documento" required>
+                                <option value="">Selecciona un documento</option>
+                                @foreach ($tiposDocumento as $tipoDocumento)
+                                    <option value="{{ $tipoDocumento }}" {{ old('tipo_documento') === $tipoDocumento ? 'selected' : '' }}>{{ $tipoDocumento }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group" id="grupo_otro_documento" style="display: {{ old('tipo_documento') === 'Otro' ? 'block' : 'none' }};">
+                            <label for="otro_documento">Cuál documento es</label>
+                            <input type="text" class="form-control" id="otro_documento" name="otro_documento" value="{{ old('otro_documento') }}" maxlength="120">
+                            <p class="help-block">Escribe el nombre del documento si no aparece en la lista.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="archivo">Archivo</label>
+                            <input type="file" class="form-control" id="archivo" name="archivo" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                            <p class="help-block">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC y DOCX. Tamaño máximo: 5 MB.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar documento</button>
                     </div>
                 </div>
             </form>
@@ -244,7 +302,7 @@
                             <textarea class="form-control" id="notas_etapa" name="notas" rows="4" required>{{ old('notas') }}</textarea>
                         </div>
                         <div class="form-group" id="grupo_motivo_no_concrecion" style="display: {{ old('etapa', $prospecto->etapa) === 'no_concretado' ? 'block' : 'none' }};">
-                            <label for="motivo_no_concrecion">Motivo no concrecion</label>
+                            <label for="motivo_no_concrecion">Motivo no concreción</label>
                             <textarea class="form-control" id="motivo_no_concrecion" name="motivo_no_concrecion" rows="3">{{ old('motivo_no_concrecion', $prospecto->motivo_no_concrecion) }}</textarea>
                         </div>
                     </div>
@@ -267,8 +325,21 @@
                 $('#motivo_no_concrecion').prop('required', show);
             }
 
+            function toggleOtroDocumento() {
+                var show = $('#tipo_documento').val() === 'Otro';
+                $('#grupo_otro_documento').toggle(show);
+                $('#otro_documento').prop('required', show);
+
+                if (!show) {
+                    $('#otro_documento').val('');
+                }
+            }
+
             $('#etapa').on('change', toggleMotivo);
+            $('#tipo_documento').on('change', toggleOtroDocumento);
+
             toggleMotivo();
+            toggleOtroDocumento();
         });
     </script>
 @endpush

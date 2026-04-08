@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('page_title', 'Metricas de prospectos')
+@section('page_title', 'Métricas de prospectos')
 @section('page_subtitle', 'Resumen del ciclo activo')
 
 @section('content')
@@ -58,7 +58,7 @@
             <div class="small-box bg-yellow">
                 <div class="inner">
                     <h3>{{ $datos['tasa_conversion'] }}</h3>
-                    <p>Tasa de conversion</p>
+                    <p>Tasa de conversión</p>
                 </div>
                 <div class="icon">
                     <i class="fa fa-line-chart"></i>
