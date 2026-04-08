@@ -300,12 +300,14 @@
 
     <script>
         $(document).ready(function() {
+            // 1. Inicializar DataTable
             $('#tabla-planes').DataTable({
                 "lengthChange": false,
                 "pageLength": {{ request('mostrar', 10) }},
                 "ordering": false
             });
 
+            // 2. Lógica para agregar/quitar conceptos
             let indiceConcepto = 0;
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
@@ -323,6 +325,7 @@
                 if ($('#tabla-conceptos-modal tbody tr').length === 0) $('#mensaje-vacio-modal').show();
             });
 
+            // 3. Lógica para agregar/quitar descuentos
             let indiceDesc = 0;
             $('#btn-add-descuento').click(function() {
                 let html = `<div class="row" id="fila-desc-${indiceDesc}" style="margin-bottom: 5px;">
@@ -339,6 +342,16 @@
             $(document).on('click', '.btn-remove-desc', function() {
                 $('#fila-desc-' + $(this).data('id')).remove();
             });
+
+            // ==========================================
+            // 4. AUTO-CERRAR ALERTAS DESPUÉS DE 5 SEGUNDOS
+            // ==========================================
+            setTimeout(function() {
+                $('.alert-dismissible').slideUp('slow', function() {
+                    $(this).remove();
+                });
+            }, 5000);
+
         });
     </script>
 @endpush
