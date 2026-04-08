@@ -313,51 +313,98 @@ class AlumnoController extends Controller
      * GET /alumnos/{id}/estado-cuenta
      * Devuelve cargos del ciclo activo. Usada tanto en vista como AJAX.
      */
-    public function estadoCuenta(int $id)
+    public function estadoCuenta(Request $request, int $id)
     {
-        $alumno = Alumno::findOrFail($id);
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
+        $alumno = Alumno::with([
+            'inscripciones.grupo.grado.nivel',
+            'inscripciones.ciclo',
+        ])->findOrFail($id);
 
-        $inscripcion = $alumno->inscripciones()
-            ->where('ciclo_id', $cicloId)
+        $inscripcionActual = $alumno->inscripciones
             ->where('activo', true)
+            ->sortByDesc('id')
             ->first();
 
-        if (! $inscripcion) {
-            if (request()->ajax()) {
-                return response()->json(['message' => 'Sin inscripción activa en este ciclo.'], 404);
+        // Ciclos del alumno para el selector de filtro
+        $ciclos = CicloEscolar::whereHas('inscripciones', fn($q) =>
+            $q->where('alumno_id', $alumno->id)
+        )->orderByDesc('fecha_inicio')->get();
+
+        // Cargos con detalles de pagos vigentes
+        $cargosQuery = \App\Models\Cargo::with([
+            'concepto',
+            'detallesPagosVigentes.pago:id,folio_recibo,fecha_pago,forma_pago,referencia,estado',
+        ])
+        ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
+        ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
+
+        if ($request->filled('ciclo_id')) {
+            $cargosQuery->whereHas('inscripcion', fn($q) =>
+                $q->where('ciclo_id', $request->ciclo_id)
+            );
+        }
+
+        $cargos = $cargosQuery->orderBy('fecha_vencimiento')->get();
+
+        // ── Resumen ───────────────────────────────────────
+        $hoy              = now();
+        $totalCargado     = 0;
+        $totalPagado      = 0;
+        $totalCondonado   = 0;
+        $totalVencido     = 0;
+        $cargosPendientes = 0;
+        $cargosVencidos   = 0;
+
+        foreach ($cargos as $cargo) {
+            $abonado   = $cargo->total_abonado ?? 0;
+            $pendiente = max(0, $cargo->monto_original - $abonado);
+            $vencido   = $hoy->gt($cargo->fecha_vencimiento);
+
+            $totalCargado += $cargo->monto_original;
+
+            if ($cargo->estado === 'condonado') {
+                $totalCondonado += $cargo->monto_original;
             }
 
-            return back()->with('error', 'El alumno no tiene inscripción activa en este ciclo.');
-        }
+            $totalPagado += $abonado;
 
-        $cargos = $inscripcion->cargos()
-            ->with('concepto', 'pagosVigentes', 'descuentos')
-            ->orderBy('fecha_vencimiento')
-            ->get()
-            ->map(fn ($cargo) => [
-                'id' => $cargo->id,
-                'concepto' => $cargo->concepto->nombre,
-                'periodo' => $cargo->periodo,
-                'monto_original' => $cargo->monto_original,
-                'saldo_abonado' => $cargo->saldo_abonado,
-                'saldo_pendiente' => $cargo->saldo_pendiente_base,
-                'estado_real' => $cargo->estado_real,
-                'fecha_vencimiento' => $cargo->fecha_vencimiento,
-            ]);
+            if (!in_array($cargo->estado, ['pagado', 'condonado']) && $pendiente > 0) {
+                if ($vencido) {
+                    $totalVencido += $pendiente;
+                    $cargosVencidos++;
+                } else {
+                    $cargosPendientes++;
+                }
+            }
+        }
 
         $resumen = [
-            'total_pagado' => $cargos->sum('saldo_abonado'),
-            'total_pendiente' => $cargos->sum('saldo_pendiente'),
-            'cargos_vencidos' => $cargos->filter(fn ($c) => str_contains($c['estado_real'], 'vencido'))->count(),
+            'total_cargado'     => $totalCargado,
+            'total_pagado'      => $totalPagado,
+            'total_condonado'   => $totalCondonado,
+            'saldo_pendiente'   => max(0, $totalCargado - $totalPagado - $totalCondonado),
+            'total_vencido'     => $totalVencido,
+            'total_cargos'      => $cargos->count(),
+            'cargos_pendientes' => $cargosPendientes,
+            'cargos_vencidos'   => $cargosVencidos,
         ];
 
-        if (request()->ajax()) {
-            return response()->json(['resumen' => $resumen, 'cargos' => $cargos]);
-        }
+        // Becas activas en el ciclo actual
+        $becas = \App\Models\BecaAlumno::with(['catalogoBeca', 'concepto'])
+            ->where('alumno_id', $alumno->id)
+            ->where('activo', true)
+            ->when($inscripcionActual, fn($q) =>
+                $q->where('ciclo_id', $inscripcionActual->ciclo_id)
+            )
+            ->where(fn($q) => $q
+                ->whereNull('vigencia_fin')
+                ->orWhere('vigencia_fin', '>=', now())
+            )
+            ->get();
 
-        return view('alumnos.estado-cuenta', compact('alumno', 'cargos', 'resumen'));
+        return view('alumnos.estado-cuenta', compact(
+            'alumno', 'inscripcionActual', 'ciclos', 'cargos', 'resumen', 'becas'
+        ));
     }
 
     // ── Helpers privados ─────────────────────────────────
