@@ -162,7 +162,7 @@
             <div class="row">
                 <div class="col-md-5">
                     <div class="form-group">
-                        <label><i class="fa fa-file-text-o"></i> Nombre del Plan</label>
+                        <label><i class="fa fa-file-text-o"></i> Nombre de Plan</label>
                         <input type="text" name="nombre" class="form-control"
                             placeholder="Ej: Plan Anual Secundaria" required>
                     </div>
@@ -318,7 +318,7 @@
             <div class="alert alert-info">
                 <h4><i class="icon fa fa-info"></i> Instrucciones</h4>
                 Se crearán copias exactas de los planes seleccionados (incluyendo sus conceptos y políticas) en el ciclo
-                escolar de destino.
+                escolar de destino escogido.
             </div>
 
             <div class="form-group">
@@ -341,7 +341,6 @@
             </div>
         </form>
     </x-modal>
-
 @endsection
 
 @push('scripts')
