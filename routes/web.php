@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\PlanPagoConceptoController;
 use App\Http\Controllers\PoliticaController;
-
 use App\Http\Controllers\CobrosController;
 
 
@@ -300,15 +299,3 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
-
-
-    Route::get('/', function () {
-    // 1. Verificamos si el usuario ya tiene una sesión activa
-    if (Auth::check()) {
-        // 2. Si ya está logueado, lo mandamos a SU dashboard correspondiente
-        // (Usando el método del modelo que vimos antes)
-        return redirect(Auth::user()->rutaDashboard());
-    }
-    // 3. Si NO está logueado, le mostramos la vista del login normalmente
-    return view('login');
-    })->name('login');
