@@ -1,38 +1,48 @@
 <?php
+
+use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BecaController;
+use App\Http\Controllers\CargoController;
 use App\Http\Controllers\CicloEscolarController;
+use App\Http\Controllers\CobrosController;
+use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\NivelEscolarController;
-use App\Http\Controllers\UsuarioController;
-use App\Http\Controllers\AlumnoController;
-use App\Http\Controllers\PlanPagoController;
-use App\Http\Controllers\CargoController;
 use App\Http\Controllers\PagoController;
-use App\Http\Controllers\BecaController;
-use App\Http\Controllers\ProspectoController;
-use App\Http\Controllers\PortalPadreController;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\PlanPagoConceptoController;
+use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\PoliticaController;
-use App\Http\Controllers\CobrosController;
+use App\Http\Controllers\PortalPadreController;
+use App\Http\Controllers\ProspectoController;
+use App\Http\Controllers\UsuarioController;
+use Illuminate\Support\Facades\Route;
 
-
-
-Route::get('/tables', function () {return view('plantilla.tables');})->name('tables');
-Route::get('/datatables', function () {return view('plantilla.data');})->name('datatables');
-Route::get('/ui-elements', function () {return view('plantilla.uiGeneral');})->name('ui-elements');
-Route::get('/forms', function () {return view('plantilla.forms');})->name('forms');
-Route::get('/icons', function () {return view('plantilla.icons');})->name('icons');
-Route::get('/widgets', function () {return view('plantilla.widgets');})->name('widgets');
+Route::get('/tables', function () {
+    return view('plantilla.tables');
+})->name('tables');
+Route::get('/datatables', function () {
+    return view('plantilla.data');
+})->name('datatables');
+Route::get('/ui-elements', function () {
+    return view('plantilla.uiGeneral');
+})->name('ui-elements');
+Route::get('/forms', function () {
+    return view('plantilla.forms');
+})->name('forms');
+Route::get('/icons', function () {
+    return view('plantilla.icons');
+})->name('icons');
+Route::get('/widgets', function () {
+    return view('plantilla.widgets');
+})->name('widgets');
 // =======================================================
 // Rutas públicas — sin autenticación
 // =======================================================
 
-Route::get('/',  [AuthController::class, 'showLogin'])->name('login');
+Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 
 Route::middleware('guest')->group(function () {
 
@@ -47,7 +57,6 @@ Route::post('/logout', [AuthController::class, 'logout'])
 // Rutas internas — administrador, caja, recepción
 // =======================================================
 Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
-
 
     // ── Ciclos ───────────────────────────────────────────
     // IMPORTANTE: rutas con segmento fijo ANTES del resource
@@ -77,7 +86,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
-    Route::get('/alumnos/{id}/hermanos',      [AlumnoController::class, 'hermanos'])
+    Route::get('/alumnos/{id}/hermanos', [AlumnoController::class, 'hermanos'])
         ->middleware('rol:administrador,recepcion')
         ->name('alumnos.hermanos');
 
@@ -88,11 +97,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion');
 
-    // conceptos de cobro 
+    // conceptos de cobro
     // Planes de pago
     // conceptos de cobro
     Route::resource('conceptos', ConceptoCobroController::class)
-    ->middleware('rol:administrador');
+        ->middleware('rol:administrador');
     // ── Planes de pago ───────────────────────────────────
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')
@@ -102,35 +111,42 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('planes.asignacion-alumno');
 
+    Route::get('/planes/asignar', [PlanPagoController::class, 'createAsignacion'])
+        ->middleware('rol:administrador')
+        ->name('planes.asignar.form');
+
+    Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
+        ->middleware('rol:administrador')
+        ->name('planes.asignar');
     Route::resource('planes', PlanPagoController::class)
         ->middleware('rol:administrador');
-        
+
     Route::post('planes/clonar-masivo', [PlanPagoController::class, 'clonarMasivo'])->name('planes.clonar.masivo');
 
     // ── Conceptos y Políticas de un plan (Configuración) ──
     Route::prefix('planes/{planId}')->name('planes.')->group(function () {
         // Conceptos del plan
-        Route::get('conceptos',              [PlanPagoConceptoController::class, 'index'])->name('conceptos.index');
-        Route::post('conceptos',             [PlanPagoConceptoController::class, 'store'])->name('conceptos.store');
-        Route::put('conceptos/{id}',         [PlanPagoConceptoController::class, 'update'])->name('conceptos.update');
-        Route::delete('conceptos/{id}',      [PlanPagoConceptoController::class, 'destroy'])->name('conceptos.destroy');
+        Route::get('conceptos', [PlanPagoConceptoController::class, 'index'])->name('conceptos.index');
+        Route::post('conceptos', [PlanPagoConceptoController::class, 'store'])->name('conceptos.store');
+        Route::put('conceptos/{id}', [PlanPagoConceptoController::class, 'update'])->name('conceptos.update');
+        Route::delete('conceptos/{id}', [PlanPagoConceptoController::class, 'destroy'])->name('conceptos.destroy');
 
         // Políticas (descuentos + recargo)
-        Route::get('politicas',                  [PoliticaController::class, 'index'])->name('politicas.index');
-        Route::post('politicas/descuento',       [PoliticaController::class, 'storeDescuento'])->name('politicas.descuento.store');
-        Route::put('politicas/descuento/{id}',   [PoliticaController::class, 'updateDescuento'])->name('politicas.descuento.update');
-        Route::delete('politicas/descuento/{id}',[PoliticaController::class, 'destroyDescuento'])->name('politicas.descuento.destroy');
-        Route::post('politicas/recargo',         [PoliticaController::class, 'storeRecargo'])->name('politicas.recargo.store');
-        Route::put('politicas/recargo/{id}',     [PoliticaController::class, 'updateRecargo'])->name('politicas.recargo.update');
-        Route::delete('politicas/recargo/{id}',  [PoliticaController::class, 'destroyRecargo'])->name('politicas.recargo.destroy');
+        Route::get('politicas', [PoliticaController::class, 'index'])->name('politicas.index');
+        Route::post('politicas/descuento', [PoliticaController::class, 'storeDescuento'])->name('politicas.descuento.store');
+        Route::put('politicas/descuento/{id}', [PoliticaController::class, 'updateDescuento'])->name('politicas.descuento.update');
+        Route::delete('politicas/descuento/{id}', [PoliticaController::class, 'destroyDescuento'])->name('politicas.descuento.destroy');
+        Route::post('politicas/recargo', [PoliticaController::class, 'storeRecargo'])->name('politicas.recargo.store');
+        Route::put('politicas/recargo/{id}', [PoliticaController::class, 'updateRecargo'])->name('politicas.recargo.update');
+        Route::delete('politicas/recargo/{id}', [PoliticaController::class, 'destroyRecargo'])->name('politicas.recargo.destroy');
     })->middleware('rol:administrador');
 
     // ── Cargos ───────────────────────────────────────────
-    Route::post('/cargos/generar',       [CargoController::class, 'generar'])
+    Route::post('/cargos/generar', [CargoController::class, 'generar'])
         ->middleware('rol:administrador')
         ->name('cargos.generar');
 
-    Route::get('/cargos/{id}/preview',   [CargoController::class, 'preview'])
+    Route::get('/cargos/{id}/preview', [CargoController::class, 'preview'])
         ->middleware('rol:administrador,caja')
         ->name('cargos.preview');
 
@@ -139,11 +155,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja');
 
     // ── Pagos ────────────────────────────────────────────
-    Route::get('/pagos/corte',           [PagoController::class, 'corte'])
+    Route::get('/pagos/corte', [PagoController::class, 'corte'])
         ->middleware('rol:administrador,caja')
         ->name('pagos.corte');
 
-    Route::post('/pagos/{id}/anular',    [PagoController::class, 'anular'])
+    Route::post('/pagos/{id}/anular', [PagoController::class, 'anular'])
         ->middleware('rol:administrador')
         ->name('pagos.anular');
 
@@ -152,11 +168,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja');
 
     // ── Becas ────────────────────────────────────────────
-    Route::get('/becas/catalogo',        [BecaController::class, 'catalogo'])
+    Route::get('/becas/catalogo', [BecaController::class, 'catalogo'])
         ->middleware('rol:administrador')
         ->name('becas.catalogo');
 
-    Route::post('/becas/catalogo',       [BecaController::class, 'storeCatalogo'])
+    Route::post('/becas/catalogo', [BecaController::class, 'storeCatalogo'])
         ->middleware('rol:administrador')
         ->name('becas.catalogo.store');
 
@@ -165,15 +181,15 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Prospectos ───────────────────────────────────────
-    Route::get('/prospectos/metricas',           [ProspectoController::class, 'metricas'])
+    Route::get('/prospectos/metricas', [ProspectoController::class, 'metricas'])
         ->middleware('rol:administrador,recepcion')
         ->name('prospectos.metricas');
 
-    Route::post('/prospectos/{id}/etapa',        [ProspectoController::class, 'cambiarEtapa'])
+    Route::post('/prospectos/{id}/etapa', [ProspectoController::class, 'cambiarEtapa'])
         ->middleware('rol:administrador,recepcion')
         ->name('prospectos.etapa');
 
-    Route::post('/prospectos/{id}/seguimiento',  [ProspectoController::class, 'agregarSeguimiento'])
+    Route::post('/prospectos/{id}/seguimiento', [ProspectoController::class, 'agregarSeguimiento'])
         ->middleware('rol:administrador,recepcion')
         ->name('prospectos.seguimiento');
 
@@ -193,34 +209,34 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Dashboards por rol ───────────────────────────────
-    Route::get('/admin',     fn() => view('dashboards.admin'))
+    Route::get('/admin', fn () => view('dashboards.admin'))
         ->middleware('rol:administrador')
         ->name('admin.dashboard');
 
-    Route::get('/caja',      fn() => view('dashboards.caja'))
+    Route::get('/caja', fn () => view('dashboards.caja'))
         ->middleware('rol:administrador,caja')
         ->name('caja.dashboard');
 
-    Route::get('/recepcion', fn() => view('dashboards.recepcion'))
+    Route::get('/recepcion', fn () => view('dashboards.recepcion'))
         ->middleware('rol:administrador,recepcion')
         ->name('recepcion.dashboard');
 
     Route::prefix('familias')->name('familias.')->group(function () {
 
         // Gestión de acceso al portal — solo administrador
-        Route::post('contactos/{contactoId}/habilitar-portal',   [FamiliaController::class, 'habilitarPortal'])
+        Route::post('contactos/{contactoId}/habilitar-portal', [FamiliaController::class, 'habilitarPortal'])
             ->middleware('rol:administrador')
             ->name('contactos.habilitar-portal');
 
-        Route::post('contactos/{contactoId}/deshabilitar-portal',[FamiliaController::class, 'deshabilitarPortal'])
+        Route::post('contactos/{contactoId}/deshabilitar-portal', [FamiliaController::class, 'deshabilitarPortal'])
             ->middleware('rol:administrador')
             ->name('contactos.deshabilitar-portal');
 
-        Route::post('contactos/{contactoId}/crear-usuario',      [FamiliaController::class, 'crearUsuario'])
+        Route::post('contactos/{contactoId}/crear-usuario', [FamiliaController::class, 'crearUsuario'])
             ->middleware('rol:administrador')
             ->name('contactos.crear-usuario');
 
-        Route::post('contactos/{contactoId}/resetear-password',  [FamiliaController::class, 'resetearPassword'])
+        Route::post('contactos/{contactoId}/resetear-password', [FamiliaController::class, 'resetearPassword'])
             ->middleware('rol:administrador')
             ->name('contactos.resetear-password');
 
@@ -229,14 +245,14 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
             ->middleware('rol:administrador,recepcion')
             ->name('contactos');
         // Actualizar datos de un contacto (AJAX desde edit de alumno)
-        Route::put('contactos/{contactoId}', [\App\Http\Controllers\FamiliaController::class, 'actualizarContacto'])
+        Route::put('contactos/{contactoId}', [FamiliaController::class, 'actualizarContacto'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos.update');
         // Crear nuevo contacto para un alumno (AJAX desde edit de alumno)
-        Route::post('contactos', [\App\Http\Controllers\FamiliaController::class, 'agregarContacto'])
+        Route::post('contactos', [FamiliaController::class, 'agregarContacto'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos.store');
-        Route::delete('contactos/{contactoId}', [\App\Http\Controllers\FamiliaController::class, 'eliminarContacto'])
+        Route::delete('contactos/{contactoId}', [FamiliaController::class, 'eliminarContacto'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos.destroy');
     });
@@ -266,23 +282,23 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->group(function () {
 
     // Buscador de alumno
-    Route::get('/',                        [CobrosController::class, 'index'])
+    Route::get('/', [CobrosController::class, 'index'])
         ->name('index');
 
     // Autocomplete AJAX
-    Route::get('/buscar-alumno',           [CobrosController::class, 'buscarAlumno'])
+    Route::get('/buscar-alumno', [CobrosController::class, 'buscarAlumno'])
         ->name('buscar');
 
     // Pantalla de cobro del alumno
-    Route::get('/alumno/{alumnoId}',       [CobrosController::class, 'alumno'])
+    Route::get('/alumno/{alumnoId}', [CobrosController::class, 'alumno'])
         ->name('alumno');
 
     // Procesar pago
-    Route::post('/registrar',              [CobrosController::class, 'registrar'])
+    Route::post('/registrar', [CobrosController::class, 'registrar'])
         ->name('registrar');
 
     // Recibo generado
-    Route::get('/recibo/{pagoId}',         [CobrosController::class, 'recibo'])
+    Route::get('/recibo/{pagoId}', [CobrosController::class, 'recibo'])
         ->name('recibo');
 });
 // =======================================================
@@ -293,8 +309,8 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
     ->name('portal.')
     ->group(function () {
 
-        Route::get('/',                               fn() => view('portal.dashboard'))->name('dashboard');
-        Route::get('/hijos',                          [PortalPadreController::class, 'hijos'])->name('hijos');
+        Route::get('/', fn () => view('portal.dashboard'))->name('dashboard');
+        Route::get('/hijos', [PortalPadreController::class, 'hijos'])->name('hijos');
         Route::get('/hijos/{alumnoId}/estado-cuenta', [PortalPadreController::class, 'estadoCuenta'])->name('estado-cuenta');
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');

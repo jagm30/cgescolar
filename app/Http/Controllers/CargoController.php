@@ -8,7 +8,10 @@ use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
+use App\Models\Grupo;
 use App\Models\Inscripcion;
+use App\Models\NivelEscolar;
+use App\Models\PlanPago;
 use App\Traits\RespondsWithJson;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,7 +36,8 @@ class CargoController extends Controller
         $query = Cargo::with(['inscripcion.alumno', 'inscripcion.grupo.grado', 'concepto', 'detallesPagosVigentes'])
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId))
             ->when($request->filled('alumno_id'), fn ($q) => $q->whereHas(
-                'inscripcion', fn ($q) => $q->where('alumno_id', $request->alumno_id)
+                'inscripcion',
+                fn ($q) => $q->where('alumno_id', $request->alumno_id)
             ))
             ->when($request->filled('estado'), function ($q) use ($request) {
                 $this->aplicarFiltroEstado($q, $request->estado);
@@ -62,6 +66,19 @@ class CargoController extends Controller
             ->orderByDesc('periodo')
             ->pluck('periodo');
         $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $planes = PlanPago::with('nivel')
+            ->where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get();
+        $grupos = Grupo::with('grado.nivel')
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('grado_id')
+            ->orderBy('nombre')
+            ->get();
+        $niveles = NivelEscolar::activo()->get();
         $resumenBase = Cargo::query()
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId));
 
@@ -89,6 +106,19 @@ class CargoController extends Controller
             ->count();
 
         return view('cargos.index', compact('cargos', 'alumnos', 'periodos', 'ciclos', 'cicloId', 'resumen', 'perPage'));
+
+        return view('cargos.index', compact(
+            'cargos',
+            'alumnos',
+            'periodos',
+            'ciclos',
+            'cicloId',
+            'resumen',
+            'perPage',
+            'planes',
+            'grupos',
+            'niveles'
+        ));
     }
 
     /** GET /cargos/{id} */
@@ -189,7 +219,8 @@ class CargoController extends Controller
             }
 
             Auditoria::registrar('cargo', 0, 'insert', null, [
-                'ciclo_id' => $cicloId, 'total_generados' => $totalGenerados,
+                'ciclo_id' => $cicloId,
+                'total_generados' => $totalGenerados,
             ]);
 
             DB::commit();
@@ -210,7 +241,10 @@ class CargoController extends Controller
     public function preview(int $id)
     {
         $cargo = Cargo::with([
-            'inscripcion', 'concepto', 'asignacion.plan', 'detallesPagosVigentes',
+            'inscripcion',
+            'concepto',
+            'asignacion.plan',
+            'detallesPagosVigentes',
         ])->findOrFail($id);
 
         return response()->json($this->calcularPreviewCobro($cargo));
