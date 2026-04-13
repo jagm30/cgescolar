@@ -19,6 +19,7 @@ use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\PlanPagoConceptoController;
 use App\Http\Controllers\PoliticaController;
 
+use App\Http\Controllers\CobrosController;
 
 
 
@@ -89,6 +90,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion');
 
     // conceptos de cobro 
+    // Planes de pago
+    // conceptos de cobro
     Route::resource('conceptos', ConceptoCobroController::class)
     ->middleware('rol:administrador');
     // ── Planes de pago ───────────────────────────────────
@@ -226,6 +229,17 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::get('{id}/contactos', [FamiliaController::class, 'contactos'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos');
+        // Actualizar datos de un contacto (AJAX desde edit de alumno)
+        Route::put('contactos/{contactoId}', [\App\Http\Controllers\FamiliaController::class, 'actualizarContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.update');
+        // Crear nuevo contacto para un alumno (AJAX desde edit de alumno)
+        Route::post('contactos', [\App\Http\Controllers\FamiliaController::class, 'agregarContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.store');
+        Route::delete('contactos/{contactoId}', [\App\Http\Controllers\FamiliaController::class, 'eliminarContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.destroy');
     });
 
     // Resource de familias — admin y recepción ven, solo admin crea/edita
@@ -249,7 +263,29 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // POST   /familias/contactos/{id}/resetear-password   → resetearPassword
     // =======================================================
 });
+// ── Cobros / Caja ─────────────────────────────────────
+Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->group(function () {
 
+    // Buscador de alumno
+    Route::get('/',                        [CobrosController::class, 'index'])
+        ->name('index');
+
+    // Autocomplete AJAX
+    Route::get('/buscar-alumno',           [CobrosController::class, 'buscarAlumno'])
+        ->name('buscar');
+
+    // Pantalla de cobro del alumno
+    Route::get('/alumno/{alumnoId}',       [CobrosController::class, 'alumno'])
+        ->name('alumno');
+
+    // Procesar pago
+    Route::post('/registrar',              [CobrosController::class, 'registrar'])
+        ->name('registrar');
+
+    // Recibo generado
+    Route::get('/recibo/{pagoId}',         [CobrosController::class, 'recibo'])
+        ->name('recibo');
+});
 // =======================================================
 // Portal de padres de familia
 // =======================================================
@@ -261,6 +297,18 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/',                               fn() => view('portal.dashboard'))->name('dashboard');
         Route::get('/hijos',                          [PortalPadreController::class, 'hijos'])->name('hijos');
         Route::get('/hijos/{alumnoId}/estado-cuenta', [PortalPadreController::class, 'estadoCuenta'])->name('estado-cuenta');
-        Route::get('/hijos/{alumnoId}/pagos',         [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
-        Route::get('/razones-sociales',               [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
+        Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
+        Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
+
+
+    Route::get('/', function () {
+    // 1. Verificamos si el usuario ya tiene una sesión activa
+    if (Auth::check()) {
+        // 2. Si ya está logueado, lo mandamos a SU dashboard correspondiente
+        // (Usando el método del modelo que vimos antes)
+        return redirect(Auth::user()->rutaDashboard());
+    }
+    // 3. Si NO está logueado, le mostramos la vista del login normalmente
+    return view('login');
+    })->name('login');

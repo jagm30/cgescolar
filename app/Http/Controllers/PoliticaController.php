@@ -68,10 +68,16 @@ class PoliticaController extends Controller
 
         // Validación extra: porcentaje no puede superar 100
         if ($data['tipo_valor'] === 'porcentaje' && $data['valor'] > 100) {
+<<<<<<< HEAD
             if ($request->ajax()) {
                 return response()->json(['message' => 'El porcentaje no puede ser mayor a 100.'], 422);
             }
             return back()->withErrors(['valor' => 'El porcentaje no puede ser mayor a 100.'])->withInput();
+=======
+            return response()->json([
+                'message' => 'El porcentaje no puede ser mayor a 100.',
+            ], 422);
+>>>>>>> ed4c013d1791821f9e50e092c551bcbacc6ee097
         }
 
         $politica = PoliticaDescuento::create([
@@ -114,10 +120,16 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_valor'] === 'porcentaje' && $data['valor'] > 100) {
+<<<<<<< HEAD
             if ($request->ajax()) {
                 return response()->json(['message' => 'El porcentaje no puede ser mayor a 100.'], 422);
             }
             return back()->withErrors(['valor' => 'El porcentaje no puede ser mayor a 100.'])->withInput();
+=======
+            return response()->json([
+                'message' => 'El porcentaje no puede ser mayor a 100.',
+            ], 422);
+>>>>>>> ed4c013d1791821f9e50e092c551bcbacc6ee097
         }
 
         $politica->update($data);
@@ -197,10 +209,16 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
+<<<<<<< HEAD
             if ($request->ajax()) {
                 return response()->json(['message' => 'El porcentaje de recargo no puede ser mayor a 100.'], 422);
             }
             return back()->withErrors(['valor' => 'El porcentaje de recargo no puede ser mayor a 100.'])->withInput();
+=======
+            return response()->json([
+                'message' => 'El porcentaje de recargo no puede ser mayor a 100.',
+            ], 422);
+>>>>>>> ed4c013d1791821f9e50e092c551bcbacc6ee097
         }
 
         $recargo = PoliticaRecargo::create([
@@ -243,10 +261,16 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
+<<<<<<< HEAD
             if ($request->ajax()) {
                 return response()->json(['message' => 'El porcentaje de recargo no puede ser mayor a 100.'], 422);
             }
             return back()->withErrors(['valor' => 'El porcentaje de recargo no puede ser mayor a 100.'])->withInput();
+=======
+            return response()->json([
+                'message' => 'El porcentaje de recargo no puede ser mayor a 100.',
+            ], 422);
+>>>>>>> ed4c013d1791821f9e50e092c551bcbacc6ee097
         }
 
         $recargo->update($data);

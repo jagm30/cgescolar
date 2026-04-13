@@ -100,4 +100,9 @@ class ContactoFamiliar extends Model
                     ->where('activo', true)
                     ->first();
     }
+    public function alumnoContactos(): \Illuminate\Database\Eloquent\Relations\HasMany
+{
+    return $this->hasMany(\App\Models\AlumnoContacto::class, 'contacto_id')
+                ->where('activo', true);
+}
 }

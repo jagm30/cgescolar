@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Nuevo prospecto')
-@section('page_subtitle', 'Registro de admision')
+@section('page_subtitle', 'Registro de admisi√≥n')
 
 @section('content')
     @php
@@ -41,14 +41,17 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="nombre">Nombre del prospecto</label>
-                                    <input type="text" class="form-control" id="nombre" name="nombre" value="{{ old('nombre') }}" required maxlength="100" pattern="[A-Za-z¡…Õ”⁄·ÈÌÛ˙—Ò'\-\s]+" placeholder="Solo letras y espacios">
+                                    <label for="nombre">Nombre(s) del prospecto</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre"
+                                        value="{{ old('nombre') }}" required maxlength="100"
+                                        pattern="[A-Za-z√Å√â√ç√ì√ö√°√©√≠√≥√∫√ë√±'\-\s]+" placeholder="Solo letras y espacios">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="fecha_nacimiento">Fecha de nacimiento</label>
-                                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento" value="{{ old('fecha_nacimiento') }}">
+                                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
+                                        value="{{ old('fecha_nacimiento') }}">
                                 </div>
                             </div>
                         </div>
@@ -56,11 +59,12 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="nivel_interes_id">Nivel de interes</label>
+                                    <label for="nivel_interes_id">Nivel de inter√©s</label>
                                     <select class="form-control" id="nivel_interes_id" name="nivel_interes_id">
                                         <option value="">Selecciona un nivel</option>
                                         @foreach ($niveles as $nivel)
-                                            <option value="{{ $nivel->id }}" {{ (string) old('nivel_interes_id') === (string) $nivel->id ? 'selected' : '' }}>
+                                            <option value="{{ $nivel->id }}"
+                                                {{ (string) old('nivel_interes_id') === (string) $nivel->id ? 'selected' : '' }}>
                                                 {{ $nivel->nombre }}
                                             </option>
                                         @endforeach
@@ -73,7 +77,8 @@
                                     <select class="form-control" id="ciclo_id" name="ciclo_id">
                                         <option value="">Usar ciclo activo</option>
                                         @foreach ($ciclos as $ciclo)
-                                            <option value="{{ $ciclo->id }}" {{ (string) old('ciclo_id') === (string) $ciclo->id ? 'selected' : '' }}>
+                                            <option value="{{ $ciclo->id }}"
+                                                {{ (string) old('ciclo_id') === (string) $ciclo->id ? 'selected' : '' }}>
                                                 {{ $ciclo->nombre }}
                                             </option>
                                         @endforeach
@@ -88,19 +93,25 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="contacto_nombre">Nombre del contacto</label>
-                                    <input type="text" class="form-control" id="contacto_nombre" name="contacto_nombre" value="{{ old('contacto_nombre') }}" required maxlength="200" pattern="[A-Za-z¡…Õ”⁄·ÈÌÛ˙—Ò'\-\s]+" placeholder="Solo letras y espacios">
+                                    <input type="text" class="form-control" id="contacto_nombre" name="contacto_nombre"
+                                        value="{{ old('contacto_nombre') }}" required maxlength="200"
+                                        pattern="[A-Za-z√Å√â√ç√ì√ö√°√©√≠√≥√∫√ë√±'\-\s]+" placeholder="Solo letras y espacios">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="contacto_telefono">Telefono</label>
-                                    <input type="text" class="form-control" id="contacto_telefono" name="contacto_telefono" value="{{ old('contacto_telefono') }}" required maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 digitos">
+                                    <label for="contacto_telefono">Tel√©fono</label>
+                                    <input type="tel" class="form-control" id="contacto_telefono"
+                                        name="contacto_telefono" value="{{ old('contacto_telefono') }}" required
+                                        maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 d√≠gitos">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="fecha_primer_contacto">Primer contacto</label>
-                                    <input type="date" class="form-control" id="fecha_primer_contacto" name="fecha_primer_contacto" value="{{ old('fecha_primer_contacto', now()->toDateString()) }}" required>
+                                    <input type="date" class="form-control" id="fecha_primer_contacto"
+                                        name="fecha_primer_contacto"
+                                        value="{{ old('fecha_primer_contacto', now()->toDateString()) }}" required>
                                 </div>
                             </div>
                         </div>
@@ -108,8 +119,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="contacto_email">Correo electronico</label>
-                                    <input type="email" class="form-control" id="contacto_email" name="contacto_email" value="{{ old('contacto_email') }}" maxlength="200">
+                                    <label for="contacto_email">Correo electr√≥nico</label>
+                                    <input type="email" class="form-control" id="contacto_email" name="contacto_email"
+                                        value="{{ old('contacto_email') }}" maxlength="200">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -118,7 +130,8 @@
                                     <select class="form-control" id="canal_contacto" name="canal_contacto">
                                         <option value="">Selecciona un canal</option>
                                         @foreach ($canales as $valor => $etiqueta)
-                                            <option value="{{ $valor }}" {{ old('canal_contacto') === $valor ? 'selected' : '' }}>
+                                            <option value="{{ $valor }}"
+                                                {{ old('canal_contacto') === $valor ? 'selected' : '' }}>
                                                 {{ $etiqueta }}
                                             </option>
                                         @endforeach
@@ -137,11 +150,13 @@
             <div class="col-md-4">
                 <div class="box box-info">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Que se registra</h3>
+                        <h3 class="box-title">Qu√© se registra</h3>
                     </div>
                     <div class="box-body">
-                        <p>Al guardar se crea el prospecto en etapa inicial y se agrega un seguimiento automatico con la nota de registro.</p>
-                        <p>Desde la vista de detalle podras agregar seguimientos, revisar documentos y cambiar la etapa del proceso.</p>
+                        <p>Al guardar se crea el prospecto en etapa inicial y se agrega un seguimiento autom√°tico con la
+                            nota de registro.</p>
+                        <p>Desde la vista de detalle podr√°s agregar seguimientos, revisar documentos y cambiar la etapa del
+                            proceso.</p>
                     </div>
                 </div>
             </div>
@@ -151,16 +166,19 @@
 
 @push('scripts')
     <script>
-        $(function () {
+        $(function() {
             function sanitizeName(value) {
-                return value.replace(/[^A-Za-z¡…Õ”⁄·ÈÌÛ˙—Ò'\-\s]/g, '');
+                return value
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, '') // elimina acentos
+                    .replace(/[^A-Za-z√ë√±\s'-]/g, '');
             }
 
-            $('#nombre, #contacto_nombre').on('input', function () {
+            $('#nombre, #contacto_nombre').on('input', function() {
                 this.value = sanitizeName(this.value);
             });
 
-            $('#contacto_telefono').on('input', function () {
+            $('#contacto_telefono').on('input', function() {
                 this.value = this.value.replace(/\D/g, '').slice(0, 10);
             });
         });

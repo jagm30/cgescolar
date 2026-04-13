@@ -9,7 +9,7 @@
             'prospecto' => 'Prospecto',
             'cita' => 'Cita',
             'visita' => 'Visita',
-            'documentacion' => 'Documentacion',
+            'documentacion' => 'Documentación',
             'aceptado' => 'Aceptado',
             'inscrito' => 'Inscrito',
             'no_concretado' => 'No concretado',
@@ -63,7 +63,7 @@
             <div class="info-box">
                 <span class="info-box-icon bg-green"><i class="fa fa-list"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text">En pagina</span>
+                    <span class="info-box-text">En página</span>
                     <span class="info-box-number">{{ $prospectos->count() }}</span>
                 </div>
             </div>
@@ -81,7 +81,7 @@
             <div class="info-box">
                 <span class="info-box-icon bg-purple"><i class="fa fa-bar-chart"></i></span>
                 <div class="info-box-content">
-                    <span class="info-box-text">Metricas</span>
+                    <span class="info-box-text">Métricas</span>
                     <span class="info-box-number"><a href="{{ route('prospectos.metricas', ['ciclo_id' => $cicloId]) }}" class="text-black">Ver reporte</a></span>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                     <i class="fa fa-plus"></i> Nuevo prospecto
                 </a>
                 <a href="{{ route('prospectos.metricas', ['ciclo_id' => $cicloId]) }}" class="btn btn-default btn-sm">
-                    <i class="fa fa-line-chart"></i> Metricas
+                    <i class="fa fa-line-chart"></i> Métricas
                 </a>
             </div>
         </div>
@@ -107,7 +107,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="buscar">Buscar</label>
-                            <input type="text" class="form-control" id="buscar" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre, contacto o telefono">
+                            <input type="text" class="form-control" id="buscar" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre, contacto o teléfono">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -144,7 +144,7 @@
                     </div>
                     <div class="col-md-1">
                         <div class="form-group">
-                            <label for="per_page">Por pagina</label>
+                            <label for="per_page">Por página</label>
                             <select class="form-control" id="per_page" name="per_page">
                                 @foreach ([10, 20, 50] as $size)
                                     <option value="{{ $size }}" {{ (int) request('per_page', 20) === $size ? 'selected' : '' }}>{{ $size }}</option>
@@ -200,7 +200,7 @@
                             <td>{{ optional($prospecto->fecha_primer_contacto)->format('d/m/Y') ?: '-' }}</td>
                             <td>{{ optional($prospecto->responsable)->nombre ?: 'Sin asignar' }}</td>
                             <td class="text-right">
-                                <a href="{{ route('prospectos.show', $prospecto->id) }}" class="btn btn-xs btn-info">Ver detalle</a>
+                                <a href="{{ route('prospectos.show', $prospecto->id) }}" class="btn btn-xs btn-info">Ver detalles</a>
                                 <button
                                     type="button"
                                     class="btn btn-xs btn-warning"
@@ -258,8 +258,8 @@
                             <textarea class="form-control" id="modal_notas" name="notas" rows="4" required placeholder="Describe el motivo del cambio"></textarea>
                         </div>
                         <div class="form-group" id="contenedorMotivoNoConcrecion" style="display: none;">
-                            <label for="modal_motivo_no_concrecion">Motivo no concrecion</label>
-                            <textarea class="form-control" id="modal_motivo_no_concrecion" name="motivo_no_concrecion" rows="3" placeholder="Indica por que no se concreto"></textarea>
+                            <label for="modal_motivo_no_concrecion">Motivo no concreción</label>
+                            <textarea class="form-control" id="modal_motivo_no_concrecion" name="motivo_no_concrecion" rows="3" placeholder="Indica por qué no se concreto"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

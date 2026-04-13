@@ -50,7 +50,6 @@
 
         </div>
 
-        @stack('scripts')
         <x-toast />
         @include('partials.footer')
 
