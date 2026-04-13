@@ -28,8 +28,8 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ], [
-            'email.required' => 'El correo electrÃ³nico es obligatorio.',
-            'password.required' => 'La contraseÃ±a es obligatoria.',
+            'email.required' => 'El correo electronico es obligatorio.',
+            'password.required' => 'La contraseña es obligatoria.',
         ]);
 
         $usuario = Usuario::where('email', $request->email)
