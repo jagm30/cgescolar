@@ -24,6 +24,11 @@ class CargoController extends Controller
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
+        $perPage = (int) $request->get('per_page', 30);
+
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
+        }
 
         $query = Cargo::with(['inscripcion.alumno', 'inscripcion.grupo.grado', 'concepto', 'detallesPagosVigentes'])
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId))
@@ -36,7 +41,7 @@ class CargoController extends Controller
             ->when($request->filled('periodo'), fn ($q) => $q->where('periodo', $request->periodo))
             ->orderBy('fecha_vencimiento');
 
-        $cargos = $query->paginate($request->get('per_page', 30));
+        $cargos = $query->paginate($perPage);
 
         if ($request->ajax()) {
             return response()->json($cargos);
@@ -78,7 +83,12 @@ class CargoController extends Controller
                 ->count(),
         ];
 
-        return view('cargos.index', compact('cargos', 'alumnos', 'periodos', 'ciclos', 'cicloId', 'resumen'));
+        $resumen['parciales_vencidos'] = (clone $resumenBase)
+            ->where('estado', 'parcial')
+            ->whereDate('fecha_vencimiento', '<', today())
+            ->count();
+
+        return view('cargos.index', compact('cargos', 'alumnos', 'periodos', 'ciclos', 'cicloId', 'resumen', 'perPage'));
     }
 
     /** GET /cargos/{id} */
@@ -262,8 +272,8 @@ class CargoController extends Controller
         // Recargo por mora
         $recargo = 0;
         $recargoDetalle = null;
-        if ($plan) {
-            $pol = $plan->politicaRecargoActiva();
+        if ($plan && $plan->politicaRecargoActiva) {
+            $pol = $plan->politicaRecargoActiva;
             if ($pol) {
                 $recargo = $pol->calcularRecargo($montoOriginal, $cargo->fecha_vencimiento);
                 if ($recargo > 0) {
@@ -272,20 +282,24 @@ class CargoController extends Controller
             }
         }
 
-        $saldoAbonado = $cargo->saldo_abonado;
-        $totalACobrar = max(0, $montoOriginal - $descuentoBeca - $descuentoOtros + $recargo - $saldoAbonado);
+        $descuentoManual = round((float) $cargo->descuentos()->sum('monto_aplicado'), 2);
+        $totalACobrar = max(
+            0,
+            $montoOriginal - $descuentoBeca - $descuentoOtros - $descuentoManual + $recargo - $cargo->saldo_abonado
+        );
 
         return [
             'cargo_id' => $cargo->id,
             'periodo' => $cargo->periodo,
             'monto_original' => $montoOriginal,
-            'descuento_beca' => $descuentoBeca,
+            'descuento_beca' => round($descuentoBeca, 2),
             'beca_aplicada' => $becaAplicada,
-            'descuento_otros' => $descuentoOtros,
+            'descuento_otros' => round($descuentoOtros, 2),
+            'descuento_manual' => $descuentoManual,
             'descuentos_detalle' => $descuentosDetalle,
-            'recargo' => $recargo,
+            'recargo' => round($recargo, 2),
             'recargo_detalle' => $recargoDetalle,
-            'saldo_ya_abonado' => $saldoAbonado,
+            'saldo_ya_abonado' => round($cargo->saldo_abonado, 2),
             'total_a_cobrar' => round($totalACobrar, 2),
             'estado_real' => $cargo->estado_real,
             'fecha_vencimiento' => $cargo->fecha_vencimiento,
