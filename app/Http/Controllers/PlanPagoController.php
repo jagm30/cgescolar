@@ -29,6 +29,16 @@ class PlanPagoController extends Controller
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
+        $planesPerPage = (int) $request->get('planes_per_page', 10);
+        $asignacionesPerPage = (int) $request->get('asignaciones_per_page', 10);
+
+        if (! in_array($planesPerPage, [10, 25, 50], true)) {
+            $planesPerPage = 10;
+        }
+
+        if (! in_array($asignacionesPerPage, [10, 25, 50], true)) {
+            $asignacionesPerPage = 10;
+        }
 
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
             ->withCount('asignaciones')
@@ -36,7 +46,7 @@ class PlanPagoController extends Controller
             ->when($request->filled('nivel_id'), fn ($q) => $q->where('nivel_id', $request->nivel_id))
             ->orderBy('nivel_id')
             ->orderBy('nombre')
-            ->get();
+            ->paginate($planesPerPage, ['*'], 'planes_page');
 
         if ($request->ajax()) {
             return response()->json($planes);
@@ -61,7 +71,7 @@ class PlanPagoController extends Controller
         $asignaciones = AsignacionPlan::with(['plan.nivel', 'alumno', 'grupo.grado.nivel', 'nivel'])
             ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId))
             ->latest('id')
-            ->get();
+            ->paginate($asignacionesPerPage, ['*'], 'asignaciones_page');
         $cicloActual = CicloEscolar::find($cicloId);
 
         return view('planes.index', compact(
@@ -70,7 +80,9 @@ class PlanPagoController extends Controller
             'alumnos',
             'grupos',
             'asignaciones',
-            'cicloActual'
+            'cicloActual',
+            'planesPerPage',
+            'asignacionesPerPage'
         ));
     }
 
@@ -157,7 +169,8 @@ class PlanPagoController extends Controller
                 redirectRoute: 'planes.show',
                 jsonData: ['plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])],
                 mensaje: "Plan '{$plan->nombre}' creado correctamente.",
-                jsonStatus: 201
+                jsonStatus: 201,
+                routeParams: [$plan->id]
             );
         } catch (\Throwable $e) {
             DB::rollBack();
