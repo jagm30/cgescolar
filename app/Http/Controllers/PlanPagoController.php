@@ -23,10 +23,9 @@ class PlanPagoController extends Controller
     use RespondsWithJson;
 
     /** GET /planes */
-    public function index(Request $request)
+public function index(Request $request)
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
 
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
             ->where('ciclo_id', $cicloId)
@@ -38,9 +37,13 @@ class PlanPagoController extends Controller
             return response()->json($planes);
         }
 
-        $niveles = NivelEscolar::activo()->get();
+        // --- LO QUE DEBEMOS AGREGAR ---
+        $niveles   = NivelEscolar::activo()->get();
+        $ciclos    = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
+        // ------------------------------
 
-        return view('planes.index', compact('planes', 'niveles'));
+        return view('planes.index', compact('planes', 'niveles', 'ciclos', 'conceptos', 'cicloId'));
     }
 
     /** GET /planes/{id} */
@@ -121,10 +124,28 @@ class PlanPagoController extends Controller
 
             Auditoria::registrar('plan_pago', $plan->id, 'insert', null, $plan->toArray());
             DB::commit();
+            // Mensaje para el Toast (Session)
+            session()->flash('success', "Plan '{$plan->nombre}' creado correctamente.");
+
+            // Si es una petición AJAX (por si el modal usa JS para enviarse)
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'redirect' => route('planes.show', $plan->id),
+                    'mensaje' => "Plan '{$plan->nombre}' creado correctamente."
+                ], 201);
+            }
+
+            // Redirección normal de Laravel al "Show" del nuevo plan
+            return redirect()->route('planes.show', $plan->id);
 
             return $this->respuestaExito(
                 redirectRoute: 'planes.show',
-                jsonData: ['plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])],
+                // Cambiamos 'plane' por 'plan' y lo pasamos como un array simple
+                redirectParams: ['plan' => $plan->id], 
+                jsonData: [
+                    'plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])
+                ],
                 mensaje: "Plan '{$plan->nombre}' creado correctamente.",
                 jsonStatus: 201
             );
@@ -240,4 +261,55 @@ class PlanPagoController extends Controller
 
         return response()->json(['asignacion' => $asignacion, 'origen' => $asignacion->origen]);
     }
+
+    public function clonarMasivo(Request $request)
+{
+    // Valida que vengan IDs y el ciclo destino
+    $request->validate([
+        'plan_ids' => 'required|array',
+        'ciclo_destino_id' => 'required|exists:ciclo_escolar,id'
+    ]);
+
+    DB::beginTransaction();
+    try {
+        foreach ($request->plan_ids as $id) {
+            $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
+            
+            if (!$original) continue;
+
+            // 1. Clona el Plan
+            $nuevo = $original->replicate();
+            $nuevo->ciclo_id = $request->ciclo_destino_id;
+            // Opcional: Agregarle un prefijo al nombre
+            $nuevo->nombre = $request->prefijo . " " . $original->nombre; 
+            $nuevo->save();
+
+            // 2. Clona Conceptos, Descuentos y Recargo
+            // Usamos la misma lógica del replicate() para cada relación
+            foreach ($original->planPagoConceptos as $item) {
+                $c = $item->replicate();
+                $c->plan_id = $nuevo->id;
+                $c->save();
+            }
+
+            foreach ($original->politicasDescuento as $desc) {
+                $d = $desc->replicate();
+                $d->plan_id = $nuevo->id;
+                $d->save();
+            }
+
+            if ($original->politicaRecargo) {
+                $r = $original->politicaRecargo->replicate();
+                $r->plan_id = $nuevo->id;
+                $r->save();
+            }
+        }
+
+        DB::commit();
+        return back()->with('success', '¡Planes clonados correctamente al nuevo ciclo!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Error en la clonación masiva: ' . $e->getMessage());
+    }
+}
 }
