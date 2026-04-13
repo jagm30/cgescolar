@@ -156,7 +156,7 @@
     </div>
 
     {{-- MODAL NUEVO PLAN --}}
-    <x-modal id="modalNuevoPlan" title="Crear nuevo Plan de Pago para el ciclo {{ $cicloActual->nombre }}"
+    <x-modal id="modalNuevoPlan" title="Crear nuevo Plan de Pago para el ciclo <b>{{ $cicloActual->nombre }}</b>"
         size="modal-lg">
         <form action="{{ route('planes.store') }}" method="POST">
             @csrf
