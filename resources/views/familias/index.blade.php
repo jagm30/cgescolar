@@ -12,7 +12,7 @@
 .fila-familia { cursor:pointer; }
 .fila-familia:hover td { background:#f0f7ff !important; }
 
-#modal-familia .modal-dialog { width:860px; max-width:95vw; }
+#modal-familia .modal-dialog { width:520px; max-width:95vw; }
 #modal-familia .modal-header { background:#3c8dbc; color:#fff; border-radius:3px 3px 0 0; }
 #modal-familia .modal-title  { font-size:15px; }
 #modal-familia .modal-header .close { color:#fff; opacity:.8; }
