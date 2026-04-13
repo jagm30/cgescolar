@@ -177,7 +177,7 @@
                     </li>
                     @if(auth()->user()->esAdministrador())
                     <li>
-                        <a href="#" id="btn-generar-cargos">
+                        <a href="{{ route('cargos.index', ['mostrar_generador' => 1]) }}" id="btn-generar-cargos">
                             <i class="fa fa-circle-o"></i> Generar cargos
                         </a>
                     </li>

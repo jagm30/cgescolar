@@ -16,7 +16,7 @@ use App\Http\Controllers\PortalPadreController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ConceptoCobroController;
-
+use App\Http\Controllers\CobrosController;
 
 
 
@@ -220,7 +220,29 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion')
         ->only(['index', 'show', 'create', 'store', 'edit', 'update']);
 });
+// ── Cobros / Caja ─────────────────────────────────────
+Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->group(function () {
 
+    // Buscador de alumno
+    Route::get('/',                        [CobrosController::class, 'index'])
+        ->name('index');
+
+    // Autocomplete AJAX
+    Route::get('/buscar-alumno',           [CobrosController::class, 'buscarAlumno'])
+        ->name('buscar');
+
+    // Pantalla de cobro del alumno
+    Route::get('/alumno/{alumnoId}',       [CobrosController::class, 'alumno'])
+        ->name('alumno');
+
+    // Procesar pago
+    Route::post('/registrar',              [CobrosController::class, 'registrar'])
+        ->name('registrar');
+
+    // Recibo generado
+    Route::get('/recibo/{pagoId}',         [CobrosController::class, 'recibo'])
+        ->name('recibo');
+});
 // =======================================================
 // Portal de padres de familia
 // =======================================================

@@ -101,9 +101,8 @@
                 <div style="background:#f4f4f4;border-radius:999px;height:8px;overflow:hidden;margin-bottom:18px;">
                     <div id="wizard-progress-bar" style="background:#3c8dbc;height:8px;width:25%;transition:width .2s ease;">
                     </div>
-                    <input type="file" name="foto" id="foto"
-                           accept="image/jpeg,image/png,image/webp"
-                           style="display:none">
+                    <input type="file" name="foto" id="foto" accept="image/jpeg,image/png,image/webp"
+                        style="display:none">
                     <small class="text-muted" style="font-size:11px;">JPG PNG WEBP · Máx 2MB</small>
                     @error('foto')
                         <span class="help-block text-red" style="font-size:11px;">{{ $message }}</span>
@@ -608,7 +607,7 @@
                         <div class="form-group">
                             <label>Teléfono celular <span class="text-red">*</span></label>
                             <input type="tel" name="contactos[__INDEX__][telefono_celular]" class="form-control"
-                                placeholder="10 dígitos" maxlength="20">
+                                placeholder="10 dígitos" maxlength="10">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -994,16 +993,16 @@
             $grupo.removeClass('has-error').addClass('has-success');
             $grupo.find('.help-block.val-msg').hide();
         }
-        if (!tVal && telEl) {
-            hayError = true;
-            var g = telEl.closest('.form-group');
-            g.classList.add('has-error');
-            if (!g.querySelector('.val-msg')) {
-                g.insertAdjacentHTML('beforeend',
-                    '<span class="help-block val-msg"><i class="fa fa-exclamation-circle"></i> El teléfono es obligatorio.</span>');
-            }
-        }
-    });
+        // if (!tVal && telEl) {
+        //     hayError = true;
+        //     var g = telEl.closest('.form-group');
+        //     g.classList.add('has-error');
+        //     if (!g.querySelector('.val-msg')) {
+        //         g.insertAdjacentHTML('beforeend',
+        //             '<span class="help-block val-msg"><i class="fa fa-exclamation-circle"></i> El teléfono es obligatorio.</span>'
+        //             );
+        //     }
+        // }
 
         function limpiarEstado(selector) {
             var $grupo = $(selector).closest('.form-group');
