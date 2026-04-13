@@ -4,6 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+<<<<<<< mariana
+=======
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+>>>>>>> master
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -42,9 +47,13 @@ class PlanPago extends Model
     /** Política de recargo activa del plan */
     public function politicaRecargoActiva(): HasOne
     {
+<<<<<<< mariana
         return $this->hasOne(PoliticaRecargo::class, 'plan_id')
             ->where('activo', true)
             ->latestOfMany();
+=======
+        return $this->hasOne(PoliticaRecargo::class, 'plan_id')->where('activo', true);
+>>>>>>> master
     }
 
     // ── Relaciones ───────────────────────────────────────
@@ -85,9 +94,16 @@ class PlanPago extends Model
             ->where('activo', true);
     }
 
+    // Para cuando el backend necesite consultar el historial de recargos (Plural)
     public function politicasRecargo(): HasMany
     {
         return $this->hasMany(PoliticaRecargo::class, 'plan_id');
+    }
+
+    // Para la vista de configuración actual que pide el PoliticaController (Singular)
+    public function politicaRecargo(): HasOne
+    {
+        return $this->hasOne(PoliticaRecargo::class, 'plan_id');
     }
 
     public function asignaciones(): HasMany
