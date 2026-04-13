@@ -36,55 +36,71 @@ class PlanPagoConceptoController extends Controller
         return view('planes.conceptos', compact('plan', 'conceptosDisponibles'));
     }
 
-    /**
+/**
      * POST /planes/{planId}/conceptos
-     * Agrega un concepto al plan con su monto.
+     * Agrega múltiples conceptos al plan con sus montos.
      */
     public function store(Request $request, int $planId)
     {
         $plan = PlanPago::findOrFail($planId);
 
-        $data = $request->validate([
-            'concepto_id' => ['required', 'integer', 'exists:concepto_cobro,id'],
-            'monto'       => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+        // 1. Validamos que venga el array de conceptos
+        $request->validate([
+            'conceptos' => ['required', 'array', 'min:1'],
+            'conceptos.*.concepto_id' => ['required', 'integer', 'exists:concepto_cobro,id'],
+            'conceptos.*.monto'       => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
         ], [
-            'concepto_id.exists' => 'El concepto seleccionado no existe.',
-            'monto.min'          => 'El monto debe ser mayor a cero.',
+            'conceptos.required' => 'Debes añadir al menos un concepto.',
+            'conceptos.*.concepto_id.exists' => 'Uno de los conceptos seleccionados no existe.',
+            'conceptos.*.monto.min' => 'Los montos deben ser mayores a cero.',
         ]);
 
-        // Verificar que no esté ya asignado
-        $yaExiste = PlanPagoConcepto::where('plan_id', $planId)
-            ->where('concepto_id', $data['concepto_id'])
-            ->exists();
+        try {
+            \DB::beginTransaction();
+            $registrosCreados = [];
 
-        if ($yaExiste) {
-            return response()->json([
-                'message' => 'Este concepto ya está asignado al plan.',
-            ], 422);
+            foreach ($request->conceptos as $item) {
+                // 2. Verificar que no esté ya asignado (Evitar duplicados)
+                $yaExiste = PlanPagoConcepto::where('plan_id', $planId)
+                    ->where('concepto_id', $item['concepto_id'])
+                    ->exists();
+
+                if ($yaExiste) {
+                    // Si ya existe, nos saltamos este o podrías lanzar un error
+                    continue; 
+                }
+
+                // 3. Crear el registro
+                $registro = PlanPagoConcepto::create([
+                    'plan_id'     => $planId,
+                    'concepto_id' => $item['concepto_id'],
+                    'monto'       => $item['monto'],
+                ]);
+
+                // 4. Auditoría por cada concepto insertado
+                \App\Models\Auditoria::registrar(
+                    'plan_pago_conceptos', $registro->id, 'insert',
+                    null, $registro->toArray()
+                );
+
+                $registrosCreados[] = $registro;
+            }
+
+            \DB::commit();
+            if ($request->ajax()) {
+                return response()->json([
+                    'message' => count($registrosCreados) . " conceptos procesados correctamente.",
+                    'registros' => $registrosCreados,
+                ], 201);
+            }
+
+            return redirect()->route('planes.conceptos.index', $planId)
+                ->with('success', count($registrosCreados) . " conceptos agregados correctamente al plan.");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return back()->with('error', 'Error al procesar los conceptos: ' . $e->getMessage());
         }
-
-        $registro = PlanPagoConcepto::create([
-            'plan_id'     => $planId,
-            'concepto_id' => $data['concepto_id'],
-            'monto'       => $data['monto'],
-        ]);
-
-        $registro->load('concepto');
-
-        \App\Models\Auditoria::registrar(
-            'plan_pago_concepto', $registro->id, 'insert',
-            null, $registro->toArray()
-        );
-
-        if ($request->ajax()) {
-            return response()->json([
-                'message'  => "Concepto \"{$registro->concepto->nombre}\" agregado al plan.",
-                'registro' => $registro,
-            ], 201);
-        }
-
-        return redirect()->route('planes.conceptos.index', $planId)
-            ->with('success', "Concepto agregado correctamente.");
     }
 
     /**
@@ -126,37 +142,44 @@ class PlanPagoConceptoController extends Controller
      * DELETE /planes/{planId}/conceptos/{id}
      * Quita un concepto del plan.
      */
-    public function destroy(int $planId, int $id)
-    {
-        $registro = PlanPagoConcepto::where('plan_id', $planId)
-            ->with('concepto')
-            ->findOrFail($id);
+public function destroy(int $planId, int $id)
+{
+    // BUSCAMOS POR LOS DOS CAMPOS:
+    // $planId es el ID del plan
+    // $id es el ID del concepto que viene del botón
+    $registro = PlanPagoConcepto::where('plan_id', $planId)
+        ->where('concepto_id', $id) 
+        ->first(); // Primero intentamos buscarlo así
 
-        // Verificar que no se hayan generado cargos con este concepto en este plan
-        $tieneCargos = \App\Models\Cargo::where('concepto_id', $registro->concepto_id)
-            ->whereHas('inscripcion.grupo', fn($q) =>
-                $q->where('ciclo_id', $registro->plan->ciclo_id)
-            )->exists();
-
-        if ($tieneCargos) {
-            $msg = "No se puede quitar \"{$registro->concepto->nombre}\": ya se generaron cargos con este concepto.";
-
-            if (request()->ajax()) {
-                return response()->json(['message' => $msg], 422);
-            }
-
-            return back()->with('error', $msg);
-        }
-
-        $nombre = $registro->concepto->nombre ?? 'concepto';
-        \App\Models\Auditoria::registrar('plan_pago_concepto', $registro->id, 'delete', $registro->toArray(), null);
-        $registro->delete();
-
-        if (request()->ajax()) {
-            return response()->json(['message' => "Concepto \"{$nombre}\" quitado del plan."]);
-        }
-
-        return redirect()->route('planes.conceptos.index', $planId)
-            ->with('success', "Concepto \"{$nombre}\" quitado del plan.");
+    // Si no lo encuentra por concepto_id, intentamos por su propia llave primaria 
+    // (por si acaso sí estabas mandando el ID de la tabla intermedia)
+    if (!$registro) {
+        $registro = PlanPagoConcepto::find($id);
     }
+
+    // Si de plano no existe de ninguna forma, mandamos el error manual
+    if (!$registro) {
+        abort(404, "No se encontró el concepto asignado a este plan.");
+    }
+
+    // ... AQUÍ SIGUE TU LÓGICA DE CARGOS ...
+    $registro->load('concepto'); // Cargamos la relación para el mensaje y validación
+    
+    // Verificar cargos (Tu código actual)
+    $tieneCargos = \App\Models\Cargo::where('concepto_id', $registro->concepto_id)
+        ->whereHas('inscripcion.grupo', fn($q) => 
+            $q->where('ciclo_id', $plan->ciclo_id ?? null) 
+        )->exists();
+
+    if ($tieneCargos) {
+        $msg = "No se puede quitar \"{$registro->concepto->nombre}\": ya se generaron cargos.";
+        return request()->ajax() ? response()->json(['message' => $msg], 422) : back()->with('error', $msg);
+    }
+
+    $nombre = $registro->concepto->nombre;
+    $registro->delete();
+
+    return redirect()->route('planes.conceptos.index', $planId)
+        ->with('success', "Concepto \"{$nombre}\" quitado del plan.");
+}
 }

@@ -274,7 +274,6 @@ public function index(Request $request)
     try {
         foreach ($request->plan_ids as $id) {
             $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
-            
             if (!$original) continue;
 
             // 1. Clona el Plan
