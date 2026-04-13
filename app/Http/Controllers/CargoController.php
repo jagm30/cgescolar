@@ -24,6 +24,11 @@ class CargoController extends Controller
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
+        $perPage = (int) $request->get('per_page', 30);
+
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 10;
+        }
 
         $query = Cargo::with(['inscripcion.alumno', 'inscripcion.grupo.grado', 'concepto', 'detallesPagosVigentes'])
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId))
@@ -36,7 +41,7 @@ class CargoController extends Controller
             ->when($request->filled('periodo'), fn ($q) => $q->where('periodo', $request->periodo))
             ->orderBy('fecha_vencimiento');
 
-        $cargos = $query->paginate($request->get('per_page', 30));
+        $cargos = $query->paginate($perPage);
 
         if ($request->ajax()) {
             return response()->json($cargos);
@@ -83,7 +88,7 @@ class CargoController extends Controller
             ->whereDate('fecha_vencimiento', '<', today())
             ->count();
 
-        return view('cargos.index', compact('cargos', 'alumnos', 'periodos', 'ciclos', 'cicloId', 'resumen'));
+        return view('cargos.index', compact('cargos', 'alumnos', 'periodos', 'ciclos', 'cicloId', 'resumen', 'perPage'));
     }
 
     /** GET /cargos/{id} */
