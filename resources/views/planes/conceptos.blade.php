@@ -3,23 +3,6 @@
 
 @section('content')
 
-    {{-- CAJA DE ERRORES / ÉXITO --}}
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-            <h4><i class="icon fa fa-check"></i> ¡Éxito!</h4>
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-            <h4><i class="icon fa fa-ban"></i> ¡Error!</h4>
-            {{ session('error') }}
-        </div>
-    @endif
-
     {{-- ENCABEZADO DEL PLAN (Resumen) --}}
     <div class="box box-widget widget-user-2" style="margin-bottom: 15px;">
         <div class="widget-user-header bg-blue">
@@ -62,7 +45,7 @@
                 {{-- BOTÓN AGREGAR CONCEPTO --}}
                 <div class="clearfix" style="margin-bottom: 15px;">
                     <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modalAddConcepto">
-                        <i class="fa fa-plus"></i> Agregar Concepto al Plan
+                        <i class="fa fa-plus"></i> Agregar Concepto(s) al Plan
                     </button>
                     <p class="text-muted" style="margin-top: 10px;">
                         Aquí puedes administrar los cobros base que se le harán a los alumnos inscritos en este plan.
@@ -70,7 +53,7 @@
                 </div>
 
                 {{-- TABLA DE CONCEPTOS DEL PLAN --}}
-                <table class="table table-bordered table-striped table-hover">
+                <table id="tabla-conceptos-plan" class="table table-bordered table-striped table-hover">
                     <thead class="bg-gray">
                         <tr>
                             <th>Concepto</th>
@@ -130,35 +113,45 @@
         </div>
     </div>
 
-    <x-modal id="modalAddConcepto" title="Asignar Nuevo Concepto al Plan" size="modal-md">
-        <form action="{{ route('planes.conceptos.store', $plan->id) }}" method="POST">
+    <x-modal id="modalAddConcepto" title="Asignar Conceptos al Plan" size="modal-lg">
+        <form action="{{ route('planes.conceptos.store', $plan->id) }}" method="POST" id="form-conceptos-plan">
             @csrf
+            <div class="row">
+                <div class="col-md-12">
+                    <div
+                        style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ddd;">
+                        <h4 style="margin-top: 0; font-size: 16px;">
+                            <i class="fa fa-tags"></i> Conceptos a asignar
+                            <button type="button" id="btn-add-fila-concepto" class="btn btn-success btn-xs pull-right">
+                                <i class="fa fa-plus"></i> Añadir Concepto(s)
+                            </button>
+                        </h4>
+                    </div>
 
-            <div class="form-group">
-                <label>Concepto Disponible</label>
-                <select name="concepto_id" class="form-control" required>
-                    <option value="">Seleccione un concepto...</option>
-                    @forelse($conceptosDisponibles as $cd)
-                        <option value="{{ $cd->id }}">
-                            {{ $cd->nombre }} ({{ ucfirst($cd->tipo) }})
-                        </option>
-                    @empty
-                        <option value="" disabled>Todos los conceptos activos ya están en el plan.</option>
-                    @endforelse
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Monto a Cobrar ($)</label>
-                <input type="number" step="0.01" min="0.01" name="monto" class="form-control"
-                    placeholder="Ej: 2500.00" required>
+                    <table class="table table-bordered table-striped" id="tabla-conceptos-dinamica">
+                        <thead>
+                            <tr class="bg-gray">
+                                <th>Concepto Disponible</th>
+                                <th style="width: 150px;">Monto ($)</th>
+                                <th style="width: 40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="wrapper-conceptos">
+                            {{-- Aquí se insertarán las filas con jQuery --}}
+                        </tbody>
+                    </table>
+                    <div id="sin-conceptos-msg" class="text-center text-muted"
+                        style="padding: 20px; border: 1px dashed #ccc;">
+                        No has añadido conceptos. Haz clic en "Añadir" para empezar.
+                    </div>
+                </div>
             </div>
 
             <hr>
             <div class="text-right">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-success" {{ $conceptosDisponibles->isEmpty() ? 'disabled' : '' }}>
-                    <i class="fa fa-save"></i> Asignar Concepto
+                <button type="submit" class="btn btn-success" id="btn-guardar-conceptos" style="display: none;">
+                    <i class="fa fa-save"></i> Guardar Conceptos
                 </button>
             </div>
         </form>
@@ -188,3 +181,87 @@
     @endforeach
 
 @endsection
+
+@push('scripts')
+    {{-- Forzamos la carga de las librerías porque el Master no las está mandando a esta ruta --}}
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap.min.css">
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Usamos un try-catch para que si falla DataTable no rompa tu lógica del modal
+            try {
+                if ($.fn.DataTable) {
+                    $('#tabla-conceptos-plan').DataTable({
+                        "paging": true,
+                        "lengthChange": false,
+                        "searching": true,
+                        "ordering": true,
+                        "info": true,
+                        "autoWidth": false,
+                        "responsive": true,
+                        "language": {
+                            "url": "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json"
+                        },
+                        "order": [
+                            [0, "asc"]
+                        ],
+                        "columnDefs": [{
+                            "orderable": false,
+                            "targets": 3
+                        }]
+                    });
+                    console.log("DataTable inicializado con éxito.");
+                } else {
+                    console.error("DataTables no está cargado en el navegador.");
+                }
+            } catch (e) {
+                console.error("Error al iniciar DataTable:", e);
+            }
+
+            // --- Lógica del modal (esta parte dices que ya te jala bien) ---
+            let contadorFilas = 0;
+            $('#btn-add-fila-concepto').on('click', function() {
+                const filaHtml = `
+                <tr id="fila-con-${contadorFilas}">
+                    <td>
+                        <select name="conceptos[${contadorFilas}][concepto_id]" class="form-control input-sm" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach ($conceptosDisponibles as $cd)
+                                <option value="{{ $cd->id }}">{{ $cd->nombre }} ({{ ucfirst($cd->tipo) }})</option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td>
+                        <div class="input-group">
+                            <span class="input-group-addon">$</span>
+                            <input type="number" step="0.01" name="conceptos[${contadorFilas}][monto]" class="form-control input-sm" placeholder="0.00" required>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-xs btn-remove-fila"><i class="fa fa-trash"></i></button>
+                    </td>
+                </tr>`;
+                $('#wrapper-conceptos').append(filaHtml);
+                contadorFilas++;
+                revisarEstadoTabla();
+            });
+
+            $(document).on('click', '.btn-remove-fila', function() {
+                $(this).closest('tr').remove();
+                revisarEstadoTabla();
+            });
+
+            function revisarEstadoTabla() {
+                const numFilas = $('#wrapper-conceptos tr').length;
+                if (numFilas > 0) {
+                    $('#sin-conceptos-msg').hide();
+                    $('#btn-guardar-conceptos').show();
+                } else {
+                    $('#sin-conceptos-msg').show();
+                    $('#btn-guardar-conceptos').hide();
+                }
+            }
+        });
+    </script>
+@endpush
