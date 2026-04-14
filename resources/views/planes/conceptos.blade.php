@@ -182,15 +182,15 @@
                                                     <button class="btn btn-default btn-xs btn-flat" data-toggle="modal"
                                                         data-target="#modalEditConcepto{{ $detalle->id }}"
                                                         title="Editar Monto">
-                                                        <i class="fa fa-pencil text-yellow"></i>
+                                                        <i class="fa fa-pencil"></i>
                                                     </button>
                                                     <form
                                                         action="{{ route('planes.conceptos.destroy', [$plan->id, $detalle->id]) }}"
                                                         method="POST" style="display: inline-block;">
                                                         @csrf @method('DELETE')
-                                                        <button type="submit" class="btn btn-default btn-xs btn-flat"
+                                                        <button type="submit" class="btn btn-danger btn-xs btn-flat"
                                                             onclick="return confirm('¿Seguro que deseas quitar este concepto?');">
-                                                            <i class="fa fa-trash text-red"></i>
+                                                            <i class="fa fa-trash text-white"></i>
                                                         </button>
                                                     </form>
                                                 </td>
@@ -211,7 +211,7 @@
                         </div>
                     </div>
 
-                    {{-- ════ COLUMNA DERECHA: GUÍA DE USO RECUPERADA ════ --}}
+                    {{-- ════ COLUMNA DERECHA: GUÍA DE USO ════ --}}
                     <div class="col-md-4">
                         <div class="guia-ayuda">
                             <div style="padding: 15px; border-bottom: 1px solid #d0dde8; background: #fcfcfc;">
@@ -229,8 +229,7 @@
                                 <div
                                     style="background:#f0f7ff; border-left:3px solid #3c8dbc; padding:10px; border-radius:0 4px 4px 0; margin-bottom:15px;">
                                     <strong style="font-size:12px;">Monto Personalizado:</strong><br>
-                                    <span style="font-size:11px;">Puedes definir un monto especifico para este plan,
-                                        ignorando el precio por defecto que tiene el concepto en el catálogo general.</span>
+                                    <span style="font-size:11px;">Puedes definir un monto especifico para este plan.</span>
                                 </div>
                                 <div class="guia-item">
                                     <strong style="color:#e74c3c;"><i class="fa fa-warning"></i> ¡Importante!</strong><br>
