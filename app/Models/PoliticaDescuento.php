@@ -9,6 +9,8 @@ class PoliticaDescuento extends Model
 {
     protected $table = 'politica_descuento';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'plan_id',
         'nombre',

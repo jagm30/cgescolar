@@ -31,19 +31,47 @@ class StorePlanPagoRequest extends FormRequest
             'descuentos'                  => ['nullable', 'array'],
             'descuentos.*.nombre'         => ['required_with:descuentos', 'string', 'max:100'],
             'descuentos.*.tipo_valor'     => ['required_with:descuentos', 'in:porcentaje,monto_fijo'],
-            'descuentos.*.valor'          => ['required_with:descuentos', 'numeric', 'min:0.01'],
             'descuentos.*.dia_limite'     => ['nullable', 'integer', 'min:1', 'max:31'],
+            
+            // CANDADO PARA DESCUENTOS: No más de 100 si es porcentaje
+            'descuentos.*.valor' => [
+                'required_with:descuentos', 
+                'numeric', 
+                'min:0.01',
+                function ($attribute, $value, $fail) {
+                    // Extraemos el índice de la fila (ej: de "descuentos.0.valor" sacamos "0")
+                    $index = explode('.', $attribute)[1];
+                    $tipo = $this->input("descuentos.{$index}.tipo_valor");
+                    
+                    if ($tipo === 'porcentaje' && $value > 100) {
+                        $fail('El valor del descuento no puede ser mayor a 100%.');
+                    }
+                },
+            ],
 
             // Política de recargo (opcional, máximo 1)
             'recargo'                  => ['nullable', 'array'],
             'recargo.dia_limite_pago'  => ['required_with:recargo', 'integer', 'min:1', 'max:31'],
             'recargo.tipo_recargo'     => ['required_with:recargo', 'in:porcentaje,monto_fijo'],
-            'recargo.valor'            => ['required_with:recargo', 'numeric', 'min:0.01'],
             'recargo.tope_maximo'      => ['nullable', 'numeric', 'min:0.01'],
+            
+            // CANDADO PARA RECARGO: No más de 100 si es porcentaje
+            'recargo.valor' => [
+                'required_with:recargo', 
+                'numeric', 
+                'min:0.01',
+                function ($attribute, $value, $fail) {
+                    $tipo = $this->input('recargo.tipo_recargo');
+                    
+                    if ($tipo === 'porcentaje' && $value > 100) {
+                        $fail('El valor del recargo no puede ser mayor a 100%.');
+                    }
+                },
+            ],
         ];
     }
 
-public function messages(): array
+    public function messages(): array
     {
         return [
             'ciclo_id.required'                => 'Debe seleccionar el ciclo escolar.',
@@ -63,13 +91,16 @@ public function messages(): array
             'descuentos.*.tipo_valor.required_with' => 'El tipo de descuento es obligatorio.',
             'descuentos.*.valor.required_with'      => 'El valor del descuento es obligatorio.',
             'descuentos.*.valor.min'                => 'El valor del descuento debe ser mayor a cero.',
+            // Traducción del error "is invalid" de los descuentos
+            'descuentos.*.tipo_valor.in'            => 'El tipo de descuento seleccionado no es válido.',
 
-            
             'recargo.dia_limite_pago.required_with' => 'El día límite de pago es obligatorio cuando hay un recargo.',
             'recargo.tipo_recargo.required_with'    => 'El tipo de recargo es obligatorio.',
             'recargo.valor.required_with'           => 'El valor del recargo es obligatorio.',
             'recargo.dia_limite_pago.min'           => 'El día límite debe ser entre 1 y 31.',
             'recargo.valor.min'                     => 'El valor del recargo debe ser mayor a cero.',
+            // Traducción del error "is invalid" del recargo
+            'recargo.tipo_recargo.in'               => 'El tipo de recargo seleccionado no es válido.',
         ];
     }
 }
