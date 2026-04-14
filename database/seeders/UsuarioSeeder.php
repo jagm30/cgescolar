@@ -18,6 +18,7 @@ class UsuarioSeeder extends Seeder
                 'email'                => 'admin@escuela.edu.mx',
                 'password_hash'        => Hash::make('Admin2025!'),
                 'rol'                  => 'administrador',
+                
                 'activo'               => true,
                 'ultimo_acceso'        => null,
                 'creado_at'            => now(),

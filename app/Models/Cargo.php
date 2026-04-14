@@ -128,6 +128,10 @@ class Cargo extends Model
         return $this->hasMany(PagoDetalle::class, 'cargo_id')
                     ->whereHas('pago', fn($q) => $q->where('estado', 'vigente'));
     }
+    public function pagosVigentes(): HasMany
+    {
+        return $this->hasMany(Pago::class, 'cargo_id')->where('estado', 'vigente');
+    }
 
     /** Pagos (encabezados) que cubren este cargo */
     public function pagos()

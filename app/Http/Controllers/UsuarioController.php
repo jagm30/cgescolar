@@ -7,17 +7,17 @@ use App\Http\Requests\UpdateUsuarioRequest;
 use App\Models\Auditoria;
 use App\Models\ContactoFamiliar;
 use App\Models\Usuario;
-use Illuminate\Http\JsonResponse;
+use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UsuarioController extends Controller
 {
-    /** GET /usuarios */
-    public function index(Request $request): JsonResponse
-    {
-        $this->soloAdmin();
+    use RespondsWithJson;
 
+    /** GET /usuarios */
+    public function index(Request $request)
+    {
         $usuarios = Usuario::with('cicloSeleccionado')
             ->when($request->filled('rol'),    fn($q) => $q->where('rol', $request->rol))
             ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->boolean('activo')))
@@ -28,27 +28,46 @@ class UsuarioController extends Controller
             ->orderBy('rol')->orderBy('nombre')
             ->get();
 
-        return response()->json($usuarios);
+        if ($request->ajax()) {
+            return response()->json($usuarios);
+        }
+
+        return view('usuarios.index', compact('usuarios'));
     }
 
     /** GET /usuarios/pendientes-portal
      * Contactos con acceso habilitado pero sin usuario creado.
+     * Útil para que el admin sepa a quién le falta crear cuenta.
      */
-    public function pendientesPortal(): JsonResponse
+    public function pendientesPortal()
     {
-        $this->soloAdmin();
-
         $pendientes = ContactoFamiliar::with('familia')
             ->where('tiene_acceso_portal', true)
             ->whereNull('usuario_id')
             ->orderBy('familia_id')
             ->get();
 
-        return response()->json($pendientes);
+        if (request()->ajax()) {
+            return response()->json($pendientes);
+        }
+
+        return view('usuarios.pendientes-portal', compact('pendientes'));
+    }
+
+    /** GET /usuarios/create */
+    public function create()
+    {
+        // Para rol padre: contactos que tienen acceso habilitado pero sin usuario
+        $contactosPendientes = ContactoFamiliar::with('familia')
+            ->where('tiene_acceso_portal', true)
+            ->whereNull('usuario_id')
+            ->get();
+
+        return view('usuarios.create', compact('contactosPendientes'));
     }
 
     /** POST /usuarios */
-    public function store(StoreUsuarioRequest $request): JsonResponse
+    public function store(StoreUsuarioRequest $request)
     {
         $data    = $request->validated();
         $usuario = Usuario::create([
@@ -59,7 +78,6 @@ class UsuarioController extends Controller
             'activo'        => $data['activo'] ?? true,
         ]);
 
-        // Si es padre, vincular con el contacto familiar
         if ($data['rol'] === 'padre' && !empty($data['contacto_id'])) {
             ContactoFamiliar::where('id', $data['contacto_id'])
                 ->update(['usuario_id' => $usuario->id]);
@@ -71,14 +89,29 @@ class UsuarioController extends Controller
             'rol'    => $usuario->rol,
         ]);
 
-        return response()->json($usuario, 201);
+        return $this->respuestaExito(
+            redirectRoute: 'usuarios.index',
+            jsonData: ['usuario' => $usuario],
+            mensaje: "Usuario '{$usuario->nombre}' creado correctamente.",
+            jsonStatus: 201
+        );
+    }
+
+    /** GET /usuarios/{id}/edit */
+    public function edit(int $id)
+    {
+        $usuario = Usuario::findOrFail($id);
+
+        if (request()->ajax()) {
+            return response()->json($usuario);
+        }
+
+        return view('usuarios.edit', compact('usuario'));
     }
 
     /** PUT /usuarios/{id} */
-    public function update(UpdateUsuarioRequest $request, int $id): JsonResponse
+    public function update(UpdateUsuarioRequest $request, int $id)
     {
-        $this->soloAdmin();
-
         $usuario  = Usuario::findOrFail($id);
         $anterior = $usuario->toArray();
         $data     = $request->validated();
@@ -92,50 +125,41 @@ class UsuarioController extends Controller
 
         Auditoria::registrar('usuario', $usuario->id, 'update', $anterior, $usuario->fresh()->toArray());
 
-        return response()->json($usuario->fresh());
+        return $this->respuestaExito(
+            redirectRoute: 'usuarios.index',
+            jsonData: ['usuario' => $usuario->fresh()],
+            mensaje: "Usuario '{$usuario->nombre}' actualizado correctamente."
+        );
     }
 
-    /** DELETE /usuarios/{id} — solo desactiva */
-    public function destroy(int $id): JsonResponse
+    /** DELETE /usuarios/{id} — desactiva */
+    public function destroy(int $id)
     {
-        $this->soloAdmin();
-
         $usuario = Usuario::findOrFail($id);
 
         if ($usuario->id === auth()->id()) {
-            return response()->json(['message' => 'No puede desactivar su propia cuenta.'], 422);
+            return $this->respuestaError('No puedes desactivar tu propia cuenta.');
         }
 
         $usuario->update(['activo' => false]);
 
         Auditoria::registrar('usuario', $usuario->id, 'update', ['activo' => true], ['activo' => false]);
 
-        return response()->json(['message' => 'Usuario desactivado correctamente.']);
+        return $this->respuestaExito(
+            redirectRoute: 'usuarios.index',
+            mensaje: "Usuario '{$usuario->nombre}' desactivado correctamente."
+        );
     }
 
-    /**
-     * GET /usuarios/perfil
-     * Perfil del usuario autenticado con su ciclo seleccionado.
-     */
-    public function perfil(): JsonResponse
+    /** GET /perfil */
+    public function perfil()
     {
         $usuario = auth()->user()->load('cicloSeleccionado');
 
-        $datos = $usuario->toArray();
-
-        // Si es padre, agregar sus hijos
-        if ($usuario->esPadre()) {
-            $contacto = $usuario->contactoFamiliar()->with('familia.alumnos.inscripciones.grupo')->first();
-            $datos['hijos'] = $contacto?->familia?->alumnos ?? [];
+        if (request()->ajax()) {
+            return response()->json($usuario);
         }
 
-        return response()->json($datos);
-    }
-
-    private function soloAdmin(): void
-    {
-        if (auth()->user()->rol !== 'administrador') {
-            abort(403, 'Solo el administrador puede realizar esta acción.');
-        }
+        return view('usuarios.perfil', compact('usuario'));
     }
 }

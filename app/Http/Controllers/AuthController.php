@@ -3,81 +3,76 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
+use App\Models\CicloEscolar;
 use App\Models\Usuario;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    /**
-     * POST /auth/login
-     * Autentica al usuario y devuelve un token Sanctum.
-     */
-    public function login(Request $request): JsonResponse
+    /** GET /login */
+    public function showLogin()
+    {
+        if (Auth::check()) {
+            return redirect(Auth::user()->rutaDashboard());
+        }
+
+        return view('login');
+    }
+
+    /** POST /login */
+    public function login(Request $request)
     {
         $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'El correo electronico es obligatorio.',
+            'password.required' => 'La contraseña es obligatoria.',
         ]);
 
         $usuario = Usuario::where('email', $request->email)
             ->where('activo', true)
             ->first();
 
-        if (!$usuario || !Hash::check($request->password, $usuario->password_hash)) {
-            return response()->json(['message' => 'Credenciales incorrectas.'], 401);
+        if (! $usuario || ! Hash::check($request->password, $usuario->password_hash)) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'Credenciales incorrectas.']);
         }
 
-        // Actualizar último acceso y cargar ciclo seleccionado
-        $usuario->update(['ultimo_acceso' => now()]);
+        Auth::login($usuario, $request->boolean('remember'));
 
-        // Si es usuario interno y no tiene ciclo seleccionado, asignar el activo
-        if ($usuario->esInterno() && !$usuario->ciclo_seleccionado_id) {
-            $cicloActivo = \App\Models\CicloEscolar::activo()->first();
+        $usuario->update(['ultimo_acceso' => now()]);
+        $usuario->save();
+
+        if ($usuario->esInterno() && ! $usuario->ciclo_seleccionado_id) {
+            $cicloActivo = CicloEscolar::activo()->first();
+
             if ($cicloActivo) {
                 $usuario->update(['ciclo_seleccionado_id' => $cicloActivo->id]);
             }
         }
 
-        $token = $usuario->createToken('sge-token')->plainTextToken;
-
         Auditoria::registrar('usuario', $usuario->id, 'login', null, [
             'email' => $usuario->email,
-            'rol'   => $usuario->rol,
+            'rol' => $usuario->rol,
         ]);
 
-        return response()->json([
-            'token'   => $token,
-            'usuario' => [
-                'id'                   => $usuario->id,
-                'nombre'               => $usuario->nombre,
-                'email'                => $usuario->email,
-                'rol'                  => $usuario->rol,
-                'ciclo_seleccionado_id'=> $usuario->ciclo_seleccionado_id,
-            ],
-        ]);
+        $request->session()->regenerate();
+
+        return redirect()->intended($usuario->rutaDashboard());
     }
 
-    /**
-     * POST /auth/logout
-     * Revoca el token actual.
-     */
-    public function logout(Request $request): JsonResponse
+    /** POST /logout */
+    public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
 
-        return response()->json(['message' => 'Sesión cerrada correctamente.']);
-    }
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-    /**
-     * GET /auth/me
-     * Devuelve el usuario autenticado con su ciclo activo.
-     */
-    public function me(): JsonResponse
-    {
-        $usuario = auth()->user()->load('cicloSeleccionado');
-
-        return response()->json($usuario);
+        return redirect()->route('login');
     }
 }

@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class Usuario extends Authenticatable
 {
     protected $table = 'usuario';
+
+    /**
+     * Deshabilitar timestamps automáticos (created_at / updated_at).
+     * La tabla usa solo creado_at gestionado manualmente.
+     */
     public $timestamps = false;
 
     protected $fillable = [
@@ -27,12 +31,14 @@ class Usuario extends Authenticatable
     ];
 
     protected $casts = [
-        'activo'        => 'boolean',
+        'activo' => 'boolean',
         'ultimo_acceso' => 'datetime',
-        'creado_at'     => 'datetime',
+        'creado_at' => 'datetime',
     ];
 
-    // Laravel Auth usa 'password' por defecto — mapeamos password_hash
+    // ── Laravel Auth ─────────────────────────────────────
+    // La columna se llama password_hash, no password.
+    // Laravel busca getAuthPassword() para validar credenciales.
     public function getAuthPassword(): string
     {
         return $this->password_hash;
@@ -50,12 +56,7 @@ class Usuario extends Authenticatable
         return $query->whereIn('rol', ['administrador', 'caja', 'recepcion']);
     }
 
-    public function scopePadres($query)
-    {
-        return $query->where('rol', 'padre');
-    }
-
-    // ── Helpers ──────────────────────────────────────────
+    // ── Helpers de rol ───────────────────────────────────
 
     public function esAdministrador(): bool
     {
@@ -82,6 +83,17 @@ class Usuario extends Authenticatable
         return in_array($this->rol, ['administrador', 'caja', 'recepcion']);
     }
 
+    public function rutaDashboard(): string
+    {
+        return match ($this->rol) {
+            'administrador' => route('admin.dashboard'),
+            'caja' => route('caja.dashboard'),
+            'recepcion' => route('recepcion.dashboard'),
+            'padre' => route('portal.dashboard'),
+            default => route('login'),
+        };
+    }
+
     // ── Relaciones ───────────────────────────────────────
 
     public function cicloSeleccionado(): BelongsTo
@@ -89,26 +101,26 @@ class Usuario extends Authenticatable
         return $this->belongsTo(CicloEscolar::class, 'ciclo_seleccionado_id');
     }
 
-    /** Contacto familiar al que pertenece este usuario (rol padre) */
+    /** Contacto familiar vinculado (solo rol padre) */
     public function contactoFamiliar(): HasOne
     {
         return $this->hasOne(ContactoFamiliar::class, 'usuario_id');
     }
 
-    /** Familia del usuario padre — a través del contacto familiar */
+    /** Familia del usuario padre */
     public function familia()
     {
         return $this->hasOneThrough(
             Familia::class,
             ContactoFamiliar::class,
-            'usuario_id',   // FK en contacto_familiar
-            'id',           // PK en familia
-            'id',           // PK en usuario
-            'familia_id'    // FK en contacto_familiar → familia
+            'usuario_id',
+            'id',
+            'id',
+            'familia_id'
         );
     }
 
-    /** Alumnos (hijos) del usuario padre — a través de familia */
+    /** Alumnos (hijos) del padre logueado */
     public function alumnos()
     {
         return $this->contactoFamiliar

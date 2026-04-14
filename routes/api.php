@@ -10,6 +10,9 @@ use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\GradoController;
+use App\Http\Controllers\GrupoController;
+use App\Http\Controllers\NivelEscolarController;
 use Illuminate\Support\Facades\Route;
 
 // ── Autenticación (pública) ──────────────────────────────
@@ -20,12 +23,28 @@ Route::prefix('auth')->group(function () {
 });
 
 // ── Rutas protegidas ─────────────────────────────────────
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {    
+
+    //web vistas
+    Route::resource('ciclos', CicloEscolarController::class)->only(['index', 'show', 'store', 'update']);
+    Route::resource('niveles', NivelEscolarController::class)->only(['index', 'show', 'store', 'update']);
+    Route::resource('grados', GradoController::class)->only(['index', 'show', 'store', 'update']);
+    Route::resource('grupos', GrupoController::class)->only(['index', 'show', 'store', 'update']);
 
     // ── Ciclos ───────────────────────────────────────────
     Route::get('ciclos/activo',          [CicloEscolarController::class, 'activo']);
     Route::post('ciclos/{id}/seleccionar',[CicloEscolarController::class, 'seleccionar']);
-    Route::apiResource('ciclos', CicloEscolarController::class);
+    Route::apiResource('ciclos', CicloEscolarController::class)->only(['index', 'show', 'store', 'update']);
+
+     // ── Niveles escolares ────────────────────────────────
+    Route::apiResource('niveles', NivelEscolarController::class);
+
+    // ── Grados ───────────────────────────────────────────
+    Route::apiResource('grados', GradoController::class);
+
+    // ── Grupos ───────────────────────────────────────────
+    Route::post('grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno']);
+    Route::apiResource('grupos', GrupoController::class);
 
     // ── Alumnos ──────────────────────────────────────────
     Route::get('alumnos/{id}/hermanos',      [AlumnoController::class, 'hermanos']);

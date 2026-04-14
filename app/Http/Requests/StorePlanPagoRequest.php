@@ -43,7 +43,7 @@ class StorePlanPagoRequest extends FormRequest
         ];
     }
 
-    public function messages(): array
+public function messages(): array
     {
         return [
             'ciclo_id.required'                => 'Debe seleccionar el ciclo escolar.',
@@ -58,6 +58,18 @@ class StorePlanPagoRequest extends FormRequest
             'conceptos.*.concepto_id.required' => 'Debe seleccionar el concepto de cobro.',
             'conceptos.*.monto.required'       => 'El monto del concepto es obligatorio.',
             'conceptos.*.monto.min'            => 'El monto del concepto debe ser mayor a cero.',
+    
+            'descuentos.*.nombre.required_with'     => 'El nombre del descuento es obligatorio.',
+            'descuentos.*.tipo_valor.required_with' => 'El tipo de descuento es obligatorio.',
+            'descuentos.*.valor.required_with'      => 'El valor del descuento es obligatorio.',
+            'descuentos.*.valor.min'                => 'El valor del descuento debe ser mayor a cero.',
+
+            
+            'recargo.dia_limite_pago.required_with' => 'El día límite de pago es obligatorio cuando hay un recargo.',
+            'recargo.tipo_recargo.required_with'    => 'El tipo de recargo es obligatorio.',
+            'recargo.valor.required_with'           => 'El valor del recargo es obligatorio.',
+            'recargo.dia_limite_pago.min'           => 'El día límite debe ser entre 1 y 31.',
+            'recargo.valor.min'                     => 'El valor del recargo debe ser mayor a cero.',
         ];
     }
 }

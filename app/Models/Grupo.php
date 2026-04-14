@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Grupo extends Model
 {
     protected $table = 'grupo';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -51,5 +52,14 @@ class Grupo extends Model
     public function asignacionesPlanes(): HasMany
     {
         return $this->hasMany(AsignacionPlan::class, 'grupo_id');
+    }
+
+    public function getNombreCompletoAttribute()
+    {
+        $nivel = $this->grado->nivel->nombre ?? '';
+        $grado = $this->grado->nombre ?? '';
+        $grupo = $this->nombre;
+
+        return "$nivel $grado $grupo";
     }
 }

@@ -4,12 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PlanPago extends Model
 {
     protected $table = 'plan_pago';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -24,8 +26,8 @@ class PlanPago extends Model
 
     protected $casts = [
         'fecha_inicio' => 'date',
-        'fecha_fin'    => 'date',
-        'activo'       => 'boolean',
+        'fecha_fin' => 'date',
+        'activo' => 'boolean',
     ];
 
     // ── Scopes ──────────────────────────────────────────
@@ -38,9 +40,11 @@ class PlanPago extends Model
     // ── Helpers ──────────────────────────────────────────
 
     /** Política de recargo activa del plan */
-    public function politicaRecargoActiva(): ?PoliticaRecargo
+    public function politicaRecargoActiva(): HasOne
     {
-        return $this->politicasRecargo()->where('activo', true)->first();
+        return $this->hasOne(PoliticaRecargo::class, 'plan_id')
+            ->where('activo', true)
+            ->latestOfMany();
     }
 
     // ── Relaciones ───────────────────────────────────────
@@ -78,12 +82,19 @@ class PlanPago extends Model
     public function politicasDescuentoActivas(): HasMany
     {
         return $this->hasMany(PoliticaDescuento::class, 'plan_id')
-                    ->where('activo', true);
+            ->where('activo', true);
     }
 
+    // Para cuando el backend necesite consultar el historial de recargos (Plural)
     public function politicasRecargo(): HasMany
     {
         return $this->hasMany(PoliticaRecargo::class, 'plan_id');
+    }
+
+    // Para la vista de configuración actual que pide el PoliticaController (Singular)
+    public function politicaRecargo(): HasOne
+    {
+        return $this->hasOne(PoliticaRecargo::class, 'plan_id');
     }
 
     public function asignaciones(): HasMany
