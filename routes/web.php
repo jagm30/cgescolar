@@ -19,7 +19,6 @@ use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\PlanPagoConceptoController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\CobrosController;
-use App\Http\Controllers\PoliticaController;
 
 
 Route::get('/tables', function () {return view('plantilla.tables');})->name('tables');
