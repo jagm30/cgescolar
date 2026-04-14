@@ -60,26 +60,59 @@ class CobrosController extends Controller
         $inscripcionActual = $alumno->inscripciones->first();
 
         // Cargos pendientes y parciales de todas sus inscripciones
+        $hoy = now();
+
         $cargos = Cargo::with([
             'concepto',
             'detallesPagosVigentes',
             'inscripcion.ciclo',
+            'asignacion.plan.politicasDescuentoActivas',
+            'asignacion.plan.politicasRecargo',
         ])
         ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumnoId))
         ->whereIn('estado', ['pendiente', 'parcial'])
+        ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
         ->orderBy('fecha_vencimiento')
         ->get()
-        ->map(function ($cargo) {
-            $abonado           = $cargo->detallesPagosVigentes->sum('monto_abonado');
-            $pendiente         = round($cargo->monto_original - $abonado, 2);
-            $hoy               = now();
-            $vencido           = $hoy->gt($cargo->fecha_vencimiento);
-            $cargo->abonado    = $abonado;
-            $cargo->pendiente  = $pendiente;
-            $cargo->vencido    = $vencido;
+        ->map(function ($cargo) use ($hoy) {
+            $abonado    = (float) ($cargo->total_abonado ?? 0);
+            $pendiente  = max(0, round((float) $cargo->monto_original - $abonado, 2));
+            $vencido    = $hoy->gt($cargo->fecha_vencimiento);
+
+            $cargo->abonado     = $abonado;
+            $cargo->pendiente   = $pendiente;
+            $cargo->vencido     = $vencido;
             $cargo->dias_atraso = $vencido
                 ? $cargo->fecha_vencimiento->diffInDays($hoy)
                 : 0;
+
+            // ── Calcular recargo / descuento según política del plan ──
+            $descuento    = 0.0;
+            $recargo      = 0.0;
+            $mesesRetraso = 0;
+
+            if ($pendiente > 0 && $cargo->asignacion?->plan) {
+                $plan = $cargo->asignacion->plan;
+
+                if ($vencido) {
+                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
+                    $pr = $plan->politicasRecargo->firstWhere('activo', true);
+                    if ($pr) {
+                        $recargo = $pr->calcular($pendiente, $mesesRetraso);
+                    }
+                } else {
+                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
+                    if ($pd) {
+                        $descuento = $pd->calcular($pendiente);
+                    }
+                }
+            }
+
+            $cargo->recargo_calc      = $recargo;
+            $cargo->descuento_calc    = $descuento;
+            $cargo->meses_retraso     = $mesesRetraso;
+            $cargo->monto_a_pagar_hoy = max(0, $pendiente - $descuento + $recargo);
+
             return $cargo;
         });
 

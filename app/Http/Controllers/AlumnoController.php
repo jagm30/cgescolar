@@ -249,7 +249,7 @@ class AlumnoController extends Controller
         if (request()->ajax()) {
             return response()->json($alumno);
         }
-        $inscripciones = $alumno->inscripciones;
+        $inscripciones = $alumno->inscripciones()->with('grupo.ciclo', 'grupo.grado.nivel')->get();
         $niveles = NivelEscolar::activo()->get();
         return view('alumnos.edit', compact('alumno', 'inscripciones','niveles'));
     }
@@ -331,10 +331,12 @@ class AlumnoController extends Controller
             $q->where('alumno_id', $alumno->id)
         )->orderByDesc('fecha_inicio')->get();
 
-        // Cargos con detalles de pagos vigentes
+        // Cargos con detalles de pagos vigentes y políticas del plan
         $cargosQuery = \App\Models\Cargo::with([
             'concepto',
             'detallesPagosVigentes.pago:id,folio_recibo,fecha_pago,forma_pago,referencia,estado',
+            'asignacion.plan.politicasDescuentoActivas',
+            'asignacion.plan.politicasRecargo',
         ])
         ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
         ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
@@ -353,41 +355,87 @@ class AlumnoController extends Controller
         $totalPagado      = 0;
         $totalCondonado   = 0;
         $totalVencido     = 0;
+        $totalRecargos    = 0;
+        $totalDescuentos  = 0;
         $cargosPendientes = 0;
         $cargosVencidos   = 0;
 
         foreach ($cargos as $cargo) {
-            $abonado   = $cargo->total_abonado ?? 0;
-            $pendiente = max(0, $cargo->monto_original - $abonado);
-            $vencido   = $hoy->gt($cargo->fecha_vencimiento);
+            $abonado    = (float) ($cargo->total_abonado ?? 0);
+            $saldoBase  = max(0, (float) $cargo->monto_original - $abonado);
+            $vencido    = $hoy->gt($cargo->fecha_vencimiento);
+            $esPendiente = !in_array($cargo->estado, ['pagado', 'condonado']) && $saldoBase > 0;
 
-            $totalCargado += $cargo->monto_original;
+            // ── Calcular recargo / descuento según política del plan ──
+            $descuento = 0.0;
+            $recargo   = 0.0;
+
+            if ($esPendiente && $cargo->asignacion?->plan) {
+                $plan = $cargo->asignacion->plan;
+
+                if ($vencido) {
+                    // Meses de retraso: meses completos desde el vencimiento + 1
+                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
+
+                    // Cargo vencido → aplicar recargo si existe política activa
+                    $pr = $plan->politicasRecargo->firstWhere('activo', true);
+                    if ($pr) {
+                        $recargo = $pr->calcular($saldoBase, $mesesRetraso);
+                    }
+                } else {
+                    $mesesRetraso = 0;
+
+                    // Cargo vigente → aplicar descuento si existe política que aplique hoy
+                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
+                    if ($pd) {
+                        $descuento = $pd->calcular($saldoBase);
+                    }
+                }
+            } else {
+                $mesesRetraso = 0;
+            }
+
+            // Guardar valores calculados en el modelo (accesibles en la vista)
+            $cargo->descuento_calc    = $descuento;
+            $cargo->recargo_calc      = $recargo;
+            $cargo->meses_retraso     = $mesesRetraso;
+            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $descuento + $recargo);
+
+            // ── Acumuladores ──
+            $totalCargado += (float) $cargo->monto_original;
 
             if ($cargo->estado === 'condonado') {
-                $totalCondonado += $cargo->monto_original;
+                $totalCondonado += (float) $cargo->monto_original;
             }
 
             $totalPagado += $abonado;
 
-            if (!in_array($cargo->estado, ['pagado', 'condonado']) && $pendiente > 0) {
+            if ($esPendiente) {
                 if ($vencido) {
-                    $totalVencido += $pendiente;
+                    $totalVencido  += $cargo->monto_a_pagar_hoy;
+                    $totalRecargos += $recargo;
                     $cargosVencidos++;
                 } else {
+                    $totalDescuentos += $descuento;
                     $cargosPendientes++;
                 }
             }
         }
 
+        $saldoPendienteBase = max(0, $totalCargado - $totalPagado - $totalCondonado);
+
         $resumen = [
-            'total_cargado'     => $totalCargado,
-            'total_pagado'      => $totalPagado,
-            'total_condonado'   => $totalCondonado,
-            'saldo_pendiente'   => max(0, $totalCargado - $totalPagado - $totalCondonado),
-            'total_vencido'     => $totalVencido,
-            'total_cargos'      => $cargos->count(),
-            'cargos_pendientes' => $cargosPendientes,
-            'cargos_vencidos'   => $cargosVencidos,
+            'total_cargado'      => $totalCargado,
+            'total_pagado'       => $totalPagado,
+            'total_condonado'    => $totalCondonado,
+            'saldo_pendiente'    => $saldoPendienteBase,
+            'total_vencido'      => $totalVencido,
+            'total_recargos'     => $totalRecargos,
+            'total_descuentos'   => $totalDescuentos,
+            'total_a_pagar_hoy'  => max(0, $saldoPendienteBase + $totalRecargos - $totalDescuentos),
+            'total_cargos'       => $cargos->count(),
+            'cargos_pendientes'  => $cargosPendientes,
+            'cargos_vencidos'    => $cargosVencidos,
         ];
 
         // Becas activas en el ciclo actual

@@ -200,13 +200,14 @@
                 <table class="table" style="margin:0;">
                     <thead>
                         <tr style="background:#f9f9f9;">
-                            <th style="width:4%;padding:8px 16px;"></th>
-                            <th style="width:22%;">Concepto</th>
-                            <th style="width:10%;">Periodo</th>
-                            <th style="width:14%;">Vencimiento</th>
-                            <th style="width:13%;text-align:right;">Monto</th>
-                            <th style="width:13%;text-align:right;">Pagado</th>
-                            <th style="width:13%;text-align:right;">Pendiente</th>
+                            <th style="width:3%;padding:8px 16px;"></th>
+                            <th style="width:19%;">Concepto</th>
+                            <th style="width:9%;">Periodo</th>
+                            <th style="width:12%;">Vencimiento</th>
+                            <th style="width:11%;text-align:right;">Monto</th>
+                            <th style="width:11%;text-align:right;">Pagado</th>
+                            <th style="width:11%;text-align:right;">Pendiente</th>
+                            <th style="width:13%;text-align:right;">Recargo / Dto.</th>
                             <th style="width:11%;text-align:center;">Estado</th>
                         </tr>
                     </thead>
@@ -214,10 +215,18 @@
 
                     @forelse($cargos as $cargo)
                     @php
-                        $saldoAbonado  = $cargo->total_abonado ?? 0;
-                        $saldoPendiente = max(0, $cargo->monto_original - $saldoAbonado);
-                        $hoy = now();
-                        $vencido = $hoy->isAfter($cargo->fecha_vencimiento);
+                        $saldoAbonado   = (float) ($cargo->total_abonado ?? 0);
+                        $saldoPendiente = max(0, (float) $cargo->monto_original - $saldoAbonado);
+                        $hoy            = now();
+                        $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
+
+                        // Valores calculados en el controlador (recargo / descuento)
+                        $descuentoCalc  = (float) ($cargo->descuento_calc ?? 0);
+                        $recargoCalc    = (float) ($cargo->recargo_calc   ?? 0);
+                        $mesesRetraso   = (int)   ($cargo->meses_retraso  ?? 0);
+                        $aPagarHoy      = (float) ($cargo->monto_a_pagar_hoy ?? $saldoPendiente);
+                        $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0)
+                                          && !in_array($cargo->estado, ['pagado', 'condonado']);
 
                         $estadoReal = match($cargo->estado) {
                             'pagado'    => 'pagado',
@@ -286,6 +295,7 @@
                                 <span class="text-muted">—</span>
                             @endif
                         </td>
+                        {{-- Pendiente base --}}
                         <td style="padding:10px 8px; text-align:right;
                                    {{ $saldoPendiente > 0 ? 'color:#a94442;font-weight:600;' : '' }}">
                             @if($saldoPendiente > 0)
@@ -294,6 +304,36 @@
                                 <span class="text-muted">—</span>
                             @endif
                         </td>
+
+                        {{-- Recargo / Descuento según política del plan --}}
+                        <td style="padding:10px 8px; text-align:right;">
+                            @if($tieneAjuste)
+                                @if($recargoCalc > 0)
+                                    <span style="color:#a94442; font-weight:600;">
+                                        +${{ number_format($recargoCalc, 2) }}
+                                    </span>
+                                    <br>
+                                    <small style="color:#a94442; font-size:10px;">
+                                        <i class="fa fa-exclamation-triangle"></i>
+                                        recargo
+                                        @if($mesesRetraso > 1)
+                                            × {{ $mesesRetraso }} meses
+                                        @endif
+                                    </small>
+                                @elseif($descuentoCalc > 0)
+                                    <span style="color:#00a65a; font-weight:600;">
+                                        -${{ number_format($descuentoCalc, 2) }}
+                                    </span>
+                                    <br>
+                                    <small style="color:#00a65a; font-size:10px;">
+                                        <i class="fa fa-tag"></i> dto. pronto pago
+                                    </small>
+                                @endif
+                            @else
+                                <span style="color:#ccc;">—</span>
+                            @endif
+                        </td>
+
                         <td style="padding:10px 8px; text-align:center;">
                             <span class="badge-estado {{ $badgeClass }}">{{ $badgeLabel }}</span>
                         </td>
@@ -302,7 +342,7 @@
                     {{-- Detalle de pagos (colapsado) --}}
                     @if($tienePagos)
                     <tr class="pagos-detalle" id="pagos-{{ $cargo->id }}" style="display:none;">
-                        <td colspan="8" style="padding:0 16px 12px 40px;">
+                        <td colspan="9" style="padding:0 16px 12px 40px;">
                             <table style="width:100%; margin-top:8px;">
                                 <thead>
                                     <tr style="color:#999; font-size:11px; text-transform:uppercase;">
@@ -362,7 +402,7 @@
 
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center" style="padding:40px; color:#aaa;">
+                        <td colspan="9" class="text-center" style="padding:40px; color:#aaa;">
                             <i class="fa fa-inbox fa-3x" style="display:block;margin-bottom:10px;"></i>
                             <strong>Sin cargos registrados</strong>
                             @if(request('ciclo_id'))
@@ -418,6 +458,37 @@
                             ${{ number_format($resumen['saldo_pendiente'], 2) }}
                         </td>
                     </tr>
+                    @if($resumen['total_recargos'] > 0)
+                    <tr>
+                        <td style="color:#a94442; padding:8px 14px; font-size:11px;">
+                            <i class="fa fa-exclamation-triangle"></i> + Recargos aplicados
+                        </td>
+                        <td style="text-align:right; padding:8px 14px; color:#a94442; font-size:11px;">
+                            +${{ number_format($resumen['total_recargos'], 2) }}
+                        </td>
+                    </tr>
+                    @endif
+                    @if($resumen['total_descuentos'] > 0)
+                    <tr>
+                        <td style="color:#00a65a; padding:8px 14px; font-size:11px;">
+                            <i class="fa fa-tag"></i> − Descuentos pronto pago
+                        </td>
+                        <td style="text-align:right; padding:8px 14px; color:#00a65a; font-size:11px;">
+                            -${{ number_format($resumen['total_descuentos'], 2) }}
+                        </td>
+                    </tr>
+                    @endif
+                    @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0)
+                    <tr style="background:#fff8e1; font-weight:700; border-top:2px solid #f39c12;">
+                        <td style="padding:10px 14px; color:#8a6d3b;">
+                            <i class="fa fa-calculator"></i> A pagar hoy
+                        </td>
+                        <td style="text-align:right; padding:10px 14px;
+                                   color:{{ $resumen['total_a_pagar_hoy'] > 0 ? '#a94442' : '#00a65a' }};">
+                            ${{ number_format($resumen['total_a_pagar_hoy'], 2) }}
+                        </td>
+                    </tr>
+                    @endif
                     @if($resumen['total_vencido'] > 0)
                     <tr>
                         <td style="color:#a94442; padding:8px 14px; font-size:11px;">
