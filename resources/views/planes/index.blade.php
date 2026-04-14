@@ -156,7 +156,8 @@
     </div>
 
     {{-- MODAL NUEVO PLAN --}}
-    <x-modal id="modalNuevoPlan" title="Crear Nuevo Plan de Pago" size="modal-lg">
+    <x-modal id="modalNuevoPlan" title="Crear nuevo Plan de Pago para el ciclo <b>{{ $cicloActual->nombre }}</b>"
+        size="modal-lg">
         <form action="{{ route('planes.store') }}" method="POST">
             @csrf
             <div class="row">
@@ -166,15 +167,14 @@
                         <input type="text" name="nombre" class="form-control"
                             placeholder="Ej: Plan Anual Secundaria" required>
                     </div>
+                    <input type="hidden" name="ciclo_id" value="{{ $cicloActual->id }}">
+
                     <div class="form-group">
                         <label><i class="fa fa-calendar"></i> Ciclo Escolar</label>
-                        <select name="ciclo_id" class="form-control" required>
-                            @foreach ($ciclos as $ciclo)
-                                <option value="{{ $ciclo->id }}" {{ $cicloId == $ciclo->id ? 'selected' : '' }}>
-                                    {{ $ciclo->nombre }}</option>
-                            @endforeach
-                        </select>
+                        <input type="text" class="form-control" value="{{ $cicloActual->nombre }}" readonly disabled>
+                        <small class="text-muted">El plan se creará automáticamente en el ciclo actual.</small>
                     </div>
+
                     <div class="form-group">
                         <label><i class="fa fa-graduation-cap"></i> Nivel Escolar</label>
                         <select name="nivel_id" class="form-control" required>
@@ -325,15 +325,16 @@
                 <label>Ciclo Escolar Destino</label>
                 <select name="ciclo_destino_id" class="form-control" required>
                     <option value="">Seleccione el ciclo destino...</option>
-                    @foreach ($ciclos as $ciclo)
+                    {{-- CAMBIAMOS $ciclos por $ciclosDisponibles --}}
+                    @foreach ($ciclosDisponibles as $ciclo)
                         <option value="{{ $ciclo->id }}">{{ $ciclo->nombre }}</option>
                     @endforeach
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Prefijo para los nombres (Opcional)</label>
-                <input type="text" name="prefijo" class="form-control" placeholder="Ej: COPIA - ">
+                <label>Sufijo para los nombres (Opcional)</label>
+                <input type="text" name="sufijo" class="form-control" placeholder="Ej: - COPIA ">
             </div>
 
             <div class="modal-footer no-padding">
