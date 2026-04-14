@@ -27,18 +27,7 @@ class PlanPagoController extends Controller
     /** GET /planes */
     public function index(Request $request)
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
-        $planesPerPage = (int) $request->get('planes_per_page', 10);
-        $asignacionesPerPage = (int) $request->get('asignaciones_per_page', 10);
-
-        if (! in_array($planesPerPage, [10, 25, 50], true)) {
-            $planesPerPage = 10;
-        }
-
-        if (! in_array($asignacionesPerPage, [10, 25, 50], true)) {
-            $asignacionesPerPage = 10;
-        }
+        
         $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
 
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
@@ -88,7 +77,9 @@ class PlanPagoController extends Controller
             ->latest('id')
             ->paginate($asignacionesPerPage, ['*'], 'asignaciones_page');
         $cicloActual = CicloEscolar::find($cicloId);
-
+        $niveles   = NivelEscolar::activo()->get();
+        $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
+      
         return view('planes.index', compact(
             'planes',
             'ciclos',
@@ -98,7 +89,9 @@ class PlanPagoController extends Controller
             'asignaciones',
             'cicloActual',
             'planesPerPage',
-            'asignacionesPerPage'
+            'asignacionesPerPage',
+            'niveles',
+            'conceptos'
         ));
     }
 
@@ -121,17 +114,6 @@ class PlanPagoController extends Controller
         return view('planes.show', compact('plan'));
     }
 
-    /** GET /planes/create */
-    public function create()
-    {
-        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
-        $niveles = NivelEscolar::activo()->get();
-        $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
-
-        return view('planes.create', compact('ciclos', 'niveles', 'conceptos', 'cicloId'));
-    }
-
     /** POST /planes */
     public function store(StorePlanPagoRequest $request)
     {
@@ -140,20 +122,20 @@ class PlanPagoController extends Controller
         DB::beginTransaction();
         try {
             $plan = PlanPago::create([
-                'ciclo_id' => $data['ciclo_id'],
-                'nivel_id' => $data['nivel_id'],
-                'nombre' => $data['nombre'],
+                'ciclo_id'     => $data['ciclo_id'],
+                'nivel_id'     => $data['nivel_id'],
+                'nombre'       => $data['nombre'],
                 'periodicidad' => $data['periodicidad'],
                 'fecha_inicio' => $data['fecha_inicio'],
-                'fecha_fin' => $data['fecha_fin'],
-                'activo' => true,
+                'fecha_fin'    => $data['fecha_fin'],
+                'activo'       => true,
             ]);
 
             foreach ($data['conceptos'] as $concepto) {
                 PlanPagoConcepto::create([
-                    'plan_id' => $plan->id,
+                    'plan_id'     => $plan->id,
                     'concepto_id' => $concepto['concepto_id'],
-                    'monto' => $concepto['monto'],
+                    'monto'       => $concepto['monto'],
                 ]);
             }
 
@@ -181,10 +163,9 @@ class PlanPagoController extends Controller
 
             Auditoria::registrar('plan_pago', $plan->id, 'insert', null, $plan->toArray());
             DB::commit();
-            // Mensaje para el Toast (Session)
+
             session()->flash('success', "Plan '{$plan->nombre}' creado correctamente.");
 
-            // Si es una petición AJAX (por si el modal usa JS para enviarse)
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -193,7 +174,6 @@ class PlanPagoController extends Controller
                 ], 201);
             }
 
-            // Redirección normal de Laravel al "Show" del nuevo plan
             return redirect()->route('planes.show', $plan->id);
 
             return $this->respuestaExito(
@@ -224,10 +204,11 @@ class PlanPagoController extends Controller
             return response()->json($plan);
         }
 
+        // LIMPIEZA: El composer se encarga de los ciclos aquí también
         return view('planes.edit', compact('plan', 'conceptos'));
     }
 
-    /** PUT /planes/{id} — solo nombre y fechas */
+    /** PUT /planes/{id} */
     public function update(Request $request, int $id)
     {
         $plan = PlanPago::findOrFail($id);
@@ -285,8 +266,8 @@ class PlanPagoController extends Controller
     /** GET /planes/asignacion/{alumnoId} — solo AJAX */
     public function asignacionDeAlumno(int $alumnoId)
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
+        // Se usa internamente para la lógica de búsqueda
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
 
         $inscripcion = Inscripcion::with('grupo.grado')
             ->where('alumno_id', $alumnoId)
