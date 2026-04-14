@@ -95,9 +95,9 @@
                   ?? $inscripciones->sortByDesc('id')->first();
 
     // Valores precargados para el paso 3 (old() tiene prioridad)
-    $cicloActual  = old('ciclo_id',  $inscActual?->grupo?->ciclo_escolar_id ?? '');
-    $nivelActual  = old('nivel_id',  $inscActual?->grupo?->nivel_id         ?? '');
-    $grupoActual  = old('grupo_id',  $inscActual?->grupo_id                 ?? '');
+    $cicloActual  = old('ciclo_id',  $inscActual?->grupo?->ciclo_id              ?? '');
+    $nivelActual  = old('nivel_id',  $inscActual?->grupo?->grado?->nivel_id      ?? '');
+    $grupoActual  = old('grupo_id',  $inscActual?->grupo_id                      ?? '');
 @endphp
 
 <form method="POST"
@@ -388,9 +388,9 @@
                 <div style="flex:1;">
                     <div class="ins-actual-titulo">Inscripción actual</div>
                     <div class="ins-actual-sub">
-                        {{ $inscActual->grupo?->cicloEscolar?->nombre ?? '—' }}
+                        {{ $inscActual->grupo?->ciclo?->nombre ?? '—' }}
                         &nbsp;·&nbsp;
-                        {{ $inscActual->grupo?->nivel?->nombre ?? '—' }}
+                        {{ $inscActual->grupo?->grado?->nivel?->nombre ?? '—' }}
                         &nbsp;·&nbsp;
                         {{ $inscActual->grupo?->grado?->nombre ?? '' }}
                         {{ $inscActual->grupo?->nombre ?? '—' }}
@@ -876,10 +876,14 @@ $(function() {
         $('#btn-guardar').toggle(pasoActual === TOTAL_PASOS);
 
         // Al entrar al paso 3 cargar grupos si ya hay ciclo+nivel
+        // Solo preselecciona GRUPO_ACTUAL la primera vez (grupos aún vacíos)
         if (pasoActual === 3) {
             var ci = $('#ciclo_id').val();
             var ni = $('#nivel_id').val();
-            if (ci && ni) cargarGrupos(ci, ni, GRUPO_ACTUAL);
+            var gruposYaCargados = $('#grupo_id option').length > 1;
+            if (ci && ni && !gruposYaCargados) {
+                cargarGrupos(ci, ni, GRUPO_ACTUAL);
+            }
         }
 
         $('html,body').animate({ scrollTop: $('#wizard-steps-nav').offset().top - 80 }, 200);
@@ -894,6 +898,15 @@ $(function() {
         var $panel = $e.closest('.wizard-step-panel');
         return $panel.length ? Number($panel.data('step')) : null;
     }
+
+    // ══════════════════════════════════════════════════
+    // PASO 3 — valores actuales inyectados desde PHP
+    // (deben estar antes de wizardIr para que estén
+    //  disponibles si hay error de validación en paso 3)
+    // ══════════════════════════════════════════════════
+    var CICLO_ACTUAL = '{{ $cicloActual }}';
+    var NIVEL_ACTUAL = '{{ $nivelActual }}';
+    var GRUPO_ACTUAL = '{{ $grupoActual }}';
 
     // Iniciar en el paso con error o en el 1
     wizardIr(pasoConError() || 1, false);
@@ -940,10 +953,6 @@ $(function() {
     // ══════════════════════════════════════════════════
     // PASO 3 — CARGA DINÁMICA DE GRUPOS
     // ══════════════════════════════════════════════════
-    // Valores actuales inyectados desde PHP
-    var CICLO_ACTUAL = '{{ $cicloActual }}';
-    var NIVEL_ACTUAL = '{{ $nivelActual }}';
-    var GRUPO_ACTUAL = '{{ $grupoActual }}';
 
     // Cuando cambia ciclo o nivel → recargar grupos
     $('#ciclo_id, #nivel_id').on('change', function() {
