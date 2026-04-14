@@ -271,7 +271,7 @@
                             @if($cargo->vencido)
                                 <span style="color:#e74c3c;font-weight:600;margin-left:4px;">
                                     <i class="fa fa-exclamation-triangle"></i>
-                                    {{ $cargo->dias_atraso }} días de atraso
+                                    {{ number_format($cargo->dias_atraso,0) }} días de atraso
                                     @if($cargo->meses_retraso > 1)
                                         ({{ $cargo->meses_retraso }} meses)
                                     @endif
