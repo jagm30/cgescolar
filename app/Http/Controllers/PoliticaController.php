@@ -68,6 +68,10 @@ class PoliticaController extends Controller
 
         // Validación extra: porcentaje no puede superar 100
         if ($data['tipo_valor'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje no puede ser mayor a 100.',
             ], 422);
@@ -113,6 +117,10 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_valor'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje no puede ser mayor a 100.',
             ], 422);
@@ -183,11 +191,12 @@ class PoliticaController extends Controller
         }
 
         $data = $request->validate([
-            'dia_limite_pago' => ['required', 'integer', 'min:1', 'max:31'],
-            'tipo_recargo'    => ['required', 'in:porcentaje,monto_fijo'],
-            'valor'           => ['required', 'numeric', 'min:0.01'],
-            'tope_maximo'     => ['nullable', 'numeric', 'min:0'],
-            'activo'          => ['boolean'],
+            'dia_limite_pago'  => ['required', 'integer', 'min:1', 'max:31'],
+            'tipo_recargo'     => ['required', 'in:porcentaje,monto_fijo'],
+            'valor'            => ['required', 'numeric', 'min:0.01'],
+            'tope_maximo'      => ['nullable', 'numeric', 'min:0'],
+            'activo'           => ['boolean'],
+            'acumular_mensual' => ['boolean'],
         ], [
             'dia_limite_pago.required' => 'El día límite de pago es obligatorio.',
             'tipo_recargo.in'          => 'El tipo debe ser "porcentaje" o "monto_fijo".',
@@ -195,18 +204,23 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje de recargo no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje de recargo no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje de recargo no puede ser mayor a 100.',
             ], 422);
         }
 
         $recargo = PoliticaRecargo::create([
-            'plan_id'         => $planId,
-            'dia_limite_pago' => $data['dia_limite_pago'],
-            'tipo_recargo'    => $data['tipo_recargo'],
-            'valor'           => $data['valor'],
-            'tope_maximo'     => $data['tope_maximo'] ?? null,
-            'activo'          => $data['activo'] ?? true,
+            'plan_id'          => $planId,
+            'dia_limite_pago'  => $data['dia_limite_pago'],
+            'tipo_recargo'     => $data['tipo_recargo'],
+            'valor'            => $data['valor'],
+            'tope_maximo'      => $data['tope_maximo'] ?? null,
+            'activo'           => $data['activo'] ?? true,
+            'acumular_mensual' => $data['acumular_mensual'] ?? false,
         ]);
 
         \App\Models\Auditoria::registrar(
@@ -232,18 +246,26 @@ class PoliticaController extends Controller
         $anterior = $recargo->toArray();
 
         $data = $request->validate([
-            'dia_limite_pago' => ['required', 'integer', 'min:1', 'max:31'],
-            'tipo_recargo'    => ['required', 'in:porcentaje,monto_fijo'],
-            'valor'           => ['required', 'numeric', 'min:0.01'],
-            'tope_maximo'     => ['nullable', 'numeric', 'min:0'],
-            'activo'          => ['boolean'],
+            'dia_limite_pago'  => ['required', 'integer', 'min:1', 'max:31'],
+            'tipo_recargo'     => ['required', 'in:porcentaje,monto_fijo'],
+            'valor'            => ['required', 'numeric', 'min:0.01'],
+            'tope_maximo'      => ['nullable', 'numeric', 'min:0'],
+            'activo'           => ['boolean'],
+            'acumular_mensual' => ['boolean'],
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje de recargo no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje de recargo no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje de recargo no puede ser mayor a 100.',
             ], 422);
         }
+
+        // El checkbox enviará 1 o nada; normalizar a booleano
+        $data['acumular_mensual'] = $request->boolean('acumular_mensual');
 
         $recargo->update($data);
 

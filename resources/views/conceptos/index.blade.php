@@ -127,7 +127,7 @@
         </div>
     </div>
 
-    <x-modal id="modalNuevoConcepto" title="<i class='fa fa-plus-circle'></i> Agregar Nuevo Concepto" size="modal-lg">
+    <x-modal id="modalNuevoConcepto" title=" Agregar Nuevo Concepto" size="modal-lg">
         <form action="{{ route('conceptos.store') }}" method="POST">
             @csrf
             <div class="row">
@@ -207,8 +207,8 @@
     </x-modal>
 
     @foreach ($conceptos as $concepto)
-        <x-modal id="modalEditarConcepto{{ $concepto->id }}"
-            title="<i class='fa fa-pencil'></i> Editar Concepto: {{ $concepto->nombre }}" size="modal-lg">
+        <x-modal id="modalEditarConcepto{{ $concepto->id }}" title="Editar Concepto: {{ $concepto->nombre }}"
+            size="modal-lg">
             <form action="{{ route('conceptos.update', $concepto->id) }}" method="POST">
                 @csrf
                 @method('PUT')
