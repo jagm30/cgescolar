@@ -42,18 +42,65 @@ class PlanPagoController extends Controller
             return response()->json($planes);
         }
 
+        $niveles = NivelEscolar::activo()->get();
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $alumnos = Alumno::query()
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'nombre_completo' => $a->nombre_completo,
+                ];
+            });
+        $grupos = Grupo::with(['grado.nivel'])
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('grado_id')
+            ->orderBy('nombre')
+            ->get()
+            ->map(function ($g) {
+                return [
+                    'id' => $g->id,
+                    'nombre' => $g->nombre,
+                    'grado' => $g->grado->nombre ?? '',
+                    'nivel' => [
+                        'nombre' => $g->grado->nivel->nombre ?? '',
+                    ],
+                ];
+            });
+        $asignaciones = AsignacionPlan::with(['plan.nivel', 'alumno', 'grupo.grado.nivel', 'nivel'])
+            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId))
+            ->latest('id')
+            ->paginate($asignacionesPerPage, ['*'], 'asignaciones_page');
+        $cicloActual = CicloEscolar::find($cicloId);
         $niveles   = NivelEscolar::activo()->get();
         $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
-
-        // QUITAMOS 'ciclos' y 'cicloId' -> El Composer los inyecta solitos
-        return view('planes.index', compact('planes', 'niveles', 'conceptos'));
+      
+        return view('planes.index', compact(
+            'planes',
+            'ciclos',
+            'niveles',
+            'alumnos',
+            'grupos',
+            'asignaciones',
+            'cicloActual',
+            'planesPerPage',
+            'asignacionesPerPage',
+            'niveles',
+            'conceptos'
+        ));
     }
 
     /** GET /planes/{id} */
     public function show(int $id)
     {
         $plan = PlanPago::with([
-            'ciclo', 'nivel',
+            'ciclo',
+            'nivel',
             'planPagoConceptos.concepto',
             'politicasDescuento',
             'politicasRecargo',
@@ -123,12 +170,23 @@ class PlanPagoController extends Controller
                 return response()->json([
                     'success' => true,
                     'redirect' => route('planes.show', $plan->id),
-                    'mensaje' => "Plan '{$plan->nombre}' creado correctamente."
+                    'mensaje' => "Plan '{$plan->nombre}' creado correctamente.",
                 ], 201);
             }
 
             return redirect()->route('planes.show', $plan->id);
 
+            return $this->respuestaExito(
+                redirectRoute: 'planes.show',
+                // Cambiamos 'plane' por 'plan' y lo pasamos como un array simple
+                redirectParams: ['plan' => $plan->id],
+                jsonData: [
+                    'plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo']),
+                ],
+                mensaje: "Plan '{$plan->nombre}' creado correctamente.",
+                jsonStatus: 201,
+                routeParams: [$plan->id]
+            );
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -191,6 +249,20 @@ class PlanPagoController extends Controller
         );
     }
 
+    /** POST /planes/asignar */
+    public function asignar(StoreAsignacionPlanRequest $request)
+    {
+        $asignacion = AsignacionPlan::create($request->validated());
+        Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
+
+        return $this->respuestaExito(
+            redirectRoute: 'planes.asignar.form',
+            jsonData: ['asignacion' => $asignacion->load('plan')],
+            mensaje: 'Plan asignado correctamente.',
+            jsonStatus: 201
+        );
+    }
+
     /** GET /planes/asignacion/{alumnoId} — solo AJAX */
     public function asignacionDeAlumno(int $alumnoId)
     {
@@ -232,22 +304,29 @@ class PlanPagoController extends Controller
 
     public function clonarMasivo(Request $request)
     {
+        // Valida que vengan IDs y el ciclo destino
         $request->validate([
             'plan_ids' => 'required|array',
-            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id'
+            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
         ]);
 
         DB::beginTransaction();
         try {
             foreach ($request->plan_ids as $id) {
                 $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
-                if (!$original) continue;
+                if (! $original) {
+                    continue;
+                }
 
+                // 1. Clona el Plan
                 $nuevo = $original->replicate();
                 $nuevo->ciclo_id = $request->ciclo_destino_id;
-                $nuevo->nombre = $original->nombre . " (" . ($request->sufijo ?? "Copia") . ")";
+                // Opcional: Agregarle un prefijo al nombre
+                $nuevo->nombre = $request->prefijo.' '.$original->nombre;
                 $nuevo->save();
 
+                // 2. Clona Conceptos, Descuentos y Recargo
+                // Usamos la misma lógica del replicate() para cada relación
                 foreach ($original->planPagoConceptos as $item) {
                     $c = $item->replicate();
                     $c->plan_id = $nuevo->id;
@@ -268,10 +347,41 @@ class PlanPagoController extends Controller
             }
 
             DB::commit();
+
             return back()->with('success', '¡Planes clonados correctamente al nuevo ciclo!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Error en la clonación masiva: ' . $e->getMessage());
+
+            return back()->with('error', 'Error en la clonación masiva: '.$e->getMessage());
         }
+    }
+
+    public function createAsignacion()
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        $planes = PlanPago::where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            ->get();
+
+        $alumnos = Alumno::whereHas('inscripciones', function ($q) use ($cicloId) {
+            $q->where('ciclo_id', $cicloId)->where('activo', true);
+        })->get();
+
+        $grupos = Grupo::with(['grado.nivel'])->get();
+        $niveles = NivelEscolar::activo()->get();
+
+        $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel'])
+            ->orderBy('id', 'desc')
+            ->paginate(10);
+
+        return view('planes.asignar', compact(
+            'planes',
+            'alumnos',
+            'grupos',
+            'niveles',
+            'asignaciones'
+        ));
     }
 }
