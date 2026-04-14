@@ -27,6 +27,7 @@
             'descuento_beca' => 0,
             'beca_aplicada' => null,
             'descuento_otros' => 0,
+            'descuento_manual' => 0,
             'descuentos_detalle' => [],
             'recargo' => 0,
             'saldo_ya_abonado' => 0,
@@ -137,6 +138,11 @@
                             </tr>
 
                             <tr>
+                                <th>Descuentos manuales</th>
+                                <td>$ {{ number_format((float) $preview['descuento_manual'], 2) }}</td>
+                            </tr>
+
+                            <tr>
                                 <th>Recargo</th>
                                 <td>$ {{ number_format((float) $preview['recargo'], 2) }}</td>
                             </tr>
@@ -178,11 +184,11 @@
                         <tbody>
                             @forelse ($cargo->detallesPagosVigentes as $detalle)
                                 <tr>
-                                    <td>{{ $detalle->pago?->folio ?? 'Sin folio' }}</td>
+                                    <td>{{ $detalle->pago?->folio_recibo ?? 'Sin folio' }}</td>
                                     <td>{{ optional($detalle->pago?->fecha_pago)->format('d/m/Y') ?? '-' }}</td>
                                     <td>$ {{ number_format((float) $detalle->monto_abonado, 2) }}</td>
                                     <td>$ {{ number_format((float) $detalle->recargo_aplicado, 2) }}</td>
-                                    <td>$ {{ number_format((float) $detalle->total_linea, 2) }}</td>
+                                    <td>$ {{ number_format((float) $detalle->monto_final, 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>

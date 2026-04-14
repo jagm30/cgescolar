@@ -11,7 +11,6 @@ use App\Models\PagoDetalle;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class PagoController extends Controller
 {
@@ -21,14 +20,14 @@ class PagoController extends Controller
     public function index(Request $request)
     {
         $query = Pago::with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
-            ->when($request->filled('alumno_id'), fn($q) => $q->whereHas(
-                'detalles.cargo.inscripcion', fn($q) => $q->where('alumno_id', $request->alumno_id)
+            ->when($request->filled('alumno_id'), fn ($q) => $q->whereHas(
+                'detalles.cargo.inscripcion', fn ($q) => $q->where('alumno_id', $request->alumno_id)
             ))
-            ->when($request->filled('fecha_desde'), fn($q) => $q->where('fecha_pago', '>=', $request->fecha_desde))
-            ->when($request->filled('fecha_hasta'), fn($q) => $q->where('fecha_pago', '<=', $request->fecha_hasta))
-            ->when($request->filled('forma_pago'),  fn($q) => $q->where('forma_pago', $request->forma_pago))
-            ->when($request->filled('estado'),      fn($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('folio'),       fn($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"))
+            ->when($request->filled('fecha_desde'), fn ($q) => $q->where('fecha_pago', '>=', $request->fecha_desde))
+            ->when($request->filled('fecha_hasta'), fn ($q) => $q->where('fecha_pago', '<=', $request->fecha_hasta))
+            ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('folio'), fn ($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"))
             ->orderByDesc('fecha_pago')
             ->orderByDesc('id');
 
@@ -54,7 +53,7 @@ class PagoController extends Controller
         if (request()->ajax()) {
             return response()->json(array_merge($pago->toArray(), [
                 'total_descuentos' => $pago->total_descuentos,
-                'total_recargos'   => $pago->total_recargos,
+                'total_recargos' => $pago->total_recargos,
             ]));
         }
 
@@ -82,64 +81,67 @@ class PagoController extends Controller
 
         DB::beginTransaction();
         try {
-            $cajeroId    = auth()->id();
-            $montoTotal  = 0;
+            $cajeroId = auth()->id();
+            $montoTotal = 0;
             $detallesData = [];
             $cargoController = app(CargoController::class);
 
             foreach ($data['detalles'] as $detalle) {
-                $cargo   = Cargo::with(['inscripcion', 'asignacion.plan', 'detallesPagosVigentes'])->findOrFail($detalle['cargo_id']);
+                $cargo = Cargo::with([
+                    'inscripcion',
+                    'descuentos',
+                    'asignacion.plan.politicasDescuentoActivas',
+                    'asignacion.plan.politicaRecargoActiva',
+                    'detallesPagosVigentes',
+                ])->findOrFail($detalle['cargo_id']);
                 $preview = $cargoController->calcularPreviewCobro($cargo);
 
-                $montoFinal = round(
-                    $detalle['monto'] - $preview['descuento_beca'] - $preview['descuento_otros'] + $preview['recargo'],
-                    2
-                );
+                $montoCobrado = round((float) $detalle['monto'], 2);
 
-                $montoTotal    += max(0, $montoFinal);
+                $montoTotal += $montoCobrado;
                 $detallesData[] = [
-                    'cargo'         => $cargo,
-                    'preview'       => $preview,
-                    'monto_abonado' => $detalle['monto'],
-                    'monto_final'   => max(0, $montoFinal),
+                    'cargo' => $cargo,
+                    'preview' => $preview,
+                    'monto_abonado' => $montoCobrado,
+                    'monto_final' => $montoCobrado,
                 ];
             }
 
             // Encabezado del pago
             $pago = Pago::create([
-                'cajero_id'    => $cajeroId,
-                'monto_total'  => round($montoTotal, 2),
-                'fecha_pago'   => $data['fecha_pago'],
-                'forma_pago'   => $data['forma_pago'],
-                'referencia'   => $data['referencia'] ?? null,
+                'cajero_id' => $cajeroId,
+                'monto_total' => round($montoTotal, 2),
+                'fecha_pago' => $data['fecha_pago'],
+                'forma_pago' => $data['forma_pago'],
+                'referencia' => $data['referencia'] ?? null,
                 'folio_recibo' => $this->generarFolioRecibo(),
-                'estado'       => 'vigente',
+                'estado' => 'vigente',
             ]);
 
             foreach ($detallesData as $item) {
-                $cargo   = $item['cargo'];
+                $cargo = $item['cargo'];
                 $preview = $item['preview'];
 
                 PagoDetalle::create([
-                    'pago_id'          => $pago->id,
-                    'cargo_id'         => $cargo->id,
-                    'descuento_beca'   => $preview['descuento_beca'],
-                    'descuento_otros'  => $preview['descuento_otros'],
+                    'pago_id' => $pago->id,
+                    'cargo_id' => $cargo->id,
+                    'descuento_beca' => $preview['descuento_beca'],
+                    'descuento_otros' => $preview['descuento_otros'],
                     'recargo_aplicado' => $preview['recargo'],
-                    'monto_abonado'    => $item['monto_abonado'],
-                    'monto_final'      => $item['monto_final'],
+                    'monto_abonado' => $item['monto_abonado'],
+                    'monto_final' => $item['monto_final'],
                 ]);
 
                 // Actualizar estado del cargo
-                $nuevoSaldo  = $cargo->saldo_abonado + $item['monto_abonado'];
-                $montoTotal  = $preview['total_a_cobrar'] + $cargo->saldo_abonado;
-                $cargo->update(['estado' => $nuevoSaldo >= $montoTotal ? 'pagado' : 'parcial']);
+                $nuevoSaldo = round($cargo->saldo_abonado + $item['monto_abonado'], 2);
+                $totalExigible = round($preview['total_a_cobrar'] + $cargo->saldo_abonado, 2);
+                $cargo->update(['estado' => $nuevoSaldo >= $totalExigible ? 'pagado' : 'parcial']);
             }
 
             Auditoria::registrar('pago', $pago->id, 'insert', null, [
                 'folio_recibo' => $pago->folio_recibo,
-                'monto_total'  => $pago->monto_total,
-                'num_cargos'   => count($detallesData),
+                'monto_total' => $pago->monto_total,
+                'num_cargos' => count($detallesData),
             ]);
 
             DB::commit();
@@ -152,7 +154,8 @@ class PagoController extends Controller
             );
         } catch (\Throwable $e) {
             DB::rollBack();
-            return $this->respuestaError('Error al registrar el pago: ' . $e->getMessage());
+
+            return $this->respuestaError('Error al registrar el pago: '.$e->getMessage());
         }
     }
 
@@ -169,13 +172,13 @@ class PagoController extends Controller
             $anterior = $pago->toArray();
 
             $pago->update([
-                'estado'         => 'anulado',
-                'motivo'         => $request->motivo,
+                'estado' => 'anulado',
+                'motivo' => $request->motivo,
                 'autorizado_por' => auth()->id(),
             ]);
 
             foreach ($pago->detalles as $detalle) {
-                $cargo         = $detalle->cargo;
+                $cargo = $detalle->cargo;
                 $saldoRestante = $cargo->fresh()->saldo_abonado;
                 $cargo->update(['estado' => $saldoRestante > 0 ? 'parcial' : 'pendiente']);
             }
@@ -191,14 +194,15 @@ class PagoController extends Controller
             );
         } catch (\Throwable $e) {
             DB::rollBack();
-            return $this->respuestaError('Error al anular el pago: ' . $e->getMessage());
+
+            return $this->respuestaError('Error al anular el pago: '.$e->getMessage());
         }
     }
 
     /** GET /pagos/corte */
     public function corte(Request $request)
     {
-        $fecha    = $request->get('fecha', now()->toDateString());
+        $fecha = $request->get('fecha', now()->toDateString());
         $cajeroId = auth()->id();
 
         $pagos = Pago::with(['detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
@@ -208,13 +212,13 @@ class PagoController extends Controller
             ->get();
 
         $resumen = [
-            'fecha'         => $fecha,
-            'total_pagos'   => $pagos->count(),
-            'total_cargos'  => $pagos->sum(fn($p) => $p->detalles->count()),
+            'fecha' => $fecha,
+            'total_pagos' => $pagos->count(),
+            'total_cargos' => $pagos->sum(fn ($p) => $p->detalles->count()),
             'total_cobrado' => $pagos->sum('monto_total'),
-            'por_forma_pago'=> $pagos->groupBy('forma_pago')->map(fn($g) => [
+            'por_forma_pago' => $pagos->groupBy('forma_pago')->map(fn ($g) => [
                 'cantidad' => $g->count(),
-                'total'    => $g->sum('monto_total'),
+                'total' => $g->sum('monto_total'),
             ]),
         ];
 
@@ -230,6 +234,7 @@ class PagoController extends Controller
     private function generarFolioRecibo(): string
     {
         $ultimo = Pago::max('id') ?? 0;
-        return 'REC-' . now()->format('Y') . '-' . str_pad($ultimo + 1, 6, '0', STR_PAD_LEFT);
+
+        return 'REC-'.now()->format('Y').'-'.str_pad($ultimo + 1, 6, '0', STR_PAD_LEFT);
     }
 }
