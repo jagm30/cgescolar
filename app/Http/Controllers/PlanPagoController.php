@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreAsignacionPlanRequest;
 use App\Http\Requests\StorePlanPagoRequest;
+use App\Models\Alumno;
 use App\Models\AsignacionPlan;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\ConceptoCobro;
+use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\PlanPago;
@@ -23,24 +25,66 @@ class PlanPagoController extends Controller
     use RespondsWithJson;
 
     /** GET /planes */
-    public function index(Request $request)
+public function index(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
+        $planesPerPage = (int) $request->get('planes_per_page', 10);
+        $asignacionesPerPage = (int) $request->get('asignaciones_per_page', 10);
+
+        if (! in_array($planesPerPage, [10, 25, 50], true)) {
+            $planesPerPage = 10;
+        }
+
+        if (! in_array($asignacionesPerPage, [10, 25, 50], true)) {
+            $asignacionesPerPage = 10;
+        }
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
 
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
+            ->withCount('asignaciones')
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('nivel_id'), fn($q) => $q->where('nivel_id', $request->nivel_id))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->where('nivel_id', $request->nivel_id))
             ->orderBy('nivel_id')
-            ->get();
+            ->orderBy('nombre')
+            ->paginate($planesPerPage, ['*'], 'planes_page');
 
         if ($request->ajax()) {
             return response()->json($planes);
         }
 
         $niveles = NivelEscolar::activo()->get();
+        $alumnos = Alumno::query()
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('ap_paterno')
+            ->orderBy('ap_materno')
+            ->orderBy('nombre')
+            ->get();
+        $grupos = Grupo::with('grado.nivel')
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('grado_id')
+            ->orderBy('nombre')
+            ->get();
+        $asignaciones = AsignacionPlan::with(['plan.nivel', 'alumno', 'grupo.grado.nivel', 'nivel'])
+            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId))
+            ->latest('id')
+            ->paginate($asignacionesPerPage, ['*'], 'asignaciones_page');
+        $cicloActual = CicloEscolar::find($cicloId);
 
-        return view('planes.index', compact('planes', 'niveles'));
+        return view('planes.index', compact(
+            'planes',
+            'niveles',
+            'alumnos',
+            'grupos',
+            'asignaciones',
+            'cicloActual',
+            'planesPerPage',
+            'asignacionesPerPage'
+        ));
     }
 
     /** GET /planes/{id} */
@@ -64,9 +108,9 @@ class PlanPagoController extends Controller
     /** GET /planes/create */
     public function create()
     {
-        $cicloId  = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
-        $ciclos   = CicloEscolar::orderByDesc('fecha_inicio')->get();
-        $niveles  = NivelEscolar::activo()->get();
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $niveles = NivelEscolar::activo()->get();
         $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
 
         return view('planes.create', compact('ciclos', 'niveles', 'conceptos', 'cicloId'));
@@ -80,64 +124,84 @@ class PlanPagoController extends Controller
         DB::beginTransaction();
         try {
             $plan = PlanPago::create([
-                'ciclo_id'    => $data['ciclo_id'],
-                'nivel_id'    => $data['nivel_id'],
-                'nombre'      => $data['nombre'],
-                'periodicidad'=> $data['periodicidad'],
-                'fecha_inicio'=> $data['fecha_inicio'],
-                'fecha_fin'   => $data['fecha_fin'],
-                'activo'      => true,
+                'ciclo_id' => $data['ciclo_id'],
+                'nivel_id' => $data['nivel_id'],
+                'nombre' => $data['nombre'],
+                'periodicidad' => $data['periodicidad'],
+                'fecha_inicio' => $data['fecha_inicio'],
+                'fecha_fin' => $data['fecha_fin'],
+                'activo' => true,
             ]);
 
             foreach ($data['conceptos'] as $concepto) {
                 PlanPagoConcepto::create([
-                    'plan_id'    => $plan->id,
-                    'concepto_id'=> $concepto['concepto_id'],
-                    'monto'      => $concepto['monto'],
+                    'plan_id' => $plan->id,
+                    'concepto_id' => $concepto['concepto_id'],
+                    'monto' => $concepto['monto'],
                 ]);
             }
 
             foreach ($data['descuentos'] ?? [] as $descuento) {
                 PoliticaDescuento::create([
-                    'plan_id'    => $plan->id,
-                    'nombre'     => $descuento['nombre'],
+                    'plan_id' => $plan->id,
+                    'nombre' => $descuento['nombre'],
                     'tipo_valor' => $descuento['tipo_valor'],
-                    'valor'      => $descuento['valor'],
+                    'valor' => $descuento['valor'],
                     'dia_limite' => $descuento['dia_limite'] ?? null,
-                    'activo'     => true,
+                    'activo' => true,
                 ]);
             }
 
-            if (!empty($data['recargo'])) {
+            if (! empty($data['recargo'])) {
                 PoliticaRecargo::create([
-                    'plan_id'         => $plan->id,
+                    'plan_id' => $plan->id,
                     'dia_limite_pago' => $data['recargo']['dia_limite_pago'],
-                    'tipo_recargo'    => $data['recargo']['tipo_recargo'],
-                    'valor'           => $data['recargo']['valor'],
-                    'tope_maximo'     => $data['recargo']['tope_maximo'] ?? null,
-                    'activo'          => true,
+                    'tipo_recargo' => $data['recargo']['tipo_recargo'],
+                    'valor' => $data['recargo']['valor'],
+                    'tope_maximo' => $data['recargo']['tope_maximo'] ?? null,
+                    'activo' => true,
                 ]);
             }
 
             Auditoria::registrar('plan_pago', $plan->id, 'insert', null, $plan->toArray());
             DB::commit();
+            // Mensaje para el Toast (Session)
+            session()->flash('success', "Plan '{$plan->nombre}' creado correctamente.");
+
+            // Si es una petición AJAX (por si el modal usa JS para enviarse)
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'redirect' => route('planes.show', $plan->id),
+                    'mensaje' => "Plan '{$plan->nombre}' creado correctamente."
+                ], 201);
+            }
+
+            // Redirección normal de Laravel al "Show" del nuevo plan
+            return redirect()->route('planes.show', $plan->id);
 
             return $this->respuestaExito(
                 redirectRoute: 'planes.show',
-                jsonData: ['plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])],
+                // Cambiamos 'plane' por 'plan' y lo pasamos como un array simple
+                redirectParams: ['plan' => $plan->id], 
+                jsonData: [
+                    'plan' => $plan->load(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])
+                ],
                 mensaje: "Plan '{$plan->nombre}' creado correctamente.",
-                jsonStatus: 201
+                jsonStatus: 201,
+                routeParams: [$plan->id]
             );
         } catch (\Throwable $e) {
             DB::rollBack();
-            return $this->respuestaError('Error al crear el plan: ' . $e->getMessage());
+
+            return $this->respuestaError('Error al crear el plan: '.$e->getMessage());
         }
     }
 
     /** GET /planes/{id}/edit */
     public function edit(int $id)
     {
-        $plan     = PlanPago::with(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])->findOrFail($id);
+        $plan = PlanPago::with(['planPagoConceptos.concepto', 'politicasDescuento', 'politicasRecargo'])->findOrFail($id);
         $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
 
         if (request()->ajax()) {
@@ -150,14 +214,14 @@ class PlanPagoController extends Controller
     /** PUT /planes/{id} — solo nombre y fechas */
     public function update(Request $request, int $id)
     {
-        $plan     = PlanPago::findOrFail($id);
+        $plan = PlanPago::findOrFail($id);
         $anterior = $plan->toArray();
 
         $data = $request->validate([
-            'nombre'       => ['sometimes', 'required', 'string', 'max:200'],
+            'nombre' => ['sometimes', 'required', 'string', 'max:200'],
             'fecha_inicio' => ['sometimes', 'required', 'date'],
-            'fecha_fin'    => ['sometimes', 'required', 'date', 'after:fecha_inicio'],
-            'activo'       => ['boolean'],
+            'fecha_fin' => ['sometimes', 'required', 'date', 'after:fecha_inicio'],
+            'activo' => ['boolean'],
         ]);
 
         $plan->update($data);
@@ -214,30 +278,80 @@ class PlanPagoController extends Controller
             ->where('activo', true)
             ->first();
 
-        if (!$inscripcion) {
+        if (! $inscripcion) {
             return response()->json(['message' => 'Sin inscripción activa en este ciclo.'], 404);
         }
 
         $nivelId = $inscripcion->grupo->grado->nivel_id;
 
         $asignacion = AsignacionPlan::with([
-                'plan.planPagoConceptos.concepto',
-                'plan.politicasDescuentoActivas',
-                'plan.politicaRecargoActiva',
-            ])
+            'plan.planPagoConceptos.concepto',
+            'plan.politicasDescuentoActivas',
+            'plan.politicaRecargoActiva',
+        ])
             ->where(function ($q) use ($alumnoId, $inscripcion, $nivelId) {
-                $q->where(fn($q) => $q->where('origen', 'individual')->where('alumno_id', $alumnoId))
-                  ->orWhere(fn($q) => $q->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id))
-                  ->orWhere(fn($q) => $q->where('origen', 'nivel')->where('nivel_id', $nivelId));
+                $q->where(fn ($q) => $q->where('origen', 'individual')->where('alumno_id', $alumnoId))
+                    ->orWhere(fn ($q) => $q->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id))
+                    ->orWhere(fn ($q) => $q->where('origen', 'nivel')->where('nivel_id', $nivelId));
             })
-            ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
+            ->whereHas('plan', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
             ->orderByRaw("FIELD(origen, 'individual', 'grupo', 'nivel')")
             ->first();
 
-        if (!$asignacion) {
+        if (! $asignacion) {
             return response()->json(['message' => 'El alumno no tiene plan de pago asignado.'], 404);
         }
 
         return response()->json(['asignacion' => $asignacion, 'origen' => $asignacion->origen]);
     }
+
+    public function clonarMasivo(Request $request)
+{
+    // Valida que vengan IDs y el ciclo destino
+    $request->validate([
+        'plan_ids' => 'required|array',
+        'ciclo_destino_id' => 'required|exists:ciclo_escolar,id'
+    ]);
+
+    DB::beginTransaction();
+    try {
+        foreach ($request->plan_ids as $id) {
+            $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
+            if (!$original) continue;
+
+            // 1. Clona el Plan
+            $nuevo = $original->replicate();
+            $nuevo->ciclo_id = $request->ciclo_destino_id;
+            // Opcional: Agregarle un prefijo al nombre
+            $nuevo->nombre = $request->prefijo . " " . $original->nombre; 
+            $nuevo->save();
+
+            // 2. Clona Conceptos, Descuentos y Recargo
+            // Usamos la misma lógica del replicate() para cada relación
+            foreach ($original->planPagoConceptos as $item) {
+                $c = $item->replicate();
+                $c->plan_id = $nuevo->id;
+                $c->save();
+            }
+
+            foreach ($original->politicasDescuento as $desc) {
+                $d = $desc->replicate();
+                $d->plan_id = $nuevo->id;
+                $d->save();
+            }
+
+            if ($original->politicaRecargo) {
+                $r = $original->politicaRecargo->replicate();
+                $r->plan_id = $nuevo->id;
+                $r->save();
+            }
+        }
+
+        DB::commit();
+        return back()->with('success', '¡Planes clonados correctamente al nuevo ciclo!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Error en la clonación masiva: ' . $e->getMessage());
+    }
+}
 }

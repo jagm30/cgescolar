@@ -143,6 +143,21 @@
     <div class="box box-primary">
         <div class="box-header with-border">
             <h3 class="box-title"><i class="fa fa-list"></i> Listado de cargos</h3>
+            <div class="box-tools">
+                <form method="GET" action="{{ route('cargos.index') }}" class="form-inline">
+                    <input type="hidden" name="alumno_id" value="{{ request('alumno_id') }}">
+                    <input type="hidden" name="estado" value="{{ request('estado') }}">
+                    <input type="hidden" name="periodo" value="{{ request('periodo') }}">
+                    <label for="per_page" class="text-muted" style="margin-right: 8px;">Ver</label>
+                    <select name="per_page" id="per_page" class="form-control input-sm auto-submit-select">
+                        @foreach ([10, 25, 50] as $size)
+                            <option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>
+                                {{ $size }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
+            </div>
         </div>
 
         <div class="box-body table-responsive no-padding">
@@ -285,6 +300,10 @@
             @if (request('mostrar_generador'))
                 $('#modalGenerarCargos').modal('show');
             @endif
+
+            $('.auto-submit-select').on('change', function() {
+                $(this).closest('form').trigger('submit');
+            });
         });
     </script>
 @endpush

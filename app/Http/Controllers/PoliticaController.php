@@ -68,6 +68,10 @@ class PoliticaController extends Controller
 
         // Validación extra: porcentaje no puede superar 100
         if ($data['tipo_valor'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje no puede ser mayor a 100.',
             ], 422);
@@ -113,6 +117,10 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_valor'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje no puede ser mayor a 100.',
             ], 422);
@@ -195,6 +203,10 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje de recargo no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje de recargo no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje de recargo no puede ser mayor a 100.',
             ], 422);
@@ -240,6 +252,10 @@ class PoliticaController extends Controller
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'El porcentaje de recargo no puede ser mayor a 100.'], 422);
+            }
+            return back()->withErrors(['valor' => 'El porcentaje de recargo no puede ser mayor a 100.'])->withInput();
             return response()->json([
                 'message' => 'El porcentaje de recargo no puede ser mayor a 100.',
             ], 422);
