@@ -249,8 +249,9 @@ class AlumnoController extends Controller
         if (request()->ajax()) {
             return response()->json($alumno);
         }
-
-        return view('alumnos.edit', compact('alumno'));
+        $inscripciones = $alumno->inscripciones;
+        $niveles = NivelEscolar::activo()->get();
+        return view('alumnos.edit', compact('alumno', 'inscripciones','niveles'));
     }
 
     /** PUT /alumnos/{id} */

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\CobrosController;
-
+use App\Http\Controllers\PoliticaController;
 
 
 Route::get('/tables', function () {return view('plantilla.tables');})->name('tables');
@@ -83,6 +83,24 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // conceptos de cobro
     Route::resource('conceptos', ConceptoCobroController::class)
     ->middleware('rol:administrador');
+    
+    // ── Políticas de descuento y recargo (anidadas en plan) ──
+    Route::prefix('planes/{planId}/politicas')
+        ->middleware('rol:administrador')
+        ->name('planes.politicas.')
+        ->group(function () {
+            Route::get('/',                    [PoliticaController::class, 'index'])          ->name('index');
+
+            // Descuentos
+            Route::post('descuento',           [PoliticaController::class, 'storeDescuento']) ->name('descuento.store');
+            Route::put('descuento/{id}',       [PoliticaController::class, 'updateDescuento'])->name('descuento.update');
+            Route::delete('descuento/{id}',    [PoliticaController::class, 'destroyDescuento'])->name('descuento.destroy');
+
+            // Recargo
+            Route::post('recargo',             [PoliticaController::class, 'storeRecargo'])   ->name('recargo.store');
+            Route::put('recargo/{id}',         [PoliticaController::class, 'updateRecargo'])  ->name('recargo.update');
+            Route::delete('recargo/{id}',      [PoliticaController::class, 'destroyRecargo']) ->name('recargo.destroy');
+        });
     // ── Planes de pago ───────────────────────────────────
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')
