@@ -74,87 +74,90 @@
         </div>
     </div>
     </div>
+
+    <x-modal id="modal-editar" title="Editar Ciclo Escolar">
+        <form id="form-editar" method="POST">
+            @csrf
+            @method('PUT')
+
+            <div class="form-group">
+                <label>Nombre del Ciclo</label>
+                <input type="text" name="nombre" id="edit-nombre" class="form-control" required>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Fecha Inicio</label>
+                        <input type="date" name="fecha_inicio" id="edit-inicio" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Fecha Fin</label>
+                        <input type="date" name="fecha_fin" id="edit-fin" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Estado</label>
+                <select name="estado" id="edit-estado" class="form-control" required>
+                    <option value="activo">Activo</option>
+                    <option value="cerrado">Cerrado</option>
+                    <option value="configuracion">Configuración</option>
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                <button type="submit" class="btn btn-primary">Actualizar Ciclo</button>
+            </div>
+        </form>
+    </x-modal>
+
+    <x-modal id="modal-nuevo" title="Registrar Nuevo Ciclo Escolar">
+        <form action="{{ route('ciclos.store') }}" method="POST">
+            @csrf
+
+            <div class="form-group">
+                <label>Nombre del Ciclo</label>
+                <input type="text" name="nombre" class="form-control" placeholder="Ej: 2026-2027" required>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Fecha Inicio</label>
+                        <input type="date" name="fecha_inicio" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Fecha Fin</label>
+                        <input type="date" name="fecha_fin" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Estado Inicial</label>
+                <select name="estado" class="form-control" required>
+                    <option value="configuracion" selected>Configuración</option>
+                    <option value="activo">Activo</option>
+                    <option value="cerrado">Cerrado</option>
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success">Crear Ciclo</button>
+            </div>
+        </form>
+    </x-modal>
+
+
 @endsection
-<x-modal id="modal-editar" title="Editar Ciclo Escolar">
-    <form id="form-editar" method="POST">
-        @csrf
-        @method('PUT')
-
-        <div class="form-group">
-            <label>Nombre del Ciclo</label>
-            <input type="text" name="nombre" id="edit-nombre" class="form-control" required>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Fecha Inicio</label>
-                    <input type="date" name="fecha_inicio" id="edit-inicio" class="form-control" required>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Fecha Fin</label>
-                    <input type="date" name="fecha_fin" id="edit-fin" class="form-control" required>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Estado</label>
-            <select name="estado" id="edit-estado" class="form-control" required>
-                <option value="activo">Activo</option>
-                <option value="cerrado">Cerrado</option>
-                <option value="configuracion">Configuración</option>
-            </select>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-            <button type="submit" class="btn btn-primary">Actualizar Ciclo</button>
-        </div>
-    </form>
-</x-modal>
-
-<x-modal id="modal-nuevo" title="Registrar Nuevo Ciclo Escolar">
-    <form action="{{ route('ciclos.store') }}" method="POST">
-        @csrf
-
-        <div class="form-group">
-            <label>Nombre del Ciclo</label>
-            <input type="text" name="nombre" class="form-control" placeholder="Ej: 2026-2027" required>
-        </div>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Fecha Inicio</label>
-                    <input type="date" name="fecha_inicio" class="form-control" required>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Fecha Fin</label>
-                    <input type="date" name="fecha_fin" class="form-control" required>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Estado Inicial</label>
-            <select name="estado" class="form-control" required>
-                <option value="configuracion" selected>Configuración</option>
-                <option value="activo">Activo</option>
-                <option value="cerrado">Cerrado</option>
-            </select>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-success">Crear Ciclo</button>
-        </div>
-    </form>
-</x-modal>
 
 @push('scripts')
     <script src="{{ asset('bower_components/datatables.net/js/jquery.dataTables.min.js') }}"></script>
