@@ -51,10 +51,10 @@
 
                         <div class="form-group">
                             <label>Plan de pago</label>
-                            <select name="plan_id" class="form-control select2" style="width: 100%;" data-placeholder="Selecciona un plan" required>
+                            <select name="plan_id" id="plan_id" class="form-control select2" style="width: 100%;" data-placeholder="Selecciona un plan" required>
                                 <option value="">Selecciona un plan</option>
                                 @foreach ($planes as $plan)
-                                    <option value="{{ $plan->id }}" {{ (string) old('plan_id') === (string) $plan->id ? 'selected' : '' }}>
+                                    <option value="{{ $plan->id }}" data-fecha-inicio="{{ $plan->fecha_inicio?->format('Y-m-d') }}" data-fecha-fin="{{ $plan->fecha_fin?->format('Y-m-d') }}" {{ (string) old('plan_id') === (string) $plan->id ? 'selected' : '' }}>
                                         {{ $plan->nombre }}
                                     </option>
                                 @endforeach
@@ -96,13 +96,13 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Fecha inicio</label>
-                                    <input type="date" name="fecha_inicio" class="form-control" value="{{ old('fecha_inicio') }}">
+                                    <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ old('fecha_inicio') }}" readonly>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Fecha fin</label>
-                                    <input type="date" name="fecha_fin" class="form-control" value="{{ old('fecha_fin') }}">
+                                    <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ old('fecha_fin') }}" readonly>
                                 </div>
                             </div>
                         </div>
@@ -248,6 +248,30 @@
 
                 $('#origen').val(oldOrigen);
                 actualizarSelect();
+
+                // Manejar cambio de plan para poblar fechas
+                $('#plan_id').on('change', function() {
+                    const selectedOption = $(this).find('option:selected');
+                    const fechaInicio = selectedOption.data('fecha-inicio');
+                    const fechaFin = selectedOption.data('fecha-fin');
+
+                    if (fechaInicio && fechaFin) {
+                        $('#fecha_inicio').val(fechaInicio);
+                        $('#fecha_fin').val(fechaFin);
+                        $('#fecha_inicio').prop('readonly', true);
+                        $('#fecha_fin').prop('readonly', true);
+                    } else {
+                        $('#fecha_inicio').val('');
+                        $('#fecha_fin').val('');
+                        $('#fecha_inicio').prop('readonly', false);
+                        $('#fecha_fin').prop('readonly', false);
+                    }
+                });
+
+                // Si hay un plan seleccionado al cargar, poblar fechas
+                if ($('#plan_id').val()) {
+                    $('#plan_id').trigger('change');
+                }
             });
         </script>
     @endpush
