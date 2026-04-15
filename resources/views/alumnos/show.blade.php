@@ -85,30 +85,30 @@
 
 /* ── Contactos ────────────────────────────── */
 .ctc-card {
-    border-left: 4px solid #ccc;
+    border-left: 3px solid #ccc;
     background: #fff;
-    padding: 14px 16px;
+    padding: 10px 14px;
     border-bottom: 1px solid #f4f4f4;
     transition: background .1s;
 }
 .ctc-card:hover { background: #fafcff; }
 .ctc-card.principal { border-left-color: #3c8dbc; background: #f7fbff; }
-.ctc-nombre { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.ctc-nombre { font-size: 13px; font-weight: 700; color: #1a1a1a; }
 .ctc-tel-btn {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 8px;
     background: #fff; border: 1px solid #d0e8ff;
-    border-radius: 6px; padding: 8px 12px;
+    border-radius: 5px; padding: 5px 10px;
     text-decoration: none; color: #1a1a1a;
-    margin-top: 8px; transition: background .12s;
+    margin-top: 5px; transition: background .12s;
 }
 .ctc-tel-btn:hover { background: #e8f3ff; color: #1a1a1a; text-decoration: none; }
 .ctc-tel-btn.trabajo { border-color: #e0e0e0; }
 .ctc-tel-btn.trabajo:hover { background: #f5f5f5; }
 .ctc-tel-icon {
-    width: 32px; height: 32px; border-radius: 50%;
+    width: 26px; height: 26px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.ctc-tel-num { font-size: 19px; font-weight: 700; letter-spacing: .04em; line-height: 1; }
+.ctc-tel-num { font-size: 13px; font-weight: 600; letter-spacing: .02em; line-height: 1; }
 .ctc-tel-sub { font-size: 10px; color: #999; margin-top: 1px; }
 
 /* ── Inscripciones ────────────────────────── */
@@ -456,7 +456,7 @@
 
                     {{-- Avatar --}}
                     <div style="
-                        width:46px;height:46px;border-radius:50%;flex-shrink:0;
+                        width:36px;height:36px;border-radius:50%;flex-shrink:0;
                         background:{{ $esPrincipal ? '#3c8dbc' : '#9e9e9e' }};
                         display:flex;align-items:center;justify-content:center;overflow:hidden;
                     ">
@@ -464,7 +464,7 @@
                             <img src="{{ asset('storage/'.$contacto->foto_url) }}"
                                  style="width:100%;height:100%;object-fit:cover;">
                         @else
-                            <i class="fa fa-user" style="color:#fff;font-size:19px;"></i>
+                            <i class="fa fa-user" style="color:#fff;font-size:15px;"></i>
                         @endif
                     </div>
 
@@ -516,13 +516,13 @@
                     <a href="tel:{{ preg_replace('/\D/','',$contacto->telefono_celular) }}"
                        class="ctc-tel-btn">
                         <div class="ctc-tel-icon" style="background:#3c8dbc;">
-                            <i class="fa fa-mobile" style="color:#fff;font-size:18px;"></i>
+                            <i class="fa fa-mobile" style="color:#fff;font-size:13px;"></i>
                         </div>
                         <div>
                             <div class="ctc-tel-num">{{ $contacto->telefono_celular }}</div>
                             <div class="ctc-tel-sub">Celular</div>
                         </div>
-                        <i class="fa fa-phone" style="margin-left:auto;color:#3c8dbc;font-size:13px;"></i>
+                        <i class="fa fa-phone" style="margin-left:auto;color:#3c8dbc;font-size:11px;"></i>
                     </a>
                     @endif
 
@@ -530,20 +530,20 @@
                     <a href="tel:{{ preg_replace('/\D/','',$contacto->telefono_trabajo) }}"
                        class="ctc-tel-btn trabajo">
                         <div class="ctc-tel-icon" style="background:#607d8b;">
-                            <i class="fa fa-phone" style="color:#fff;font-size:14px;"></i>
+                            <i class="fa fa-phone" style="color:#fff;font-size:11px;"></i>
                         </div>
                         <div>
                             <div class="ctc-tel-num">{{ $contacto->telefono_trabajo }}</div>
                             <div class="ctc-tel-sub">Trabajo</div>
                         </div>
-                        <i class="fa fa-phone" style="margin-left:auto;color:#aaa;font-size:12px;"></i>
+                        <i class="fa fa-phone" style="margin-left:auto;color:#aaa;font-size:11px;"></i>
                     </a>
                     @endif
 
                     @if($contacto->email)
-                    <div style="display:flex;align-items:center;gap:10px;padding:6px 4px;font-size:13px;color:#555;">
+                    <div style="display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12px;color:#555;">
                         <div class="ctc-tel-icon" style="background:#f5f5f5;border:1px solid #e0e0e0;">
-                            <i class="fa fa-envelope-o" style="color:#888;font-size:14px;"></i>
+                            <i class="fa fa-envelope-o" style="color:#888;font-size:11px;"></i>
                         </div>
                         {{ $contacto->email }}
                     </div>
