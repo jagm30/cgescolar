@@ -104,9 +104,9 @@
                             <td>{{ $concepto->clave_sat }}</td>
                             <td>{{ $concepto->activo ? 'Activo' : 'Inactivo' }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
+                                <button type="button" class="btn btn-default btn-sm btn-flat" data-toggle="modal"
                                     data-target="#modalEditarConcepto{{ $concepto->id }}" title="Editar Concepto">
-                                    <i class="fa fa-pencil"></i> Editar
+                                    <i class="fa fa-pencil"></i>
                                 </button>
 
                                 <form action="{{ route('conceptos.destroy', $concepto->id) }}" method="POST"
@@ -116,7 +116,7 @@
                                     <button type="submit" class="btn btn-danger btn-sm"
                                         onclick="return confirm('¿Estás seguro de que deseas desactivar el concepto: {{ $concepto->nombre }}?');"
                                         title="Desactivar Concepto">
-                                        <i class="fa fa-ban"></i> Desactivar
+                                        <i class="fa fa-ban"></i>
                                     </button>
                                 </form>
                             </td>

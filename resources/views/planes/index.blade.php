@@ -3,19 +3,6 @@
 
 @section('content')
 
-    {{-- CAJA DE ERRORES DE VALIDACIÓN --}}
-    @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-            <h4><i class="icon fa fa-ban"></i> ¡No se pudo guardar el plan!</h4>
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <div class="box">
         <div class="box-header">
             <h3 class="box-title">Catálogo de Planes de Pago</h3>
@@ -109,10 +96,10 @@
                                 <div style="display: flex; gap: 2px; justify-content: center; align-items: center;">
                                     <a href="{{ route('planes.show', $plan->id) }}" class="btn btn-info btn-sm"
                                         title="Ver Resumen">
-                                        <i class="fa fa-eye"></i> Ver
+                                        <i class="fa fa-eye"></i>
                                     </a>
 
-                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
+                                    <button type="button" class="btn btn-flat btn-default btn-sm" data-toggle="modal"
                                         data-target="#modalEditarPlan{{ $plan->id }}" title="Editar Nombre o Fechas">
                                         <i class="fa fa-pencil"></i>
                                     </button>
@@ -121,8 +108,8 @@
                                         <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
                                             style="margin: 0;">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm"
-                                                onclick="return confirm('¿Estás seguro?');">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Desactivar Plan"
+                                                onclick="return confirm('¿Estás seguro de desactivar este plan?');">
                                                 <i class="fa fa-ban"></i>
                                             </button>
                                         </form>
@@ -131,8 +118,8 @@
                                             style="margin: 0;">
                                             @csrf @method('PUT')
                                             <input type="hidden" name="activo" value="1">
-                                            <button type="submit" class="btn btn-success btn-sm"
-                                                onclick="return confirm('¿Reactivar?');">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Reactivar Plan"
+                                                onclick="return confirm('¿Estás seguro de reactivar este plan?');">
                                                 <i class="fa fa-refresh"></i>
                                             </button>
                                         </form>
@@ -160,11 +147,25 @@
         size="modal-lg">
         <form action="{{ route('planes.store') }}" method="POST">
             @csrf
+
+            {{-- CAJA DE ERRORES DENTRO DEL MODAL --}}
+            @if ($errors->any())
+                <div class="alert alert-danger" style="margin: 0 15px 15px 15px; padding: 10px;">
+                    <h4 style="font-size: 15px; margin-top: 0;"><i class="icon fa fa-ban"></i> Por favor corrige los
+                        siguientes errores:</h4>
+                    <ul style="margin-bottom: 0; padding-left: 20px;">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="row">
                 <div class="col-md-5">
                     <div class="form-group">
                         <label><i class="fa fa-file-text-o"></i> Nombre de Plan</label>
-                        <input type="text" name="nombre" class="form-control"
+                        <input type="text" name="nombre" class="form-control" value="{{ old('nombre') }}"
                             placeholder="Ej: Plan Anual Secundaria" required>
                     </div>
                     <input type="hidden" name="ciclo_id" value="{{ $cicloActual->id }}">
@@ -180,7 +181,8 @@
                         <select name="nivel_id" class="form-control" required>
                             <option value="">Seleccione un nivel...</option>
                             @foreach ($niveles as $nivel)
-                                <option value="{{ $nivel->id }}">{{ $nivel->nombre }}</option>
+                                <option value="{{ $nivel->id }}"
+                                    {{ old('nivel_id') == $nivel->id ? 'selected' : '' }}>{{ $nivel->nombre }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -188,26 +190,33 @@
                         <label><i class="fa fa-clock-o"></i> Periodicidad</label>
                         <select name="periodicidad" class="form-control" required>
                             <option value="">Seleccione...</option>
-                            <option value="mensual">Mensual</option>
-                            <option value="bimestral">Bimestral</option>
-                            <option value="semestral">Semestral</option>
-                            <option value="anual">Anual</option>
-                            <option value="unico">Pago Único</option>
+                            <option value="mensual" {{ old('periodicidad') == 'mensual' ? 'selected' : '' }}>Mensual
+                            </option>
+                            <option value="bimestral" {{ old('periodicidad') == 'bimestral' ? 'selected' : '' }}>Bimestral
+                            </option>
+                            <option value="semestral" {{ old('periodicidad') == 'semestral' ? 'selected' : '' }}>Semestral
+                            </option>
+                            <option value="anual" {{ old('periodicidad') == 'anual' ? 'selected' : '' }}>Anual</option>
+                            <option value="unico" {{ old('periodicidad') == 'unico' ? 'selected' : '' }}>Pago Único
+                            </option>
                         </select>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group"><label>Fecha Inicio</label><input type="date" name="fecha_inicio"
-                                    class="form-control" required></div>
+                                    class="form-control" value="{{ old('fecha_inicio') }}" required></div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group"><label>Fecha Fin</label><input type="date" name="fecha_fin"
-                                    class="form-control" required></div>
+                                    class="form-control" value="{{ old('fecha_fin') }}" required></div>
                         </div>
                     </div>
                 </div>
 
+                {{-- PARTE DERECHA: CONCEPTOS Y POLÍTICAS --}}
                 <div class="col-md-7">
+
+                    {{-- CONCEPTOS --}}
                     <div style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                         <h4 style="margin-top: 0; font-size: 16px;"><i class="fa fa-tags"></i> Conceptos del Plan
                             <button type="button" id="btn-agregar-concepto" class="btn btn-success btn-xs pull-right"><i
@@ -222,44 +231,129 @@
                                 <th style="width: 40px;"></th>
                             </tr>
                         </thead>
-                        <tbody></tbody>
+                        <tbody>
+                            {{-- RECUPERAR CONCEPTOS SI HUBO ERROR DE VALIDACIÓN --}}
+                            @if (old('conceptos'))
+                                @foreach (old('conceptos') as $index => $concepto)
+                                    <tr id="fila-concepto-{{ $index }}">
+                                        <td>
+                                            <select name="conceptos[{{ $index }}][concepto_id]"
+                                                class="form-control input-sm" required>
+                                                <option value="">Seleccione...</option>
+                                                @foreach ($conceptos as $c)
+                                                    <option value="{{ $c->id }}"
+                                                        {{ isset($concepto['concepto_id']) && $concepto['concepto_id'] == $c->id ? 'selected' : '' }}>
+                                                        {{ $c->nombre }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        {{-- Agregamos min="0" para evitar negativos --}}
+                                        <td><input type="number" step="0.01" min="0"
+                                                name="conceptos[{{ $index }}][monto]"
+                                                class="form-control input-sm" value="{{ $concepto['monto'] ?? '' }}"
+                                                required></td>
+                                        <td class="text-center"><button type="button"
+                                                class="btn btn-danger btn-xs btn-eliminar-fila"
+                                                data-id="{{ $index }}"><i class="fa fa-trash"></i></button></td>
+                                    </tr>
+                                @endforeach
+                            @endif
+                        </tbody>
                     </table>
-                    <div id="mensaje-vacio-modal" class="text-center text-muted" style="padding: 10px;">No hay conceptos.
+                    <div id="mensaje-vacio-modal" class="text-center text-muted"
+                        style="padding: 10px; {{ old('conceptos') ? 'display: none;' : '' }}">No hay conceptos.</div>
+
+                    {{-- DESCUENTOS --}}
+                    <div
+                        style="background-color: #fcf8e3; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #faebcc;">
+                        <h4 style="margin-top: 0; font-size: 15px; color: #8a6d3b; margin-bottom: 15px;"><i
+                                class="fa fa-percent"></i> Políticas de Descuento (Pronto Pago)</h4>
+
+                        <div id="contenedor-descuentos">
+                            {{-- ENCABEZADOS (Ajustamos los col-md para dar más espacio al valor) --}}
+                            <div class="row header-descuentos"
+                                style="margin-bottom: 5px; display: {{ old('descuentos') ? 'flex' : 'none' }}; align-items: center;">
+                                <div class="col-md-3"><label style="font-size: 11px; margin-bottom: 0;">Nombre del
+                                        descuento</label></div>
+                                <div class="col-md-3"><label style="font-size: 11px; margin-bottom: 0;">Tipo</label></div>
+                                <div class="col-md-3"><label style="font-size: 11px; margin-bottom: 0;">Valor ($ o
+                                        %)</label></div>
+                                <div class="col-md-2"><label style="font-size: 11px; margin-bottom: 0;">Día Límite</label>
+                                </div>
+                                <div class="col-md-1"></div>
+                            </div>
+
+                            {{-- RECUPERAR DESCUENTOS --}}
+                            @if (old('descuentos'))
+                                @foreach (old('descuentos') as $index => $desc)
+                                    <div class="row fila-desc" id="fila-desc-{{ $index }}"
+                                        style="margin-bottom: 8px;">
+                                        <div class="col-md-3"><input type="text"
+                                                name="descuentos[{{ $index }}][nombre]"
+                                                class="form-control input-sm" value="{{ $desc['nombre'] ?? '' }}"
+                                                placeholder="Nombre" required></div>
+                                        {{-- CORRECCIÓN: value="monto_fijo" --}}
+                                        <div class="col-md-3"><select name="descuentos[{{ $index }}][tipo_valor]"
+                                                class="form-control input-sm">
+                                                <option value="porcentaje"
+                                                    {{ isset($desc['tipo_valor']) && $desc['tipo_valor'] == 'porcentaje' ? 'selected' : '' }}>
+                                                    %</option>
+                                                <option value="monto_fijo"
+                                                    {{ isset($desc['tipo_valor']) && $desc['tipo_valor'] == 'monto_fijo' ? 'selected' : '' }}>
+                                                    $</option>
+                                            </select></div>
+                                        <div class="col-md-3"><input type="number" step="0.01" min="0"
+                                                name="descuentos[{{ $index }}][valor]"
+                                                class="form-control input-sm" value="{{ $desc['valor'] ?? '' }}"
+                                                required></div>
+                                        <div class="col-md-2"><input type="number" min="1" max="31"
+                                                name="descuentos[{{ $index }}][dia_limite]"
+                                                class="form-control input-sm" value="{{ $desc['dia_limite'] ?? '' }}"
+                                                placeholder="Día"></div>
+                                        <div class="col-md-1 text-right"><button type="button"
+                                                class="btn btn-danger btn-xs btn-remove-desc"
+                                                data-id="{{ $index }}"><i class="fa fa-times"></i></button></div>
+                                    </div>
+                                @endforeach
+                            @endif
+                        </div>
+
+                        <button type="button" id="btn-add-descuento" class="btn btn-warning btn-xs"
+                            style="margin-top: 5px;"><i class="fa fa-plus"></i> Agregar Descuento</button>
                     </div>
 
+                    {{-- RECARGOS --}}
                     <div
-                        style="background-color: #fcf8e3; padding: 10px; border-radius: 5px; margin-top: 15px; border: 1px solid #faebcc;">
-                        <h4 style="margin-top: 0; font-size: 15px; color: #8a6d3b;"><i class="fa fa-percent"></i>
-                            Políticas de Descuento (Pronto Pago)</h4>
-                        <div id="contenedor-descuentos"></div>
-                        <button type="button" id="btn-add-descuento" class="btn btn-warning btn-xs"><i
-                                class="fa fa-plus"></i> Agregar Descuento</button>
-                    </div>
-
-                    <div
-                        style="background-color: #f2dede; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ebccd1;">
-                        <h4 style="margin-top: 0; font-size: 15px; color: #a94442;"><i class="fa fa-calendar-times-o"></i>
-                            Política de Recargo (Mora)</h4>
+                        style="background-color: #f2dede; padding: 15px; border-radius: 5px; margin-top: 15px; border: 1px solid #ebccd1;">
+                        <h4 style="margin-top: 0; margin-bottom: 15px; font-size: 15px; color: #a94442;"><i
+                                class="fa fa-calendar-times-o"></i> Política de Recargo (Mora)</h4>
                         <div class="row">
                             <div class="col-md-4">
                                 <label style="font-size: 11px;">Día Límite Pago</label>
-                                <input type="number" name="recargo[dia_limite_pago]" class="form-control input-sm"
-                                    placeholder="Ej: 10">
+                                <input type="number" min="1" max="31" name="recargo[dia_limite_pago]"
+                                    class="form-control input-sm" placeholder="Ej: 10"
+                                    value="{{ old('recargo.dia_limite_pago') }}">
                             </div>
                             <div class="col-md-4">
                                 <label style="font-size: 11px;">Tipo Recargo</label>
                                 <select name="recargo[tipo_recargo]" class="form-control input-sm">
-                                    <option value="porcentaje">Porcentaje %</option>
-                                    <option value="fijo">Monto Fijo $</option>
+                                    <option value="porcentaje"
+                                        {{ old('recargo.tipo_recargo') == 'porcentaje' ? 'selected' : '' }}>Porcentaje %
+                                    </option>
+                                    {{-- CORRECCIÓN: value="monto_fijo" --}}
+                                    <option value="monto_fijo"
+                                        {{ old('recargo.tipo_recargo') == 'monto_fijo' ? 'selected' : '' }}>Monto Fijo $
+                                    </option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label style="font-size: 11px;">Valor</label>
-                                <input type="number" step="0.01" name="recargo[valor]" class="form-control input-sm"
-                                    placeholder="0.00">
+                                <label style="font-size: 11px;">Valor ($ o %)</label>
+                                <input type="number" step="0.01" min="0" name="recargo[valor]"
+                                    class="form-control input-sm" placeholder="0.00" value="{{ old('recargo.valor') }}">
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
 
@@ -325,7 +419,6 @@
                 <label>Ciclo Escolar Destino</label>
                 <select name="ciclo_destino_id" class="form-control" required>
                     <option value="">Seleccione el ciclo destino...</option>
-                    {{-- CAMBIAMOS $ciclos por $ciclosDisponibles --}}
                     @foreach ($ciclosDisponibles as $ciclo)
                         <option value="{{ $ciclo->id }}">{{ $ciclo->nombre }}</option>
                     @endforeach
@@ -358,13 +451,15 @@
             });
 
             // 2. Lógica Conceptos
-            let indiceConcepto = 0;
+            // Usamos Date.now() para crear índices únicos por si eliminas y agregas filas
+            let indiceConcepto = Date.now();
+
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
                 let fila = `<tr id="fila-concepto-${indiceConcepto}">
                     <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm" required><option value="">Seleccione...</option>@foreach ($conceptos as $c)<option value="{{ $c->id }}">{{ $c->nombre }}</option>@endforeach</select></td>
-                    <td><input type="number" step="0.01" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm" required></td>
-                    <td><button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}"><i class="fa fa-trash"></i></button></td>
+                    <td><input type="number" step="0.01" min="0" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm" required></td>
+                    <td class="text-center"><button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}"><i class="fa fa-trash"></i></button></td>
                 </tr>`;
                 $('#tabla-conceptos-modal tbody').append(fila);
                 indiceConcepto++;
@@ -376,31 +471,24 @@
             });
 
             // 3. Lógica Descuentos
-            let indiceDesc = 0;
+            let indiceDesc = Date.now();
+
             $('#btn-add-descuento').click(function() {
-                let html = `<div class="row" id="fila-desc-${indiceDesc}" style="margin-bottom: 5px;">
-                    <div class="col-md-4"><input type="text" name="descuentos[${indiceDesc}][nombre]" class="form-control input-sm" placeholder="Nombre" required></div>
-                    <div class="col-md-3"><select name="descuentos[${indiceDesc}][tipo_valor]" class="form-control input-sm"><option value="porcentaje">%</option><option value="fijo">$</option></select></div>
-                    <div class="col-md-2"><input type="number" name="descuentos[${indiceDesc}][valor]" class="form-control input-sm" required></div>
-                    <div class="col-md-2"><input type="number" name="descuentos[${indiceDesc}][dia_limite]" class="form-control input-sm" placeholder="Día"></div>
-                    <div class="col-md-1"><button type="button" class="btn btn-danger btn-xs btn-remove-desc" data-id="${indiceDesc}"><i class="fa fa-times"></i></button></div>
+                $('.header-descuentos').show(); // Mostramos los labels
+
+                // CORRECCIÓN: col-md ajustados y value="monto_fijo"
+                let html = `<div class="row fila-desc" id="fila-desc-${indiceDesc}" style="margin-bottom: 8px;">
+                    <div class="col-md-3"><input type="text" name="descuentos[${indiceDesc}][nombre]" class="form-control input-sm" placeholder="Nombre" required></div>
+                    <div class="col-md-3"><select name="descuentos[${indiceDesc}][tipo_valor]" class="form-control input-sm"><option value="porcentaje">%</option><option value="monto_fijo">$</option></select></div>
+                    <div class="col-md-3"><input type="number" step="0.01" min="0" name="descuentos[${indiceDesc}][valor]" class="form-control input-sm" required placeholder="0.00"></div>
+                    <div class="col-md-2"><input type="number" min="1" max="31" name="descuentos[${indiceDesc}][dia_limite]" class="form-control input-sm" placeholder="Día"></div>
+                    <div class="col-md-1 text-right"><button type="button" class="btn btn-danger btn-xs btn-remove-desc" data-id="${indiceDesc}"><i class="fa fa-times"></i></button></div>
                 </div>`;
                 $('#contenedor-descuentos').append(html);
                 indiceDesc++;
             });
 
-            $(document).on('click', '.btn-remove-desc', function() {
-                $('#fila-desc-' + $(this).data('id')).remove();
-            });
-
-            // 4. Auto-cerrar alertas
-            setTimeout(function() {
-                $('.alert-dismissible').slideUp('slow', function() {
-                    $(this).remove();
-                });
-            }, 5000);
-
-            // 5. Lógica Selección Masiva y Clonación
+            // 4. Lógica Selección Masiva y Clonación
             $('#select-all-planes').click(function() {
                 $('.plan-checkbox').prop('checked', this.checked);
                 actualizarEstadoBotonClonar();
@@ -430,6 +518,13 @@
                         `<input type="hidden" name="plan_ids[]" value="${$(this).val()}">`);
                 });
             });
+
+            // 5. AUTO-ABRIR MODAL SI HAY ERRORES (Con ligero retraso para suavidad)
+            @if ($errors->any())
+                setTimeout(function() {
+                    $('#modalNuevoPlan').modal('show');
+                }, 300);
+            @endif
         });
     </script>
 @endpush
