@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlumnoController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
@@ -228,7 +229,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Dashboards por rol ───────────────────────────────
-    Route::get('/admin', fn () => view('dashboards.admin'))
+    Route::get('/admin', [DashboardController::class, 'admin'])
         ->middleware('rol:administrador')
         ->name('admin.dashboard');
 
