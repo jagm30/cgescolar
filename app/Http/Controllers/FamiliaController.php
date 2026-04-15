@@ -7,6 +7,7 @@ use App\Models\CicloEscolar;
 use App\Models\ContactoFamiliar;
 use App\Models\Familia;
 use App\Models\Usuario;
+use App\Models\Alumno;
 use App\Models\AlumnoContacto;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
@@ -64,7 +65,11 @@ class FamiliaController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('familias.index', compact('familias'));
+        // Estadísticas globales para la cabecera (independientes del filtro activo)
+        $totalActivas  = Familia::where('activo', true)->count();
+        $totalAlumnos  = Alumno::where('estado', 'activo')->count();
+
+        return view('familias.index', compact('familias', 'totalActivas', 'totalAlumnos'));
     }
 
     /**

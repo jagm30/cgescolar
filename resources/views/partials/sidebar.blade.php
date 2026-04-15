@@ -97,7 +97,7 @@
                         </a>
                     </li>
                     <li class="{{ request()->routeIs('planes.asignar.form') ? 'active' : '' }}">
-                        <a href="#">
+                        <a href="{{ route('planes.asignar.form') }}">
                             <i class="fa fa-circle-o"></i> Asignar plan
                         </a>
                     </li>
