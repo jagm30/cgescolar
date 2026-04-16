@@ -14,21 +14,41 @@ class GradoController extends Controller
 
     /** GET /grados */
     public function index(Request $request)
-    {
-        $grados = Grado::with(['nivel'])
-            ->when($request->filled('nivel_id'), fn($q) => $q->where('nivel_id', $request->nivel_id))
-            ->orderBy('nivel_id')
-            ->orderBy('numero')
-            ->get();
+{
+    // 1. Iniciamos la consulta con la relación
+    $query = Grado::with(['nivel'])
+        // Filtro por Nivel Escolar
+        ->when($request->filled('nivel_id'), function ($q) use ($request) {
+            return $q->where('nivel_id', $request->nivel_id);
+        })
+        // Filtro por Número de Grado (EL QUE TE FALTABA)
+        ->when($request->filled('numero'), function ($q) use ($request) {
+            return $q->where('numero', $request->numero);
+        })
+        // Orden lógico
+        ->orderBy('nivel_id')
+        ->orderBy('numero');
 
-        if ($request->ajax()) {
-            return response()->json($grados);
-        }
-
-        $niveles = NivelEscolar::activo()->get();
-
-        return view('grados.index', compact('grados', 'niveles'));
+    // 2. Manejo de la cantidad de registros a mostrar
+    $mostrar = $request->get('mostrar', 10);
+    
+    if ($mostrar == -1) {
+        $grados = $query->get(); // Traer todos
+    } else {
+        // Usamos paginate para que Laravel maneje el límite, 
+        // pero para DataTables simple con get() basta si no usas links de paginación de Laravel
+        $grados = $query->take($mostrar)->get(); 
     }
+
+    // 3. Respuesta AJAX (DataTables)
+    if ($request->ajax()) {
+        return response()->json($grados);
+    }
+
+    $niveles = NivelEscolar::activo()->get();
+
+    return view('grados.index', compact('grados', 'niveles'));
+}
 
     /** GET /grados/{id} — AJAX */
     public function show(int $id)

@@ -1,390 +1,222 @@
 @extends('layouts.master')
+@section('page_title', 'Gestión de Grados')
+
 @section('content')
-<!-- SELECT2 EXAMPLE -->
-<div class="box box-default">
+    <div class="box box-default">
         <div class="box-header with-border">
-          <h3 class="box-title">Select2</h3>
-
-          <div class="box-tools pull-right">
-            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-remove"></i></button>
-          </div>
+            <h3 class="box-title">Listado de Grados Académicos</h3>
+            <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modal-nuevo">
+                <i class="fa fa-plus"></i> Nuevo Grado
+            </button>
         </div>
-        <!-- /.box-header -->
+
         <div class="box-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Minimal</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled</label>
-                <select class="form-control select2" disabled="disabled" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Multiple</label>
-                <select class="form-control select2" multiple="multiple" data-placeholder="Select a State"
-                        style="width: 100%;">
-                  <option>Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled Result</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option disabled="disabled">California (disabled)</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-          </div>
-          <!-- /.row -->
-        </div>
-        <!-- /.box-body -->
-        <div class="box-footer">
-          Visit <a href="https://select2.github.io/">Select2 documentation</a> for more examples and information about
-          the plugin.
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-6">
-
-          <div class="box box-danger">
-            <div class="box-header">
-              <h3 class="box-title">Input masks</h3>
-            </div>
-            <div class="box-body">
-              <!-- Date dd/mm/yyyy -->
-              <div class="form-group">
-                <label>Date masks:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date mm/dd/yyyy -->
-              <div class="form-group">
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'mm/dd/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask='"mask": "(999) 999-9999"' data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>Intl US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control"
-                         data-inputmask="'mask': ['999-999-9999 [x99999]', '+099 99 99 9999[9]-9999']" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- IP mask -->
-              <div class="form-group">
-                <label>IP mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-laptop"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'ip'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-          <div class="box box-info">
-            <div class="box-header">
-              <h3 class="box-title">Color & Time Picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker:</label>
-                <input type="text" class="form-control my-colorpicker1">
-              </div>
-              <!-- /.form group -->
-
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker with addon:</label>
-
-                <div class="input-group my-colorpicker2">
-                  <input type="text" class="form-control">
-
-                  <div class="input-group-addon">
-                    <i></i>
-                  </div>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- time Picker -->
-              <div class="bootstrap-timepicker">
-                <div class="form-group">
-                  <label>Time picker:</label>
-
-                  <div class="input-group">
-                    <input type="text" class="form-control timepicker">
-
-                    <div class="input-group-addon">
-                      <i class="fa fa-clock-o"></i>
+            {{-- SECCIÓN DE FILTROS ADAPTADA --}}
+            <form method="GET" action="{{ route('grados.index') }}" id="form-filtros">
+                <div class="row">
+                    {{-- Mostrar N registros --}}
+                    <div class="col-md-2">
+                        <label><small>Registros</small></label>
+                        <select name="mostrar" class="form-control" onchange="this.form.submit()">
+                            <option value="10" {{ request('mostrar', '10') == '10' ? 'selected' : '' }}>10 filas
+                            </option>
+                            <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25 filas</option>
+                            <option value="50" {{ request('mostrar') == '50' ? 'selected' : '' }}>50 filas</option>
+                            <option value="-1" {{ request('mostrar') == '-1' ? 'selected' : '' }}>Todas</option>
+                        </select>
                     </div>
-                  </div>
-                  <!-- /.input group -->
-                </div>
-                <!-- /.form group -->
-              </div>
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
 
+                    {{-- Filtro Nivel (Sustituye a 'Tipo') --}}
+                    <div class="col-md-4">
+                        <label><small>Nivel Escolar</small></label>
+                        <select name="nivel_id" class="form-control" onchange="this.form.submit()">
+                            <option value="">Todos los niveles</option>
+                            @foreach ($niveles as $nivel)
+                                <option value="{{ $nivel->id }}"
+                                    {{ request('nivel_id') == $nivel->id ? 'selected' : '' }}>
+                                    {{ $nivel->nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Filtro Grado (Sustituye a 'Estatus') --}}
+                    <div class="col-md-3">
+                        <label><small>Número de Grado</small></label>
+                        <select name="numero" class="form-control" onchange="this.form.submit()">
+                            <option value="">Cualquier grado</option>
+                            @for ($i = 1; $i <= 6; $i++)
+                                <option value="{{ $i }}" {{ request('numero') == $i ? 'selected' : '' }}>
+                                    {{ $i }}° Grado</option>
+                            @endfor
+                        </select>
+                    </div>
+
+                    {{-- Botones de Acción --}}
+                    <div class="col-md-3 text-right" style="padding-top: 23px;">
+                        <button type="submit" class="btn btn-primary" title="Filtrar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        <a href="{{ route('grados.index') }}" class="btn btn-default" title="Limpiar">
+                            <i class="fa fa-eraser"></i> Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <hr>
+
+            <table id="grados" class="table table-bordered table-striped" style="width: 100%">
+                <thead>
+                    <tr>
+                        <th>Nivel Escolar</th>
+                        <th>Grado</th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($grados as $grado)
+                        <tr>
+                            <td>
+                                <span>{{ $grado->nivel->nombre }}</span>
+                            </td>
+                            <td class="text-center"><b>{{ $grado->numero }}°</b></td>
+                            <td>{{ $grado->nombre }}</td>
+                            <td>
+                                <button type="button" class="btn btn-warning btn-xs" data-toggle="modal"
+                                    data-target="#modal-editar" data-id="{{ $grado->id }}"
+                                    data-nombre="{{ $grado->nombre }}" data-numero="{{ $grado->numero }}"
+                                    data-nivel="{{ $grado->nivel_id }}">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+
+                                <form action="{{ route('grados.destroy', $grado->id) }}" method="POST"
+                                    style="display:inline;" onsubmit="return confirm('¿Desea eliminar este grado?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-xs">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-        <!-- /.col (left) -->
-        <div class="col-md-6">
-          <div class="box box-primary">
-            <div class="box-header">
-              <h3 class="box-title">Date picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Date -->
-              <div class="form-group">
-                <label>Date:</label>
+    </div>
 
-                <div class="input-group date">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="datepicker">
+    {{-- MODAL NUEVO --}}
+    <x-modal id="modal-nuevo" title="Registrar Nuevo Grado">
+        <form action="{{ route('grados.store') }}" method="POST">
+            @csrf
+
+            {{-- Nivel Escolar en su propia fila --}}
+            <div class="form-group">
+                <label>Nivel Escolar <span class="text-danger">*</span></label>
+                <select name="nivel_id" class="form-control" required>
+                    <option value="">Seleccione un nivel...</option>
+                    @foreach ($niveles as $nivel)
+                        <option value="{{ $nivel->id }}">{{ $nivel->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Grado <span class="text-danger">*</span></label>
+                        <input type="number" name="numero" class="form-control" min="1" placeholder="Ej: 1"
+                            required>
+                    </div>
                 </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date range -->
-              <div class="form-group">
-                <label>Date range:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservation">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label>Nombre<span class="text-danger">*</span></label>
+                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Primero de Primaria"
+                            required>
+                    </div>
                 </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
+            </div>
 
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date and time range:</label>
+            <div class="modal-footer" style="padding: 15px 0 0 0;">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fa fa-save"></i> Guardar Grado
+                </button>
+            </div>
+        </form>
+    </x-modal>
 
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-clock-o"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservationtime">
+    {{-- MODAL EDITAR --}}
+    <x-modal id="modal-editar" title="Editar Grado">
+        <form id="form-editar" method="POST">
+            @csrf
+            @method('PUT')
+
+            <div class="form-group">
+                <label>Nivel Escolar</label>
+                <select name="nivel_id" id="edit-nivel_id" class="form-control" required>
+                    @foreach ($niveles as $nivel)
+                        <option value="{{ $nivel->id }}">{{ $nivel->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label>Nombre del Grado</label>
+                        <input type="text" name="nombre" id="edit-nombre" class="form-control" required>
+                    </div>
                 </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date range button:</label>
-
-                <div class="input-group">
-                  <button type="button" class="btn btn-default pull-right" id="daterange-btn">
-                    <span>
-                      <i class="fa fa-calendar"></i> Date range picker
-                    </span>
-                    <i class="fa fa-caret-down"></i>
-                  </button>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Número</label>
+                        <input type="number" name="numero" id="edit-numero" class="form-control" min="1"
+                            required>
+                    </div>
                 </div>
-              </div>
-              <!-- /.form group -->
-
             </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
 
-          <!-- iCheck -->
-          <div class="box box-success">
-            <div class="box-header">
-              <h3 class="box-title">iCheck - Checkbox &amp; Radio Inputs</h3>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+                <button type="submit" class="btn btn-primary">Actualizar</button>
             </div>
-            <div class="box-body">
-              <!-- Minimal style -->
+        </form>
+    </x-modal>
 
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal" disabled>
-                  Minimal skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r1" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal">
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal" disabled>
-                  Minimal skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red" disabled>
-                  Minimal red skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red">
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" disabled>
-                  Minimal red skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red" disabled>
-                  Flat green skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r3" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red">
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red" disabled>
-                  Flat green skin radio
-                </label>
-              </div>
-            </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
-              Many more skins available. <a href="http://fronteed.com/iCheck/">Documentation</a>
-            </div>
-          </div>
-          <!-- /.box -->
-        </div>
-        <!-- /.col (right) -->
-      </div>
 @endsection
+
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            // Configuración de DataTable
+            var table = $('#grados').DataTable({
+                "language": {
+                    "url": "{{ asset('/bower_components/idioma/datatables_spanish.json') }}"
+                },
+                "order": [
+                    [0, "asc"],
+                    [1, "asc"]
+                ],
+                "pageLength": {{ request('mostrar') == '-1' ? 1000 : request('mostrar', 10) }}, // Se sincroniza con el filtro de arriba
+                "dom": 'rtp', // 'f' eliminada para quitar el buscador de texto que pediste
+            });
+        });
+
+        // Lógica para cargar datos en el Modal de Editar
+        $('#modal-editar').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            var id = button.data('id');
+            var modal = $(this);
+
+            modal.find('#edit-nombre').val(button.data('nombre'));
+            modal.find('#edit-numero').val(button.data('numero'));
+            modal.find('#edit-nivel_id').val(button.data('nivel'));
+
+            var url = "{{ route('grados.update', ':id') }}".replace(':id', id);
+            modal.find('#form-editar').attr('action', url);
+        });
+    </script>
+@endpush

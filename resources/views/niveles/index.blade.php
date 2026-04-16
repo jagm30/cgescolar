@@ -10,16 +10,6 @@
             </button>
         </div>
 
-        <div id="contenedor-filtro" style="float: left; margin-right: 15px;">
-            <label style="font-weight: normal;">Estado:
-                <select id="filtro-estado" class="form-control input-sm" style="width: auto; display: inline-block;">
-                    <option value="">Todos</option>
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
-                </select>
-            </label>
-        </div>
-
         <div class="box-body">
             <table id="niveles" class="table table-bordered table-striped">
                 <thead>
@@ -114,31 +104,36 @@
     <x-modal id="modal-nuevo" title="Registrar Nuevo Nivel">
         <form action="{{ route('niveles.store') }}" method="POST">
             @csrf
-            <div class="row">
-                <div class="col-md-9">
-                    <div class="form-group">
-                        <label>Nombre del Nivel</label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Primaria" required>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label>Orden</label>
-                        <input type="number" name="orden" class="form-control" value="1" min="1" required>
-                    </div>
-                </div>
-            </div>
 
             <div class="form-group">
-                <label>REVOE</label>
-                <input type="text" name="revoe" class="form-control" placeholder="Opcional">
+                <label>Nombre del Nivel <span class="text-danger">*</span></label>
+                <input type="text" name="nombre" class="form-control" placeholder="Ej: Primaria" required
+                    title="El nombre es obligatorio">
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label>REVOE</label>
+                        <input type="text" name="revoe" class="form-control" placeholder="Opcional">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Orden</label>
+                        <input type="number" name="orden" class="form-control" placeholder="Ej: 1, 2, 3..."
+                            min="1">
+                    </div>
+                </div>
             </div>
 
             <input type="hidden" name="activo" value="1">
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-success">Crear Nivel</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fa fa-save"></i> Guardar Nivel
+                </button>
             </div>
         </form>
     </x-modal>

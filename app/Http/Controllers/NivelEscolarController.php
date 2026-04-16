@@ -42,32 +42,41 @@ class NivelEscolarController extends Controller
     }
 
     /** POST /niveles */
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'nombre' => ['required', 'string', 'max:100', 'unique:nivel_escolar,nombre'],
-            'revoe'  => ['nullable', 'string', 'max:50',
-                         Rule::unique('nivel_escolar', 'revoe')->whereNotNull('revoe')],
-            'orden'  => ['required', 'integer', 'min:1'],
-            'activo' => ['boolean'],
-        ], [
-            'nombre.required' => 'El nombre del nivel es obligatorio.',
-            'nombre.unique'   => 'Ya existe un nivel con este nombre.',
-            'revoe.unique'    => 'Este REVOE ya está registrado en otro nivel.',
-            'orden.required'  => 'El orden es obligatorio.',
-        ]);
+   public function store(Request $request)
+{
+    // 1. Validación estricta: nombre y orden son obligatorios. 
+    // Revoe es opcional según tu lógica anterior, pero aquí lo validamos.
+    $data = $request->validate([
+        'nombre' => ['required', 'string', 'max:100', 'unique:nivel_escolar,nombre'],
+        'revoe'  => ['nullable', 'string', 'max:50', Rule::unique('nivel_escolar', 'revoe')->whereNotNull('revoe')],
+        'orden'  => ['nullable', 'integer', 'min:1'],
+    ], [
+        'nombre.required' => 'El nombre del nivel es obligatorio.',
+        'nombre.unique'   => 'Este nivel ya existe.',
+        'orden.min'       => 'El orden debe ser al menos 1.',
+    ]);
 
-        $nivel = NivelEscolar::create($data);
-
-        Auditoria::registrar('nivel_escolar', $nivel->id, 'insert', null, $nivel->toArray());
-
-        return $this->respuestaExito(
-            redirectRoute: 'niveles.index',
-            jsonData: ['nivel' => $nivel],
-            mensaje: "Nivel '{$nivel->nombre}' creado correctamente.",
-            jsonStatus: 201
-        );
+    // 2. Determinar el orden por defecto si viene vacío (al final de la lista)
+    if (!$request->filled('orden')) {
+        $data['orden'] = NivelEscolar::count() + 1;
     }
+
+    // 3. LÓGICA DE EMPUJE: Si el orden ya existe, movemos los demás
+    $nuevoOrden = $data['orden'];
+    NivelEscolar::where('orden', '>=', $nuevoOrden)->increment('orden');
+
+    // 4. Forzar estatus activo por defecto
+    $data['activo'] = true;
+
+    $nivel = NivelEscolar::create($data);
+
+    Auditoria::registrar('nivel_escolar', $nivel->id, 'insert', null, $nivel->toArray());
+
+    return $this->respuestaExito(
+        redirectRoute: 'niveles.index',
+        mensaje: "Nivel '{$nivel->nombre}' creado en la posición {$nivel->orden}."
+    );
+}
 
     /** GET /niveles/{id}/edit */
     public function edit(int $id)
@@ -83,32 +92,42 @@ class NivelEscolarController extends Controller
 
     /** PUT /niveles/{id} */
     public function update(Request $request, int $id)
-    {
-        $nivel    = NivelEscolar::findOrFail($id);
-        $anterior = $nivel->toArray();
+{
+    $nivel = NivelEscolar::findOrFail($id);
+    $ordenAnterior = $nivel->orden;
+    $nuevoOrden = $request->input('orden');
 
-        $data = $request->validate([
-            'nombre' => ['sometimes', 'required', 'string', 'max:100',
-                         Rule::unique('nivel_escolar', 'nombre')->ignore($id)],
-            'revoe'  => ['nullable', 'string', 'max:50',
-                         Rule::unique('nivel_escolar', 'revoe')->ignore($id)->whereNotNull('revoe')],
-            'orden'  => ['sometimes', 'required', 'integer', 'min:1'],
-            'activo' => ['boolean'],
-        ], [
-            'nombre.unique' => 'Ya existe otro nivel con este nombre.',
-            'revoe.unique'  => 'Este REVOE ya está registrado en otro nivel.',
-        ]);
+    $data = $request->validate([
+        'nombre' => ['sometimes', 'required', 'string', 'max:100', Rule::unique('nivel_escolar', 'nombre')->ignore($id)],
+        'orden'  => ['sometimes', 'required', 'integer', 'min:1'],
+        'activo' => ['boolean'],
+    ]);
 
-        $nivel->update($data);
-
-        Auditoria::registrar('nivel_escolar', $nivel->id, 'update', $anterior, $nivel->fresh()->toArray());
-
-        return $this->respuestaExito(
-            redirectRoute: 'niveles.index',
-            jsonData: ['nivel' => $nivel->fresh()],
-            mensaje: "Nivel '{$nivel->nombre}' actualizado correctamente."
-        );
+    // LÓGICA DE REORDENAMIENTO
+    if ($nuevoOrden && $nuevoOrden != $ordenAnterior) {
+        if ($nuevoOrden < $ordenAnterior) {
+            // Si el nivel sube (ej: de 3 a 1), los que están entre 1 y 2 suben un puesto (+1)
+            NivelEscolar::where('id', '!=', $id)
+                ->whereBetween('orden', [$nuevoOrden, $ordenAnterior - 1])
+                ->increment('orden');
+        } else {
+            // Si el nivel baja (ej: de 1 a 3), los que están entre 2 y 3 bajan un puesto (-1)
+            NivelEscolar::where('id', '!=', $id)
+                ->whereBetween('orden', [$ordenAnterior + 1, $nuevoOrden])
+                ->decrement('orden');
+        }
     }
+
+    $anteriorData = $nivel->toArray();
+    $nivel->update($data);
+
+    Auditoria::registrar('nivel_escolar', $nivel->id, 'update', $anteriorData, $nivel->fresh()->toArray());
+
+    return $this->respuestaExito(
+        redirectRoute: 'niveles.index',
+        mensaje: "Nivel actualizado y lista reordenada."
+    );
+}
 
     /** DELETE /niveles/{id} */
     public function destroy(int $id)
