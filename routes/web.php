@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlumnoController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
+use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -228,7 +230,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Dashboards por rol ───────────────────────────────
-    Route::get('/admin', fn () => view('dashboards.admin'))
+    Route::get('/admin', [DashboardController::class, 'admin'])
         ->middleware('rol:administrador')
         ->name('admin.dashboard');
 
@@ -274,6 +276,23 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::delete('contactos/{contactoId}', [FamiliaController::class, 'eliminarContacto'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos.destroy');
+
+        // Razones sociales (datos de facturación) — admin y caja
+        Route::post('razon-social', [RazonSocialController::class, 'store'])
+            ->middleware('rol:administrador,caja')
+            ->name('razon-social.store');
+
+        Route::put('razon-social/{id}', [RazonSocialController::class, 'update'])
+            ->middleware('rol:administrador,caja')
+            ->name('razon-social.update');
+
+        Route::delete('razon-social/{id}', [RazonSocialController::class, 'destroy'])
+            ->middleware('rol:administrador,caja')
+            ->name('razon-social.destroy');
+
+        Route::post('razon-social/{id}/principal', [RazonSocialController::class, 'setPrincipal'])
+            ->middleware('rol:administrador,caja')
+            ->name('razon-social.principal');
     });
 
     // Resource de familias — admin y recepción ven, solo admin crea/edita
