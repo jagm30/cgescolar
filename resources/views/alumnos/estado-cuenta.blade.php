@@ -149,12 +149,12 @@
                 </h3>
                 <div class="box-tools pull-right">
                     {{-- Filtro por ciclo --}}
-                    @if($ciclos->count() > 1)
+                    @if($ciclosAlumno->count() > 1)
                     <form method="GET" style="display:inline-flex; gap:6px; align-items:center;">
                         <select name="ciclo_id" class="form-control input-sm"
                                 onchange="this.form.submit()" style="width:160px;">
                             <option value="">Todos los ciclos</option>
-                            @foreach($ciclos as $ciclo)
+                            @foreach($ciclosAlumno as $ciclo)
                                 <option value="{{ $ciclo->id }}"
                                     {{ request('ciclo_id') == $ciclo->id ? 'selected' : '' }}>
                                     {{ $ciclo->nombre }}
@@ -220,13 +220,15 @@
                         $hoy            = now();
                         $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
 
-                        // Valores calculados en el controlador (recargo / descuento)
-                        $descuentoCalc  = (float) ($cargo->descuento_calc ?? 0);
-                        $recargoCalc    = (float) ($cargo->recargo_calc   ?? 0);
-                        $mesesRetraso   = (int)   ($cargo->meses_retraso  ?? 0);
-                        $aPagarHoy      = (float) ($cargo->monto_a_pagar_hoy ?? $saldoPendiente);
-                        $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0)
-                                          && !in_array($cargo->estado, ['pagado', 'condonado']);
+                        // Valores calculados en el controlador (beca + recargo / descuento)
+                        $becaDescuentoCalc = (float) ($cargo->beca_descuento_calc ?? 0);
+                        $becaPorcentaje    = $cargo->beca_porcentaje ?? null;
+                        $descuentoCalc     = (float) ($cargo->descuento_calc ?? 0);
+                        $recargoCalc       = (float) ($cargo->recargo_calc   ?? 0);
+                        $mesesRetraso      = (int)   ($cargo->meses_retraso  ?? 0);
+                        $aPagarHoy         = (float) ($cargo->monto_a_pagar_hoy ?? $saldoPendiente);
+                        $tieneAjuste       = ($becaDescuentoCalc > 0 || $descuentoCalc > 0 || $recargoCalc > 0)
+                                             && !in_array($cargo->estado, ['pagado', 'condonado']);
 
                         $estadoReal = match($cargo->estado) {
                             'pagado'    => 'pagado',
@@ -270,6 +272,21 @@
                             <strong style="font-size:13px;">{{ $cargo->concepto->nombre }}</strong>
                             <br>
                             <small class="text-muted">{{ ucfirst($cargo->concepto->tipo) }}</small>
+                            @if($becaPorcentaje !== null && !in_array($cargo->estado, ['pagado','condonado']))
+                            <br>
+                            <span style="display:inline-block;margin-top:3px;padding:1px 7px;
+                                         border-radius:8px;background:#dff0d8;color:#3c763d;
+                                         font-size:10px;font-weight:600;">
+                                <i class="fa fa-graduation-cap"></i> {{ number_format($becaPorcentaje, 0) }}% beca
+                            </span>
+                            @elseif($becaDescuentoCalc > 0 && !in_array($cargo->estado, ['pagado','condonado']))
+                            <br>
+                            <span style="display:inline-block;margin-top:3px;padding:1px 7px;
+                                         border-radius:8px;background:#dff0d8;color:#3c763d;
+                                         font-size:10px;font-weight:600;">
+                                <i class="fa fa-graduation-cap"></i> beca
+                            </span>
+                            @endif
                         </td>
                         <td style="padding:10px 8px;">
                             <code style="font-size:12px;">{{ $cargo->periodo }}</code>
@@ -305,10 +322,21 @@
                             @endif
                         </td>
 
-                        {{-- Recargo / Descuento según política del plan --}}
+                        {{-- Ajustes: beca + recargo/descuento del plan --}}
                         <td style="padding:10px 8px; text-align:right;">
                             @if($tieneAjuste)
+                                @if($becaDescuentoCalc > 0)
+                                    <span style="color:#3c763d; font-weight:600;">
+                                        -${{ number_format($becaDescuentoCalc, 2) }}
+                                    </span>
+                                    <br>
+                                    <small style="color:#3c763d; font-size:10px;">
+                                        <i class="fa fa-graduation-cap"></i>
+                                        beca{{ $becaPorcentaje !== null ? ' '.number_format($becaPorcentaje, 0).'%' : '' }}
+                                    </small>
+                                @endif
                                 @if($recargoCalc > 0)
+                                    @if($becaDescuentoCalc > 0)<br>@endif
                                     <span style="color:#a94442; font-weight:600;">
                                         +${{ number_format($recargoCalc, 2) }}
                                     </span>
@@ -321,6 +349,7 @@
                                         @endif
                                     </small>
                                 @elseif($descuentoCalc > 0)
+                                    @if($becaDescuentoCalc > 0)<br>@endif
                                     <span style="color:#00a65a; font-weight:600;">
                                         -${{ number_format($descuentoCalc, 2) }}
                                     </span>
@@ -458,6 +487,16 @@
                             ${{ number_format($resumen['saldo_pendiente'], 2) }}
                         </td>
                     </tr>
+                    @if($resumen['total_becas'] > 0)
+                    <tr>
+                        <td style="color:#3c763d; padding:8px 14px; font-size:11px;">
+                            <i class="fa fa-graduation-cap"></i> − Descuento becas
+                        </td>
+                        <td style="text-align:right; padding:8px 14px; color:#3c763d; font-size:11px;">
+                            -${{ number_format($resumen['total_becas'], 2) }}
+                        </td>
+                    </tr>
+                    @endif
                     @if($resumen['total_recargos'] > 0)
                     <tr>
                         <td style="color:#a94442; padding:8px 14px; font-size:11px;">
@@ -478,7 +517,7 @@
                         </td>
                     </tr>
                     @endif
-                    @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0)
+                    @if($resumen['total_becas'] > 0 || $resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0)
                     <tr style="background:#fff8e1; font-weight:700; border-top:2px solid #f39c12;">
                         <td style="padding:10px 14px; color:#8a6d3b;">
                             <i class="fa fa-calculator"></i> A pagar hoy
