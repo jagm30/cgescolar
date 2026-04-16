@@ -87,6 +87,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::resource('grupos', GrupoController::class)
         ->middleware('rol:administrador');
 
+    Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
+
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
     Route::get('/alumnos/{id}/hermanos', [AlumnoController::class, 'hermanos'])
