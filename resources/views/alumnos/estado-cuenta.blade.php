@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Estado de cuenta')
-@section('page_subtitle', $alumno->nombre . ' ' . $alumno->ap_paterno . ' · ' . $alumno->matricula)
+@section('page_subtitle', $alumno->ap_paterno . ' ' . $alumno->ap_materno . ', ' . $alumno->nombre . ' · ' . $alumno->matricula)
 
 @section('breadcrumb')
     <li><a href="{{ route('alumnos.index') }}">Alumnos</a></li>
@@ -11,384 +11,475 @@
 
 @push('styles')
 <style>
-.resumen-card {
-    border-radius: 4px;
-    padding: 16px 20px;
-    color: #fff;
-    margin-bottom: 0;
+/* ════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════ */
+.ec-hero {
+    background: linear-gradient(135deg, #1e4d7b 0%, #3c8dbc 100%);
+    border-radius: 8px;
+    padding: 20px 28px;
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    box-shadow: 0 4px 16px rgba(60,141,188,.25);
 }
-.resumen-card .monto {
-    font-size: 26px;
-    font-weight: 700;
-    line-height: 1;
-    margin-bottom: 4px;
+.ec-hero-foto {
+    width: 68px; height: 68px; border-radius: 50%;
+    object-fit: cover; border: 3px solid rgba(255,255,255,.5); flex-shrink: 0;
 }
-.resumen-card .label-monto {
-    font-size: 11px;
-    opacity: .85;
-    text-transform: uppercase;
-    letter-spacing: .05em;
+.ec-hero-placeholder {
+    width: 68px; height: 68px; border-radius: 50%;
+    background: rgba(255,255,255,.18); border: 3px solid rgba(255,255,255,.3);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.cargo-row { transition: background .12s; }
-.cargo-row:hover { background: #f8f8f8; }
-.cargo-row td { vertical-align: middle !important; font-size: 13px; }
-.badge-estado {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .02em;
-    white-space: nowrap;
+.ec-hero-nombre    { font-size: 11px; color: rgba(255,255,255,.7); margin-bottom: 3px; }
+.ec-hero-apellidos { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.1; }
+.ec-hero-meta      { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 5px;
+                     display: flex; gap: 14px; flex-wrap: wrap; }
+.ec-hero-matricula {
+    background: rgba(0,0,0,.25); color: rgba(255,255,255,.9);
+    font-family: monospace; font-size: 11px;
+    padding: 1px 9px; border-radius: 10px; letter-spacing: .07em;
 }
-.estado-pagado    { background:#dff0d8; color:#3c763d; }
-.estado-pendiente { background:#fcf8e3; color:#8a6d3b; }
-.estado-vencido   { background:#f2dede; color:#a94442; }
-.estado-parcial   { background:#d9edf7; color:#31708f; }
-.estado-condonado { background:#f5f5f5; color:#777; }
 
-.pagos-detalle { background:#fafffe; border-top:1px dashed #e0e0e0; }
-.pagos-detalle td { font-size:12px !important; color:#555; }
-
-/* Filtros de pestaña */
-.filtro-tabs { border-bottom:2px solid #e8e8e8; margin-bottom:16px; display:flex; gap:0; }
-.filtro-tab {
-    padding:8px 18px; font-size:13px; cursor:pointer;
-    border:none; background:none; color:#888;
-    border-bottom:3px solid transparent; margin-bottom:-2px;
-    transition: all .15s;
+/* Stats del hero */
+.ec-stats { display: flex; gap: 0; margin-left: auto; flex-shrink: 0; }
+.ec-stat  {
+    text-align: center; padding: 0 20px;
+    border-left: 1px solid rgba(255,255,255,.18);
 }
-.filtro-tab:hover { color:#3c8dbc; }
-.filtro-tab.activo { color:#3c8dbc; border-bottom-color:#3c8dbc; font-weight:600; }
+.ec-stat:first-child { border-left: none; }
+.ec-stat-num { font-size: 22px; font-weight: 800; color: #fff; line-height: 1; }
+.ec-stat-lbl { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 2px;
+               text-transform: uppercase; letter-spacing: .05em; }
+
+/* ════════════════════════════════════════════
+   SECCIÓN TÍTULOS
+════════════════════════════════════════════ */
+.sec-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: #6b7a8d;
+    margin: 0 0 14px;
+    display: flex; align-items: center; gap: 8px;
+}
+.sec-title::after { content: ''; flex: 1; height: 1px; background: #e8ecf0; }
+
+/* ════════════════════════════════════════════
+   FILTRO TABS
+════════════════════════════════════════════ */
+.ec-tabs {
+    display: flex; gap: 4px; padding: 14px 16px 0;
+    border-bottom: 2px solid #e8ecf0; margin-bottom: 0;
+    flex-wrap: wrap;
+}
+.ec-tab {
+    padding: 7px 14px; font-size: 12px; font-weight: 600;
+    border: none; background: none; color: #8a9ab0;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    border-radius: 4px 4px 0 0; cursor: pointer;
+    transition: color .15s, border-color .15s;
+    display: flex; align-items: center; gap: 6px;
+}
+.ec-tab:hover { color: #3c8dbc; }
+.ec-tab.activo { color: #3c8dbc; border-bottom-color: #3c8dbc; background: #f0f7ff; }
+.ec-tab .ec-badge {
+    font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+    background: #e8ecf0; color: #6b7a8d;
+}
+.ec-tab.activo .ec-badge { background: #d0e8fb; color: #2c6fad; }
+.ec-tab .ec-badge.rojo   { background: #fdecea; color: #b91c1c; }
+.ec-tab .ec-badge.naranja { background: #fff8e1; color: #b45309; }
+
+/* ════════════════════════════════════════════
+   TABLA DE CARGOS
+════════════════════════════════════════════ */
+.ec-table { width: 100%; border-collapse: collapse; margin: 0; }
+.ec-table thead th {
+    background: #f4f6f8; color: #6b7a8d;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; padding: 9px 12px;
+    border-bottom: 2px solid #e4eaf0; white-space: nowrap;
+}
+.ec-table tbody tr { border-bottom: 1px solid #f0f3f7; transition: background .1s; }
+.ec-table tbody tr:last-child { border-bottom: none; }
+.ec-table tbody tr.cargo-row:hover td { background: #f5f9ff !important; }
+.ec-table td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
+
+/* Badges de estado */
+.ec-estado {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; padding: 3px 9px;
+    border-radius: 10px; white-space: nowrap;
+}
+.ec-pagado    { background: #e8f8f0; color: #00875a; border: 1px solid #b3e8d0; }
+.ec-pendiente { background: #fff8e6; color: #b45309; border: 1px solid #fcd97d; }
+.ec-vencido   { background: #fdecea; color: #b91c1c; border: 1px solid #fca5a5; }
+.ec-parcial   { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+.ec-condonado { background: #f0f3f7; color: #6b7a8d; border: 1px solid #dde4eb; }
+
+/* Detalle de pagos */
+.ec-pagos-detalle { background: #f8fafc !important; }
+.ec-pagos-detalle td { font-size: 12px !important; color: #4a5568; }
+.ec-pagos-inner { border-top: 1px dashed #dde4eb; }
+
+/* ════════════════════════════════════════════
+   SIDEBAR — INFO CARD
+════════════════════════════════════════════ */
+.info-card {
+    border: 1px solid #e4eaf0; border-radius: 10px; background: #fff;
+    margin-bottom: 16px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.info-card-header {
+    padding: 11px 16px; border-bottom: 1px solid #f0f3f7;
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f8fafc;
+}
+.info-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .07em; color: #6b7a8d; }
+.balance-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 16px; border-bottom: 1px solid #f5f7fa; font-size: 13px;
+}
+.balance-row:last-child { border-bottom: none; }
+.balance-row-label { color: #8a9ab0; font-size: 12px; }
+.balance-row-value { font-weight: 700; color: #1a2634; }
+
+.accion-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 16px; border-bottom: 1px solid #f4f6f8;
+    text-decoration: none; color: #333; font-size: 13px; font-weight: 500;
+    transition: background .12s;
+}
+.accion-btn:hover { background: #f0f7ff; text-decoration: none; color: #3c8dbc; }
+.accion-btn:last-child { border-bottom: none; }
+.accion-icon { width: 32px; height: 32px; border-radius: 8px;
+               display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 </style>
 @endpush
 
 @section('content')
 
-{{-- ── Encabezado alumno ── --}}
-<div class="box box-default" style="margin-bottom:16px;">
-    <div class="box-body" style="padding:14px 20px;">
-        <div style="display:flex; align-items:center; gap:16px;">
-            <div style="flex-shrink:0;">
-                @if($alumno->foto_url)
-                    <img src="{{ asset('storage/'.$alumno->foto_url) }}"
-                         style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #e8e8e8;">
-                @else
-                    <div style="width:56px;height:56px;border-radius:50%;background:#e8e8e8;
-                                display:flex;align-items:center;justify-content:center;">
-                        <i class="fa fa-user" style="font-size:24px;color:#aaa;"></i>
-                    </div>
-                @endif
-            </div>
-            <div style="flex:1;">
-                <h4 style="margin:0 0 4px; font-size:16px;">
-                    {{ $alumno->nombre }} {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}
-                </h4>
-                <div style="font-size:12px; color:#888; display:flex; gap:16px; flex-wrap:wrap;">
-                    <span><i class="fa fa-id-badge"></i> <code>{{ $alumno->matricula }}</code></span>
-                    @if($inscripcionActual)
-                    <span>
-                        <i class="fa fa-graduation-cap"></i>
-                        {{ $inscripcionActual->grupo->grado->nivel->nombre ?? '' }}
-                        · {{ $inscripcionActual->grupo->grado->nombre }}°
-                        {{ $inscripcionActual->grupo->nombre }}
-                    </span>
-                    <span>
-                        <i class="fa fa-calendar"></i>
-                        {{ $inscripcionActual->ciclo->nombre ?? '' }}
-                    </span>
-                    @endif
-                </div>
-            </div>
-            <div style="flex-shrink:0;">
-                <a href="{{ route('alumnos.show', $alumno->id) }}"
-                   class="btn btn-default btn-sm btn-flat">
-                    <i class="fa fa-arrow-left"></i> Volver al alumno
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
+@php
+    $estado        = $alumno->estado;
+    $estadoBadge   = [
+        'activo'          => ['bg'=>'#e8f8f0','color'=>'#00875a','borde'=>'#b3e8d0','txt'=>'Activo'],
+        'baja_temporal'   => ['bg'=>'#fff8e6','color'=>'#b45309','borde'=>'#fcd97d','txt'=>'Baja temporal'],
+        'baja_definitiva' => ['bg'=>'#fdecea','color'=>'#b91c1c','borde'=>'#fca5a5','txt'=>'Baja definitiva'],
+        'egresado'        => ['bg'=>'#f3e8fd','color'=>'#6b21a8','borde'=>'#d8b4fe','txt'=>'Egresado'],
+    ][$estado] ?? ['bg'=>'#f0f3f7','color'=>'#555','borde'=>'#dde4eb','txt'=>ucfirst($estado)];
+@endphp
 
-{{-- ── Tarjetas de resumen ── --}}
-<div class="row" style="margin-bottom:16px;">
-    <div class="col-md-3 col-sm-6">
-        <div class="resumen-card" style="background:#3c8dbc;">
-            <div class="monto">${{ number_format($resumen['total_cargado'], 2) }}</div>
-            <div class="label-monto"><i class="fa fa-file-text-o"></i> Total cargado</div>
+{{-- ══ HERO ══ --}}
+<div class="ec-hero">
+    @if($alumno->foto_url)
+        <img src="{{ asset('storage/'.$alumno->foto_url) }}" class="ec-hero-foto" alt="Foto">
+    @else
+        <div class="ec-hero-placeholder">
+            <i class="fa fa-user" style="font-size:30px;color:rgba(255,255,255,.5);"></i>
+        </div>
+    @endif
+
+    <div>
+        <div class="ec-hero-nombre">{{ $alumno->nombre }}</div>
+        <div class="ec-hero-apellidos">{{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}</div>
+        <div class="ec-hero-meta">
+            <span class="ec-hero-matricula">{{ $alumno->matricula }}</span>
+            @if($inscripcionActual)
+            <span>
+                <i class="fa fa-graduation-cap"></i>
+                {{ $inscripcionActual->grupo->grado->nivel->nombre ?? '' }}
+                · {{ $inscripcionActual->grupo->grado->nombre }}°
+                {{ $inscripcionActual->grupo->nombre }}
+            </span>
+            <span>
+                <i class="fa fa-calendar"></i>
+                {{ $inscripcionActual->ciclo->nombre ?? '' }}
+            </span>
+            @endif
+            <span style="background:{{ $estadoBadge['bg'] }};color:{{ $estadoBadge['color'] }};
+                         border:1px solid {{ $estadoBadge['borde'] }};
+                         font-size:10px;font-weight:700;padding:1px 9px;border-radius:10px;">
+                {{ $estadoBadge['txt'] }}
+            </span>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="resumen-card" style="background:#00a65a;">
-            <div class="monto">${{ number_format($resumen['total_pagado'], 2) }}</div>
-            <div class="label-monto"><i class="fa fa-check-circle"></i> Total pagado</div>
+
+    <div class="ec-stats">
+        <div class="ec-stat">
+            <div class="ec-stat-num">${{ number_format($resumen['total_cargado'], 0) }}</div>
+            <div class="ec-stat-lbl">Cargado</div>
         </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="resumen-card" style="background:{{ $resumen['saldo_pendiente'] > 0 ? '#f39c12' : '#00a65a' }};">
-            <div class="monto">${{ number_format($resumen['saldo_pendiente'], 2) }}</div>
-            <div class="label-monto"><i class="fa fa-clock-o"></i> Saldo pendiente</div>
+        <div class="ec-stat">
+            <div class="ec-stat-num" style="color:#a8e6cf;">${{ number_format($resumen['total_pagado'], 0) }}</div>
+            <div class="ec-stat-lbl">Pagado</div>
         </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-        <div class="resumen-card" style="background:{{ $resumen['total_vencido'] > 0 ? '#dd4b39' : '#00a65a' }};">
-            <div class="monto">${{ number_format($resumen['total_vencido'], 2) }}</div>
-            <div class="label-monto"><i class="fa fa-exclamation-circle"></i> Vencido</div>
+        <div class="ec-stat">
+            <div class="ec-stat-num" style="color:{{ $resumen['saldo_pendiente'] > 0 ? '#ffcdd2' : '#a8e6cf' }};">
+                ${{ number_format($resumen['saldo_pendiente'], 0) }}
+            </div>
+            <div class="ec-stat-lbl">Pendiente</div>
+        </div>
+        @if($resumen['total_vencido'] > 0)
+        <div class="ec-stat">
+            <div class="ec-stat-num" style="color:#ef9a9a;">${{ number_format($resumen['total_vencido'], 0) }}</div>
+            <div class="ec-stat-lbl">Vencido</div>
+        </div>
+        @endif
+        <div class="ec-stat" style="align-self:center;">
+            <a href="{{ route('alumnos.show', $alumno->id) }}"
+               class="btn btn-sm btn-flat"
+               style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
+                <i class="fa fa-arrow-left"></i> Alumno
+            </a>
         </div>
     </div>
 </div>
 
 <div class="row">
 
-    {{-- ── Columna principal: cargos ── --}}
-    <div class="col-md-9">
-        <div class="box box-primary">
-            <div class="box-header with-border">
-                <h3 class="box-title">
-                    <i class="fa fa-list-alt"></i> Cargos
-                </h3>
-                <div class="box-tools pull-right">
-                    {{-- Filtro por ciclo --}}
-                    @if($ciclos->count() > 1)
-                    <form method="GET" style="display:inline-flex; gap:6px; align-items:center;">
-                        <select name="ciclo_id" class="form-control input-sm"
-                                onchange="this.form.submit()" style="width:160px;">
-                            <option value="">Todos los ciclos</option>
-                            @foreach($ciclos as $ciclo)
-                                <option value="{{ $ciclo->id }}"
-                                    {{ request('ciclo_id') == $ciclo->id ? 'selected' : '' }}>
-                                    {{ $ciclo->nombre }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                    @endif
-                </div>
-            </div>
+{{-- ════════════════════════════════════════════════════
+     COLUMNA PRINCIPAL — cargos (col-md-9)
+════════════════════════════════════════════════════ --}}
+<div class="col-md-9">
 
-            <div class="box-body" style="padding:0 0 8px;">
+    <div style="border:1px solid #e4eaf0;border-radius:10px;background:#fff;
+                box-shadow:0 1px 4px rgba(0,0,0,.04);overflow:hidden;margin-bottom:20px;">
 
-                {{-- Filtros de estado --}}
-                <div style="padding:12px 16px 0;">
-                    <div class="filtro-tabs">
-                        <button class="filtro-tab activo" data-filtro="todos">
-                            Todos
-                            <span class="badge" style="background:#aaa;">{{ $resumen['total_cargos'] }}</span>
-                        </button>
-                        <button class="filtro-tab" data-filtro="pendiente">
-                            Pendientes
-                            @if($resumen['cargos_pendientes'] > 0)
-                            <span class="badge" style="background:#f39c12;">{{ $resumen['cargos_pendientes'] }}</span>
-                            @endif
-                        </button>
-                        <button class="filtro-tab" data-filtro="vencido">
-                            Vencidos
-                            @if($resumen['cargos_vencidos'] > 0)
-                            <span class="badge" style="background:#dd4b39;">{{ $resumen['cargos_vencidos'] }}</span>
-                            @endif
-                        </button>
-                        <button class="filtro-tab" data-filtro="pagado">
-                            Pagados
-                        </button>
-                        <button class="filtro-tab" data-filtro="parcial">
-                            Parciales
-                        </button>
-                    </div>
-                </div>
+        {{-- Cabecera con selector de ciclo --}}
+        <div style="padding:14px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;
+                    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <p class="sec-title" style="margin:0;flex:1;">
+                <i class="fa fa-list-alt" style="color:#3c8dbc;"></i>
+                Cargos
+                <span style="background:#e8f0fb;color:#3c8dbc;font-size:11px;font-weight:700;
+                             padding:2px 9px;border-radius:10px;">{{ $resumen['total_cargos'] }}</span>
+            </p>
+            @if($ciclos->count() > 1)
+            <form method="GET" style="display:flex;align-items:center;gap:6px;">
+                <i class="fa fa-calendar" style="color:#8a9ab0;font-size:13px;"></i>
+                <select name="ciclo_id" class="form-control input-sm"
+                        onchange="this.form.submit()"
+                        style="border-radius:6px;border-color:#dde4eb;font-size:12px;min-width:150px;">
+                    <option value="">Todos los ciclos</option>
+                    @foreach($ciclos as $ciclo)
+                        <option value="{{ $ciclo->id }}"
+                            {{ request('ciclo_id') == $ciclo->id ? 'selected' : '' }}>
+                            {{ $ciclo->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
+            @endif
+        </div>
 
-                {{-- Tabla de cargos --}}
-                <table class="table" style="margin:0;">
-                    <thead>
-                        <tr style="background:#f9f9f9;">
-                            <th style="width:3%;padding:8px 16px;"></th>
-                            <th style="width:19%;">Concepto</th>
-                            <th style="width:9%;">Periodo</th>
-                            <th style="width:12%;">Vencimiento</th>
-                            <th style="width:11%;text-align:right;">Monto</th>
-                            <th style="width:11%;text-align:right;">Pagado</th>
-                            <th style="width:11%;text-align:right;">Pendiente</th>
-                            <th style="width:13%;text-align:right;">Recargo / Dto.</th>
-                            <th style="width:11%;text-align:center;">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-cargos">
+        {{-- Tabs de filtro --}}
+        <div class="ec-tabs">
+            <button class="ec-tab activo" data-filtro="todos">
+                Todos
+                <span class="ec-badge">{{ $resumen['total_cargos'] }}</span>
+            </button>
+            <button class="ec-tab" data-filtro="pendiente">
+                Pendientes
+                @if($resumen['cargos_pendientes'] > 0)
+                <span class="ec-badge naranja">{{ $resumen['cargos_pendientes'] }}</span>
+                @endif
+            </button>
+            <button class="ec-tab" data-filtro="vencido">
+                Vencidos
+                @if($resumen['cargos_vencidos'] > 0)
+                <span class="ec-badge rojo">{{ $resumen['cargos_vencidos'] }}</span>
+                @endif
+            </button>
+            <button class="ec-tab" data-filtro="pagado">Pagados</button>
+            <button class="ec-tab" data-filtro="parcial">Parciales</button>
+        </div>
 
-                    @forelse($cargos as $cargo)
-                    @php
-                        $saldoAbonado   = (float) ($cargo->total_abonado ?? 0);
-                        $saldoPendiente = max(0, (float) $cargo->monto_original - $saldoAbonado);
-                        $hoy            = now();
-                        $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
-
-                        // Valores calculados en el controlador (recargo / descuento)
-                        $descuentoCalc  = (float) ($cargo->descuento_calc ?? 0);
-                        $recargoCalc    = (float) ($cargo->recargo_calc   ?? 0);
-                        $mesesRetraso   = (int)   ($cargo->meses_retraso  ?? 0);
-                        $aPagarHoy      = (float) ($cargo->monto_a_pagar_hoy ?? $saldoPendiente);
-                        $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0)
-                                          && !in_array($cargo->estado, ['pagado', 'condonado']);
-
-                        $estadoReal = match($cargo->estado) {
-                            'pagado'    => 'pagado',
-                            'condonado' => 'condonado',
-                            'parcial'   => $vencido ? 'vencido' : 'parcial',
-                            default     => $vencido ? 'vencido' : 'pendiente',
-                        };
-
-                        $badgeClass = match($estadoReal) {
-                            'pagado'    => 'estado-pagado',
-                            'parcial'   => 'estado-parcial',
-                            'vencido'   => 'estado-vencido',
-                            'condonado' => 'estado-condonado',
-                            default     => 'estado-pendiente',
-                        };
-
-                        $badgeLabel = match($estadoReal) {
-                            'pagado'    => 'Pagado',
-                            'parcial'   => 'Parcial',
-                            'vencido'   => 'Vencido',
-                            'condonado' => 'Condonado',
-                            default     => 'Pendiente',
-                        };
-
-                        $tienePagos = $cargo->detallesPagosVigentes->count() > 0;
-                    @endphp
-
-                    <tr class="cargo-row"
-                        data-estado="{{ $estadoReal }}"
-                        data-cargo-id="{{ $cargo->id }}"
-                        style="cursor:{{ $tienePagos ? 'pointer' : 'default' }};"
-                        @if($tienePagos) onclick="togglePagos({{ $cargo->id }})" @endif>
-
-                        <td style="padding:10px 10px 10px 16px; color:#aaa; text-align:center;">
-                            @if($tienePagos)
-                            <i class="fa fa-chevron-right toggle-icon-{{ $cargo->id }}"
-                               style="font-size:10px; transition:transform .2s;"></i>
-                            @endif
-                        </td>
-                        <td style="padding:10px 8px;">
-                            <strong style="font-size:13px;">{{ $cargo->concepto->nombre }}</strong>
-                            <br>
-                            <small class="text-muted">{{ ucfirst($cargo->concepto->tipo) }}</small>
-                        </td>
-                        <td style="padding:10px 8px;">
-                            <code style="font-size:12px;">{{ $cargo->periodo }}</code>
-                        </td>
-                        <td style="padding:10px 8px;">
-                            <span style="{{ $vencido && $estadoReal !== 'pagado' ? 'color:#a94442;font-weight:600;' : '' }}">
-                                {{ $cargo->fecha_vencimiento->format('d/m/Y') }}
-                            </span>
-                            @if($vencido && !in_array($estadoReal, ['pagado','condonado']))
-                            <br>
-                            <small style="color:#a94442;">
-                                {{ $cargo->fecha_vencimiento->diffForHumans() }}
-                            </small>
-                            @endif
-                        </td>
-                        <td style="padding:10px 8px; text-align:right;">
-                            ${{ number_format($cargo->monto_original, 2) }}
-                        </td>
-                        <td style="padding:10px 8px; text-align:right; color:#00a65a;">
-                            @if($saldoAbonado > 0)
-                                ${{ number_format($saldoAbonado, 2) }}
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        </td>
-                        {{-- Pendiente base --}}
-                        <td style="padding:10px 8px; text-align:right;
-                                   {{ $saldoPendiente > 0 ? 'color:#a94442;font-weight:600;' : '' }}">
-                            @if($saldoPendiente > 0)
-                                ${{ number_format($saldoPendiente, 2) }}
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        </td>
-
-                        {{-- Recargo / Descuento según política del plan --}}
-                        <td style="padding:10px 8px; text-align:right;">
-                            @if($tieneAjuste)
-                                @if($recargoCalc > 0)
-                                    <span style="color:#a94442; font-weight:600;">
-                                        +${{ number_format($recargoCalc, 2) }}
-                                    </span>
-                                    <br>
-                                    <small style="color:#a94442; font-size:10px;">
-                                        <i class="fa fa-exclamation-triangle"></i>
-                                        recargo
-                                        @if($mesesRetraso > 1)
-                                            × {{ $mesesRetraso }} meses
-                                        @endif
-                                    </small>
-                                @elseif($descuentoCalc > 0)
-                                    <span style="color:#00a65a; font-weight:600;">
-                                        -${{ number_format($descuentoCalc, 2) }}
-                                    </span>
-                                    <br>
-                                    <small style="color:#00a65a; font-size:10px;">
-                                        <i class="fa fa-tag"></i> dto. pronto pago
-                                    </small>
-                                @endif
-                            @else
-                                <span style="color:#ccc;">—</span>
-                            @endif
-                        </td>
-
-                        <td style="padding:10px 8px; text-align:center;">
-                            <span class="badge-estado {{ $badgeClass }}">{{ $badgeLabel }}</span>
-                        </td>
+        {{-- Tabla --}}
+        <div style="overflow-x:auto;">
+            <table class="ec-table">
+                <thead>
+                    <tr>
+                        <th style="width:30px;"></th>
+                        <th>Concepto</th>
+                        <th>Periodo</th>
+                        <th>Vencimiento</th>
+                        <th style="text-align:right;">Monto</th>
+                        <th style="text-align:right;">Pagado</th>
+                        <th style="text-align:right;">Pendiente</th>
+                        <th style="text-align:right;">Recargo / Dto.</th>
+                        <th style="text-align:center;">Estado</th>
                     </tr>
+                </thead>
+                <tbody id="tabla-cargos">
 
-                    {{-- Detalle de pagos (colapsado) --}}
-                    @if($tienePagos)
-                    <tr class="pagos-detalle" id="pagos-{{ $cargo->id }}" style="display:none;">
-                        <td colspan="9" style="padding:0 16px 12px 40px;">
-                            <table style="width:100%; margin-top:8px;">
+                @forelse($cargos as $cargo)
+                @php
+                    $saldoAbonado   = (float) ($cargo->total_abonado ?? 0);
+                    $saldoPendiente = max(0, (float) $cargo->monto_original - $saldoAbonado);
+                    $hoy            = now();
+                    $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
+                    $descuentoCalc  = (float) ($cargo->descuento_calc ?? 0);
+                    $recargoCalc    = (float) ($cargo->recargo_calc   ?? 0);
+                    $mesesRetraso   = (int)   ($cargo->meses_retraso  ?? 0);
+                    $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0)
+                                      && !in_array($cargo->estado, ['pagado', 'condonado']);
+                    $estadoReal = match($cargo->estado) {
+                        'pagado'    => 'pagado',
+                        'condonado' => 'condonado',
+                        'parcial'   => $vencido ? 'vencido' : 'parcial',
+                        default     => $vencido ? 'vencido' : 'pendiente',
+                    };
+                    $estadoClass = match($estadoReal) {
+                        'pagado'    => 'ec-pagado',
+                        'parcial'   => 'ec-parcial',
+                        'vencido'   => 'ec-vencido',
+                        'condonado' => 'ec-condonado',
+                        default     => 'ec-pendiente',
+                    };
+                    $estadoLabel = match($estadoReal) {
+                        'pagado'    => 'Pagado',
+                        'parcial'   => 'Parcial',
+                        'vencido'   => 'Vencido',
+                        'condonado' => 'Condonado',
+                        default     => 'Pendiente',
+                    };
+                    $tienePagos = $cargo->detallesPagosVigentes->count() > 0;
+                @endphp
+
+                <tr class="cargo-row"
+                    data-estado="{{ $estadoReal }}"
+                    data-cargo-id="{{ $cargo->id }}"
+                    style="cursor:{{ $tienePagos ? 'pointer' : 'default' }};"
+                    @if($tienePagos) onclick="togglePagos({{ $cargo->id }})" @endif>
+
+                    <td style="text-align:center;color:#b0bec5;padding:10px 8px;">
+                        @if($tienePagos)
+                        <i class="fa fa-chevron-right toggle-icon-{{ $cargo->id }}"
+                           style="font-size:10px;transition:transform .2s;"></i>
+                        @endif
+                    </td>
+
+                    <td>
+                        <div style="font-weight:700;color:#1a2634;">{{ $cargo->concepto->nombre }}</div>
+                        <div style="font-size:11px;color:#8a9ab0;margin-top:2px;">{{ ucfirst($cargo->concepto->tipo) }}</div>
+                    </td>
+
+                    <td>
+                        <code style="font-size:11px;background:#f0f3f7;padding:2px 7px;border-radius:4px;color:#4a5568;">
+                            {{ $cargo->periodo }}
+                        </code>
+                    </td>
+
+                    <td>
+                        <span style="{{ $vencido && !in_array($estadoReal,['pagado','condonado']) ? 'color:#b91c1c;font-weight:600;' : 'color:#4a5568;' }}">
+                            {{ $cargo->fecha_vencimiento->format('d/m/Y') }}
+                        </span>
+                        @if($vencido && !in_array($estadoReal, ['pagado','condonado']))
+                        <div style="font-size:10px;color:#b91c1c;margin-top:2px;">
+                            {{ $cargo->fecha_vencimiento->diffForHumans() }}
+                        </div>
+                        @endif
+                    </td>
+
+                    <td style="text-align:right;font-weight:600;color:#1a2634;">
+                        ${{ number_format($cargo->monto_original, 2) }}
+                    </td>
+
+                    <td style="text-align:right;">
+                        @if($saldoAbonado > 0)
+                            <span style="color:#00875a;font-weight:600;">${{ number_format($saldoAbonado, 2) }}</span>
+                        @else
+                            <span style="color:#dde4eb;">—</span>
+                        @endif
+                    </td>
+
+                    <td style="text-align:right;">
+                        @if($saldoPendiente > 0)
+                            <span style="color:#b91c1c;font-weight:700;">${{ number_format($saldoPendiente, 2) }}</span>
+                        @else
+                            <span style="color:#dde4eb;">—</span>
+                        @endif
+                    </td>
+
+                    <td style="text-align:right;">
+                        @if($tieneAjuste)
+                            @if($recargoCalc > 0)
+                                <span style="color:#b91c1c;font-weight:700;">
+                                    +${{ number_format($recargoCalc, 2) }}
+                                </span>
+                                <div style="font-size:10px;color:#b91c1c;margin-top:2px;">
+                                    <i class="fa fa-exclamation-triangle"></i> recargo
+                                    @if($mesesRetraso > 1) × {{ $mesesRetraso }} meses @endif
+                                </div>
+                            @elseif($descuentoCalc > 0)
+                                <span style="color:#00875a;font-weight:700;">
+                                    -${{ number_format($descuentoCalc, 2) }}
+                                </span>
+                                <div style="font-size:10px;color:#00875a;margin-top:2px;">
+                                    <i class="fa fa-tag"></i> pronto pago
+                                </div>
+                            @endif
+                        @else
+                            <span style="color:#dde4eb;">—</span>
+                        @endif
+                    </td>
+
+                    <td style="text-align:center;">
+                        <span class="ec-estado {{ $estadoClass }}">
+                            <i class="fa fa-circle" style="font-size:6px;"></i>
+                            {{ $estadoLabel }}
+                        </span>
+                    </td>
+                </tr>
+
+                {{-- Detalle de pagos colapsado --}}
+                @if($tienePagos)
+                <tr class="ec-pagos-detalle" id="pagos-{{ $cargo->id }}" style="display:none;">
+                    <td colspan="9" style="padding:0;">
+                        <div class="ec-pagos-inner" style="padding:10px 16px 14px 46px;">
+                            <table style="width:100%;">
                                 <thead>
-                                    <tr style="color:#999; font-size:11px; text-transform:uppercase;">
-                                        <th style="padding:4px 8px; font-weight:500;">Folio</th>
-                                        <th style="padding:4px 8px; font-weight:500;">Fecha</th>
-                                        <th style="padding:4px 8px; font-weight:500;">Forma pago</th>
-                                        <th style="padding:4px 8px; font-weight:500;">Referencia</th>
-                                        <th style="padding:4px 8px; font-weight:500; text-align:right;">Descuento beca</th>
-                                        <th style="padding:4px 8px; font-weight:500; text-align:right;">Recargo</th>
-                                        <th style="padding:4px 8px; font-weight:500; text-align:right;">Abonado</th>
-                                        <th style="padding:4px 8px; font-weight:500; text-align:center;">Estado</th>
+                                    <tr style="color:#8a9ab0;">
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Folio</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Fecha</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Forma pago</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Referencia</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Dto. beca</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Recargo</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Abonado</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:center;">Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                 @foreach($cargo->detallesPagosVigentes as $detalle)
                                 @php $pago = $detalle->pago; @endphp
-                                <tr style="border-top:1px solid #f0f0f0;">
-                                    <td style="padding:5px 8px;">
-                                        <code style="font-size:11px;">{{ $pago->folio_recibo ?? '—' }}</code>
+                                <tr style="border-top:1px solid #edf1f5;">
+                                    <td style="padding:6px 8px;">
+                                        <code style="font-size:11px;background:#f0f3f7;padding:1px 6px;border-radius:3px;">
+                                            {{ $pago->folio_recibo ?? '—' }}
+                                        </code>
                                     </td>
-                                    <td style="padding:5px 8px;">
+                                    <td style="padding:6px 8px;color:#4a5568;">
                                         {{ $pago->fecha_pago ? \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y') : '—' }}
                                     </td>
-                                    <td style="padding:5px 8px;">{{ ucfirst($pago->forma_pago ?? '') }}</td>
-                                    <td style="padding:5px 8px; color:#999;">{{ $pago->referencia ?? '—' }}</td>
-                                    <td style="padding:5px 8px; text-align:right; color:#00a65a;">
+                                    <td style="padding:6px 8px;color:#4a5568;">{{ ucfirst($pago->forma_pago ?? '') }}</td>
+                                    <td style="padding:6px 8px;color:#8a9ab0;">{{ $pago->referencia ?? '—' }}</td>
+                                    <td style="padding:6px 8px;text-align:right;">
                                         @if($detalle->descuento_beca > 0)
-                                            -${{ number_format($detalle->descuento_beca, 2) }}
-                                        @else
-                                            <span style="color:#ccc;">—</span>
-                                        @endif
+                                            <span style="color:#00875a;font-weight:600;">-${{ number_format($detalle->descuento_beca, 2) }}</span>
+                                        @else <span style="color:#dde4eb;">—</span> @endif
                                     </td>
-                                    <td style="padding:5px 8px; text-align:right;
-                                               {{ $detalle->recargo_aplicado > 0 ? 'color:#a94442;' : '' }}">
+                                    <td style="padding:6px 8px;text-align:right;">
                                         @if($detalle->recargo_aplicado > 0)
-                                            +${{ number_format($detalle->recargo_aplicado, 2) }}
-                                        @else
-                                            <span style="color:#ccc;">—</span>
-                                        @endif
+                                            <span style="color:#b91c1c;font-weight:600;">+${{ number_format($detalle->recargo_aplicado, 2) }}</span>
+                                        @else <span style="color:#dde4eb;">—</span> @endif
                                     </td>
-                                    <td style="padding:5px 8px; text-align:right; font-weight:600;">
+                                    <td style="padding:6px 8px;text-align:right;font-weight:700;color:#1a2634;">
                                         ${{ number_format($detalle->monto_abonado, 2) }}
                                     </td>
-                                    <td style="padding:5px 8px; text-align:center;">
-                                        <span class="badge-estado {{ $pago->estado === 'vigente' ? 'estado-pagado' : 'estado-condonado' }}"
-                                              style="font-size:10px;">
+                                    <td style="padding:6px 8px;text-align:center;">
+                                        <span class="ec-estado {{ $pago->estado === 'vigente' ? 'ec-pagado' : 'ec-condonado' }}"
+                                              style="font-size:10px;padding:2px 7px;">
                                             {{ ucfirst($pago->estado ?? '') }}
                                         </span>
                                     </td>
@@ -396,192 +487,215 @@
                                 @endforeach
                                 </tbody>
                             </table>
-                        </td>
-                    </tr>
-                    @endif
+                        </div>
+                    </td>
+                </tr>
+                @endif
 
-                    @empty
-                    <tr>
-                        <td colspan="9" class="text-center" style="padding:40px; color:#aaa;">
-                            <i class="fa fa-inbox fa-3x" style="display:block;margin-bottom:10px;"></i>
-                            <strong>Sin cargos registrados</strong>
-                            @if(request('ciclo_id'))
-                            <br><small>para el ciclo seleccionado</small>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforelse
+                @empty
+                <tr>
+                    <td colspan="9" style="padding:56px 20px;text-align:center;">
+                        <i class="fa fa-inbox" style="font-size:42px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+                        <p style="color:#b0bec5;margin:0;font-weight:600;">Sin cargos registrados</p>
+                        @if(request('ciclo_id'))
+                        <p style="color:#b0bec5;margin:4px 0 0;font-size:12px;">para el ciclo seleccionado</p>
+                        @endif
+                    </td>
+                </tr>
+                @endforelse
 
-                    </tbody>
-                </table>
-
-            </div>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    {{-- ── Columna lateral: resumen por ciclo y beca ── --}}
-    <div class="col-md-3">
+</div>{{-- /col-md-9 --}}
 
-        {{-- Estado general --}}
-        <div class="box {{ $resumen['saldo_pendiente'] > 0 ? 'box-warning' : 'box-success' }}">
-            <div class="box-header with-border">
-                <h3 class="box-title" style="font-size:13px;">
-                    <i class="fa fa-dollar"></i> Balance
-                </h3>
-            </div>
-            <div class="box-body no-padding">
-                <table class="table" style="font-size:12px; margin:0;">
-                    <tr>
-                        <td style="color:#888; padding:8px 14px;">Total cargado</td>
-                        <td style="text-align:right; padding:8px 14px;">
-                            ${{ number_format($resumen['total_cargado'], 2) }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color:#888; padding:8px 14px;">Total pagado</td>
-                        <td style="text-align:right; padding:8px 14px; color:#00a65a;">
-                            ${{ number_format($resumen['total_pagado'], 2) }}
-                        </td>
-                    </tr>
-                    @if($resumen['total_condonado'] > 0)
-                    <tr>
-                        <td style="color:#888; padding:8px 14px;">Condonado</td>
-                        <td style="text-align:right; padding:8px 14px; color:#777;">
-                            ${{ number_format($resumen['total_condonado'], 2) }}
-                        </td>
-                    </tr>
-                    @endif
-                    <tr style="background:#f9f9f9; font-weight:600;">
-                        <td style="padding:10px 14px;">Saldo pendiente</td>
-                        <td style="text-align:right; padding:10px 14px;
-                                   color:{{ $resumen['saldo_pendiente'] > 0 ? '#a94442' : '#00a65a' }};">
-                            ${{ number_format($resumen['saldo_pendiente'], 2) }}
-                        </td>
-                    </tr>
-                    @if($resumen['total_recargos'] > 0)
-                    <tr>
-                        <td style="color:#a94442; padding:8px 14px; font-size:11px;">
-                            <i class="fa fa-exclamation-triangle"></i> + Recargos aplicados
-                        </td>
-                        <td style="text-align:right; padding:8px 14px; color:#a94442; font-size:11px;">
-                            +${{ number_format($resumen['total_recargos'], 2) }}
-                        </td>
-                    </tr>
-                    @endif
-                    @if($resumen['total_descuentos'] > 0)
-                    <tr>
-                        <td style="color:#00a65a; padding:8px 14px; font-size:11px;">
-                            <i class="fa fa-tag"></i> − Descuentos pronto pago
-                        </td>
-                        <td style="text-align:right; padding:8px 14px; color:#00a65a; font-size:11px;">
-                            -${{ number_format($resumen['total_descuentos'], 2) }}
-                        </td>
-                    </tr>
-                    @endif
-                    @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0)
-                    <tr style="background:#fff8e1; font-weight:700; border-top:2px solid #f39c12;">
-                        <td style="padding:10px 14px; color:#8a6d3b;">
-                            <i class="fa fa-calculator"></i> A pagar hoy
-                        </td>
-                        <td style="text-align:right; padding:10px 14px;
-                                   color:{{ $resumen['total_a_pagar_hoy'] > 0 ? '#a94442' : '#00a65a' }};">
-                            ${{ number_format($resumen['total_a_pagar_hoy'], 2) }}
-                        </td>
-                    </tr>
-                    @endif
-                    @if($resumen['total_vencido'] > 0)
-                    <tr>
-                        <td style="color:#a94442; padding:8px 14px; font-size:11px;">
-                            <i class="fa fa-exclamation-triangle"></i> De los cuales vencidos
-                        </td>
-                        <td style="text-align:right; padding:8px 14px; color:#a94442; font-size:11px;">
-                            ${{ number_format($resumen['total_vencido'], 2) }}
-                        </td>
-                    </tr>
-                    @endif
-                </table>
-            </div>
+{{-- ════════════════════════════════════════════════════
+     COLUMNA LATERAL (col-md-3)
+════════════════════════════════════════════════════ --}}
+<div class="col-md-3">
+
+    {{-- Balance --}}
+    <div class="info-card">
+        <div class="info-card-header">
+            <span class="info-card-title">
+                <i class="fa fa-calculator" style="margin-right:5px;color:#3c8dbc;"></i>Balance
+            </span>
+            @if($resumen['saldo_pendiente'] > 0)
+            <span style="background:#fdecea;color:#b91c1c;font-size:11px;font-weight:700;
+                         padding:2px 9px;border-radius:10px;">
+                Deuda
+            </span>
+            @else
+            <span style="background:#e8f8f0;color:#00875a;font-size:11px;font-weight:700;
+                         padding:2px 9px;border-radius:10px;">
+                <i class="fa fa-check"></i> Al corriente
+            </span>
+            @endif
         </div>
 
-        {{-- Becas activas --}}
-        @if($becas->count())
-        <div class="box box-default">
-            <div class="box-header with-border">
-                <h3 class="box-title" style="font-size:13px;">
-                    <i class="fa fa-tag"></i> Becas activas
-                </h3>
-            </div>
-            <div class="box-body" style="padding:10px 14px;">
-                @foreach($becas as $beca)
-                <div style="margin-bottom:8px; padding-bottom:8px;
-                            border-bottom:1px solid #f4f4f4;">
-                    <strong style="font-size:13px;">{{ $beca->catalogoBeca->nombre }}</strong>
-                    <br>
-                    <small class="text-muted">
-                        {{ $beca->concepto->nombre }}
-                        ·
-                        @if($beca->catalogoBeca->tipo === 'porcentaje')
-                            {{ $beca->catalogoBeca->valor }}%
-                        @else
-                            ${{ number_format($beca->catalogoBeca->valor, 2) }}
-                        @endif
-                    </small>
-                </div>
-                @endforeach
-            </div>
+        <div class="balance-row">
+            <span class="balance-row-label">Total cargado</span>
+            <span class="balance-row-value">${{ number_format($resumen['total_cargado'], 2) }}</span>
+        </div>
+        <div class="balance-row">
+            <span class="balance-row-label">Total pagado</span>
+            <span class="balance-row-value" style="color:#00875a;">${{ number_format($resumen['total_pagado'], 2) }}</span>
+        </div>
+        @if($resumen['total_condonado'] > 0)
+        <div class="balance-row">
+            <span class="balance-row-label">Condonado</span>
+            <span class="balance-row-value" style="color:#6b7a8d;">${{ number_format($resumen['total_condonado'], 2) }}</span>
         </div>
         @endif
-
-        {{-- Accesos rápidos --}}
-        <div class="box box-default">
-            <div class="box-body" style="padding:12px;">
-                @can('caja')
-                <a href="{{ route('pagos.create') }}?alumno_id={{ $alumno->id }}"
-                   class="btn btn-success btn-block btn-sm btn-flat">
-                    <i class="fa fa-plus"></i> Registrar pago
-                </a>
-                @endcan
-                <a href="{{ route('alumnos.show', $alumno->id) }}"
-                   class="btn btn-default btn-block btn-sm btn-flat" style="margin-top:4px;">
-                    <i class="fa fa-user"></i> Ficha del alumno
-                </a>
-                @if($alumno->familia)
-                <a href="{{ route('familias.show', $alumno->familia->id) }}"
-                   class="btn btn-default btn-block btn-sm btn-flat" style="margin-top:4px;">
-                    <i class="fa fa-home"></i> Ficha de familia
-                </a>
-                @endif
-            </div>
+        <div class="balance-row" style="background:#f8fafc;">
+            <span class="balance-row-label" style="font-weight:700;color:#1a2634;">Saldo pendiente</span>
+            <span class="balance-row-value" style="color:{{ $resumen['saldo_pendiente'] > 0 ? '#b91c1c' : '#00875a' }};font-size:15px;">
+                ${{ number_format($resumen['saldo_pendiente'], 2) }}
+            </span>
         </div>
-
+        @if($resumen['total_recargos'] > 0)
+        <div class="balance-row" style="border-top:1px dashed #f0f3f7;">
+            <span class="balance-row-label" style="color:#b91c1c;font-size:11px;">
+                <i class="fa fa-exclamation-triangle"></i> + Recargos
+            </span>
+            <span style="color:#b91c1c;font-weight:700;font-size:12px;">
+                +${{ number_format($resumen['total_recargos'], 2) }}
+            </span>
+        </div>
+        @endif
+        @if($resumen['total_descuentos'] > 0)
+        <div class="balance-row">
+            <span class="balance-row-label" style="color:#00875a;font-size:11px;">
+                <i class="fa fa-tag"></i> − Pronto pago
+            </span>
+            <span style="color:#00875a;font-weight:700;font-size:12px;">
+                -${{ number_format($resumen['total_descuentos'], 2) }}
+            </span>
+        </div>
+        @endif
+        @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0)
+        <div class="balance-row" style="background:#fff8e1;border-top:2px solid #f39c12;">
+            <span class="balance-row-label" style="color:#b45309;font-weight:700;">
+                <i class="fa fa-calculator"></i> A pagar hoy
+            </span>
+            <span style="color:{{ $resumen['total_a_pagar_hoy'] > 0 ? '#b91c1c' : '#00875a' }};font-weight:800;font-size:15px;">
+                ${{ number_format($resumen['total_a_pagar_hoy'], 2) }}
+            </span>
+        </div>
+        @endif
+        @if($resumen['total_vencido'] > 0)
+        <div class="balance-row" style="background:#fdecea;">
+            <span class="balance-row-label" style="color:#b91c1c;font-size:11px;">
+                <i class="fa fa-exclamation-circle"></i> De los cuales vencidos
+            </span>
+            <span style="color:#b91c1c;font-weight:700;font-size:12px;">
+                ${{ number_format($resumen['total_vencido'], 2) }}
+            </span>
+        </div>
+        @endif
     </div>
-</div>
 
+    {{-- Becas activas --}}
+    @if($becas->count())
+    <div class="info-card">
+        <div class="info-card-header">
+            <span class="info-card-title">
+                <i class="fa fa-star" style="margin-right:5px;color:#f39c12;"></i>Becas activas
+            </span>
+            <span style="background:#fff8e1;color:#b45309;font-size:11px;font-weight:700;
+                         padding:2px 9px;border-radius:10px;">{{ $becas->count() }}</span>
+        </div>
+        @foreach($becas as $beca)
+        <div style="padding:10px 16px;border-bottom:1px solid #f5f7fa;display:flex;align-items:center;gap:10px;">
+            <div style="width:30px;height:30px;border-radius:8px;background:#fff8e1;
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fa fa-percent" style="color:#f39c12;font-size:12px;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;color:#1a2634;">{{ $beca->catalogoBeca->nombre }}</div>
+                <div style="font-size:11px;color:#8a9ab0;margin-top:1px;">{{ $beca->concepto->nombre }}</div>
+            </div>
+            <span style="background:#fff3cd;color:#856404;font-size:11px;font-weight:700;
+                         padding:2px 8px;border-radius:8px;white-space:nowrap;flex-shrink:0;">
+                @if($beca->catalogoBeca->tipo === 'porcentaje')
+                    {{ $beca->catalogoBeca->valor }}%
+                @else
+                    ${{ number_format($beca->catalogoBeca->valor, 2) }}
+                @endif
+            </span>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- Acciones rápidas --}}
+    <div class="info-card">
+        <div class="info-card-header">
+            <span class="info-card-title">
+                <i class="fa fa-bolt" style="margin-right:5px;color:#f39c12;"></i>Acciones
+            </span>
+        </div>
+        <div>
+            @can('caja')
+            <a href="{{ route('pagos.create') }}?alumno_id={{ $alumno->id }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f8f0;">
+                    <i class="fa fa-plus" style="color:#00a65a;font-size:13px;"></i>
+                </div>
+                Registrar pago
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+            </a>
+            @endcan
+            <a href="{{ route('alumnos.show', $alumno->id) }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f0fb;">
+                    <i class="fa fa-user" style="color:#3c8dbc;font-size:13px;"></i>
+                </div>
+                Ficha del alumno
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+            </a>
+            @if($alumno->familia)
+            <a href="{{ route('familias.show', $alumno->familia_id) }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f5e9;">
+                    <i class="fa fa-home" style="color:#4caf50;font-size:13px;"></i>
+                </div>
+                Ficha de familia
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+            </a>
+            @endif
+            <a href="{{ route('alumnos.index') }}" class="accion-btn">
+                <div class="accion-icon" style="background:#f0f3f7;">
+                    <i class="fa fa-arrow-left" style="color:#6b7a8d;font-size:13px;"></i>
+                </div>
+                Volver a alumnos
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+            </a>
+        </div>
+    </div>
+
+</div>{{-- /col-md-3 --}}
+
+</div>{{-- /row --}}
 @endsection
 
 @push('scripts')
 <script>
-// ── Toggle pagos del cargo ─────────────────────────────
 function togglePagos(cargoId) {
-    var fila   = document.getElementById('pagos-' + cargoId);
-    var icon   = document.querySelector('.toggle-icon-' + cargoId);
+    var fila    = document.getElementById('pagos-' + cargoId);
+    var icon    = document.querySelector('.toggle-icon-' + cargoId);
     var visible = fila.style.display !== 'none';
     fila.style.display = visible ? 'none' : 'table-row';
-    if (icon) {
-        icon.style.transform = visible ? '' : 'rotate(90deg)';
-    }
+    if (icon) icon.style.transform = visible ? '' : 'rotate(90deg)';
 }
 
-// ── Filtro por estado ──────────────────────────────────
 $(function() {
-    $('.filtro-tab').on('click', function() {
-        $('.filtro-tab').removeClass('activo');
+    $('.ec-tab').on('click', function() {
+        $('.ec-tab').removeClass('activo');
         $(this).addClass('activo');
-
         var filtro = $(this).data('filtro');
 
         $('#tabla-cargos tr.cargo-row').each(function() {
-            var estado = $(this).data('estado');
+            var estado  = $(this).data('estado');
             var cargoId = $(this).data('cargo-id');
             var detalle = $('#pagos-' + cargoId);
 

@@ -190,7 +190,13 @@
                 </ul>
             </li>
 
-            <li class="treeview {{ request()->routeIs(['pagos.*']) ? 'active menu-open' : '' }}">
+            <li class="{{ request()->routeIs('cobros.index') ? 'active' : '' }}">
+                <a href="{{ route('cobros.index') }}">
+                    <i class="fa fa-shopping-cart"></i> <span>Cobros</span>
+                </a>
+            </li>
+
+            <li class="treeview {{ request()->routeIs(['cobros.*']) && !request()->routeIs('cobros.index') ? 'active menu-open' : '' }}">
                 <a href="#">
                     <i class="fa fa-credit-card"></i>
                     <span>Pagos</span>
@@ -199,7 +205,7 @@
                     </span>
                 </a>
                 <ul class="treeview-menu">
-                    <li class="{{ request()->routeIs('pagos.index') ? 'active' : '' }}">
+                    <li class="{{ request()->routeIs('cobros.index') ? 'active' : '' }}">
                         <a href="{{ route('pagos.index') }}">
                             <i class="fa fa-circle-o"></i> Historial de pagos
                         </a>

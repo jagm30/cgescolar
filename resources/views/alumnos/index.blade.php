@@ -133,6 +133,7 @@
     border-bottom: 1px solid #f0f3f7;
     transition: background .1s;
 }
+.alm-table tbody tr[data-href] { cursor: pointer; }
 .alm-table tbody tr:last-child { border-bottom: none; }
 .alm-table tbody tr:hover td   { background: #f0f7ff !important; }
 .alm-table td {
@@ -410,7 +411,7 @@
                 $inicial     = mb_strtoupper(mb_substr($alumno->ap_paterno, 0, 1));
                 $estado      = $alumno->estado;
             @endphp
-            <tr>
+            <tr data-href="{{ route('alumnos.show', $alumno->id) }}">
                 {{-- AVATAR --}}
                 <td>
                     @if($alumno->foto_url)
@@ -549,5 +550,16 @@
     @endif
 
 </div>
+
+@push('scripts')
+<script>
+document.querySelectorAll('.alm-table tbody tr[data-href]').forEach(function(row) {
+    row.addEventListener('click', function(e) {
+        if (e.target.closest('a, button, input, select')) return;
+        window.location.href = row.dataset.href;
+    });
+});
+</script>
+@endpush
 
 @endsection
