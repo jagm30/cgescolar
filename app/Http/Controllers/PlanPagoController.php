@@ -24,9 +24,10 @@ class PlanPagoController extends Controller
 {
     use RespondsWithJson;
 
-    /** GET /planes */
     public function index(Request $request)
     {
+        $planesPerPage = (int) $request->get('planes_per_page', 10);
+        $asignacionesPerPage = (int) $request->get('asignaciones_per_page', 10);
 
         $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
         $planesPerPage = 15;
@@ -82,22 +83,9 @@ class PlanPagoController extends Controller
         $niveles = NivelEscolar::activo()->get();
         $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
 
-        return view('planes.index', compact(
-            'planes',
-            'ciclos',
-            'niveles',
-            'alumnos',
-            'grupos',
-            'asignaciones',
-            'cicloActual',
-            'planesPerPage',
-            'asignacionesPerPage',
-            'niveles',
-            'conceptos'
-        ));
+        // QUITAMOS 'ciclos' y 'cicloId' -> El Composer los inyecta solitos
+        return view('planes.index', compact('planes', 'niveles', 'conceptos'));
     }
-
-    /** GET /planes/{id} */
     public function show(int $id)
     {
         $plan = PlanPago::with([

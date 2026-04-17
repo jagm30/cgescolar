@@ -310,9 +310,9 @@
                                     <label for="ciclo_id">Ciclo escolar <span class="text-red">*</span></label>
                                     <select name="ciclo_id" id="ciclo_id" class="form-control">
                                         <option value="">-- Seleccionar ciclo --</option>
-                                        @foreach ($ciclos as $ciclo)
+                                        @foreach ($ciclosDisponibles as $ciclo)
                                             <option value="{{ $ciclo->id }}"
-                                                {{ old('ciclo_id', $alumnoPrecargado['ciclo_id'] ?? $cicloId) == $ciclo->id ? 'selected' : '' }}>
+                                                {{ old('ciclo_id', $alumnoPrecargado['ciclo_id'] ?? $cicloActual?->id) == $ciclo->id ? 'selected' : '' }}>
                                                 {{ $ciclo->nombre }}
                                                 @if ($ciclo->estado === 'activo')
                                                     (Activo)
