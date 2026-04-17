@@ -149,4 +149,27 @@ class NivelEscolarController extends Controller
             mensaje: "Nivel '{$nivel->nombre}' desactivado correctamente."
         );
     }
+    /** POST /niveles/reordenar */
+public function reordenar(Request $request)
+{
+    // Validamos que llegue el array
+    $data = $request->validate([
+        'niveles' => 'required|array',
+        'niveles.*.id' => 'required|integer|exists:nivel_escolar,id',
+        'niveles.*.orden' => 'required|integer'
+    ]);
+
+    try {
+        \DB::transaction(function () use ($request) {
+            foreach ($request->niveles as $item) {
+                \App\Models\NivelEscolar::where('id', $item['id'])
+                    ->update(['orden' => $item['orden']]);
+            }
+        });
+
+        return response()->json(['status' => 'success', 'mensaje' => 'Orden actualizado']);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'mensaje' => $e->getMessage()], 500);
+    }
+}
 }

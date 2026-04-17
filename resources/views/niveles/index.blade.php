@@ -1,56 +1,194 @@
 @extends('layouts.master')
 @section('page_title', 'Niveles Escolares')
 
+@push('styles')
+    <style>
+        /* Estilo para la fila que se está arrastrando */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #d2d6de !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Efecto al pasar el mouse sobre la columna de orden */
+        .handle {
+            transition: background-color 0.2s;
+        }
+
+        .handle:hover {
+            background-color: #f4f4f4 !important;
+            color: #3c8dbc;
+        }
+    </style>
+    @push('styles')
+        <style>
+            .con-toolbar {
+                background: #f9f9f9;
+                padding: 10px;
+                border: 1px solid #eee;
+                border-radius: 4px 4px 0 0;
+                display: flex;
+                align-items: center;
+            }
+
+            .con-select {
+                height: 30px;
+                border: 1px solid #d2d6de;
+                border-radius: 4px;
+                padding: 0 5px;
+                outline: none;
+            }
+
+            .con-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .con-table thead th {
+                background: #f4f4f4;
+                padding: 12px 10px;
+                border-bottom: 2px solid #eee;
+                text-align: left;
+                font-size: 13px;
+            }
+
+            .con-table tbody tr {
+                border-bottom: 1px solid #eee;
+                transition: background 0.2s;
+            }
+
+            .con-table tbody td {
+                padding: 10px;
+                vertical-align: middle;
+            }
+
+            .con-badge-nivel {
+                background: #3c8dbc;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+
+            .con-acciones {
+                display: flex;
+                gap: 5px;
+                justify-content: center;
+            }
+
+            .btn-accion-texto {
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 5px 10px;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                transition: all 0.2s;
+            }
+
+            .btn-accion-texto:hover {
+                background: #f4f4f4;
+            }
+
+            /* Estilo para el arrastre */
+            .sortable-ghost {
+                opacity: 0.3;
+                background: #3c8dbc !important;
+            }
+
+            .handle {
+                cursor: ns-resize;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+                padding: 5px;
+                border-radius: 4px;
+            }
+
+            .handle:hover {
+                background: #eee;
+            }
+        </style>
+    @endpush
+@endpush
+
+@section('content')
 @section('content')
     <div class="box box-default">
         <div class="box-header with-border">
-            <h3 class="box-title">Listado de Niveles</h3>
+            <h3 class="box-title">Gestión de Niveles</h3>
             <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modal-nuevo">
                 <i class="fa fa-plus"></i> Nuevo Nivel
             </button>
         </div>
 
-        <div class="box-body">
-            <table id="niveles" class="table table-bordered table-striped">
+        {{-- Toolbar de Filtros (Sin DataTables, manejado por GET o Alpine) --}}
+        <div class="con-toolbar">
+            <form method="GET" action="{{ route('niveles.index') }}" style="display: flex; gap: 10px; width: 100%;">
+                <select name="estado" class="con-select" onchange="this.form.submit()">
+                    <option value="1" {{ request('estado', '1') == '1' ? 'selected' : '' }}>Solo Activos</option>
+                    <option value="0" {{ request('estado') == '0' ? 'selected' : '' }}>Inactivos</option>
+                    <option value="todos" {{ request('estado') == 'todos' ? 'selected' : '' }}>Todos los estados</option>
+                </select>
+
+                <div style="margin-left: auto;">
+                    <a href="{{ route('niveles.index') }}" class="btn btn-default btn-sm"><i class="fa fa-eraser"></i>
+                        Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="box-body no-padding">
+            <table class="con-table">
                 <thead>
                     <tr>
-                        <th width="50">Orden</th>
+                        <th width="80px" class="text-center">Orden</th>
                         <th>Nombre del Nivel</th>
                         <th>REVOE</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
+                        <th width="120px" class="text-center">Estado</th>
+                        <th width="250px" class="text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="sortable-tbody">
                     @foreach ($niveles as $nivel)
-                        <tr>
-                            <td class="text-center"><b>{{ $nivel->orden }}</b></td>
-                            <td>{{ $nivel->nombre }}</td>
-                            <td>{{ $nivel->revoe ?? 'N/A' }}</td>
+                        <tr data-id="{{ $nivel->id }}" class="fila-nivel">
+                            <td class="handle">
+                                <i class="fa fa-chevron-up text-muted" style="font-size: 8px;"></i>
+                                <strong class="label-orden" style="font-size: 15px;">{{ $nivel->orden }}</strong>
+                                <i class="fa fa-chevron-down text-muted" style="font-size: 8px;"></i>
+                            </td>
                             <td>
+                                <div style="font-weight: bold; color: #333;">{{ $nivel->nombre }}</div>
+                            </td>
+                            <td><span style="font-family: monospace; color: #666;">{{ $nivel->revoe ?? 'N/A' }}</span></td>
+                            <td class="text-center">
                                 <span class="label {{ $nivel->activo ? 'label-success' : 'label-danger' }}">
                                     {{ $nivel->activo ? 'Activo' : 'Inactivo' }}
                                 </span>
                             </td>
-                            <td>
-                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
-                                    data-target="#modal-editar" data-id="{{ $nivel->id }}"
-                                    data-nombre="{{ $nivel->nombre }}" data-revoe="{{ $nivel->revoe }}"
-                                    data-orden="{{ $nivel->orden }}" data-activo="{{ $nivel->activo }}">
-                                    <i class="fa fa-pencil"></i> Editar
-                                </button>
+                            <td class="text-center">
+                                <div class="con-acciones">
+                                    <button type="button" class="btn-accion-texto" data-toggle="modal"
+                                        data-target="#modal-editar" data-id="{{ $nivel->id }}"
+                                        data-nombre="{{ $nivel->nombre }}" data-revoe="{{ $nivel->revoe }}"
+                                        data-orden="{{ $nivel->orden }}" data-activo="{{ $nivel->activo }}">
+                                        <i class="fa fa-pencil text-yellow"></i> <span>Editar</span>
+                                    </button>
 
-                                @if ($nivel->activo)
-                                    <form action="{{ route('niveles.destroy', $nivel->id) }}" method="POST"
-                                        style="display:inline;"
-                                        onsubmit="return confirm('¿Estás seguro de dar de baja este nivel?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="fa fa-arrow-down"></i> Dar de baja
-                                        </button>
-                                    </form>
-                                @endif
+                                    @if ($nivel->activo)
+                                        <form action="{{ route('niveles.destroy', $nivel->id) }}" method="POST">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn-accion-texto"
+                                                onclick="return confirm('¿Dar de baja?')">
+                                                <i class="fa fa-arrow-down text-red"></i> <span>Baja</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -58,47 +196,6 @@
             </table>
         </div>
     </div>
-
-    {{-- MODAL EDITAR --}}
-    <x-modal id="modal-editar" title="Editar Nivel Escolar">
-        <form id="form-editar" method="POST">
-            @csrf
-            @method('PUT')
-
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="form-group">
-                        <label>Nombre del Nivel</label>
-                        <input type="text" name="nombre" id="edit-nombre" class="form-control" required>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>Orden Visual</label>
-                        <input type="number" name="orden" id="edit-orden" class="form-control" min="1" required>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>REVOE <small class="text-muted">(Dato informativo - No editable)</small></label>
-                <input type="text" id="edit-revoe" class="form-control" readonly style="background-color: #eee;">
-            </div>
-
-            <div class="form-group">
-                <label>Estado</label>
-                <select name="activo" id="edit-activo" class="form-control" required>
-                    <option value="1">Activo</option>
-                    <option value="0">Inactivo</option>
-                </select>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-            </div>
-        </form>
-    </x-modal>
 
     {{-- MODAL NUEVO --}}
     <x-modal id="modal-nuevo" title="Registrar Nuevo Nivel">
@@ -140,6 +237,8 @@
 @endsection
 
 @push('scripts')
+    {{-- Importante: Asegúrate de tener SortableJS disponible --}}
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script src="{{ asset('bower_components/datatables.net/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
 
@@ -151,37 +250,54 @@
                 },
                 "order": [
                     [0, "asc"]
-                ], // Ordenar por la columna 0 (Orden visual) por defecto
-                "initComplete": function() {
-                    var filtro = $('#contenedor-filtro');
-                    $('#niveles_length').after(filtro);
+                ],
+                "columnDefs": [{
+                        "orderable": false,
+                        "targets": 0
+                    } // Desactivar ordenamiento clicable en la columna de arrastre
+                ]
+            });
+        });
+
+        function gestionOrden() {
+            return {
+                initSortable() {
+                    const tabla = document.querySelector('#niveles tbody');
+                    Sortable.create(tabla, {
+                        handle: '.handle',
+                        animation: 250,
+                        ghostClass: 'sortable-ghost',
+                        onEnd: () => {
+                            this.guardarNuevoOrden();
+                        }
+                    });
+                },
+                guardarNuevoOrden() {
+                    let niveles = [];
+                    document.querySelectorAll('.fila-nivel').forEach((fila, index) => {
+                        const nuevoOrden = index + 1;
+                        fila.querySelector('.label-orden').innerText = nuevoOrden;
+                        niveles.push({
+                            id: fila.dataset.id,
+                            orden: nuevoOrden
+                        });
+                    });
+
+                    fetch("{{ route('niveles.reordenar') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                niveles: niveles
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => console.log("Orden sincronizado"))
+                        .catch(err => alert("Error al guardar el orden"));
                 }
-            });
-
-            $(document).on('change', '#filtro-estado', function() {
-                var valor = $(this).val();
-                table.column(3).search(valor).draw();
-            });
-        });
-
-        // Script para llenar el modal de edición
-        $('#modal-editar').on('show.bs.modal', function(event) {
-            var button = $(event.relatedTarget);
-            var id = button.data('id');
-            var nombre = button.data('nombre');
-            var revoe = button.data('revoe');
-            var orden = button.data('orden');
-            var activo = button.data('activo');
-
-            var modal = $(this);
-            modal.find('#edit-nombre').val(nombre);
-            modal.find('#edit-revoe').val(revoe ? revoe : 'N/A');
-            modal.find('#edit-orden').val(orden);
-            modal.find('#edit-activo').val(activo);
-
-            var url = "{{ route('niveles.update', ':id') }}";
-            url = url.replace(':id', id);
-            modal.find('#form-editar').attr('action', url);
-        });
+            }
+        }
     </script>
 @endpush

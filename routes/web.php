@@ -71,8 +71,14 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Niveles ──────────────────────────────────────────
+    // Ruta para el reordenamiento por Drag & Drop
+Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::class, 'reordenar'])
+    ->name('niveles.reordenar')
+    ->middleware('rol:administrador');
     Route::resource('niveles', NivelEscolarController::class)
         ->middleware('rol:administrador');
+
+    
 
     // ── Grados ───────────────────────────────────────────
     Route::resource('grados', GradoController::class)
