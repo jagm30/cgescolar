@@ -117,7 +117,6 @@
 @endpush
 
 @section('content')
-@section('content')
     <div class="box box-default">
         <div class="box-header with-border">
             <h3 class="box-title">Gestión de Niveles</h3>
@@ -237,43 +236,18 @@
 @endsection
 
 @push('scripts')
-    {{-- Importante: Asegúrate de tener SortableJS disponible --}}
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="{{ asset('bower_components/datatables.net/js/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ asset('bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
-
     <script>
-        $(document).ready(function() {
-            var table = $('#niveles').DataTable({
-                "language": {
-                    "url": "{{ asset('/bower_components/idioma/datatables_spanish.json') }}"
-                },
-                "order": [
-                    [0, "asc"]
-                ],
-                "columnDefs": [{
-                        "orderable": false,
-                        "targets": 0
-                    } // Desactivar ordenamiento clicable en la columna de arrastre
-                ]
-            });
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const el = document.getElementById('sortable-tbody');
 
-        function gestionOrden() {
-            return {
-                initSortable() {
-                    const tabla = document.querySelector('#niveles tbody');
-                    Sortable.create(tabla, {
-                        handle: '.handle',
-                        animation: 250,
-                        ghostClass: 'sortable-ghost',
-                        onEnd: () => {
-                            this.guardarNuevoOrden();
-                        }
-                    });
-                },
-                guardarNuevoOrden() {
+            Sortable.create(el, {
+                handle: '.handle',
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
                     let niveles = [];
+                    // Recorremos las filas para recalcular el orden visualmente
                     document.querySelectorAll('.fila-nivel').forEach((fila, index) => {
                         const nuevoOrden = index + 1;
                         fila.querySelector('.label-orden').innerText = nuevoOrden;
@@ -283,6 +257,7 @@
                         });
                     });
 
+                    // Enviamos a la base de datos
                     fetch("{{ route('niveles.reordenar') }}", {
                             method: 'POST',
                             headers: {
@@ -294,10 +269,10 @@
                             })
                         })
                         .then(res => res.json())
-                        .then(data => console.log("Orden sincronizado"))
-                        .catch(err => alert("Error al guardar el orden"));
+                        .then(data => console.log("BD Sincronizada"))
+                        .catch(err => console.error("Error al guardar"));
                 }
-            }
-        }
+            });
+        });
     </script>
 @endpush
