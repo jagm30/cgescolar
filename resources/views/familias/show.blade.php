@@ -10,642 +10,400 @@
 
 @push('styles')
 <style>
-/* ── Contactos ──────────────────────────────── */
-.ctc-card {
-    border: 1px solid #e0e0e0;
-    border-left: 5px solid #ccc;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    background: #fff;
-    transition: box-shadow .15s;
-}
-.ctc-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-.ctc-card.principal {
-    border-left-color: #3c8dbc;
-    background: #f7fbff;
-}
-.ctc-nombre-grande {
-    font-size: 17px;
-    font-weight: 700;
-    color: #1a1a1a;
-    line-height: 1.2;
-}
-.ctc-tel {
+/* ════════════════════════════════════════════
+   HERO DE FAMILIA
+════════════════════════════════════════════ */
+.fam-hero {
+    background: linear-gradient(135deg, #1e4d7b 0%, #3c8dbc 100%);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin-bottom: 22px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #d0e8ff;
-    background: #fff;
-    text-decoration: none;
-    color: #1a1a1a;
-    margin-top: 6px;
-    transition: background .12s;
+    gap: 22px;
+    flex-wrap: wrap;
+    box-shadow: 0 4px 16px rgba(60,141,188,.25);
 }
-.ctc-tel:hover { background: #e8f3ff; color: #1a1a1a; text-decoration: none; }
-.ctc-tel-trabajo { border-color: #e0e0e0; }
-.ctc-tel-trabajo:hover { background: #f5f5f5; }
-.ctc-tel-icon {
-    width: 34px; height: 34px; border-radius: 50%;
+.fam-hero-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(255,255,255,.18);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
 }
-.ctc-tel-num {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    line-height: 1;
-}
-.ctc-tel-label { font-size: 10px; color: #999; margin-top: 1px; }
+.fam-hero-nombre { font-size: 24px; font-weight: 800; color: #fff; line-height: 1.1; }
+.fam-hero-sub    { font-size: 13px; color: rgba(255,255,255,.7); margin-top: 4px; }
+.fam-hero-stats  { display: flex; gap: 18px; margin-left: auto; flex-wrap: wrap; }
+.fam-hero-stat   { text-align: center; }
+.fam-hero-stat-num { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
+.fam-hero-stat-lbl { font-size: 10px; color: rgba(255,255,255,.65); margin-top: 2px;
+                     text-transform: uppercase; letter-spacing: .06em; }
 
-/* ── Alumnos ────────────────────────────────── */
-.alumno-row {
+/* ════════════════════════════════════════════
+   SECCIÓN TÍTULOS
+════════════════════════════════════════════ */
+.sec-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: #6b7a8d;
+    margin: 0 0 14px;
+    display: flex; align-items: center; gap: 8px;
+}
+.sec-title::after {
+    content: ''; flex: 1; height: 1px; background: #e8ecf0;
+}
+
+/* ════════════════════════════════════════════
+   CONTACTOS
+════════════════════════════════════════════ */
+.ctc-card {
+    border: 1px solid #e4eaf0;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    background: #fff;
+    overflow: hidden;
+    transition: box-shadow .15s, transform .1s;
+}
+.ctc-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+.ctc-card.principal { border-color: #b8d4ec; border-left: 4px solid #3c8dbc; }
+
+.ctc-head {
     padding: 14px 16px;
-    border-bottom: 1px solid #f4f4f4;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    transition: background .1s;
+    display: flex; align-items: center; gap: 14px;
+    background: #fff;
 }
-.alumno-row:hover { background: #fafcff; }
-.alumno-nombre {
-    font-size: 15px;
-    font-weight: 600;
-    color: #222;
+.ctc-card.principal .ctc-head { background: #f0f7ff; }
+
+.ctc-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 18px; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #3c8dbc, #2c6fad);
+    box-shadow: 0 2px 6px rgba(60,141,188,.25);
+}
+.ctc-card:not(.principal) .ctc-avatar {
+    background: linear-gradient(135deg, #9ab, #6b7a8d);
+    box-shadow: none;
 }
 
-/* ── Estado cuenta ──────────────────────────── */
-.cuenta-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    border-bottom: 1px solid #f4f4f4;
-    font-size: 13px;
+.ctc-nombre { font-size: 16px; font-weight: 700; color: #1a2634; line-height: 1.2; }
+.ctc-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+.ctc-badge  {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+    letter-spacing: .03em; display: inline-flex; align-items: center; gap: 3px;
 }
-.cuenta-row:last-child { border-bottom: none; }
-.cuenta-monto-ok  { color: #00a65a; font-weight: 600; font-size: 14px; }
-.cuenta-monto-red { color: #dd4b39; font-weight: 700; font-size: 15px; }
+.ctc-badge-principal  { background: #3c8dbc; color: #fff; }
+.ctc-badge-parentesco { background: #f0f3f7; color: #5a6a7a; border: 1px solid #dde4eb; }
+.ctc-badge-recoger    { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.ctc-badge-portal     { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+.ctc-badge-pagos      { background: #fff8e1; color: #b45309; border: 1px solid #fde68a; }
+
+.ctc-contacto-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    padding: 12px 16px; border-top: 1px solid #f0f3f7;
+    background: #fafbfc;
+}
+@media (max-width: 480px) { .ctc-contacto-grid { grid-template-columns: 1fr; } }
+
+.ctc-dato {
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 8px; padding: 8px 12px;
+    border: 1px solid #e8ecf0; background: #fff;
+    text-decoration: none; color: inherit;
+    transition: background .12s, border-color .12s;
+    min-width: 0;
+}
+.ctc-dato:hover { background: #eef5fb; border-color: #b8d4ec; color: inherit; text-decoration: none; }
+.ctc-dato.no-link:hover { background: #fff; border-color: #e8ecf0; cursor: default; }
+.ctc-dato-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.ctc-dato-val  { font-size: 14px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctc-dato-lbl  { font-size: 10px; color: #9aa; margin-top: 1px; }
+
+.ctc-alumnos-row {
+    padding: 8px 16px; border-top: 1px solid #f0f3f7;
+    font-size: 11px; color: #7a8a9a; background: #fafbfc;
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+.ctc-alumno-chip {
+    background: #f0f3f7; border: 1px solid #dde4eb;
+    border-radius: 12px; padding: 2px 10px;
+    font-size: 11px; color: #4a5568;
+}
+
+/* ════════════════════════════════════════════
+   ALUMNOS
+════════════════════════════════════════════ */
+.alm-card {
+    border: 1px solid #e4eaf0;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: #fff;
+    overflow: hidden;
+    transition: box-shadow .15s;
+    display: flex;
+    align-items: stretch;
+}
+.alm-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+
+.alm-card-accent {
+    width: 5px; flex-shrink: 0;
+    background: #e0e0e0;
+}
+.alm-card-accent.activo          { background: #00a65a; }
+.alm-card-accent.baja_temporal   { background: #f39c12; }
+.alm-card-accent.baja_definitiva { background: #dd4b39; }
+.alm-card-accent.egresado        { background: #8e44ad; }
+
+.alm-card-body {
+    flex: 1; padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+}
+
+.alm-foto {
+    width: 54px; height: 54px; border-radius: 50%;
+    object-fit: cover; border: 2px solid #e8ecf0;
+    flex-shrink: 0;
+}
+.alm-foto-placeholder {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: linear-gradient(135deg, #e0e7ef, #c8d6e5);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.alm-nombre { font-size: 15px; font-weight: 700; color: #1a2634; }
+.alm-info   { font-size: 12px; color: #8a9ab0; margin-top: 4px; display: flex; gap: 14px; flex-wrap: wrap; }
+.alm-info i { margin-right: 3px; }
+
+.alm-estado-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 10px;
+    margin-left: 8px; vertical-align: middle;
+}
+.alm-badge-activo          { background:#e8f8f0; color:#00875a; border:1px solid #b3e8d0; }
+.alm-badge-baja_temporal   { background:#fff8e6; color:#b45309; border:1px solid #fcd97d; }
+.alm-badge-baja_definitiva { background:#fdecea; color:#b91c1c; border:1px solid #fca5a5; }
+.alm-badge-egresado        { background:#f3e8fd; color:#6b21a8; border:1px solid #d8b4fe; }
+
+.alm-acciones { flex-shrink: 0; display: flex; gap: 4px; align-items: center; }
+
+/* ════════════════════════════════════════════
+   SIDEBAR CARDS
+════════════════════════════════════════════ */
+.info-card {
+    border: 1px solid #e4eaf0;
+    border-radius: 10px;
+    background: #fff;
+    margin-bottom: 18px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.info-card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f3f7;
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f8fafc;
+}
+.info-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .07em; color: #6b7a8d; }
+.info-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px; border-bottom: 1px solid #f5f7fa; font-size: 13px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-row-label { color: #8a9ab0; font-size: 12px; }
+.info-row-value { font-weight: 600; color: #1a2634; text-align: right; }
+
+/* Estado de cuenta */
+.cuenta-alumno {
+    padding: 13px 16px; border-bottom: 1px solid #f0f3f7;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.cuenta-alumno:last-child { border-bottom: none; }
+.cuenta-deuda { color: #dd4b39; font-weight: 800; font-size: 15px; }
+.cuenta-ok    { color: #00a65a; font-weight: 700; font-size: 13px; }
 </style>
 @endpush
 
 @section('content')
 
 @if(session('success'))
-<div class="alert alert-success alert-dismissible">
+<div class="alert alert-success alert-dismissible" style="border-radius:8px;">
     <button type="button" class="close" data-dismiss="alert">&times;</button>
     <i class="fa fa-check-circle"></i> {{ session('success') }}
 </div>
 @endif
 @if(session('error'))
-<div class="alert alert-danger alert-dismissible">
+<div class="alert alert-danger alert-dismissible" style="border-radius:8px;">
     <button type="button" class="close" data-dismiss="alert">&times;</button>
     <i class="fa fa-exclamation-circle"></i> {{ session('error') }}
 </div>
 @endif
 
-<div class="row">
+@php
+    $totalAlumnos  = $familia->alumnos->count();
+    $activos       = $familia->alumnos->where('estado','activo')->count();
+    $totalContactos = $familia->contactos->count();
+    $deudaTotal    = $familia->alumnos->where('estado','activo')->sum(function($a) {
+        return $a->inscripciones->flatMap(fn($i) => $i->cargos ?? collect())
+            ->whereIn('estado', ['pendiente','parcial'])->sum('monto_original');
+    });
+@endphp
 
-{{-- ════════════════════════════════════════════════════
-     COLUMNA PRINCIPAL (col-md-8)
-════════════════════════════════════════════════════ --}}
-<div class="col-md-8">
-
-    {{-- ── CONTACTOS FAMILIARES ── --}}
-    <div class="box box-primary">
-        <div class="box-header with-border" style="background:linear-gradient(135deg,#2c6fad,#3c8dbc);border-radius:3px 3px 0 0;">
-            <h3 class="box-title" style="color:#fff;font-size:15px;">
-                <i class="fa fa-phone"></i>
-                Contactos familiares
-                <span style="background:rgba(255,255,255,.25);color:#fff;border-radius:10px;
-                              padding:1px 8px;font-size:12px;margin-left:6px;">
-                    {{ $familia->contactos->count() }}
-                </span>
-            </h3>
-            <div class="box-tools pull-right">
-                @can('administrador', 'recepcion')
-                <button type="button" class="btn btn-xs btn-flat"
-                        style="color:#fff;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);"
-                        id="btn-toggle-nuevo-ctc"
-                        onclick="(function(){
-                            var f=document.getElementById('form-nuevo-ctc');
-                            var v=f.style.display!=='none';
-                            f.style.display=v?'none':'block';
-                            document.getElementById('ico-nuevo-ctc').className=v?'fa fa-plus':'fa fa-minus';
-                        })()">
-                    <i class="fa fa-plus" id="ico-nuevo-ctc"></i> Agregar contacto
-                </button>
-                @endcan
-            </div>
-        </div>
-
-        {{-- Formulario nuevo contacto --}}
-        <div id="form-nuevo-ctc" style="display:none;border-bottom:2px solid #e8f3ff;">
-            <div style="padding:16px;background:#f0f7ff;">
-                <h4 style="margin:0 0 14px;font-size:13px;color:#2c6fad;font-weight:700;">
-                    <i class="fa fa-plus-circle"></i> Nuevo contacto
-                </h4>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label>
-                            <input type="text" id="nctc-nombre" class="form-control input-sm" maxlength="100">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label style="font-size:12px;">Apellido paterno</label>
-                            <input type="text" id="nctc-ap-paterno" class="form-control input-sm" maxlength="100">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label style="font-size:12px;">Apellido materno</label>
-                            <input type="text" id="nctc-ap-materno" class="form-control input-sm" maxlength="100">
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label style="font-size:12px;">Teléfono celular <span class="text-red">*</span></label>
-                            <input type="tel" id="nctc-celular" class="form-control input-sm" maxlength="20" placeholder="10 dígitos">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label style="font-size:12px;">Teléfono trabajo</label>
-                            <input type="tel" id="nctc-trabajo" class="form-control input-sm" maxlength="20">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label style="font-size:12px;">Correo</label>
-                            <input type="email" id="nctc-email" class="form-control input-sm" maxlength="200">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label style="font-size:12px;">CURP</label>
-                            <input type="text" id="nctc-curp" class="form-control input-sm"
-                                   maxlength="18" style="text-transform:uppercase">
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-5">
-                        <label class="checkbox-inline" style="font-size:12px;">
-                            <input type="checkbox" id="nctc-portal">
-                            Habilitar acceso al portal familiar
-                        </label>
-                    </div>
-                    <div class="col-md-7 text-right">
-                        <button type="button" class="btn btn-default btn-sm" id="btn-cancelar-nctc">Cancelar</button>
-                        <button type="button" class="btn btn-success btn-sm" id="btn-guardar-nctc">
-                            <i class="fa fa-plus"></i> Agregar contacto
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Alerta AJAX --}}
-        <div id="ctc-alerta" style="display:none;margin:10px 16px 0;" class="alert alert-dismissible">
-            <button type="button" class="close" onclick="$('#ctc-alerta').hide()">&times;</button>
-            <span id="ctc-alerta-msg"></span>
-        </div>
-
-        <div class="box-body" style="padding:14px 14px 6px;" id="contenedor-contactos">
-
-            @forelse($familia->contactos->sortBy('pivot.orden') as $contacto)
-            @php
-                $pivot       = $contacto->pivot;
-                $esPrincipal = $pivot && $pivot->orden == 1;
-                $ac          = $contacto->alumnoContactos->first();
-            @endphp
-
-            <div class="ctc-panel ctc-card {{ $esPrincipal ? 'principal' : '' }}"
-                 data-id="{{ $contacto->id }}">
-
-                <div style="padding:14px 16px;">
-                    <div style="display:flex;align-items:flex-start;gap:12px;">
-
-                        {{-- Avatar --}}
-                        <div style="flex-shrink:0;">
-                            @if($contacto->foto_url)
-                                <img src="{{ asset('storage/'.$contacto->foto_url) }}"
-                                     style="width:50px;height:50px;border-radius:50%;object-fit:cover;
-                                            border:2px solid {{ $esPrincipal ? '#3c8dbc' : '#e0e0e0' }};">
-                            @else
-                                <div style="width:50px;height:50px;border-radius:50%;
-                                            background:{{ $esPrincipal ? '#3c8dbc' : '#bdbdbd' }};
-                                            display:flex;align-items:center;justify-content:center;">
-                                    <i class="fa fa-user" style="color:#fff;font-size:20px;"></i>
-                                </div>
-                            @endif
-                        </div>
-
-                        {{-- Nombre y badges --}}
-                        <div style="flex:1;min-width:0;">
-                            <div class="ctc-nombre-grande">
-                                {{ $contacto->nombre }}
-                                {{ $contacto->ap_paterno }}
-                                {{ $contacto->ap_materno }}
-                            </div>
-                            <div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">
-                                @if($esPrincipal)
-                                    <span style="background:#3c8dbc;color:#fff;font-size:10px;font-weight:700;
-                                                 padding:2px 9px;border-radius:10px;letter-spacing:.03em;">
-                                        PRINCIPAL
-                                    </span>
-                                @endif
-                                @if($ac && $ac->parentesco)
-                                    <span style="background:#f0f0f0;color:#555;font-size:11px;
-                                                 padding:2px 9px;border-radius:10px;font-weight:600;">
-                                        {{ ucfirst($ac->parentesco) }}
-                                    </span>
-                                @endif
-                                @if($ac && $ac->autorizado_recoger)
-                                    <span style="background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:600;
-                                                 padding:2px 9px;border-radius:10px;">
-                                        <i class="fa fa-check"></i> Autorizado recoger
-                                    </span>
-                                @endif
-                                @if($contacto->tiene_acceso_portal)
-                                    <span style="background:#e3f2fd;color:#1565c0;font-size:10px;font-weight:600;
-                                                 padding:2px 9px;border-radius:10px;">
-                                        <i class="fa fa-globe"></i> Portal
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Botones editar/eliminar --}}
-                        @can('administrador', 'recepcion')
-                        <div style="flex-shrink:0;display:flex;gap:4px;">
-                            <button type="button"
-                                    class="btn btn-default btn-xs btn-flat btn-editar-ctc"
-                                    data-id="{{ $contacto->id }}" title="Editar">
-                                <i class="fa fa-pencil"></i>
-                            </button>
-                            <button type="button"
-                                    class="btn btn-danger btn-xs btn-flat btn-eliminar-ctc"
-                                    data-id="{{ $contacto->id }}"
-                                    data-nombre="{{ $contacto->nombre }} {{ $contacto->ap_paterno }}"
-                                    title="Eliminar">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                        </div>
-                        @endcan
-                    </div>
-
-                    {{-- Teléfonos grandes y clicables --}}
-                    <div style="margin-top:10px;">
-                        @if($contacto->telefono_celular)
-                        <a href="tel:{{ preg_replace('/\D/','',$contacto->telefono_celular) }}"
-                           class="ctc-tel">
-                            <div class="ctc-tel-icon" style="background:#3c8dbc;">
-                                <i class="fa fa-mobile" style="color:#fff;font-size:18px;"></i>
-                            </div>
-                            <div>
-                                <div class="ctc-tel-num">{{ $contacto->telefono_celular }}</div>
-                                <div class="ctc-tel-label">Celular</div>
-                            </div>
-                            <i class="fa fa-phone" style="margin-left:auto;color:#3c8dbc;font-size:13px;"></i>
-                        </a>
-                        @endif
-
-                        @if($contacto->telefono_trabajo)
-                        <a href="tel:{{ preg_replace('/\D/','',$contacto->telefono_trabajo) }}"
-                           class="ctc-tel ctc-tel-trabajo">
-                            <div class="ctc-tel-icon" style="background:#607d8b;">
-                                <i class="fa fa-phone" style="color:#fff;font-size:15px;"></i>
-                            </div>
-                            <div>
-                                <div class="ctc-tel-num">{{ $contacto->telefono_trabajo }}</div>
-                                <div class="ctc-tel-label">Trabajo</div>
-                            </div>
-                            <i class="fa fa-phone" style="margin-left:auto;color:#aaa;font-size:12px;"></i>
-                        </a>
-                        @endif
-
-                        @if($contacto->email)
-                        <div style="display:flex;align-items:center;gap:10px;padding:6px 4px;font-size:13px;color:#555;">
-                            <div class="ctc-tel-icon" style="background:#f5f5f5;border:1px solid #e0e0e0;">
-                                <i class="fa fa-envelope-o" style="color:#888;font-size:14px;"></i>
-                            </div>
-                            {{ $contacto->email }}
-                        </div>
-                        @endif
-
-                        @if($contacto->curp)
-                        <div style="font-size:11px;color:#aaa;margin-top:4px;padding-left:4px;">
-                            <i class="fa fa-id-card-o"></i>
-                            <code style="font-size:11px;">{{ $contacto->curp }}</code>
-                        </div>
-                        @endif
-
-                        @if(!$contacto->telefono_celular && !$contacto->telefono_trabajo && !$contacto->email)
-                        <div style="font-size:12px;color:#ccc;padding:6px 4px;">
-                            <i class="fa fa-info-circle"></i> Sin datos de contacto registrados
-                        </div>
-                        @endif
-                    </div>
-
-                    {{-- Alumnos vinculados --}}
-                    @if($contacto->alumnoContactos && $contacto->alumnoContactos->count())
-                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;
-                                display:flex;gap:4px;flex-wrap:wrap;">
-                        @foreach($contacto->alumnoContactos as $ac)
-                            <span style="background:#f5f5f5;color:#666;font-size:11px;
-                                         padding:2px 8px;border-radius:10px;border:1px solid #e8e8e8;">
-                                {{ ucfirst($ac->parentesco) }}
-                                — {{ $ac->alumno->nombre ?? '' }} {{ $ac->alumno->ap_paterno ?? '' }}
-                                @if($ac->autorizado_recoger)
-                                    <i class="fa fa-check" style="color:#4caf50;" title="Autorizado para recoger"></i>
-                                @endif
-                            </span>
-                        @endforeach
-                    </div>
-                    @endif
-                </div>
-
-                {{-- Panel edición inline --}}
-                <div class="panel-edicion" id="editar-ctc-{{ $contacto->id }}"
-                     style="display:none;margin:0 14px 14px;padding:14px;
-                            background:#f8f8f8;border-radius:6px;border:1px solid #e0e0e0;">
-                    <h5 style="margin:0 0 12px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.05em;">
-                        <i class="fa fa-pencil"></i> Editando contacto
-                    </h5>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label>
-                                <input type="text" class="form-control input-sm ctc-nombre"
-                                       value="{{ $contacto->nombre }}" maxlength="100">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label style="font-size:12px;">Apellido paterno</label>
-                                <input type="text" class="form-control input-sm ctc-ap-paterno"
-                                       value="{{ $contacto->ap_paterno }}" maxlength="100">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label style="font-size:12px;">Apellido materno</label>
-                                <input type="text" class="form-control input-sm ctc-ap-materno"
-                                       value="{{ $contacto->ap_materno }}" maxlength="100">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label style="font-size:12px;">Teléfono celular</label>
-                                <input type="tel" class="form-control input-sm ctc-celular"
-                                       value="{{ $contacto->telefono_celular }}" maxlength="20">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label style="font-size:12px;">Teléfono trabajo</label>
-                                <input type="tel" class="form-control input-sm ctc-trabajo"
-                                       value="{{ $contacto->telefono_trabajo }}" maxlength="20">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label style="font-size:12px;">Correo</label>
-                                <input type="email" class="form-control input-sm ctc-email"
-                                       value="{{ $contacto->email }}" maxlength="200">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label style="font-size:12px;">CURP</label>
-                                <input type="text" class="form-control input-sm ctc-curp"
-                                       value="{{ $contacto->curp }}" maxlength="18"
-                                       style="text-transform:uppercase">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="checkbox-inline" style="font-size:12px;">
-                                <input type="checkbox" class="ctc-portal"
-                                    {{ $contacto->tiene_acceso_portal ? 'checked' : '' }}>
-                                Acceso al portal familiar
-                            </label>
-                        </div>
-                        <div class="col-md-6 text-right">
-                            <button type="button" class="btn btn-default btn-xs btn-cancelar-edicion"
-                                    data-id="{{ $contacto->id }}">Cancelar</button>
-                            <button type="button" class="btn btn-success btn-xs btn-guardar-ctc"
-                                    data-id="{{ $contacto->id }}">
-                                <i class="fa fa-save"></i> Guardar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            @empty
-            <div style="padding:40px;text-align:center;">
-                <i class="fa fa-phone fa-3x" style="color:#e0e0e0;display:block;margin-bottom:10px;"></i>
-                <p style="color:#bbb;">Sin contactos registrados.</p>
-            </div>
-            @endforelse
-
+{{-- ══ HERO ══ --}}
+<div class="fam-hero">
+    <div class="fam-hero-icon">
+        <i class="fa fa-home" style="color:#fff;font-size:28px;"></i>
+    </div>
+    <div>
+        <div class="fam-hero-nombre">Familia {{ $familia->apellido_familia }}</div>
+        <div class="fam-hero-sub">
+            <span class="label" style="background:rgba(255,255,255,.2);color:#fff;border-radius:10px;font-size:11px;">
+                {{ $familia->activo ? 'Activa' : 'Inactiva' }}
+            </span>
+            @if($familia->observaciones)
+                &nbsp;·&nbsp; <span>{{ $familia->observaciones }}</span>
+            @endif
         </div>
     </div>
-
-    {{-- ── ALUMNOS ── --}}
-    <div class="box box-default">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-graduation-cap" style="color:#3c8dbc;"></i>
-                Alumnos
-                <span class="badge bg-blue" style="margin-left:6px;">{{ $familia->alumnos->count() }}</span>
-            </h3>
-            <div class="box-tools pull-right">
-                @can('administrador')
-                <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}"
-                   class="btn btn-success btn-xs btn-flat">
-                    <i class="fa fa-plus"></i> Inscribir alumno
-                </a>
-                @endcan
-            </div>
+    <div class="fam-hero-stats">
+        <div class="fam-hero-stat">
+            <div class="fam-hero-stat-num">{{ $totalAlumnos }}</div>
+            <div class="fam-hero-stat-lbl">Alumno{{ $totalAlumnos != 1 ? 's' : '' }}</div>
         </div>
-        <div class="box-body no-padding">
-
-            @forelse($familia->alumnos->sortBy('ap_paterno') as $alumno)
-            @php
-                $inscripcion = $alumno->inscripciones->sortByDesc('id')->first();
-                $estadoColor = match($alumno->estado) {
-                    'activo'          => 'success',
-                    'baja_temporal'   => 'warning',
-                    'baja_definitiva' => 'danger',
-                    'egresado'        => 'default',
-                    default           => 'default',
-                };
-            @endphp
-
-            <div class="alumno-row">
-                {{-- Foto --}}
-                <div style="flex-shrink:0;">
-                    @if($alumno->foto_url)
-                        <img src="{{ asset('storage/'.$alumno->foto_url) }}"
-                             alt="{{ $alumno->nombre }}"
-                             style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #e0e0e0;">
-                    @else
-                        <div style="width:52px;height:52px;border-radius:50%;background:#e8e8e8;
-                                    display:flex;align-items:center;justify-content:center;">
-                            <i class="fa fa-user" style="font-size:22px;color:#bbb;"></i>
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Datos --}}
-                <div style="flex:1;min-width:0;">
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <a href="{{ route('alumnos.show', $alumno->id) }}"
-                           class="alumno-nombre" style="text-decoration:none;">
-                            {{ $alumno->nombre }} {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}
-                        </a>
-                        <span class="label label-{{ $estadoColor }}">
-                            {{ ucfirst(str_replace('_',' ', $alumno->estado)) }}
-                        </span>
-                    </div>
-                    <div style="margin-top:5px;font-size:12px;color:#999;display:flex;gap:16px;flex-wrap:wrap;">
-                        <span>
-                            <i class="fa fa-id-badge"></i>
-                            <code style="font-size:11px;background:#f5f5f5;padding:0 4px;border-radius:2px;">
-                                {{ $alumno->matricula }}
-                            </code>
-                        </span>
-                        @if($alumno->fecha_nacimiento)
-                        <span>
-                            <i class="fa fa-birthday-cake"></i>
-                            {{ $alumno->fecha_nacimiento->format('d/m/Y') }}
-                            <small>({{ $alumno->fecha_nacimiento->age }} años)</small>
-                        </span>
-                        @endif
-                        @if($inscripcion)
-                        <span>
-                            <i class="fa fa-graduation-cap"></i>
-                            {{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}
-                            — {{ $inscripcion->grupo->grado->nombre }}°
-                            {{ $inscripcion->grupo->nombre }}
-                            <small class="text-muted">({{ $inscripcion->ciclo->nombre ?? '' }})</small>
-                        </span>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Acciones --}}
-                <div style="flex-shrink:0;display:flex;gap:4px;">
-                    <a href="{{ route('alumnos.show', $alumno->id) }}"
-                       class="btn btn-default btn-xs btn-flat" title="Ver alumno">
-                        <i class="fa fa-eye"></i>
-                    </a>
-                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                       class="btn btn-info btn-xs btn-flat" title="Estado de cuenta">
-                        <i class="fa fa-dollar"></i>
-                    </a>
-                    @can('administrador')
-                    <a href="{{ route('alumnos.edit', $alumno->id) }}"
-                       class="btn btn-primary btn-xs btn-flat" title="Editar alumno">
-                        <i class="fa fa-pencil"></i>
-                    </a>
-                    @endcan
-                </div>
-            </div>
-
-            @empty
-            <div style="padding:40px;text-align:center;">
-                <i class="fa fa-graduation-cap fa-3x" style="color:#e0e0e0;display:block;margin-bottom:10px;"></i>
-                <p style="color:#bbb;">Esta familia no tiene alumnos inscritos.</p>
-                @can('administrador')
-                <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}"
-                   class="btn btn-success btn-sm">
-                    <i class="fa fa-plus"></i> Inscribir primer alumno
-                </a>
-                @endcan
-            </div>
-            @endforelse
-
+        <div class="fam-hero-stat" style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;">
+            <div class="fam-hero-stat-num">{{ $activos }}</div>
+            <div class="fam-hero-stat-lbl">Activos</div>
         </div>
-    </div>
-
-</div>{{-- /col-md-8 --}}
-
-{{-- ════════════════════════════════════════════════════
-     COLUMNA LATERAL (col-md-4)
-════════════════════════════════════════════════════ --}}
-<div class="col-md-4">
-
-    {{-- Info de la familia --}}
-    <div class="box box-primary">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-home"></i> {{ $familia->apellido_familia }}
-            </h3>
+        <div class="fam-hero-stat" style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;">
+            <div class="fam-hero-stat-num">{{ $totalContactos }}</div>
+            <div class="fam-hero-stat-lbl">Contacto{{ $totalContactos != 1 ? 's' : '' }}</div>
         </div>
-        <div class="box-body no-padding">
-            <table class="table" style="font-size:13px;margin:0;">
-                <tr>
-                    <th style="color:#999;font-weight:400;width:45%;padding:10px 16px;">Estado</th>
-                    <td style="padding:10px 16px;">
-                        <span class="label label-{{ $familia->activo ? 'success' : 'default' }}">
-                            {{ $familia->activo ? 'Activa' : 'Inactiva' }}
-                        </span>
-                    </td>
-                </tr>
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:10px 16px;">Alumnos</th>
-                    <td style="padding:10px 16px;">
-                        {{ $familia->alumnos->count() }} registrado(s),
-                        {{ $familia->alumnos->where('estado','activo')->count() }} activo(s)
-                    </td>
-                </tr>
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:10px 16px;">Contactos</th>
-                    <td style="padding:10px 16px;">
-                        {{ $familia->contactos->count() }} registrado(s)
-                    </td>
-                </tr>
-                @if($familia->observaciones)
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:10px 16px;">Notas</th>
-                    <td style="padding:10px 16px;font-size:12px;">{{ $familia->observaciones }}</td>
-                </tr>
-                @endif
-            </table>
+        @if($deudaTotal > 0)
+        <div class="fam-hero-stat" style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;">
+            <div class="fam-hero-stat-num" style="color:#ffcdd2;">${{ number_format($deudaTotal,0) }}</div>
+            <div class="fam-hero-stat-lbl">Saldo pendiente</div>
         </div>
+        @else
+        <div class="fam-hero-stat" style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;">
+            <div class="fam-hero-stat-num" style="color:#c8e6c9;"><i class="fa fa-check"></i></div>
+            <div class="fam-hero-stat-lbl">Al corriente</div>
+        </div>
+        @endif
         @can('administrador')
-        <div class="box-footer">
+        <div style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;align-self:center;">
             <a href="{{ route('familias.edit', $familia->id) }}"
-               class="btn btn-primary btn-sm btn-flat btn-block">
-                <i class="fa fa-pencil"></i> Editar familia
+               class="btn btn-sm btn-flat"
+               style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
+                <i class="fa fa-pencil"></i> Editar
             </a>
         </div>
         @endcan
     </div>
+</div>
 
-    {{-- Estado de cuenta — vinculado --}}
-    @if($familia->alumnos->where('estado','activo')->count() > 0)
+<div class="row">
+
+{{-- ════════════════════════════════════════════════════
+     COLUMNA IZQUIERDA (col-md-4)
+════════════════════════════════════════════════════ --}}
+<div class="col-md-4">
+
+    {{-- ── PERFIL ── --}}
+    <div class="box box-primary" style="overflow:hidden;">
+
+        <div class="perfil-header">
+            <div class="perfil-icono">
+                <i class="fa fa-home" style="font-size:44px;color:rgba(255,255,255,.7);"></i>
+            </div>
+
+            <div class="perfil-nombre">{{ $familia->apellido_familia }}</div>
+            <div class="perfil-subtitulo">Familia</div>
+
+            <div class="perfil-estado">
+                <span class="label label-{{ $familia->activo ? 'success' : 'default' }}"
+                      style="font-size:13px;padding:4px 14px;">
+                    <i class="fa fa-{{ $familia->activo ? 'circle' : 'circle-o' }}"></i>
+                    {{ $familia->activo ? 'Activa' : 'Inactiva' }}
+                </span>
+            </div>
+        </div>
+
+        {{-- Acciones rápidas --}}
+        <div style="padding:0;">
+            @can('administrador')
+            <a href="{{ route('familias.edit', $familia->id) }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f0fb;">
+                    <i class="fa fa-pencil" style="color:#3c8dbc;font-size:15px;"></i>
+                </div>
+                Editar familia
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#ccc;font-size:11px;"></i>
+            </a>
+            @endcan
+            @can('administrador')
+            <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f5e9;">
+                    <i class="fa fa-user-plus" style="color:#4caf50;font-size:14px;"></i>
+                </div>
+                Inscribir alumno
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#ccc;font-size:11px;"></i>
+            </a>
+            @endcan
+        </div>
+    </div>
+
+    {{-- ── DATOS DE LA FAMILIA ── --}}
     <div class="box box-default">
         <div class="box-header with-border">
-            <h3 class="box-title" style="font-size:13px;">
-                <i class="fa fa-dollar" style="color:#3c8dbc;"></i>
-                Estado de cuenta
+            <h3 class="box-title">
+                <i class="fa fa-info-circle" style="color:#3c8dbc;"></i>
+                Información
             </h3>
         </div>
         <div class="box-body no-padding">
 
+            <div class="dato-row">
+                <span class="dato-label">Alumnos</span>
+                <span class="dato-valor">
+                    {{ $familia->alumnos->count() }} registrado(s)
+                    @if($familia->alumnos->where('estado','activo')->count() > 0)
+                    <small style="color:#27ae60;font-weight:400;font-size:12px;">
+                        · {{ $familia->alumnos->where('estado','activo')->count() }} activo(s)
+                    </small>
+                    @endif
+                </span>
+            </div>
+
+            <div class="dato-row">
+                <span class="dato-label">Contactos</span>
+                <span class="dato-valor">
+                    {{ $familia->contactos->count() }} registrado(s)
+                </span>
+            </div>
+
+            @if($familia->observaciones)
+            <div class="dato-row" style="align-items:flex-start;">
+                <span class="dato-label" style="padding-top:2px;">Notas</span>
+                <span class="dato-valor" style="font-size:13px;font-weight:400;color:#555;line-height:1.5;">
+                    {{ $familia->observaciones }}
+                </span>
+            </div>
+            @endif
+
+        </div>
+    </div>
+
+    {{-- ── ESTADO DE CUENTA ── --}}
+    @if($familia->alumnos->where('estado','activo')->count() > 0)
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title" style="font-size:13px;">
+                <i class="fa fa-dollar" style="color:#f39c12;"></i>
+                Estado de cuenta
+            </h3>
+        </div>
+        <div class="box-body no-padding">
             @foreach($familia->alumnos->where('estado','activo') as $alumno)
             @php
                 $cargosAlumno = $alumno->inscripciones
@@ -664,9 +422,7 @@
                 </div>
                 <div style="text-align:right;">
                     @if($deuda > 0)
-                        <div class="cuenta-monto-red">
-                            ${{ number_format($deuda, 2) }}
-                        </div>
+                        <div class="cuenta-monto-red">${{ number_format($deuda, 2) }}</div>
                         <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
                            style="font-size:10px;color:#3c8dbc;">
                             Ver detalle <i class="fa fa-arrow-right"></i>
@@ -683,10 +439,588 @@
                 </div>
             </div>
             @endforeach
-
         </div>
     </div>
     @endif
+
+</div>{{-- /col-md-4 --}}
+
+{{-- ════════════════════════════════════════════════════
+     COLUMNA PRINCIPAL (col-md-8)
+════════════════════════════════════════════════════ --}}
+<div class="col-md-8">
+
+    {{-- ── CONTACTOS ── --}}
+    <div style="margin-bottom:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <p class="sec-title" style="flex:1;margin:0;">
+                <i class="fa fa-phone" style="color:#3c8dbc;"></i>
+                Contactos familiares
+                <span style="background:#e8f0fb;color:#3c8dbc;font-size:11px;font-weight:700;
+                             padding:2px 9px;border-radius:10px;">{{ $totalContactos }}</span>
+            </p>
+            @can('administrador', 'recepcion')
+            <button type="button" class="btn btn-success btn-xs btn-flat"
+                    id="btn-toggle-nuevo-ctc"
+                    style="border-radius:6px;margin-left:12px;"
+                    onclick="(function(){
+                        var f=document.getElementById('form-nuevo-ctc');
+                        var v=f.style.display!=='none';
+                        f.style.display=v?'none':'block';
+                        document.getElementById('ico-nuevo-ctc').className=v?'fa fa-plus':'fa fa-minus';
+                    })()">
+                <i class="fa fa-plus" id="ico-nuevo-ctc"></i> Agregar contacto
+            </button>
+            @endcan
+        </div>
+
+        {{-- Formulario nuevo contacto --}}
+        <div id="form-nuevo-ctc"
+             style="display:none;border:1px solid #b8d4ec;border-radius:10px;
+                    background:#f0f7ff;padding:18px;margin-bottom:16px;">
+            <h4 style="margin:0 0 14px;font-size:13px;color:#2c6fad;font-weight:700;">
+                <i class="fa fa-plus-circle"></i> Nuevo contacto
+            </h4>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label>
+                        <input type="text" id="nctc-nombre" class="form-control input-sm" maxlength="100">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label style="font-size:12px;">Apellido paterno</label>
+                        <input type="text" id="nctc-ap-paterno" class="form-control input-sm" maxlength="100">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label style="font-size:12px;">Apellido materno</label>
+                        <input type="text" id="nctc-ap-materno" class="form-control input-sm" maxlength="100">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label style="font-size:12px;">Teléfono celular <span class="text-red">*</span></label>
+                        <input type="tel" id="nctc-celular" class="form-control input-sm" maxlength="20" placeholder="10 dígitos">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label style="font-size:12px;">Teléfono trabajo</label>
+                        <input type="tel" id="nctc-trabajo" class="form-control input-sm" maxlength="20">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label style="font-size:12px;">Correo</label>
+                        <input type="email" id="nctc-email" class="form-control input-sm" maxlength="200">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label style="font-size:12px;">CURP</label>
+                        <input type="text" id="nctc-curp" class="form-control input-sm"
+                               maxlength="18" style="text-transform:uppercase">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="checkbox-inline" style="font-size:12px;">
+                        <input type="checkbox" id="nctc-portal"> Habilitar acceso al portal familiar
+                    </label>
+                </div>
+                <div class="col-md-6 text-right">
+                    <button type="button" class="btn btn-default btn-sm" id="btn-cancelar-nctc">Cancelar</button>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-guardar-nctc">
+                        <i class="fa fa-plus"></i> Agregar contacto
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Alerta AJAX --}}
+        <div id="ctc-alerta" style="display:none;" class="alert alert-dismissible" style="border-radius:8px;">
+            <button type="button" class="close" onclick="$('#ctc-alerta').hide()">&times;</button>
+            <span id="ctc-alerta-msg"></span>
+        </div>
+
+        {{-- Lista de contactos --}}
+        <div id="contenedor-contactos">
+        @forelse($familia->contactos->sortBy('pivot.orden') as $contacto)
+        @php
+            $pivot       = $contacto->pivot;
+            $esPrincipal = $pivot && $pivot->orden == 1;
+            $inicial     = mb_strtoupper(mb_substr($contacto->nombre, 0, 1));
+        @endphp
+
+        <div class="ctc-panel ctc-card {{ $esPrincipal ? 'principal' : '' }}"
+             data-id="{{ $contacto->id }}">
+
+            {{-- Cabecera del contacto --}}
+            <div class="ctc-head">
+                @if($contacto->foto_url)
+                    <img src="{{ asset('storage/'.$contacto->foto_url) }}"
+                         style="width:48px;height:48px;border-radius:50%;object-fit:cover;
+                                border:2px solid {{ $esPrincipal ? '#3c8dbc' : '#e0e0e0' }};flex-shrink:0;">
+                @else
+                    <div class="ctc-avatar">{{ $inicial }}</div>
+                @endif
+
+                <div style="flex:1;min-width:0;">
+                    <div class="ctc-nombre">
+                        {{ $contacto->nombre }} {{ $contacto->ap_paterno }} {{ $contacto->ap_materno }}
+                    </div>
+                    <div class="ctc-badges">
+                        @if($esPrincipal)
+                            <span class="ctc-badge ctc-badge-principal">
+                                <i class="fa fa-star" style="font-size:8px;"></i> Principal
+                            </span>
+                        @endif
+                        @foreach($contacto->alumnoContactos as $ac)
+                            @if($ac->parentesco)
+                            <span class="ctc-badge ctc-badge-parentesco">{{ ucfirst($ac->parentesco) }}</span>
+                            @endif
+                            @if($ac->autorizado_recoger)
+                            <span class="ctc-badge ctc-badge-recoger">
+                                <i class="fa fa-check"></i> Recoger
+                            </span>
+                            @endif
+                            @if($ac->es_responsable_pago)
+                            <span class="ctc-badge ctc-badge-pagos">
+                                <i class="fa fa-dollar"></i> Pagos
+                            </span>
+                            @endif
+                        @endforeach
+                        @if($contacto->tiene_acceso_portal)
+                            <span class="ctc-badge ctc-badge-portal">
+                                <i class="fa fa-globe"></i> Portal
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                @can('administrador', 'recepcion')
+                <div style="flex-shrink:0;display:flex;gap:4px;">
+                    <button type="button"
+                            class="btn btn-default btn-xs btn-flat btn-editar-ctc"
+                            data-id="{{ $contacto->id }}" title="Editar contacto">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                    <button type="button"
+                            class="btn btn-danger btn-xs btn-flat btn-eliminar-ctc"
+                            data-id="{{ $contacto->id }}"
+                            data-nombre="{{ $contacto->nombre }} {{ $contacto->ap_paterno }}"
+                            title="Eliminar contacto">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+                @endcan
+            </div>
+
+            {{-- Datos de contacto en grid --}}
+            @if($contacto->telefono_celular || $contacto->telefono_trabajo || $contacto->email || $contacto->curp)
+            <div class="ctc-contacto-grid">
+                @if($contacto->telefono_celular)
+                <a href="tel:{{ preg_replace('/\D/','',$contacto->telefono_celular) }}" class="ctc-dato">
+                    <div class="ctc-dato-icon" style="background:#eaf3fb;">
+                        <i class="fa fa-mobile" style="color:#3c8dbc;font-size:18px;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <div class="ctc-dato-val">{{ $contacto->telefono_celular }}</div>
+                        <div class="ctc-dato-lbl">Celular</div>
+                    </div>
+                    <i class="fa fa-angle-right" style="margin-left:auto;color:#b0bec5;"></i>
+                </a>
+                @endif
+
+                @if($contacto->telefono_trabajo)
+                <a href="tel:{{ preg_replace('/\D/','',$contacto->telefono_trabajo) }}" class="ctc-dato">
+                    <div class="ctc-dato-icon" style="background:#eceff1;">
+                        <i class="fa fa-phone" style="color:#607d8b;font-size:15px;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <div class="ctc-dato-val">{{ $contacto->telefono_trabajo }}</div>
+                        <div class="ctc-dato-lbl">Trabajo</div>
+                    </div>
+                    <i class="fa fa-angle-right" style="margin-left:auto;color:#b0bec5;"></i>
+                </a>
+                @endif
+
+                @if($contacto->email)
+                <a href="mailto:{{ $contacto->email }}" class="ctc-dato" style="grid-column: {{ ($contacto->telefono_celular && $contacto->telefono_trabajo) ? 'span 2' : 'auto' }};">
+                    <div class="ctc-dato-icon" style="background:#f3e8fd;">
+                        <i class="fa fa-envelope-o" style="color:#8e44ad;font-size:14px;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <div class="ctc-dato-val" style="font-size:13px;">{{ $contacto->email }}</div>
+                        <div class="ctc-dato-lbl">Correo electrónico</div>
+                    </div>
+                </a>
+                @endif
+
+                @if($contacto->curp)
+                <div class="ctc-dato no-link">
+                    <div class="ctc-dato-icon" style="background:#e8f5e9;">
+                        <i class="fa fa-id-card-o" style="color:#2e7d32;font-size:13px;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <div class="ctc-dato-val" style="font-size:12px;font-family:monospace;">{{ $contacto->curp }}</div>
+                        <div class="ctc-dato-lbl">CURP</div>
+                    </div>
+                </div>
+                @endif
+            </div>
+            @endif
+
+            {{-- Alumnos vinculados --}}
+            @if($contacto->alumnoContactos && $contacto->alumnoContactos->count())
+            <div class="ctc-alumnos-row">
+                <i class="fa fa-graduation-cap" style="color:#9ab;"></i>
+                @foreach($contacto->alumnoContactos as $ac)
+                <span class="ctc-alumno-chip">
+                    {{ $ac->alumno->nombre ?? '' }} {{ $ac->alumno->ap_paterno ?? '' }}
+                </span>
+                @endforeach
+            </div>
+            @endif
+
+            {{-- Panel edición inline --}}
+            <div class="panel-edicion" id="editar-ctc-{{ $contacto->id }}"
+                 style="display:none;margin:0 14px 14px;padding:14px;
+                        background:#f8f9fa;border-radius:8px;border:1px solid #dde4eb;">
+                <h5 style="margin:0 0 12px;font-size:11px;color:#8a9ab0;text-transform:uppercase;letter-spacing:.06em;">
+                    <i class="fa fa-pencil"></i> Editar datos del contacto
+                </h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label>
+                            <input type="text" class="form-control input-sm ctc-nombre"
+                                   value="{{ $contacto->nombre }}" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="font-size:12px;">Apellido paterno</label>
+                            <input type="text" class="form-control input-sm ctc-ap-paterno"
+                                   value="{{ $contacto->ap_paterno }}" maxlength="100">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label style="font-size:12px;">Apellido materno</label>
+                            <input type="text" class="form-control input-sm ctc-ap-materno"
+                                   value="{{ $contacto->ap_materno }}" maxlength="100">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label style="font-size:12px;">Celular</label>
+                            <input type="tel" class="form-control input-sm ctc-celular"
+                                   value="{{ $contacto->telefono_celular }}" maxlength="20">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label style="font-size:12px;">Trabajo</label>
+                            <input type="tel" class="form-control input-sm ctc-trabajo"
+                                   value="{{ $contacto->telefono_trabajo }}" maxlength="20">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label style="font-size:12px;">Correo</label>
+                            <input type="email" class="form-control input-sm ctc-email"
+                                   value="{{ $contacto->email }}" maxlength="200">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label style="font-size:12px;">CURP</label>
+                            <input type="text" class="form-control input-sm ctc-curp"
+                                   value="{{ $contacto->curp }}" maxlength="18" style="text-transform:uppercase">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="checkbox-inline" style="font-size:12px;">
+                            <input type="checkbox" class="ctc-portal"
+                                {{ $contacto->tiene_acceso_portal ? 'checked' : '' }}>
+                            Acceso al portal familiar
+                        </label>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <button type="button" class="btn btn-default btn-xs btn-cancelar-edicion"
+                                data-id="{{ $contacto->id }}">Cancelar</button>
+                        <button type="button" class="btn btn-success btn-xs btn-guardar-ctc"
+                                data-id="{{ $contacto->id }}">
+                            <i class="fa fa-save"></i> Guardar cambios
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        @empty
+        <div style="padding:48px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:10px;">
+            <i class="fa fa-phone" style="font-size:40px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+            <p style="color:#b0bec5;margin:0;">Sin contactos registrados.</p>
+        </div>
+        @endforelse
+        </div>
+    </div>
+
+    {{-- ── ALUMNOS ── --}}
+    <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <p class="sec-title" style="flex:1;margin:0;">
+                <i class="fa fa-graduation-cap" style="color:#3c8dbc;"></i>
+                Alumnos inscritos
+                <span style="background:#e8f0fb;color:#3c8dbc;font-size:11px;font-weight:700;
+                             padding:2px 9px;border-radius:10px;">{{ $totalAlumnos }}</span>
+            </p>
+            @can('administrador')
+            <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}"
+               class="btn btn-success btn-xs btn-flat"
+               style="border-radius:6px;margin-left:12px;">
+                <i class="fa fa-plus"></i> Inscribir alumno
+            </a>
+            @endcan
+        </div>
+
+        @forelse($familia->alumnos->sortBy('ap_paterno') as $alumno)
+        @php
+            $inscripcion = $alumno->inscripciones->sortByDesc('id')->first();
+            $estado      = $alumno->estado;
+        @endphp
+
+        <div class="alm-card">
+            <div class="alm-card-accent {{ $estado }}"></div>
+            <div class="alm-card-body">
+                {{-- Foto --}}
+                @if($alumno->foto_url)
+                    <img src="{{ asset('storage/'.$alumno->foto_url) }}"
+                         alt="{{ $alumno->nombre }}" class="alm-foto">
+                @else
+                    <div class="alm-foto-placeholder">
+                        <i class="fa fa-user" style="font-size:22px;color:#9ab;"></i>
+                    </div>
+                @endif
+
+                {{-- Info --}}
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+                        <a href="{{ route('alumnos.show', $alumno->id) }}"
+                           class="alm-nombre" style="text-decoration:none;">
+                            {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}, {{ $alumno->nombre }}
+                        </a>
+                        <span class="alm-estado-badge alm-badge-{{ $estado }}">
+                            <i class="fa fa-circle" style="font-size:7px;"></i>
+                            @switch($estado)
+                                @case('activo')          Activo          @break
+                                @case('baja_temporal')   Baja temporal   @break
+                                @case('baja_definitiva') Baja definitiva @break
+                                @case('egresado')        Egresado        @break
+                                @default {{ ucfirst($estado) }}
+                            @endswitch
+                        </span>
+                    </div>
+                    <div class="alm-info">
+                        <span title="Matrícula">
+                            <i class="fa fa-id-badge"></i>
+                            <code style="font-size:11px;background:#f0f3f7;padding:0 5px;border-radius:3px;color:#4a5568;">
+                                {{ $alumno->matricula }}
+                            </code>
+                        </span>
+                        @if($alumno->fecha_nacimiento)
+                        <span title="Edad">
+                            <i class="fa fa-birthday-cake"></i>
+                            {{ $alumno->fecha_nacimiento->age }} años
+                        </span>
+                        @endif
+                        @if($inscripcion)
+                        <span title="Grupo">
+                            <i class="fa fa-graduation-cap"></i>
+                            {{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}
+                            · {{ $inscripcion->grupo->grado->nombre }}°
+                            {{ $inscripcion->grupo->nombre }}
+                        </span>
+                        @else
+                        <span style="color:#e0e0e0;font-style:italic;">Sin inscripción activa</span>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Acciones --}}
+                <div class="alm-acciones">
+                    <a href="{{ route('alumnos.show', $alumno->id) }}"
+                       class="btn btn-default btn-xs btn-flat" title="Ver ficha">
+                        <i class="fa fa-eye"></i>
+                    </a>
+                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                       class="btn btn-warning btn-xs btn-flat" title="Estado de cuenta">
+                        <i class="fa fa-dollar"></i>
+                    </a>
+                    @can('administrador')
+                    <a href="{{ route('alumnos.edit', $alumno->id) }}"
+                       class="btn btn-primary btn-xs btn-flat" title="Editar alumno">
+                        <i class="fa fa-pencil"></i>
+                    </a>
+                    @endcan
+                </div>
+            </div>
+        </div>
+
+        @empty
+        <div style="padding:48px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:10px;">
+            <i class="fa fa-graduation-cap" style="font-size:40px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+            <p style="color:#b0bec5;margin:0 0 14px;">Esta familia no tiene alumnos inscritos.</p>
+            @can('administrador')
+            <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}"
+               class="btn btn-success btn-sm" style="border-radius:20px;">
+                <i class="fa fa-plus"></i> Inscribir primer alumno
+            </a>
+            @endcan
+        </div>
+        @endforelse
+    </div>
+
+    {{-- ── DATOS DE FACTURACIÓN ── --}}
+    @include('familias._razon_social')
+
+</div>{{-- /col-md-8 --}}
+
+{{-- ════════════════════════════════════════════════════
+     COLUMNA LATERAL (col-md-4)
+════════════════════════════════════════════════════ --}}
+<div class="col-md-4">
+
+    {{-- Info rápida de la familia --}}
+    <div class="info-card">
+        <div class="info-card-header">
+            <span class="info-card-title"><i class="fa fa-home" style="margin-right:6px;color:#3c8dbc;"></i>Datos de familia</span>
+            @can('administrador')
+            <a href="{{ route('familias.edit', $familia->id) }}"
+               class="btn btn-xs btn-flat btn-default" style="border-radius:4px;">
+                <i class="fa fa-pencil"></i> Editar
+            </a>
+            @endcan
+        </div>
+        <div class="info-row">
+            <span class="info-row-label">Estado</span>
+            <span class="info-row-value">
+                <span class="label label-{{ $familia->activo ? 'success' : 'default' }}" style="border-radius:8px;">
+                    {{ $familia->activo ? 'Activa' : 'Inactiva' }}
+                </span>
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-row-label">Total alumnos</span>
+            <span class="info-row-value">{{ $totalAlumnos }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-row-label">Alumnos activos</span>
+            <span class="info-row-value" style="color:#00a65a;">{{ $activos }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-row-label">Contactos</span>
+            <span class="info-row-value">{{ $totalContactos }}</span>
+        </div>
+        @if($familia->observaciones)
+        <div style="padding:11px 16px;font-size:12px;color:#6b7a8d;border-top:1px solid #f5f7fa;
+                    background:#fafbfc;border-radius:0 0 10px 10px;">
+            <i class="fa fa-sticky-note-o" style="margin-right:5px;"></i>{{ $familia->observaciones }}
+        </div>
+        @endif
+    </div>
+
+    {{-- Estado de cuenta --}}
+    @if($activos > 0)
+    <div class="info-card">
+        <div class="info-card-header">
+            <span class="info-card-title">
+                <i class="fa fa-dollar" style="margin-right:6px;color:#3c8dbc;"></i>Estado de cuenta
+            </span>
+            @if($deudaTotal > 0)
+            <span style="background:#fdecea;color:#b91c1c;font-size:11px;font-weight:700;
+                         padding:2px 9px;border-radius:10px;">
+                ${{ number_format($deudaTotal,2) }}
+            </span>
+            @else
+            <span style="background:#e8f8f0;color:#00875a;font-size:11px;font-weight:700;
+                         padding:2px 9px;border-radius:10px;">
+                <i class="fa fa-check"></i> Al corriente
+            </span>
+            @endif
+        </div>
+        @foreach($familia->alumnos->where('estado','activo') as $alumno)
+        @php
+            $cargos = $alumno->inscripciones
+                ->flatMap(fn($i) => $i->cargos ?? collect())
+                ->whereIn('estado', ['pendiente','parcial']);
+            $deuda  = $cargos->sum('monto_original');
+        @endphp
+        <div class="cuenta-alumno">
+            <div>
+                <div style="font-size:13px;font-weight:600;color:#1a2634;">
+                    {{ $alumno->nombre }} {{ $alumno->ap_paterno }}
+                </div>
+                <code style="font-size:10px;color:#9ab;background:#f0f3f7;padding:1px 5px;border-radius:3px;">
+                    {{ $alumno->matricula }}
+                </code>
+            </div>
+            <div style="text-align:right;">
+                @if($deuda > 0)
+                    <div class="cuenta-deuda">${{ number_format($deuda,2) }}</div>
+                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                       style="font-size:10px;color:#3c8dbc;">
+                        Ver detalle <i class="fa fa-arrow-right"></i>
+                    </a>
+                @else
+                    <div class="cuenta-ok"><i class="fa fa-check-circle"></i> Al corriente</div>
+                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                       style="font-size:10px;color:#aab;">
+                        Historial <i class="fa fa-arrow-right"></i>
+                    </a>
+                @endif
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    {{-- Accesos rápidos --}}
+    <div class="info-card">
+        <div class="info-card-header">
+            <span class="info-card-title"><i class="fa fa-bolt" style="margin-right:6px;color:#f39c12;"></i>Acciones rápidas</span>
+        </div>
+        <div style="padding:12px;">
+            <a href="{{ route('familias.index') }}"
+               class="btn btn-default btn-block btn-sm btn-flat" style="border-radius:6px;margin-bottom:6px;text-align:left;">
+                <i class="fa fa-arrow-left" style="margin-right:6px;"></i> Volver a familias
+            </a>
+            @can('administrador', 'recepcion')
+            <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}"
+               class="btn btn-success btn-block btn-sm btn-flat" style="border-radius:6px;margin-bottom:6px;text-align:left;">
+                <i class="fa fa-user-plus" style="margin-right:6px;"></i> Inscribir alumno
+            </a>
+            @endcan
+            @can('administrador')
+            <a href="{{ route('familias.edit', $familia->id) }}"
+               class="btn btn-primary btn-block btn-sm btn-flat" style="border-radius:6px;text-align:left;">
+                <i class="fa fa-pencil" style="margin-right:6px;"></i> Editar familia
+            </a>
+            @endcan
+        </div>
+    </div>
 
 </div>{{-- /col-md-4 --}}
 

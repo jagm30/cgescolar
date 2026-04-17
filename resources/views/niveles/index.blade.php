@@ -1,390 +1,278 @@
 @extends('layouts.master')
+@section('page_title', 'Niveles Escolares')
+
+@push('styles')
+    <style>
+        /* Estilo para la fila que se está arrastrando */
+        .sortable-ghost {
+            opacity: 0.4;
+            background-color: #d2d6de !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Efecto al pasar el mouse sobre la columna de orden */
+        .handle {
+            transition: background-color 0.2s;
+        }
+
+        .handle:hover {
+            background-color: #f4f4f4 !important;
+            color: #3c8dbc;
+        }
+    </style>
+    @push('styles')
+        <style>
+            .con-toolbar {
+                background: #f9f9f9;
+                padding: 10px;
+                border: 1px solid #eee;
+                border-radius: 4px 4px 0 0;
+                display: flex;
+                align-items: center;
+            }
+
+            .con-select {
+                height: 30px;
+                border: 1px solid #d2d6de;
+                border-radius: 4px;
+                padding: 0 5px;
+                outline: none;
+            }
+
+            .con-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .con-table thead th {
+                background: #f4f4f4;
+                padding: 12px 10px;
+                border-bottom: 2px solid #eee;
+                text-align: left;
+                font-size: 13px;
+            }
+
+            .con-table tbody tr {
+                border-bottom: 1px solid #eee;
+                transition: background 0.2s;
+            }
+
+            .con-table tbody td {
+                padding: 10px;
+                vertical-align: middle;
+            }
+
+            .con-badge-nivel {
+                background: #3c8dbc;
+                color: white;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+
+            .con-acciones {
+                display: flex;
+                gap: 5px;
+                justify-content: center;
+            }
+
+            .btn-accion-texto {
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 5px 10px;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                transition: all 0.2s;
+            }
+
+            .btn-accion-texto:hover {
+                background: #f4f4f4;
+            }
+
+            /* Estilo para el arrastre */
+            .sortable-ghost {
+                opacity: 0.3;
+                background: #3c8dbc !important;
+            }
+
+            .handle {
+                cursor: ns-resize;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+                padding: 5px;
+                border-radius: 4px;
+            }
+
+            .handle:hover {
+                background: #eee;
+            }
+        </style>
+    @endpush
+@endpush
+
 @section('content')
-<!-- SELECT2 EXAMPLE -->
-<div class="box box-default">
+    <div class="box box-default">
         <div class="box-header with-border">
-          <h3 class="box-title">Select2</h3>
-
-          <div class="box-tools pull-right">
-            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-remove"></i></button>
-          </div>
+            <h3 class="box-title">Gestión de Niveles</h3>
+            <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modal-nuevo">
+                <i class="fa fa-plus"></i> Nuevo Nivel
+            </button>
         </div>
-        <!-- /.box-header -->
-        <div class="box-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Minimal</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
+
+        {{-- Toolbar de Filtros (Sin DataTables, manejado por GET o Alpine) --}}
+        <div class="con-toolbar">
+            <form method="GET" action="{{ route('niveles.index') }}" style="display: flex; gap: 10px; width: 100%;">
+                <select name="estado" class="con-select" onchange="this.form.submit()">
+                    <option value="1" {{ request('estado', '1') == '1' ? 'selected' : '' }}>Solo Activos</option>
+                    <option value="0" {{ request('estado') == '0' ? 'selected' : '' }}>Inactivos</option>
+                    <option value="todos" {{ request('estado') == 'todos' ? 'selected' : '' }}>Todos los estados</option>
                 </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled</label>
-                <select class="form-control select2" disabled="disabled" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-            <div class="col-md-6">
-              <div class="form-group">
-                <label>Multiple</label>
-                <select class="form-control select2" multiple="multiple" data-placeholder="Select a State"
-                        style="width: 100%;">
-                  <option>Alabama</option>
-                  <option>Alaska</option>
-                  <option>California</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-              <div class="form-group">
-                <label>Disabled Result</label>
-                <select class="form-control select2" style="width: 100%;">
-                  <option selected="selected">Alabama</option>
-                  <option>Alaska</option>
-                  <option disabled="disabled">California (disabled)</option>
-                  <option>Delaware</option>
-                  <option>Tennessee</option>
-                  <option>Texas</option>
-                  <option>Washington</option>
-                </select>
-              </div>
-              <!-- /.form-group -->
-            </div>
-            <!-- /.col -->
-          </div>
-          <!-- /.row -->
+
+                <div style="margin-left: auto;">
+                    <a href="{{ route('niveles.index') }}" class="btn btn-default btn-sm"><i class="fa fa-eraser"></i>
+                        Limpiar</a>
+                </div>
+            </form>
         </div>
-        <!-- /.box-body -->
-        <div class="box-footer">
-          Visit <a href="https://select2.github.io/">Select2 documentation</a> for more examples and information about
-          the plugin.
+
+        <div class="box-body no-padding">
+            <table class="con-table">
+                <thead>
+                    <tr>
+                        <th width="80px" class="text-center">Orden</th>
+                        <th>Nombre del Nivel</th>
+                        <th>REVOE</th>
+                        <th width="120px" class="text-center">Estado</th>
+                        <th width="250px" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="sortable-tbody">
+                    @foreach ($niveles as $nivel)
+                        <tr data-id="{{ $nivel->id }}" class="fila-nivel">
+                            <td class="handle">
+                                <i class="fa fa-chevron-up text-muted" style="font-size: 8px;"></i>
+                                <strong class="label-orden" style="font-size: 15px;">{{ $nivel->orden }}</strong>
+                                <i class="fa fa-chevron-down text-muted" style="font-size: 8px;"></i>
+                            </td>
+                            <td>
+                                <div style="font-weight: bold; color: #333;">{{ $nivel->nombre }}</div>
+                            </td>
+                            <td><span style="font-family: monospace; color: #666;">{{ $nivel->revoe ?? 'N/A' }}</span></td>
+                            <td class="text-center">
+                                <span class="label {{ $nivel->activo ? 'label-success' : 'label-danger' }}">
+                                    {{ $nivel->activo ? 'Activo' : 'Inactivo' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="con-acciones">
+                                    <button type="button" class="btn-accion-texto" data-toggle="modal"
+                                        data-target="#modal-editar" data-id="{{ $nivel->id }}"
+                                        data-nombre="{{ $nivel->nombre }}" data-revoe="{{ $nivel->revoe }}"
+                                        data-orden="{{ $nivel->orden }}" data-activo="{{ $nivel->activo }}">
+                                        <i class="fa fa-pencil text-yellow"></i> <span>Editar</span>
+                                    </button>
+
+                                    @if ($nivel->activo)
+                                        <form action="{{ route('niveles.destroy', $nivel->id) }}" method="POST">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn-accion-texto"
+                                                onclick="return confirm('¿Dar de baja?')">
+                                                <i class="fa fa-arrow-down text-red"></i> <span>Baja</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-      </div>
+    </div>
 
-      <div class="row">
-        <div class="col-md-6">
+    {{-- MODAL NUEVO --}}
+    <x-modal id="modal-nuevo" title="Registrar Nuevo Nivel">
+        <form action="{{ route('niveles.store') }}" method="POST">
+            @csrf
 
-          <div class="box box-danger">
-            <div class="box-header">
-              <h3 class="box-title">Input masks</h3>
+            <div class="form-group">
+                <label>Nombre del Nivel <span class="text-danger">*</span></label>
+                <input type="text" name="nombre" class="form-control" placeholder="Ej: Primaria" required
+                    title="El nombre es obligatorio">
             </div>
-            <div class="box-body">
-              <!-- Date dd/mm/yyyy -->
-              <div class="form-group">
-                <label>Date masks:</label>
 
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'dd/mm/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date mm/dd/yyyy -->
-              <div class="form-group">
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'mm/dd/yyyy'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask='"mask": "(999) 999-9999"' data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- phone mask -->
-              <div class="form-group">
-                <label>Intl US phone mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-phone"></i>
-                  </div>
-                  <input type="text" class="form-control"
-                         data-inputmask="'mask': ['999-999-9999 [x99999]', '+099 99 99 9999[9]-9999']" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- IP mask -->
-              <div class="form-group">
-                <label>IP mask:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-laptop"></i>
-                  </div>
-                  <input type="text" class="form-control" data-inputmask="'alias': 'ip'" data-mask>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-          <div class="box box-info">
-            <div class="box-header">
-              <h3 class="box-title">Color & Time Picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker:</label>
-                <input type="text" class="form-control my-colorpicker1">
-              </div>
-              <!-- /.form group -->
-
-              <!-- Color Picker -->
-              <div class="form-group">
-                <label>Color picker with addon:</label>
-
-                <div class="input-group my-colorpicker2">
-                  <input type="text" class="form-control">
-
-                  <div class="input-group-addon">
-                    <i></i>
-                  </div>
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- time Picker -->
-              <div class="bootstrap-timepicker">
-                <div class="form-group">
-                  <label>Time picker:</label>
-
-                  <div class="input-group">
-                    <input type="text" class="form-control timepicker">
-
-                    <div class="input-group-addon">
-                      <i class="fa fa-clock-o"></i>
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label>REVOE</label>
+                        <input type="text" name="revoe" class="form-control" placeholder="Opcional">
                     </div>
-                  </div>
-                  <!-- /.input group -->
                 </div>
-                <!-- /.form group -->
-              </div>
-            </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
-
-        </div>
-        <!-- /.col (left) -->
-        <div class="col-md-6">
-          <div class="box box-primary">
-            <div class="box-header">
-              <h3 class="box-title">Date picker</h3>
-            </div>
-            <div class="box-body">
-              <!-- Date -->
-              <div class="form-group">
-                <label>Date:</label>
-
-                <div class="input-group date">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="datepicker">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Orden</label>
+                        <input type="number" name="orden" class="form-control" placeholder="Ej: 1, 2, 3..."
+                            min="1">
+                    </div>
                 </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date range -->
-              <div class="form-group">
-                <label>Date range:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-calendar"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservation">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date and time range:</label>
-
-                <div class="input-group">
-                  <div class="input-group-addon">
-                    <i class="fa fa-clock-o"></i>
-                  </div>
-                  <input type="text" class="form-control pull-right" id="reservationtime">
-                </div>
-                <!-- /.input group -->
-              </div>
-              <!-- /.form group -->
-
-              <!-- Date and time range -->
-              <div class="form-group">
-                <label>Date range button:</label>
-
-                <div class="input-group">
-                  <button type="button" class="btn btn-default pull-right" id="daterange-btn">
-                    <span>
-                      <i class="fa fa-calendar"></i> Date range picker
-                    </span>
-                    <i class="fa fa-caret-down"></i>
-                  </button>
-                </div>
-              </div>
-              <!-- /.form group -->
-
             </div>
-            <!-- /.box-body -->
-          </div>
-          <!-- /.box -->
 
-          <!-- iCheck -->
-          <div class="box box-success">
-            <div class="box-header">
-              <h3 class="box-title">iCheck - Checkbox &amp; Radio Inputs</h3>
+            <input type="hidden" name="activo" value="1">
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="fa fa-save"></i> Guardar Nivel
+                </button>
             </div>
-            <div class="box-body">
-              <!-- Minimal style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal" disabled>
-                  Minimal skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r1" class="minimal" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal">
-                </label>
-                <label>
-                  <input type="radio" name="r1" class="minimal" disabled>
-                  Minimal skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="minimal-red" disabled>
-                  Minimal red skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red">
-                </label>
-                <label>
-                  <input type="radio" name="r2" class="minimal-red" disabled>
-                  Minimal red skin radio
-                </label>
-              </div>
-
-              <!-- Minimal red style -->
-
-              <!-- checkbox -->
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red">
-                </label>
-                <label>
-                  <input type="checkbox" class="flat-red" disabled>
-                  Flat green skin checkbox
-                </label>
-              </div>
-
-              <!-- radio -->
-              <div class="form-group">
-                <label>
-                  <input type="radio" name="r3" class="flat-red" checked>
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red">
-                </label>
-                <label>
-                  <input type="radio" name="r3" class="flat-red" disabled>
-                  Flat green skin radio
-                </label>
-              </div>
-            </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
-              Many more skins available. <a href="http://fronteed.com/iCheck/">Documentation</a>
-            </div>
-          </div>
-          <!-- /.box -->
-        </div>
-        <!-- /.col (right) -->
-      </div>
+        </form>
+    </x-modal>
 @endsection
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const el = document.getElementById('sortable-tbody');
+
+            Sortable.create(el, {
+                handle: '.handle',
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    let niveles = [];
+                    // Recorremos las filas para recalcular el orden visualmente
+                    document.querySelectorAll('.fila-nivel').forEach((fila, index) => {
+                        const nuevoOrden = index + 1;
+                        fila.querySelector('.label-orden').innerText = nuevoOrden;
+                        niveles.push({
+                            id: fila.dataset.id,
+                            orden: nuevoOrden
+                        });
+                    });
+
+                    // Enviamos a la base de datos
+                    fetch("{{ route('niveles.reordenar') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                niveles: niveles
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => console.log("BD Sincronizada"))
+                        .catch(err => console.error("Error al guardar"));
+                }
+            });
+        });
+    </script>
+@endpush

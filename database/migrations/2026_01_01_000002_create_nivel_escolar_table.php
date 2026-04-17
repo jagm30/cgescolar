@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('nivel_escolar', function (Blueprint $table) {
             $table->id();
             $table->string('nombre')->comment('maternal | preescolar | primaria | secundaria');
+            $table->string('revoe', 50)->nullable()->unique()->comment('1234324|995829023|1240324|2981432');
             $table->unsignedTinyInteger('orden')->comment('Define el orden de presentación en listas y reportes');
             $table->boolean('activo')->default(true);
         });

@@ -56,9 +56,7 @@ class CicloEscolarController extends Controller
             'estado.in'             => 'El estado debe ser: activo, cerrado o configuración.',
         ]);
 
-        if ($data['estado'] === 'activo') {
-            CicloEscolar::where('estado', 'activo')->update(['estado' => 'cerrado']);
-        }
+        
 
         $ciclo = CicloEscolar::create($data);
 
@@ -97,11 +95,7 @@ class CicloEscolarController extends Controller
             'estado'       => ['sometimes', 'required', 'in:activo,cerrado,configuracion'],
         ]);
 
-        if (isset($data['estado']) && $data['estado'] === 'activo') {
-            CicloEscolar::where('estado', 'activo')
-                ->where('id', '!=', $id)
-                ->update(['estado' => 'cerrado']);
-        }
+        
 
         $ciclo->update($data);
 

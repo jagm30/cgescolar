@@ -7,6 +7,8 @@ use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoContacto;
 use App\Models\Auditoria;
+use App\Models\BecaAlumno;
+use App\Models\Cargo;
 use App\Models\CicloEscolar;
 use App\Models\ContactoFamiliar;
 use App\Models\DocumentoAlumno;
@@ -64,7 +66,15 @@ class AlumnoController extends Controller
         $niveles = NivelEscolar::activo()->get();
         $grupos = Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get();
 
-        return view('alumnos.index', compact('alumnos', 'niveles', 'grupos', 'cicloId'));
+        // Estadísticas globales para cabecera
+        $statsActivos = Alumno::where('estado', 'activo')->count();
+        $statsTotal = Alumno::count();
+        $statsInscritos = Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id');
+
+        return view('alumnos.index', compact(
+            'alumnos', 'niveles', 'grupos', 'cicloId',
+            'statsActivos', 'statsTotal', 'statsInscritos'
+        ));
     }
 
     /** GET /alumnos/{id} */
@@ -91,7 +101,6 @@ class AlumnoController extends Controller
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
         $niveles = NivelEscolar::activo()->get();
         $grupos = Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get();
         $familias = Familia::where('activo', true)->orderBy('apellido_familia')->get();
@@ -100,7 +109,7 @@ class AlumnoController extends Controller
             : null;
         $datosPrecargados = $this->obtenerDatosPrecargados($prospectoOrigen, $cicloId);
 
-        return view('alumnos.create', compact('ciclos', 'niveles', 'grupos', 'familias', 'cicloId', 'prospectoOrigen', 'datosPrecargados'));
+        return view('alumnos.create', compact('niveles', 'grupos', 'familias', 'prospectoOrigen', 'datosPrecargados'));
     }
 
     /**
@@ -249,8 +258,10 @@ class AlumnoController extends Controller
         if (request()->ajax()) {
             return response()->json($alumno);
         }
+        $inscripciones = $alumno->inscripciones()->with('grupo.ciclo', 'grupo.grado.nivel')->get();
+        $niveles = NivelEscolar::activo()->get();
 
-        return view('alumnos.edit', compact('alumno'));
+        return view('alumnos.edit', compact('alumno', 'inscripciones', 'niveles'));
     }
 
     /** PUT /alumnos/{id} */
@@ -325,82 +336,150 @@ class AlumnoController extends Controller
             ->sortByDesc('id')
             ->first();
 
-        // Ciclos del alumno para el selector de filtro
-        $ciclos = CicloEscolar::whereHas('inscripciones', fn($q) =>
-            $q->where('alumno_id', $alumno->id)
+        // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
+        $ciclos = CicloEscolar::whereHas('inscripciones', fn ($q) => $q->where('alumno_id', $alumno->id)
         )->orderByDesc('fecha_inicio')->get();
 
-        // Cargos con detalles de pagos vigentes
-        $cargosQuery = \App\Models\Cargo::with([
+        // Cargos con detalles de pagos vigentes y políticas del plan
+        $cargosQuery = Cargo::with([
             'concepto',
             'detallesPagosVigentes.pago:id,folio_recibo,fecha_pago,forma_pago,referencia,estado',
+            'asignacion.plan.politicasDescuentoActivas',
+            'asignacion.plan.politicasRecargo',
         ])
-        ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
-        ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
+            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+            ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
 
         if ($request->filled('ciclo_id')) {
-            $cargosQuery->whereHas('inscripcion', fn($q) =>
-                $q->where('ciclo_id', $request->ciclo_id)
+            $cargosQuery->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $request->ciclo_id)
             );
         }
 
         $cargos = $cargosQuery->orderBy('fecha_vencimiento')->get();
 
+        // Becas activas en el ciclo actual, indexadas por concepto_id para lookup O(1)
+        $becas = BecaAlumno::with(['catalogoBeca', 'concepto'])
+            ->where('alumno_id', $alumno->id)
+            ->where('activo', true)
+            ->when($inscripcionActual, fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
+            )
+            ->where(fn ($q) => $q
+                ->whereNull('vigencia_fin')
+                ->orWhere('vigencia_fin', '>=', now())
+            )
+            ->get()
+            ->keyBy('concepto_id');
+
         // ── Resumen ───────────────────────────────────────
-        $hoy              = now();
-        $totalCargado     = 0;
-        $totalPagado      = 0;
-        $totalCondonado   = 0;
-        $totalVencido     = 0;
+        $hoy = now();
+        $totalCargado = 0;
+        $totalPagado = 0;
+        $totalCondonado = 0;
+        $totalVencido = 0;
+        $totalRecargos = 0;
+        $totalDescuentos = 0;
+        $totalBecas = 0;
         $cargosPendientes = 0;
-        $cargosVencidos   = 0;
+        $cargosVencidos = 0;
 
         foreach ($cargos as $cargo) {
-            $abonado   = $cargo->total_abonado ?? 0;
-            $pendiente = max(0, $cargo->monto_original - $abonado);
-            $vencido   = $hoy->gt($cargo->fecha_vencimiento);
+            $abonado = (float) ($cargo->total_abonado ?? 0);
+            $saldoBase = max(0, (float) $cargo->monto_original - $abonado);
+            $vencido = $hoy->gt($cargo->fecha_vencimiento);
+            $esPendiente = ! in_array($cargo->estado, ['pagado', 'condonado']) && $saldoBase > 0;
 
-            $totalCargado += $cargo->monto_original;
+            // ── Descuento de beca para este concepto ──
+            $becaDescuento = 0.0;
+            $becaPorcentaje = null;
+
+            if ($esPendiente) {
+                $becaItem = $becas->get($cargo->concepto_id);
+                if ($becaItem) {
+                    $becaDescuento = min(
+                        $becaItem->calcularDescuento((float) $cargo->monto_original),
+                        $saldoBase
+                    );
+                    $becaPorcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
+                        ? (float) $becaItem->catalogoBeca->valor
+                        : null;
+                }
+            }
+
+            // ── Calcular recargo / descuento según política del plan ──
+            $descuento = 0.0;
+            $recargo = 0.0;
+
+            if ($esPendiente && $cargo->asignacion?->plan) {
+                $plan = $cargo->asignacion->plan;
+
+                if ($vencido) {
+                    // Meses de retraso: meses completos desde el vencimiento + 1
+                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
+
+                    // Cargo vencido → aplicar recargo si existe política activa
+                    $pr = $plan->politicasRecargo->firstWhere('activo', true);
+                    if ($pr) {
+                        $recargo = $pr->calcular($saldoBase, $mesesRetraso);
+                    }
+                } else {
+                    $mesesRetraso = 0;
+
+                    // Cargo vigente → aplicar descuento si existe política que aplique hoy
+                    $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
+                    if ($pd) {
+                        $descuento = $pd->calcular($saldoBase);
+                    }
+                }
+            } else {
+                $mesesRetraso = 0;
+            }
+
+            // Guardar valores calculados en el modelo (accesibles en la vista)
+            $cargo->beca_descuento_calc = $becaDescuento;
+            $cargo->beca_porcentaje = $becaPorcentaje;
+            $cargo->descuento_calc = $descuento;
+            $cargo->recargo_calc = $recargo;
+            $cargo->meses_retraso = $mesesRetraso;
+            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento + $recargo);
+
+            // ── Acumuladores ──
+            $totalCargado += (float) $cargo->monto_original;
 
             if ($cargo->estado === 'condonado') {
-                $totalCondonado += $cargo->monto_original;
+                $totalCondonado += (float) $cargo->monto_original;
             }
 
             $totalPagado += $abonado;
 
-            if (!in_array($cargo->estado, ['pagado', 'condonado']) && $pendiente > 0) {
+            if ($esPendiente) {
+                $totalBecas += $becaDescuento;
                 if ($vencido) {
-                    $totalVencido += $pendiente;
+                    $totalVencido += $cargo->monto_a_pagar_hoy;
+                    $totalRecargos += $recargo;
                     $cargosVencidos++;
                 } else {
+                    $totalDescuentos += $descuento;
                     $cargosPendientes++;
                 }
             }
         }
 
-        $resumen = [
-            'total_cargado'     => $totalCargado,
-            'total_pagado'      => $totalPagado,
-            'total_condonado'   => $totalCondonado,
-            'saldo_pendiente'   => max(0, $totalCargado - $totalPagado - $totalCondonado),
-            'total_vencido'     => $totalVencido,
-            'total_cargos'      => $cargos->count(),
-            'cargos_pendientes' => $cargosPendientes,
-            'cargos_vencidos'   => $cargosVencidos,
-        ];
+        $saldoPendienteBase = max(0, $totalCargado - $totalPagado - $totalCondonado);
 
-        // Becas activas en el ciclo actual
-        $becas = \App\Models\BecaAlumno::with(['catalogoBeca', 'concepto'])
-            ->where('alumno_id', $alumno->id)
-            ->where('activo', true)
-            ->when($inscripcionActual, fn($q) =>
-                $q->where('ciclo_id', $inscripcionActual->ciclo_id)
-            )
-            ->where(fn($q) => $q
-                ->whereNull('vigencia_fin')
-                ->orWhere('vigencia_fin', '>=', now())
-            )
-            ->get();
+        $resumen = [
+            'total_cargado' => $totalCargado,
+            'total_pagado' => $totalPagado,
+            'total_condonado' => $totalCondonado,
+            'saldo_pendiente' => $saldoPendienteBase,
+            'total_vencido' => $totalVencido,
+            'total_recargos' => $totalRecargos,
+            'total_descuentos' => $totalDescuentos,
+            'total_becas' => $totalBecas,
+            'total_a_pagar_hoy' => max(0, $saldoPendienteBase - $totalBecas + $totalRecargos - $totalDescuentos),
+            'total_cargos' => $cargos->count(),
+            'cargos_pendientes' => $cargosPendientes,
+            'cargos_vencidos' => $cargosVencidos,
+        ];
 
         return view('alumnos.estado-cuenta', compact(
             'alumno', 'inscripcionActual', 'ciclos', 'cargos', 'resumen', 'becas'

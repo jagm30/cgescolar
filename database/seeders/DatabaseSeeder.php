@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             InscripcionSeeder::class,
             ContactoFamiliarSeeder::class,
             AlumnoContactoSeeder::class,
+            RazonSocialContactoSeeder::class,
 
             // ── Módulo 3: Planes y cobros ────────────────
             ConceptoCobroSeeder::class,

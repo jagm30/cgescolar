@@ -24,7 +24,6 @@ class PlanPagoController extends Controller
 {
     use RespondsWithJson;
 
-    /** GET /planes */
     public function index(Request $request)
     {
 
@@ -97,7 +96,9 @@ class PlanPagoController extends Controller
         ));
     }
 
-    /** GET /planes/{id} */
+        // QUITAMOS 'ciclos' y 'cicloId' -> El Composer los inyecta solitos
+        return view('planes.index', compact('planes', 'niveles', 'conceptos'));
+    }
     public function show(int $id)
     {
         $plan = PlanPago::with([
