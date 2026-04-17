@@ -26,9 +26,10 @@ class PlanPagoController extends Controller
 
     public function index(Request $request)
     {
-        $planesPerPage = (int) $request->get('planes_per_page', 10);
-        $asignacionesPerPage = (int) $request->get('asignaciones_per_page', 10);
+
         $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+        $planesPerPage = 15;
+        $asignacionesPerPage = 10;
 
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
             ->withCount('asignaciones')
@@ -42,8 +43,58 @@ class PlanPagoController extends Controller
             return response()->json($planes);
         }
 
-        $niveles   = NivelEscolar::activo()->get();
+        $niveles = NivelEscolar::activo()->get();
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $alumnos = Alumno::query()
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'nombre_completo' => $a->nombre_completo,
+                ];
+            });
+        $grupos = Grupo::with(['grado.nivel'])
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('grado_id')
+            ->orderBy('nombre')
+            ->get()
+            ->map(function ($g) {
+                return [
+                    'id' => $g->id,
+                    'nombre' => $g->nombre,
+                    'grado' => $g->grado->nombre ?? '',
+                    'nivel' => [
+                        'nombre' => $g->grado->nivel->nombre ?? '',
+                    ],
+                ];
+            });
+        $asignaciones = AsignacionPlan::with(['plan.nivel', 'alumno', 'grupo.grado.nivel', 'nivel'])
+            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId))
+            ->latest('id')
+            ->paginate($asignacionesPerPage, ['*'], 'asignaciones_page');
+        $cicloActual = CicloEscolar::find($cicloId);
+        $niveles = NivelEscolar::activo()->get();
         $conceptos = ConceptoCobro::activo()->orderBy('nombre')->get();
+
+        return view('planes.index', compact(
+            'planes',
+            'ciclos',
+            'niveles',
+            'alumnos',
+            'grupos',
+            'asignaciones',
+            'cicloActual',
+            'planesPerPage',
+            'asignacionesPerPage',
+            'niveles',
+            'conceptos'
+        ));
+    }
 
         // QUITAMOS 'ciclos' y 'cicloId' -> El Composer los inyecta solitos
         return view('planes.index', compact('planes', 'niveles', 'conceptos'));
@@ -74,20 +125,20 @@ class PlanPagoController extends Controller
         DB::beginTransaction();
         try {
             $plan = PlanPago::create([
-                'ciclo_id'     => $data['ciclo_id'],
-                'nivel_id'     => $data['nivel_id'],
-                'nombre'       => $data['nombre'],
+                'ciclo_id' => $data['ciclo_id'],
+                'nivel_id' => $data['nivel_id'],
+                'nombre' => $data['nombre'],
                 'periodicidad' => $data['periodicidad'],
                 'fecha_inicio' => $data['fecha_inicio'],
-                'fecha_fin'    => $data['fecha_fin'],
-                'activo'       => true,
+                'fecha_fin' => $data['fecha_fin'],
+                'activo' => true,
             ]);
 
             foreach ($data['conceptos'] as $concepto) {
                 PlanPagoConcepto::create([
-                    'plan_id'     => $plan->id,
+                    'plan_id' => $plan->id,
                     'concepto_id' => $concepto['concepto_id'],
-                    'monto'       => $concepto['monto'],
+                    'monto' => $concepto['monto'],
                 ]);
             }
 
@@ -313,9 +364,25 @@ class PlanPagoController extends Controller
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $planes = PlanPago::where('ciclo_id', $cicloId)
+        $planes = PlanPago::with('planPagoConceptos.concepto')
+            ->where('ciclo_id', $cicloId)
             ->where('activo', true)
             ->get();
+
+        // Transformar planes a estructura simples para JavaScript
+        $planesData = $planes->map(function ($p) {
+            return [
+                'id' => $p->id,
+                'nombre' => $p->nombre,
+                'conceptos' => $p->planPagoConceptos->map(function ($c) {
+                    return [
+                        'id' => $c->concepto_id,
+                        'nombre' => $c->concepto->nombre,
+                        'monto' => (float) $c->monto,
+                    ];
+                })->all(),
+            ];
+        })->all();
 
         $alumnos = Alumno::whereHas('inscripciones', function ($q) use ($cicloId) {
             $q->where('ciclo_id', $cicloId)->where('activo', true);
@@ -330,6 +397,7 @@ class PlanPagoController extends Controller
 
         return view('planes.asignar', compact(
             'planes',
+            'planesData',
             'alumnos',
             'grupos',
             'niveles',

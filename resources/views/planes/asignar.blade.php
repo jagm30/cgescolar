@@ -106,6 +106,14 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Sección de Conceptos del Plan -->
+                        <div class="form-group">
+                            <label><i class="fa fa-list"></i> Conceptos del plan</label>
+                            <div id="conceptos-list" class="well well-sm" style="max-height: 300px; overflow-y: auto; min-height: 100px; padding: 10px;">
+                                <p class="text-muted text-center">Selecciona un plan para ver los conceptos</p>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="box-footer">
@@ -172,6 +180,7 @@
             const alumnos = @json($alumnos);
             const grupos = @json($grupos);
             const niveles = @json($niveles);
+            const planes = @json($planesData);
             const oldOrigen = @json(old('origen', 'individual'));
             const oldAlumnoId = @json(old('alumno_id'));
             const oldGrupoId = @json(old('grupo_id'));
@@ -179,6 +188,44 @@
 
             function formatearNombreAlumno(item) {
                 return [item.nombre, item.ap_paterno, item.ap_materno].filter(Boolean).join(' ');
+            }
+
+            function mostrarConceptosDelPlan(planId) {
+                const conceptosList = document.getElementById('conceptos-list');
+
+                if (!planId) {
+                    conceptosList.innerHTML = '<p class="text-muted text-center">Selecciona un plan para ver los conceptos</p>';
+                    return;
+                }
+
+                const plan = planes.find(p => p.id == planId);
+
+                if (!plan || plan.conceptos.length === 0) {
+                    conceptosList.innerHTML = '<p class="text-muted text-center">Este plan no tiene conceptos asociados</p>';
+                    return;
+                }
+
+                let html = '<div class="list-group">';
+                plan.conceptos.forEach(concepto => {
+                    html += `
+                        <div class="list-group-item" style="padding: 8px 0; border: none; border-bottom: 1px solid #ecf0f1;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="concepto_${concepto.id}"
+                                       class="concepto-checkbox"
+                                       data-concepto-id="${concepto.id}"
+                                       data-concepto-nombre="${concepto.nombre}"
+                                       checked>
+                                <label for="concepto_${concepto.id}" style="margin: 0; cursor: pointer; flex: 1;">
+                                    <strong>${concepto.nombre}</strong>
+                                </label>
+                                <span class="label label-default">$${parseFloat(concepto.monto).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                conceptosList.innerHTML = html;
             }
 
             function cargarOpciones(data, tipo) {
@@ -249,11 +296,12 @@
                 $('#origen').val(oldOrigen);
                 actualizarSelect();
 
-                // Manejar cambio de plan para poblar fechas
+                // Manejar cambio de plan para poblar fechas y conceptos
                 $('#plan_id').on('change', function() {
                     const selectedOption = $(this).find('option:selected');
                     const fechaInicio = selectedOption.data('fecha-inicio');
                     const fechaFin = selectedOption.data('fecha-fin');
+                    const planId = $(this).val();
 
                     if (fechaInicio && fechaFin) {
                         $('#fecha_inicio').val(fechaInicio);
@@ -266,9 +314,12 @@
                         $('#fecha_inicio').prop('readonly', false);
                         $('#fecha_fin').prop('readonly', false);
                     }
+
+                    // Mostrar conceptos del plan
+                    mostrarConceptosDelPlan(planId);
                 });
 
-                // Si hay un plan seleccionado al cargar, poblar fechas
+                // Si hay un plan seleccionado al cargar, poblar fechas y conceptos
                 if ($('#plan_id').val()) {
                     $('#plan_id').trigger('change');
                 }
