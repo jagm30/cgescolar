@@ -93,6 +93,8 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     Route::resource('grupos', GrupoController::class)
         ->middleware('rol:administrador');
 
+    Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
+
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
     Route::get('/alumnos/{id}/hermanos', [AlumnoController::class, 'hermanos'])
