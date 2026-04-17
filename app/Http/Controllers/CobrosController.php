@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alumno;
+use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\ConceptoCobro;
 use App\Models\Inscripcion;
@@ -59,6 +60,13 @@ class CobrosController extends Controller
 
         $inscripcionActual = $alumno->inscripciones->first();
 
+        // Becas activas y vigentes del alumno, indexadas por concepto_id
+        $becasAlumno = BecaAlumno::with('catalogoBeca')
+            ->where('alumno_id', $alumnoId)
+            ->vigenteHoy()
+            ->get()
+            ->keyBy('concepto_id');
+
         // Cargos pendientes y parciales de todas sus inscripciones
         $hoy = now();
 
@@ -74,7 +82,7 @@ class CobrosController extends Controller
         ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
         ->orderBy('fecha_vencimiento')
         ->get()
-        ->map(function ($cargo) use ($hoy) {
+        ->map(function ($cargo) use ($hoy, $becasAlumno) {
             $abonado    = (float) ($cargo->total_abonado ?? 0);
             $pendiente  = max(0, round((float) $cargo->monto_original - $abonado, 2));
             $vencido    = $hoy->gt($cargo->fecha_vencimiento);
@@ -85,6 +93,17 @@ class CobrosController extends Controller
             $cargo->dias_atraso = $vencido
                 ? $cargo->fecha_vencimiento->diffInDays($hoy)
                 : 0;
+
+            // ── Calcular descuento por beca ──
+            $becaDescuento  = 0.0;
+            $becaPorcentaje = null;
+            $beca = $becasAlumno->get($cargo->concepto_id);
+            if ($beca && $pendiente > 0) {
+                $becaDescuento = $beca->calcularDescuento($pendiente);
+                if ($beca->catalogoBeca->tipo === 'porcentaje') {
+                    $becaPorcentaje = (float) $beca->catalogoBeca->valor;
+                }
+            }
 
             // ── Calcular recargo / descuento según política del plan ──
             $descuento    = 0.0;
@@ -108,10 +127,12 @@ class CobrosController extends Controller
                 }
             }
 
-            $cargo->recargo_calc      = $recargo;
-            $cargo->descuento_calc    = $descuento;
-            $cargo->meses_retraso     = $mesesRetraso;
-            $cargo->monto_a_pagar_hoy = max(0, $pendiente - $descuento + $recargo);
+            $cargo->beca_descuento_calc = $becaDescuento;
+            $cargo->beca_porcentaje     = $becaPorcentaje;
+            $cargo->recargo_calc        = $recargo;
+            $cargo->descuento_calc      = $descuento;
+            $cargo->meses_retraso       = $mesesRetraso;
+            $cargo->monto_a_pagar_hoy   = max(0, $pendiente - $becaDescuento - $descuento + $recargo);
 
             return $cargo;
         });

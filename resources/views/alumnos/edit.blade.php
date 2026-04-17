@@ -95,7 +95,7 @@
                   ?? $inscripciones->sortByDesc('id')->first();
 
     // Valores precargados para el paso 3 (old() tiene prioridad)
-    $cicloActual  = old('ciclo_id',  $inscActual?->grupo?->ciclo_id              ?? '');
+    $cicloIdActual  = old('ciclo_id',  $inscActual?->grupo?->ciclo_id              ?? '');
     $nivelActual  = old('nivel_id',  $inscActual?->grupo?->grado?->nivel_id      ?? '');
     $grupoActual  = old('grupo_id',  $inscActual?->grupo_id                      ?? '');
 @endphp
@@ -416,7 +416,7 @@
                             <option value="">-- Seleccionar ciclo --</option>
                             @foreach($ciclosDisponibles as $ciclo)
                             <option value="{{ $ciclo->id }}"
-                                {{ $cicloActual == $ciclo->id ? 'selected' : '' }}>
+                                {{ $cicloIdActual == $ciclo->id ? 'selected' : '' }}>
                                 {{ $ciclo->nombre }}
                                 @if($ciclo->estado === 'activo') (Activo) @endif
                             </option>
@@ -902,7 +902,7 @@ $(function() {
     // (deben estar antes de wizardIr para que estén
     //  disponibles si hay error de validación en paso 3)
     // ══════════════════════════════════════════════════
-    var CICLO_ACTUAL = '{{ $cicloActual }}';
+    var CICLO_ACTUAL = '{{ $cicloIdActual }}';
     var NIVEL_ACTUAL = '{{ $nivelActual }}';
     var GRUPO_ACTUAL = '{{ $grupoActual }}';
 

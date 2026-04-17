@@ -306,6 +306,146 @@
 <div class="row">
 
 {{-- ════════════════════════════════════════════════════
+     COLUMNA IZQUIERDA (col-md-4)
+════════════════════════════════════════════════════ --}}
+<div class="col-md-4">
+
+    {{-- ── PERFIL ── --}}
+    <div class="box box-primary" style="overflow:hidden;">
+
+        <div class="perfil-header">
+            <div class="perfil-icono">
+                <i class="fa fa-home" style="font-size:44px;color:rgba(255,255,255,.7);"></i>
+            </div>
+
+            <div class="perfil-nombre">{{ $familia->apellido_familia }}</div>
+            <div class="perfil-subtitulo">Familia</div>
+
+            <div class="perfil-estado">
+                <span class="label label-{{ $familia->activo ? 'success' : 'default' }}"
+                      style="font-size:13px;padding:4px 14px;">
+                    <i class="fa fa-{{ $familia->activo ? 'circle' : 'circle-o' }}"></i>
+                    {{ $familia->activo ? 'Activa' : 'Inactiva' }}
+                </span>
+            </div>
+        </div>
+
+        {{-- Acciones rápidas --}}
+        <div style="padding:0;">
+            @can('administrador')
+            <a href="{{ route('familias.edit', $familia->id) }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f0fb;">
+                    <i class="fa fa-pencil" style="color:#3c8dbc;font-size:15px;"></i>
+                </div>
+                Editar familia
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#ccc;font-size:11px;"></i>
+            </a>
+            @endcan
+            @can('administrador')
+            <a href="{{ route('alumnos.create') }}?familia_id={{ $familia->id }}" class="accion-btn">
+                <div class="accion-icon" style="background:#e8f5e9;">
+                    <i class="fa fa-user-plus" style="color:#4caf50;font-size:14px;"></i>
+                </div>
+                Inscribir alumno
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#ccc;font-size:11px;"></i>
+            </a>
+            @endcan
+        </div>
+    </div>
+
+    {{-- ── DATOS DE LA FAMILIA ── --}}
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title">
+                <i class="fa fa-info-circle" style="color:#3c8dbc;"></i>
+                Información
+            </h3>
+        </div>
+        <div class="box-body no-padding">
+
+            <div class="dato-row">
+                <span class="dato-label">Alumnos</span>
+                <span class="dato-valor">
+                    {{ $familia->alumnos->count() }} registrado(s)
+                    @if($familia->alumnos->where('estado','activo')->count() > 0)
+                    <small style="color:#27ae60;font-weight:400;font-size:12px;">
+                        · {{ $familia->alumnos->where('estado','activo')->count() }} activo(s)
+                    </small>
+                    @endif
+                </span>
+            </div>
+
+            <div class="dato-row">
+                <span class="dato-label">Contactos</span>
+                <span class="dato-valor">
+                    {{ $familia->contactos->count() }} registrado(s)
+                </span>
+            </div>
+
+            @if($familia->observaciones)
+            <div class="dato-row" style="align-items:flex-start;">
+                <span class="dato-label" style="padding-top:2px;">Notas</span>
+                <span class="dato-valor" style="font-size:13px;font-weight:400;color:#555;line-height:1.5;">
+                    {{ $familia->observaciones }}
+                </span>
+            </div>
+            @endif
+
+        </div>
+    </div>
+
+    {{-- ── ESTADO DE CUENTA ── --}}
+    @if($familia->alumnos->where('estado','activo')->count() > 0)
+    <div class="box box-default">
+        <div class="box-header with-border">
+            <h3 class="box-title" style="font-size:13px;">
+                <i class="fa fa-dollar" style="color:#f39c12;"></i>
+                Estado de cuenta
+            </h3>
+        </div>
+        <div class="box-body no-padding">
+            @foreach($familia->alumnos->where('estado','activo') as $alumno)
+            @php
+                $cargosAlumno = $alumno->inscripciones
+                    ->flatMap(fn($i) => $i->cargos ?? collect())
+                    ->whereIn('estado', ['pendiente','parcial']);
+                $deuda = $cargosAlumno->sum('monto_original');
+            @endphp
+            <div class="cuenta-row">
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:#333;">
+                        {{ $alumno->nombre }} {{ $alumno->ap_paterno }}
+                    </div>
+                    <div style="font-size:11px;color:#aaa;">
+                        <code style="font-size:10px;">{{ $alumno->matricula }}</code>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    @if($deuda > 0)
+                        <div class="cuenta-monto-red">${{ number_format($deuda, 2) }}</div>
+                        <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                           style="font-size:10px;color:#3c8dbc;">
+                            Ver detalle <i class="fa fa-arrow-right"></i>
+                        </a>
+                    @else
+                        <div class="cuenta-monto-ok">
+                            <i class="fa fa-check-circle"></i> Al corriente
+                        </div>
+                        <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                           style="font-size:10px;color:#aaa;">
+                            Ver historial <i class="fa fa-arrow-right"></i>
+                        </a>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+</div>{{-- /col-md-4 --}}
+
+{{-- ════════════════════════════════════════════════════
      COLUMNA PRINCIPAL (col-md-8)
 ════════════════════════════════════════════════════ --}}
 <div class="col-md-8">
@@ -726,7 +866,7 @@
                         <i class="fa fa-eye"></i>
                     </a>
                     <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                       class="btn btn-info btn-xs btn-flat" title="Estado de cuenta">
+                       class="btn btn-warning btn-xs btn-flat" title="Estado de cuenta">
                         <i class="fa fa-dollar"></i>
                     </a>
                     @can('administrador')
@@ -752,6 +892,9 @@
         </div>
         @endforelse
     </div>
+
+    {{-- ── DATOS DE FACTURACIÓN ── --}}
+    @include('familias._razon_social')
 
 </div>{{-- /col-md-8 --}}
 

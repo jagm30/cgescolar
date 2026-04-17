@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
-use App\Models\CicloEscolar;
 use App\Models\ContactoFamiliar;
 use App\Models\Familia;
 use App\Models\Usuario;
@@ -159,11 +158,15 @@ class FamiliaController extends Controller
                     ->with(['grupo.grado.nivel', 'ciclo'])
                     ->orderByDesc('id'),
             ])->orderBy('ap_paterno'),
-    
+
             'contactos' => fn($q) => $q->with([
                 'alumnoContactos' => fn($q) => $q
                     ->with('alumno:id,nombre,ap_paterno')
                     ->where('activo', true),
+                'razonesSociales' => fn($q) => $q
+                    ->where('activo', true)
+                    ->orderByDesc('es_principal')
+                    ->orderBy('id'),
             ]),
         ])->findOrFail($id);
     

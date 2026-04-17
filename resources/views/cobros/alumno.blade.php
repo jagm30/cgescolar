@@ -227,14 +227,18 @@
 
             @forelse($cargos as $i => $cargo)
             @php
-                $tieneRecargo   = $cargo->recargo_calc   > 0;
-                $tieneDescuento = $cargo->descuento_calc > 0;
-                $tieneAjuste    = $tieneRecargo || $tieneDescuento;
+                $tieneRecargo   = $cargo->recargo_calc        > 0;
+                $tieneDescuento = $cargo->descuento_calc      > 0;
+                $tieneBeca      = ($cargo->beca_descuento_calc ?? 0) > 0;
+                $tieneAjuste    = $tieneRecargo || $tieneDescuento || $tieneBeca;
+                $becaDescuento  = (float) ($cargo->beca_descuento_calc ?? 0);
+                $becaPorcentaje = $cargo->beca_porcentaje ?? null;
             @endphp
             <div class="cargo-item {{ $cargo->vencido ? 'vencido-card' : '' }}"
                  id="cargo-card-{{ $cargo->id }}"
                  data-cargo-id="{{ $cargo->id }}"
                  data-pendiente="{{ $cargo->pendiente }}"
+                 data-beca="{{ $becaDescuento }}"
                  data-recargo="{{ $cargo->recargo_calc }}"
                  data-descuento="{{ $cargo->descuento_calc }}"
                  data-pagar-hoy="{{ $cargo->monto_a_pagar_hoy }}">
@@ -278,6 +282,17 @@
                                 </span>
                             @endif
                         </div>
+                        {{-- Badge beca --}}
+                        @if($tieneBeca)
+                        <div style="margin-top:4px;">
+                            <span style="display:inline-block;background:#dff0d8;color:#3c763d;
+                                         font-size:11px;font-weight:600;border-radius:10px;
+                                         padding:2px 8px;border:1px solid #b2dfb2;">
+                                <i class="fa fa-graduation-cap"></i>
+                                Beca{{ $becaPorcentaje !== null ? ' '.$becaPorcentaje.'%' : '' }}: -${{ number_format($becaDescuento, 2) }}
+                            </span>
+                        </div>
+                        @endif
                         {{-- Badges de recargo / descuento de política --}}
                         @if($tieneRecargo)
                         <div style="margin-top:4px;">
@@ -321,6 +336,12 @@
                             <div style="font-size:10px;color:{{ $tieneRecargo ? '#e74c3c' : '#27ae60' }};">
                                 A pagar hoy
                             </div>
+                            @if($tieneBeca)
+                            <div style="font-size:10px;color:#3c763d;">
+                                <i class="fa fa-graduation-cap"></i>
+                                beca{{ $becaPorcentaje !== null ? ' '.number_format($becaPorcentaje,0).'%' : '' }}
+                            </div>
+                            @endif
                         @else
                             <div class="cargo-monto-pend {{ $cargo->abonado > 0 ? '' : 'ok' }}">
                                 ${{ number_format($cargo->pendiente, 2) }}
@@ -335,7 +356,17 @@
                     <input type="hidden" name="items[{{ $i }}][tipo]" value="cargo">
                     <input type="hidden" name="items[{{ $i }}][cargo_id]" value="{{ $cargo->id }}">
 
-                    @if($tieneAjuste)
+                    @if($tieneBeca)
+                    <div style="margin-bottom:10px;padding:8px 12px;border-radius:6px;font-size:12px;
+                                background:#dff0d8;color:#2d6a2d;border:1px solid #b2dfb2;">
+                        <i class="fa fa-graduation-cap"></i>
+                        <strong>Descuento por beca aplicado:</strong>
+                        Se aplica automáticamente un descuento de <strong>-${{ number_format($becaDescuento, 2) }}</strong>
+                        @if($becaPorcentaje !== null)({{ number_format($becaPorcentaje, 0) }}% del saldo)@endif
+                        según la beca asignada.
+                    </div>
+                    @endif
+                    @if($tieneRecargo || $tieneDescuento)
                     <div style="margin-bottom:10px;padding:8px 12px;border-radius:6px;font-size:12px;
                                 {{ $tieneRecargo
                                     ? 'background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;'
@@ -379,17 +410,24 @@
 
                         {{-- Descuento beca --}}
                         <div class="col-md-2">
-                            <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
+                            <label style="font-size:12px;{{ $tieneBeca ? 'color:#3c763d;' : 'color:#555;' }}font-weight:600;display:block;margin-bottom:4px;">
                                 Desc. beca
                             </label>
                             <div class="input-group">
-                                <span class="input-group-addon" style="font-size:11px;">$</span>
+                                <span class="input-group-addon"
+                                      style="font-size:11px;{{ $tieneBeca ? 'background:#dff0d8;color:#3c763d;border-color:#b2dfb2;' : '' }}">$</span>
                                 <input type="number"
                                        name="items[{{ $i }}][descuento_beca]"
                                        class="form-control input-sm item-desc"
-                                       value="0" min="0" step="0.01"
-                                       data-idx="{{ $i }}">
+                                       value="{{ $becaDescuento }}" min="0" step="0.01"
+                                       data-idx="{{ $i }}"
+                                       style="{{ $tieneBeca ? 'border-color:#b2dfb2;color:#2d6a2d;font-weight:600;' : '' }}">
                             </div>
+                            @if($tieneBeca)
+                            <div style="font-size:10px;color:#3c763d;margin-top:3px;">
+                                <i class="fa fa-graduation-cap"></i> Beca auto
+                            </div>
+                            @endif
                         </div>
 
                         {{-- Descuento extra --}}
@@ -437,7 +475,7 @@
                         {{-- Total del ítem --}}
                         <div class="col-md-2" style="text-align:right;padding-top:20px;">
                             <div style="font-size:11px;color:#aaa;margin-bottom:2px;">Total ítem</div>
-                            <div style="font-size:18px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : '#27ae60' }};"
+                            <div style="font-size:18px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
                                  id="total-item-{{ $i }}">
                                 ${{ number_format($cargo->monto_a_pagar_hoy, 2) }}
                             </div>
