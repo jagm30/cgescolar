@@ -759,8 +759,7 @@
                     onclick="wizardIr(wizardPasoActual() + 1); return false;">
                 Siguiente <i class="fa fa-arrow-right"></i>
             </button>
-            <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar"
-                    style="display:none;">
+            <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar">
                 <i class="fa fa-save"></i> Guardar cambios
             </button>
             <a href="{{ route('alumnos.show', $alumno->id) }}"
@@ -873,7 +872,6 @@ $(function() {
         $('#wizard-step-description').text(PASOS_DESC[pasoActual]);
         $('#btn-paso-anterior').toggle(pasoActual > 1);
         $('#btn-paso-siguiente').toggle(pasoActual < TOTAL_PASOS);
-        $('#btn-guardar').toggle(pasoActual === TOTAL_PASOS);
 
         // Al entrar al paso 3 cargar grupos si ya hay ciclo+nivel
         // Solo preselecciona GRUPO_ACTUAL la primera vez (grupos aún vacíos)
