@@ -5,6 +5,115 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
+
+    <style>
+       /* FONDO GENERAL */
+.content-wrapper {
+    background: #f4f6f9;
+}
+
+/* CARD GENERAL */
+.box {
+    border-radius: 14px;
+    border: none;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+/* HEADER CON COLOR */
+.box-primary .box-header {
+    background: linear-gradient(135deg, #3c8dbc, #6fb1e7);
+    color: white;
+}
+
+.box-warning .box-header {
+    background: linear-gradient(135deg, #f39c12, #f7c56b);
+    color: white;
+}
+
+.box-header .box-title {
+    font-weight: 600;
+}
+
+/* BOTÓN VOLVER */
+.btn-default {
+    border-radius: 20px;
+    border: none;
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+/* INPUTS */
+.form-control {
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    padding: 10px;
+    transition: 0.2s;
+}
+
+.form-control:focus {
+    border-color: #3c8dbc;
+    box-shadow: 0 0 0 3px rgba(60,141,188,0.15);
+}
+
+/* SELECT2 */
+.select2-container--default .select2-selection--single {
+    border-radius: 10px;
+    height: 42px;
+    padding: 6px;
+}
+
+/* BOTÓN GUARDAR 🔥 */
+.btn-primary {
+    background: linear-gradient(135deg, #00c9a7, #00a884);
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px;
+    transition: 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* CONCEPTOS MÁS BONITOS */
+#conceptos-list {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* ITEM */
+.list-group-item {
+    border: none !important;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    padding: 10px;
+    background: #f9fafb;
+    transition: 0.2s;
+}
+
+.list-group-item:hover {
+    background: #eef5fb;
+}
+
+/* PRECIO */
+.label-default {
+    background: #00a884 !important;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-weight: bold;
+}
+
+/* CHECK MÁS BONITO */
+.concepto-checkbox {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+</style>
 @endpush
 
 @section('breadcrumb')
@@ -13,166 +122,113 @@
 @endsection
 
 @section('content')
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            <button type="button" class="close" data-dismiss="alert">×</button>
             {{ session('success') }}
         </div>
     @endif
 
-    @if(session('error'))
+    @if (session('error'))
         <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            <button type="button" class="close" data-dismiss="alert">×</button>
             {{ session('error') }}
         </div>
     @endif
 
-    @if($errors->any())
+    @if ($errors->any())
         <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+            <button type="button" class="close" data-dismiss="alert">×</button>
             <h4><i class="icon fa fa-ban"></i> Revisa el formulario.</h4>
             <ul>
-                @foreach($errors->all() as $mensaje)
+                @foreach ($errors->all() as $mensaje)
                     <li>{{ $mensaje }}</li>
                 @endforeach
             </ul>
         </div>
     @endif
 
-    <div class="row">
-        <div class="col-md-4">
-            <div class="box box-primary">
-                <div class="box-header with-border">
-                    <h3 class="box-title"><i class="fa"></i> Asignar plan</h3>
-                </div>
-                <div class="box-body">
-                    <form action="{{ route('planes.asignar') }}" method="POST" id="form-asignar-plan">
-                        @csrf
+    <form action="{{ route('planes.asignar') }}" method="POST" id="form-asignar-plan">
+        @csrf
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Asignar plan</h3>
+                        <div class="box-tools">
+                            <a href="{{ route('planes.asignar.index') }}" class="btn btn-default btn-sm">
+                                <i class="fa fa-arrow-left"></i> Volver
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="box-body">
 
                         <div class="form-group">
                             <label>Plan de pago</label>
-                            <select name="plan_id" id="plan_id" class="form-control select2" style="width: 100%;" data-placeholder="Selecciona un plan" required>
+                            <select name="plan_id" id="plan_id" class="form-control select2"
+                                data-placeholder="Selecciona un plan" required>
                                 <option value="">Selecciona un plan</option>
                                 @foreach ($planes as $plan)
-                                    <option value="{{ $plan->id }}" data-fecha-inicio="{{ $plan->fecha_inicio?->format('Y-m-d') }}" data-fecha-fin="{{ $plan->fecha_fin?->format('Y-m-d') }}" {{ (string) old('plan_id') === (string) $plan->id ? 'selected' : '' }}>
+                                    <option value="{{ $plan->id }}"
+                                        data-fecha-inicio="{{ $plan->fecha_inicio?->format('Y-m-d') }}"
+                                        data-fecha-fin="{{ $plan->fecha_fin?->format('Y-m-d') }}">
                                         {{ $plan->nombre }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('plan_id')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
                         </div>
 
                         <div class="form-group">
                             <label>Alcance</label>
                             <select name="origen" id="origen" class="form-control">
-                                <option value="individual" {{ old('origen', 'individual') === 'individual' ? 'selected' : '' }}>Alumno</option>
-                                <option value="grupo" {{ old('origen') === 'grupo' ? 'selected' : '' }}>Grupo</option>
-                                <option value="nivel" {{ old('origen') === 'nivel' ? 'selected' : '' }}>Nivel</option>
+                                <option value="individual">Alumno</option>
+                                <option value="grupo">Grupo</option>
+                                <option value="nivel">Nivel</option>
                             </select>
-                            @error('origen')
-                                <small class="text-danger">{{ $message }}</small>
-                            @enderror
                         </div>
 
                         <div class="form-group">
                             <label id="labelDinamico">Alumno</label>
-                            <select id="selectDinamico" class="form-control select2" style="width: 100%;" data-placeholder="Selecciona una opción" required>
-                                <option value="">Selecciona una opción</option>
-                            </select>
-                            @error('alumno_id')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
-                            @error('grupo_id')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
-                            @error('nivel_id')
-                                <small class="text-danger d-block">{{ $message }}</small>
-                            @enderror
+                            <select id="selectDinamico" class="form-control select2"></select>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Fecha inicio</label>
-                                    <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ old('fecha_inicio') }}" readonly>
-                                </div>
+                                <label>Fecha inicio</label>
+                                <input type="date" id="fecha_inicio" class="form-control" readonly>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Fecha fin</label>
-                                    <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ old('fecha_fin') }}" readonly>
-                                </div>
+                                <label>Fecha fin</label>
+                                <input type="date" id="fecha_fin" class="form-control" readonly>
                             </div>
                         </div>
 
-                        <!-- Sección de Conceptos del Plan -->
-                        <div class="form-group">
-                            <label><i class="fa fa-list"></i> Conceptos del plan</label>
-                            <div id="conceptos-list" class="well well-sm" style="max-height: 300px; overflow-y: auto; min-height: 100px; padding: 10px;">
-                                <p class="text-muted text-center">Selecciona un plan para ver los conceptos</p>
-                            </div>
-                        </div>
-                    </form>
+                    </div>
+
+                    <div class="box-footer">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa fa-save"></i> Guardar asignación
+                        </button>
+                    </div>
                 </div>
-                <div class="box-footer">
-                    <button type="submit" form="form-asignar-plan" class="btn btn-primary btn-block">
-                        <i class="fa fa-save"></i> Guardar asignación
-                    </button>
+            </div>
+
+            <div class="col-md-6">
+                <div class="box box-warning">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Conceptos del plan</h3>
+                    </div>
+                    <div class="box-body">
+                        <div id="conceptos-list" class="well well-sm" style="max-height:470px; overflow-y:auto;">
+                            <p class="text-muted text-center">Selecciona un plan</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-8">
-            <div class="box box-info">
-                <div class="box-header with-border">
-                    <h3 class="box-title"><i class="fa fa-list"></i> Asignaciones</h3>
-                </div>
-                <div class="box-body table-responsive">
-                    @if ($asignaciones->hasPages())
-                        <div class="row" style="margin-bottom: 10px;">
-                            <div class="col-sm-6">
-                                <span class="text-muted">Mostrando {{ $asignaciones->firstItem() ?: 0 }}-{{ $asignaciones->lastItem() ?: 0 }} de {{ $asignaciones->total() }} asignaciones</span>
-                            </div>
-                            <div class="col-sm-6 text-right">
-                                {{ $asignaciones->links('vendor.pagination.adminlte') }}
-                            </div>
-                        </div>
-                    @endif
-
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Plan</th>
-                                <th>Asignado a</th>
-                                <th>Tipo</th>
-                                <th>Fecha inicio</th>
-                                <th>Fecha fin</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($asignaciones as $a)
-                                <tr>
-                                    <td>{{ $a->plan->nombre }}</td>
-                                    <td>{{ $a->alumno?->nombre_completo ?? $a->grupo?->nombre ?? $a->nivel?->nombre ?? '-' }}</td>
-                                    <td>
-                                        <span class="label label-info">{{ ucfirst($a->origen) }}</span>
-                                    </td>
-                                    <td>{{ $a->fecha_inicio?->format('d/m/Y') ?? '-' }}</td>
-                                    <td>{{ $a->fecha_fin?->format('d/m/Y') ?? '-' }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">No hay asignaciones</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+    </form>
 
     @push('scripts')
         <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
@@ -276,11 +332,11 @@
 
 
 
-            $(function () {
+            $(function() {
                 $('.select2').select2({
                     width: '100%',
                     allowClear: true,
-                    placeholder: function () {
+                    placeholder: function() {
                         return $(this).data('placeholder');
                     }
                 });

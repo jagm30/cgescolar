@@ -86,6 +86,7 @@ class PlanPagoController extends Controller
         // QUITAMOS 'ciclos' y 'cicloId' -> El Composer los inyecta solitos
         return view('planes.index', compact('planes', 'niveles', 'conceptos'));
     }
+
     public function show(int $id)
     {
         $plan = PlanPago::with([
@@ -246,11 +247,42 @@ class PlanPagoController extends Controller
         Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
 
         return $this->respuestaExito(
-            redirectRoute: 'planes.asignar.form',
+            redirectRoute: 'planes.asignar.index',
             jsonData: ['asignacion' => $asignacion->load('plan')],
             mensaje: 'Plan asignado correctamente.',
             jsonStatus: 201
         );
+    }
+
+    /** GET /planes/asignaciones */
+    public function indexAsignaciones(Request $request)
+    {
+        $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel'])
+            ->orderBy('id', 'desc')
+            ->paginate(10);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'data' => $asignaciones->map(function ($a) {
+                    return [
+                        'plan' => $a->plan->nombre,
+                        'asignado_a' => $a->alumno?->nombre_completo ?? $a->grupo?->nombre ?? $a->nivel?->nombre ?? '-',
+                        'origen' => ucfirst($a->origen),
+                        'fecha_inicio' => $a->fecha_inicio?->format('d/m/Y') ?? '-',
+                        'fecha_fin' => $a->fecha_fin?->format('d/m/Y') ?? '-',
+                    ];
+                })->all(),
+                'pagination' => [
+                    'current_page' => $asignaciones->currentPage(),
+                    'last_page' => $asignaciones->lastPage(),
+                    'total' => $asignaciones->total(),
+                    'from' => $asignaciones->firstItem(),
+                    'to' => $asignaciones->lastItem(),
+                ],
+            ]);
+        }
+
+        return view('planes.asignaciones', compact('asignaciones'));
     }
 
     /** GET /planes/asignacion/{alumnoId} — solo AJAX */

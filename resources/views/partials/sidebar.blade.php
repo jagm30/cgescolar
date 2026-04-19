@@ -96,8 +96,8 @@
                             <i class="fa fa-circle-o"></i> Becas
                         </a>
                     </li>
-                    <li class="{{ request()->routeIs('planes.asignar.form') ? 'active' : '' }}">
-                        <a href="{{ route('planes.asignar.form') }}">
+                    <li class="{{ request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
+                        <a href="{{ route('planes.asignar.index') }}">
                             <i class="fa fa-circle-o"></i> Asignar plan
                         </a>
                     </li>

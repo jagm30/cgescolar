@@ -1,13 +1,13 @@
 <?php
 
 use App\Http\Controllers\AlumnoController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\CicloEscolarController;
 use App\Http\Controllers\CobrosController;
 use App\Http\Controllers\ConceptoCobroController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
@@ -21,7 +21,6 @@ use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
-
 
 Route::get('/tables', function () {
     return view('plantilla.tables');
@@ -105,25 +104,33 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // conceptos de cobro
     Route::resource('conceptos', ConceptoCobroController::class)
         ->middleware('rol:administrador');
-    
+
     // ── Políticas de descuento y recargo (anidadas en plan) ──
     Route::prefix('planes/{planId}/politicas')
         ->middleware('rol:administrador')
         ->name('planes.politicas.')
         ->group(function () {
-            Route::get('/',                    [PoliticaController::class, 'index'])          ->name('index');
+            Route::get('/', [PoliticaController::class, 'index'])->name('index');
 
             // Descuentos
-            Route::post('descuento',           [PoliticaController::class, 'storeDescuento']) ->name('descuento.store');
-            Route::put('descuento/{id}',       [PoliticaController::class, 'updateDescuento'])->name('descuento.update');
-            Route::delete('descuento/{id}',    [PoliticaController::class, 'destroyDescuento'])->name('descuento.destroy');
+            Route::post('descuento', [PoliticaController::class, 'storeDescuento'])->name('descuento.store');
+            Route::put('descuento/{id}', [PoliticaController::class, 'updateDescuento'])->name('descuento.update');
+            Route::delete('descuento/{id}', [PoliticaController::class, 'destroyDescuento'])->name('descuento.destroy');
 
             // Recargo
-            Route::post('recargo',             [PoliticaController::class, 'storeRecargo'])   ->name('recargo.store');
-            Route::put('recargo/{id}',         [PoliticaController::class, 'updateRecargo'])  ->name('recargo.update');
-            Route::delete('recargo/{id}',      [PoliticaController::class, 'destroyRecargo']) ->name('recargo.destroy');
+            Route::post('recargo', [PoliticaController::class, 'storeRecargo'])->name('recargo.store');
+            Route::put('recargo/{id}', [PoliticaController::class, 'updateRecargo'])->name('recargo.update');
+            Route::delete('recargo/{id}', [PoliticaController::class, 'destroyRecargo'])->name('recargo.destroy');
         });
     // ── Planes de pago ───────────────────────────────────
+    Route::get('/planes/asignar', [PlanPagoController::class, 'indexAsignaciones'])
+        ->middleware('rol:administrador')
+        ->name('planes.asignar.index');
+
+    Route::get('/planes/asignar/nuevo', [PlanPagoController::class, 'createAsignacion'])
+        ->middleware('rol:administrador')
+        ->name('planes.asignar.form');
+
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')
         ->name('planes.asignar');
@@ -132,13 +139,6 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('planes.asignacion-alumno');
 
-    Route::get('/planes/asignar', [PlanPagoController::class, 'createAsignacion'])
-        ->middleware('rol:administrador')
-        ->name('planes.asignar.form');
-
-    Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
-        ->middleware('rol:administrador')
-        ->name('planes.asignar');
     Route::resource('planes', PlanPagoController::class)
         ->middleware('rol:administrador');
 
