@@ -92,7 +92,7 @@
                         </a>
                     </li>
                     <li class="{{ request()->routeIs('becas.*') ? 'active' : '' }}">
-                        <a href="{{ route('becas.index') }}">
+                        <a href="{{ route('becas.catalogo') }}">
                             <i class="fa fa-circle-o"></i> Becas
                         </a>
                     </li>

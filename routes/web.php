@@ -77,7 +77,7 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     Route::resource('niveles', NivelEscolarController::class)
         ->middleware('rol:administrador');
 
-    
+
 
     // ── Grados ───────────────────────────────────────────
     Route::resource('grados', GradoController::class)
@@ -204,6 +204,26 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     Route::post('/becas/catalogo', [BecaController::class, 'storeCatalogo'])
         ->middleware('rol:administrador')
         ->name('becas.catalogo.store');
+
+    Route::get('/becas/catalogo/{id}/editar', [BecaController::class, 'editCatalogo'])
+        ->middleware('rol:administrador')
+        ->name('becas.catalogo.edit');
+
+    Route::put('/becas/catalogo/{id}', [BecaController::class, 'updateCatalogo'])
+        ->middleware('rol:administrador')
+        ->name('becas.catalogo.update');
+
+    Route::delete('/becas/catalogo/{id}', [BecaController::class, 'destroyCatalogo'])
+        ->middleware('rol:administrador')
+        ->name('becas.catalogo.destroy');
+
+    Route::get('/becas/crear', [BecaController::class, 'create'])
+        ->middleware('rol:administrador')
+        ->name('becas.create');
+
+    Route::get('/becas/alumno/{alumnoId}/becas-activas', [BecaController::class, 'alumnoBecasActivas'])
+        ->middleware('rol:administrador')
+        ->name('becas.alumno.becas');
 
     Route::resource('becas', BecaController::class)
         ->only(['index', 'store', 'destroy'])
