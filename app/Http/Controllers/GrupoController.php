@@ -16,44 +16,54 @@ class GrupoController extends Controller
     use RespondsWithJson;
 
     /** GET /grupos */
-    public function index(Request $request)
-    {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
+public function index(Request $request)
+{
+    $cicloId = auth()->user()->ciclo_seleccionado_id
         ?? CicloEscolar::activo()->value('id');
 
-        // Usar ciclo_id del request si viene (para el selector del wizard)
-        if ($request->filled('ciclo_id')) {
-            $cicloId = $request->ciclo_id;
-        }
-
-        $grupos = Grupo::with(['grado.nivel'])
-            ->where('ciclo_id', $cicloId)
-            ->where('activo', true)
-            // ── ESTE FILTRO FALTABA ──────────────────────────────
-            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
-                'grado', fn($q) => $q->where('nivel_id', $request->nivel_id)
-            ))
-            // ────────────────────────────────────────────────────
-            ->when($request->filled('grado_id'), fn($q) => $q->where('grado_id', $request->grado_id))
-            ->when($request->filled('activo'),   fn($q) => $q->where('activo', $request->boolean('activo')))
-            ->withCount(['inscripciones as alumnos_inscritos' => fn($q) => $q->where('activo', true)])
-            ->orderBy('grado_id')
-            ->orderBy('nombre')
-            ->get()
-            ->map(fn($g) => array_merge($g->toArray(), [
-                'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
-            ]));
-
-        if ($request->ajax()) {
-            return response()->json($grupos);
-        }
-
-        $niveles = NivelEscolar::activo()->get();
-        $grados  = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
-        $ciclo   = CicloEscolar::find($cicloId);
-
-        return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo'));
+    if ($request->filled('ciclo_id')) {
+        $cicloId = $request->ciclo_id;
     }
+
+    $query = Grupo::with(['grado.nivel'])->where('ciclo_id', $cicloId);
+
+    // ── LÓGICA DE ESTATUS (Usando tu Scope o Manual) ──
+    if ($request->estatus == 'inactivos') {
+        $query->where('activo', false);
+    } elseif ($request->estatus == 'todos') {
+        // No filtramos por activo para que salgan todos
+    } else {
+        // Por defecto (o si elige activos)
+        $query->activo(); 
+    }
+
+    $gruposPaginados = $query
+        ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
+            'grado', fn($q) => $q->where('nivel_id', $request->nivel_id)
+        ))
+        ->when($request->filled('grado_id'), fn($q) => $q->where('grado_id', $request->grado_id))
+        ->withCount(['inscripciones as alumnos_inscritos' => fn($q) => $q->where('activo', true)])
+        ->orderBy('grado_id')
+        ->orderBy('nombre')
+        ->paginate(10);
+
+    // Transformación para los disponibles
+    $gruposPaginados->getCollection()->transform(fn($g) => array_merge($g->toArray(), [
+        'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
+    ]));
+
+    $grupos = $gruposPaginados->appends($request->except('page'));
+    
+    if ($request->ajax()) {
+        return response()->json($grupos);
+    }
+
+    $niveles = NivelEscolar::activo()->get();
+    $grados  = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
+    $ciclo   = CicloEscolar::find($cicloId);
+
+    return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo'));
+}
 
     /** GET /grupos/{id} */
     public function show(int $id)
@@ -86,46 +96,59 @@ class GrupoController extends Controller
     /** POST /grupos */
     public function store(Request $request)
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
+    $cicloId = auth()->user()->ciclo_selected_id 
+        ?? CicloEscolar::activo()->value('id');
 
-        $data = $request->validate([
-            'grado_id'    => ['required', 'exists:grado,id'],
-            'nombre'      => ['required', 'string', 'max:10'],
-            'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'docente'     => ['nullable', 'string', 'max:200'],
-            'ciclo_id'    => ['nullable', 'exists:ciclo_escolar,id'],
-        ], [
-            'grado_id.required' => 'Debe seleccionar el grado.',
-            'nombre.required'   => 'El nombre del grupo es obligatorio.',
-        ]);
+    $data = $request->validate([
+        'grado_id'    => ['required', 'exists:grado,id'],
+        'nombre'      => ['required', 'string', 'max:10'],
+        'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
+        'docente'     => ['nullable', 'string', 'max:200'],
+        'ciclo_id'    => ['nullable', 'exists:ciclo_escolar,id'],
+    ], [
+        'grado_id.required' => 'Debe seleccionar el grado.',
+        'nombre.required'   => 'El nombre del grupo es obligatorio.',
+    ]);
 
-        $data['ciclo_id'] = $data['ciclo_id'] ?? $cicloId;
-        $data['activo']   = true;
-        $data['nombre']   = strtoupper($data['nombre']);
+    $data['ciclo_id'] = $data['ciclo_id'] ?? $cicloId;
+    $data['activo']   = true;
+    $data['nombre']   = strtoupper($data['nombre']);
 
-        $existe = Grupo::where('ciclo_id', $data['ciclo_id'])
-            ->where('grado_id', $data['grado_id'])
-            ->where('nombre', $data['nombre'])
-            ->exists();
+    $existe = Grupo::where('ciclo_id', $data['ciclo_id'])
+        ->where('grado_id', $data['grado_id'])
+        ->where('nombre', $data['nombre'])
+        ->exists();
 
-        if ($existe) {
-            return $this->respuestaError(
-                "Ya existe el grupo '{$data['nombre']}' para ese grado en este ciclo."
-            );
-        }
+    if ($existe) {
+        $msj = "Ya existe el grupo '{$data['nombre']}' para ese grado en este ciclo.";
+        return $request->ajax() 
+            ? response()->json(['status' => 'error', 'mensaje' => $msj], 422)
+            : back()->withErrors(['nombre' => $msj])->withInput();
+    }
 
-        $grupo = Grupo::create($data);
+    $grupo = Grupo::create($data);
 
-        Auditoria::registrar('grupo', $grupo->id, 'insert', null, $grupo->toArray());
+    Auditoria::registrar('grupo', $grupo->id, 'insert', null, $grupo->toArray());
+
+    // ── CONFIGURACIÓN PARA EL TOAST DE HTML ──
+    $mensajeExito = "Grupo '{$grupo->nombre}' creado correctamente.";
+
+    if ($request->ajax()) {
+        // MANDAMOS EL MENSAJE A LA SESIÓN MANUALMENTE
+        // Esto es lo que hará que tu @if(session()->has('success')) lo vea al recargar
+        session()->flash('success', $mensajeExito);
 
         return $this->respuestaExito(
             redirectRoute: 'grupos.index',
             jsonData: ['grupo' => $grupo->load(['grado.nivel', 'ciclo'])],
-            mensaje: "Grupo '{$grupo->nombre}' creado correctamente.",
+            mensaje: $mensajeExito,
             jsonStatus: 201
         );
     }
+
+    return redirect()->route('grupos.index')->with('success', $mensajeExito);
+    }
+
 
     /** GET /grupos/{id}/edit */
     public function edit(int $id)
@@ -143,71 +166,82 @@ class GrupoController extends Controller
     /** PUT /grupos/{id} */
     public function update(Request $request, int $id)
     {
-        $grupo    = Grupo::findOrFail($id);
-        $anterior = $grupo->toArray();
+    $grupo    = Grupo::findOrFail($id);
+    $anterior = $grupo->toArray();
 
-        $data = $request->validate([
-            'nombre'      => ['sometimes', 'required', 'string', 'max:10'],
-            'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'docente'     => ['nullable', 'string', 'max:200'],
-            'activo'      => ['boolean'],
-        ]);
+    $data = $request->validate([
+        'nombre'      => ['sometimes', 'required', 'string', 'max:10'],
+        'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
+        'docente'     => ['nullable', 'string', 'max:200'],
+        'activo'      => ['boolean'],
+    ]);
 
-        if (isset($data['nombre'])) {
-            $data['nombre'] = strtoupper($data['nombre']);
-            $duplicado = Grupo::where('ciclo_id', $grupo->ciclo_id)
-                ->where('grado_id', $grupo->grado_id)
-                ->where('nombre', $data['nombre'])
-                ->where('id', '!=', $id)
-                ->exists();
+    // 1. Validación de nombre duplicado
+    if (isset($data['nombre'])) {
+        $data['nombre'] = strtoupper($data['nombre']);
+        $duplicado = Grupo::where('ciclo_id', $grupo->ciclo_id)
+            ->where('grado_id', $grupo->grado_id)
+            ->where('nombre', $data['nombre'])
+            ->where('id', '!=', $id) // Con esto ya no se encuentra a sí mismo
+            ->exists();
 
-            if ($duplicado) {
-                return $this->respuestaError(
-                    "Ya existe el grupo '{$data['nombre']}' para ese grado en este ciclo."
-                );
-            }
+        if ($duplicado) {
+            return $this->respuestaError(
+                "Ya existe el grupo '{$data['nombre']}' para ese grado en este ciclo."
+            );
         }
+    }
 
-        if (isset($data['cupo_maximo'])) {
-            $inscritos = $grupo->inscripciones()->where('activo', true)->count();
-            if ($data['cupo_maximo'] < $inscritos) {
-                return $this->respuestaError(
-                    "El cupo ({$data['cupo_maximo']}) no puede ser menor a los alumnos inscritos ({$inscritos})."
-                );
-            }
+    // 2. Validación de cupo vs inscritos
+    if (isset($data['cupo_maximo'])) {
+        $inscritos = $grupo->inscripciones()->where('activo', true)->count();
+        if ($data['cupo_maximo'] < $inscritos) {
+            return $this->respuestaError(
+                "El cupo ({$data['cupo_maximo']}) no puede ser menor a los alumnos inscritos ({$inscritos})."
+            );
         }
+    }
 
-        $grupo->update($data);
+    $grupo->update($data);
 
-        Auditoria::registrar('grupo', $grupo->id, 'update', $anterior, $grupo->fresh()->toArray());
+    // 3. Registro de auditoría
+    Auditoria::registrar('grupo', $grupo->id, 'update', $anterior, $grupo->fresh()->toArray());
 
-        return $this->respuestaExito(
-            redirectRoute: 'grupos.index',
-            jsonData: ['grupo' => $grupo->fresh()->load(['grado.nivel'])],
-            mensaje: "Grupo '{$grupo->nombre}' actualizado correctamente."
-        );
+    return $this->respuestaExito(
+        redirectRoute: 'grupos.index',
+        jsonData: ['grupo' => $grupo->fresh()->load(['grado.nivel'])],
+        mensaje: "Grupo '{$grupo->nombre}' actualizado correctamente."
+    );
     }
 
     /** DELETE /grupos/{id} */
-    public function destroy(int $id)
+    public function destroy(Grupo $grupo)
     {
-        $grupo = Grupo::findOrFail($id);
+    if ($grupo->inscripciones()->count() > 0) {
+        $msj = "No se puede eliminar el grupo porque tiene alumnos inscritos.";
+        return request()->ajax() 
+            ? response()->json(['status' => 'error', 'mensaje' => $msj], 422)
+            : back()->with('error', $msj);
+    }
 
-        $inscritos = $grupo->inscripciones()->where('activo', true)->count();
-        if ($inscritos > 0) {
-            return $this->respuestaError(
-                "No se puede desactivar el grupo '{$grupo->nombre}' porque tiene {$inscritos} alumno(s) inscrito(s)."
-            );
-        }
+    $grupo->delete();
+    
+    if (request()->ajax()) {
+        session()->flash('success', 'Grupo eliminado correctamente.');
+        return response()->json(['status' => 'success']);
+    }
 
-        $grupo->update(['activo' => false]);
+    return redirect()->route('grupos.index')->with('success', 'Grupo eliminado correctamente.');
+    }
+    public function toggleStatus(Grupo $grupo)
+    {
+    $nuevoEstado = !$grupo->activo;
+    $grupo->update(['activo' => $nuevoEstado]);
+    
+    $accion = $nuevoEstado ? 'activado' : 'desactivado';
+    session()->flash('success', "El grupo ha sido {$accion} correctamente.");
 
-        Auditoria::registrar('grupo', $grupo->id, 'update', ['activo' => true], ['activo' => false]);
-
-        return $this->respuestaExito(
-            redirectRoute: 'grupos.index',
-            mensaje: "Grupo '{$grupo->nombre}' desactivado correctamente."
-        );
+    return request()->ajax() ? response()->json(['status' => 'success']) : back();
     }
 
     /** POST /grupos/{id}/cambiar-alumno */

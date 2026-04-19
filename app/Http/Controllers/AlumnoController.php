@@ -337,7 +337,7 @@ class AlumnoController extends Controller
             ->first();
 
         // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
-        $ciclosAlumno = CicloEscolar::whereHas('inscripciones', fn ($q) => $q->where('alumno_id', $alumno->id)
+        $ciclos = CicloEscolar::whereHas('inscripciones', fn ($q) => $q->where('alumno_id', $alumno->id)
         )->orderByDesc('fecha_inicio')->get();
 
         // Cargos con detalles de pagos vigentes y políticas del plan
@@ -482,7 +482,7 @@ class AlumnoController extends Controller
         ];
 
         return view('alumnos.estado-cuenta', compact(
-            'alumno', 'inscripcionActual', 'ciclosAlumno', 'cargos', 'resumen', 'becas'
+            'alumno', 'inscripcionActual', 'ciclos', 'cargos', 'resumen', 'becas'
         ));
     }
 
