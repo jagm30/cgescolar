@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AsignacionPlan extends Model
 {
     protected $table = 'asignacion_plan';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -23,7 +24,7 @@ class AsignacionPlan extends Model
 
     protected $casts = [
         'fecha_inicio' => 'date',
-        'fecha_fin'    => 'date',
+        'fecha_fin' => 'date',
     ];
 
     // ── Relaciones ───────────────────────────────────────
@@ -46,6 +47,11 @@ class AsignacionPlan extends Model
     public function nivel(): BelongsTo
     {
         return $this->belongsTo(NivelEscolar::class, 'nivel_id');
+    }
+
+    public function conceptosSeleccionados(): HasMany
+    {
+        return $this->hasMany(AsignacionPlanConcepto::class, 'asignacion_id');
     }
 
     public function cargos(): HasMany

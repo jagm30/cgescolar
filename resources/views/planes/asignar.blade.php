@@ -197,11 +197,11 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <label>Fecha inicio</label>
-                                <input type="date" id="fecha_inicio" class="form-control" readonly>
+                                <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ old('fecha_inicio') }}" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label>Fecha fin</label>
-                                <input type="date" id="fecha_fin" class="form-control" readonly>
+                                <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ old('fecha_fin') }}" readonly>
                             </div>
                         </div>
 
@@ -268,7 +268,7 @@
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <input type="checkbox" id="concepto_${concepto.id}"
                                        class="concepto-checkbox"
-                                       data-concepto-id="${concepto.id}"
+                                       data-plan-concepto-id="${concepto.id}"
                                        data-concepto-nombre="${concepto.nombre}"
                                        checked>
                                 <label for="concepto_${concepto.id}" style="margin: 0; cursor: pointer; flex: 1;">
@@ -379,6 +379,44 @@
                 if ($('#plan_id').val()) {
                     $('#plan_id').trigger('change');
                 }
+
+                // Manejar envío del formulario
+                $('#form-asignar-plan').on('submit', function(e) {
+                    e.preventDefault();
+
+                    // Recopilar conceptos seleccionados
+                    const conceptosSeleccionados = [];
+                    $('input.concepto-checkbox:checked').each(function() {
+                        conceptosSeleccionados.push($(this).data('plan-concepto-id'));
+                    });
+
+                    if (conceptosSeleccionados.length === 0) {
+                        alert('Debe seleccionar al menos un concepto.');
+                        return;
+                    }
+
+                    // Crear campo hidden para conceptos
+                    if ($('#conceptos-hidden').length === 0) {
+                        $('<input>').attr({
+                            type: 'hidden',
+                            id: 'conceptos-hidden',
+                            name: 'conceptos[]'
+                        }).appendTo('#form-asignar-plan');
+                    }
+
+                    // Limpiar y agregar valores
+                    $('#conceptos-hidden').remove();
+                    conceptosSeleccionados.forEach(function(conceptoId) {
+                        $('<input>').attr({
+                            type: 'hidden',
+                            name: 'conceptos[]',
+                            value: conceptoId
+                        }).appendTo('#form-asignar-plan');
+                    });
+
+                    // Enviar formulario
+                    this.submit();
+                });
             });
         </script>
     @endpush

@@ -6,6 +6,7 @@ use App\Http\Requests\StoreAsignacionPlanRequest;
 use App\Http\Requests\StorePlanPagoRequest;
 use App\Models\Alumno;
 use App\Models\AsignacionPlan;
+use App\Models\AsignacionPlanConcepto;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\ConceptoCobro;
@@ -243,7 +244,26 @@ class PlanPagoController extends Controller
     /** POST /planes/asignar */
     public function asignar(StoreAsignacionPlanRequest $request)
     {
-        $asignacion = AsignacionPlan::create($request->validated());
+        $validated = $request->validated();
+        $conceptosSeleccionados = $request->input('conceptos', []);
+
+        // Crear la asignación sin los conceptos
+        $asignacionData = collect($validated)->except('conceptos')->toArray();
+        $asignacion = AsignacionPlan::create($asignacionData);
+
+        // Crear los conceptos seleccionados
+        $planConceptos = PlanPagoConcepto::where('plan_id', $asignacion->plan_id)
+            ->whereIn('id', $conceptosSeleccionados)
+            ->get();
+
+        foreach ($planConceptos as $planConcepto) {
+            AsignacionPlanConcepto::create([
+                'asignacion_id' => $asignacion->id,
+                'concepto_id' => $planConcepto->concepto_id,
+                'monto' => $planConcepto->monto,
+            ]);
+        }
+
         Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
 
         return $this->respuestaExito(
@@ -257,7 +277,7 @@ class PlanPagoController extends Controller
     /** GET /planes/asignaciones */
     public function indexAsignaciones(Request $request)
     {
-        $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel'])
+        $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel', 'conceptosSeleccionados'])
             ->orderBy('id', 'desc')
             ->paginate(10);
 
@@ -268,6 +288,7 @@ class PlanPagoController extends Controller
                         'plan' => $a->plan->nombre,
                         'asignado_a' => $a->alumno?->nombre_completo ?? $a->grupo?->nombre ?? $a->nivel?->nombre ?? '-',
                         'origen' => ucfirst($a->origen),
+                        'conceptos' => $a->conceptosSeleccionados->count(),
                         'fecha_inicio' => $a->fecha_inicio?->format('d/m/Y') ?? '-',
                         'fecha_fin' => $a->fecha_fin?->format('d/m/Y') ?? '-',
                     ];
@@ -303,8 +324,8 @@ class PlanPagoController extends Controller
 
         $nivelId = $inscripcion->grupo->grado->nivel_id;
 
-        $asignacion = AsignacionPlan::with([
-            'plan.planPagoConceptos.concepto',
+        $asignaciones = AsignacionPlan::with([
+            'conceptosSeleccionados.concepto',
             'plan.politicasDescuentoActivas',
             'plan.politicaRecargoActiva',
         ])
@@ -315,13 +336,13 @@ class PlanPagoController extends Controller
             })
             ->whereHas('plan', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
             ->orderByRaw("FIELD(origen, 'individual', 'grupo', 'nivel')")
-            ->first();
+            ->get();
 
-        if (! $asignacion) {
-            return response()->json(['message' => 'El alumno no tiene plan de pago asignado.'], 404);
+        if ($asignaciones->isEmpty()) {
+            return response()->json(['message' => 'El alumno no tiene planes de pago asignados.'], 404);
         }
 
-        return response()->json(['asignacion' => $asignacion, 'origen' => $asignacion->origen]);
+        return response()->json(['asignaciones' => $asignaciones]);
     }
 
     public function clonarMasivo(Request $request)
@@ -395,7 +416,8 @@ class PlanPagoController extends Controller
                 'nombre' => $p->nombre,
                 'conceptos' => $p->planPagoConceptos->map(function ($c) {
                     return [
-                        'id' => $c->concepto_id,
+                        'id' => $c->id, // plan_pago_concepto.id
+                        'concepto_id' => $c->concepto_id, // concepto_cobro.id
                         'nombre' => $c->concepto->nombre,
                         'monto' => (float) $c->monto,
                     ];

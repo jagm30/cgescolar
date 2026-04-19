@@ -173,27 +173,28 @@ class CargoController extends Controller
             foreach ($inscripciones as $inscripcion) {
                 $nivelId = $inscripcion->grupo->grado->nivel_id;
 
-                $asignacion = AsignacionPlan::with('plan.planPagoConceptos')
+                $asignaciones = AsignacionPlan::with(['conceptosSeleccionados.concepto', 'plan'])
                     ->where(function ($q) use ($inscripcion, $nivelId) {
                         $q->where(fn ($q) => $q->where('origen', 'individual')->where('alumno_id', $inscripcion->alumno_id))
                             ->orWhere(fn ($q) => $q->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id))
                             ->orWhere(fn ($q) => $q->where('origen', 'nivel')->where('nivel_id', $nivelId));
                     })
                     ->whereHas('plan', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
-                    ->orderByRaw("FIELD(origen, 'individual', 'grupo', 'nivel')")
-                    ->first();
+                    ->get();
 
-                if (! $asignacion) {
+                if ($asignaciones->isEmpty()) {
                     continue;
                 }
 
-                $plan = $asignacion->plan;
-                $periodos = $this->calcularPeriodos($plan->fecha_inicio, $plan->fecha_fin, $plan->periodicidad);
+                foreach ($asignaciones as $asignacion) {
+                    $plan = $asignacion->plan;
+                    $periodos = $this->calcularPeriodos($plan->fecha_inicio, $plan->fecha_fin, $plan->periodicidad);
 
-                foreach ($plan->planPagoConceptos as $planConcepto) {
+                    // Usar solo los conceptos seleccionados en la asignación
+                    foreach ($asignacion->conceptosSeleccionados as $conceptoSeleccionado) {
                     foreach ($periodos as $periodo) {
                         $existe = Cargo::where('inscripcion_id', $inscripcion->id)
-                            ->where('concepto_id', $planConcepto->concepto_id)
+                            ->where('concepto_id', $conceptoSeleccionado->concepto_id)
                             ->where('periodo', $periodo['periodo'])
                             ->exists();
 
@@ -205,10 +206,10 @@ class CargoController extends Controller
 
                         Cargo::create([
                             'inscripcion_id' => $inscripcion->id,
-                            'concepto_id' => $planConcepto->concepto_id,
+                            'concepto_id' => $conceptoSeleccionado->concepto_id,
                             'asignacion_id' => $asignacion->id,
                             'generado_por' => $generadoPor,
-                            'monto_original' => $planConcepto->monto,
+                            'monto_original' => $conceptoSeleccionado->monto,
                             'fecha_vencimiento' => $periodo['vencimiento'],
                             'estado' => 'pendiente',
                             'periodo' => $periodo['periodo'],
@@ -216,7 +217,7 @@ class CargoController extends Controller
                         $totalGenerados++;
                     }
                 }
-            }
+                }
 
             Auditoria::registrar('cargo', 0, 'insert', null, [
                 'ciclo_id' => $cicloId,
