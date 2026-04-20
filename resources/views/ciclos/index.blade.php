@@ -4,9 +4,6 @@
 
 @push('styles')
     <style>
-        /* ══════════════════════════════════════════
-                       CABECERA (Solo Botón a la Derecha)
-                    ══════════════════════════════════════════ */
         .con-stats {
             display: flex;
             justify-content: flex-end;
@@ -39,9 +36,6 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        /* ══════════════════════════════════════════
-                       TABLA Y COMPONENTES
-                    ══════════════════════════════════════════ */
         .con-table {
             margin: 0;
             border-collapse: separate;
@@ -81,7 +75,7 @@
             border: 1px solid #e2e8f0;
         }
 
-        /* Badges de Estado */
+
         .badge-status {
             padding: 4px 12px;
             border-radius: 12px;
@@ -133,7 +127,7 @@
 
 @section('content')
 
-    {{-- CABECERA: Solo Botón --}}
+
     <div class="con-stats">
         <button class="btn-registrar-simple" data-toggle="modal" data-target="#modal-nuevo">
             <i class="fa fa-plus"></i>

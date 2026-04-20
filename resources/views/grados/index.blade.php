@@ -5,9 +5,6 @@
 
 @push('styles')
     <style>
-        /* ══════════════════════════════════════════
-                           CABECERA (Stats a la Izq, Botón a la Der)
-                        ══════════════════════════════════════════ */
         .con-stats {
             display: flex;
             align-items: center;
@@ -58,7 +55,7 @@
             letter-spacing: .04em;
         }
 
-        /* BOTÓN SIMPLE REDONDEADO */
+
         .btn-registrar-simple {
             margin-left: auto;
             background-color: #00a65a;
@@ -83,9 +80,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        /* ══════════════════════════════════════════
-                           TOOLBAR Y TABLA
-                        ══════════════════════════════════════════ */
+
         .con-toolbar {
             display: flex;
             align-items: center;
@@ -157,7 +152,6 @@
 
 @section('content')
 
-    {{-- STATS Y BOTÓN --}}
     <div class="con-stats">
         <div class="con-stat-card">
             <div class="con-stat-icon"><i class="fa fa-graduation-cap"></i></div>

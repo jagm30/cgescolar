@@ -55,7 +55,7 @@
             letter-spacing: .04em;
         }
 
-        /* BOTÓN REGISTRAR SIMPLE (Estilo Píldora) */
+
         .btn-registrar-simple {
             margin-left: auto;
             background-color: #00a65a;
@@ -63,7 +63,7 @@
             border: none;
             padding: 10px 24px;
             border-radius: 25px;
-            /* Redondeado simple */
+
             font-weight: 600;
             display: flex;
             align-items: center;
@@ -81,9 +81,6 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        /* ══════════════════════════════════════════
-                                                                                   TABLA DE CONTENIDO
-                                                                                ══════════════════════════════════════════ */
         .con-table {
             margin: 0;
             border-collapse: separate;
@@ -150,7 +147,7 @@
 
 @section('content')
 
-    {{-- CABECERA: STATS (Izquierda) Y BOTÓN (Derecha) --}}
+
     <div class="con-stats">
         <div class="con-stat-card">
             <div class="con-stat-icon"><i class="fa fa-graduation-cap"></i></div>
@@ -326,7 +323,7 @@
                 });
             }
 
-            // Llenado dinámico del Modal de Edición
+
             $('#modal-editar').on('show.bs.modal', function(event) {
                 var button = $(event.relatedTarget);
                 var modal = $(this);
