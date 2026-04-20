@@ -25,6 +25,8 @@ class StoreAsignacionPlanRequest extends FormRequest
             'nivel_id' => ['required_if:origen,nivel', 'nullable', 'exists:nivel_escolar,id'],
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
+            'conceptos' => ['required', 'array', 'min:1'],
+            'conceptos.*' => ['exists:plan_pago_concepto,id'],
         ];
     }
 
@@ -95,8 +97,15 @@ class StoreAsignacionPlanRequest extends FormRequest
                 $query->where('nivel_id', $nivelId);
             }
 
-            if ($query->exists()) {
-                $validator->errors()->add('plan_id', 'Ya existe una asignación para ese alcance dentro del ciclo del plan.');
+            // Validar que los conceptos seleccionados pertenezcan al plan
+            $planConceptosIds = $plan->planPagoConceptos->pluck('id')->toArray();
+            $conceptosSeleccionados = $this->input('conceptos', []);
+
+            if (! empty($conceptosSeleccionados)) {
+                $invalidos = array_diff($conceptosSeleccionados, $planConceptosIds);
+                if (! empty($invalidos)) {
+                    $validator->errors()->add('conceptos', 'Algunos conceptos seleccionados no pertenecen al plan elegido.');
+                }
             }
         });
     }
