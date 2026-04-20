@@ -1,71 +1,197 @@
 @extends('layouts.master')
-@section('page_title', 'Ciclos escolares')
+@section('page_title', 'Ciclos Escolares')
+@section('page_subtitle', 'Configuración académica')
+
+@push('styles')
+    <style>
+        /* ══════════════════════════════════════════
+                       CABECERA (Solo Botón a la Derecha)
+                    ══════════════════════════════════════════ */
+        .con-stats {
+            display: flex;
+            justify-content: flex-end;
+            /* Empuja el botón a la derecha */
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        /* BOTÓN REGISTRAR SIMPLE (Estilo Píldora) */
+        .btn-registrar-simple {
+            background-color: #00a65a;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            height: 40px;
+            white-space: nowrap;
+        }
+
+        .btn-registrar-simple:hover {
+            background-color: #008d4c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* ══════════════════════════════════════════
+                       TABLA Y COMPONENTES
+                    ══════════════════════════════════════════ */
+        .con-table {
+            margin: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .con-table thead tr th {
+            background: #f4f6f8;
+            color: #6b7a8d;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 12px 14px;
+            border-bottom: 2px solid #e0e6ed;
+        }
+
+        .con-table td {
+            padding: 12px 14px;
+            vertical-align: middle;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f3f7;
+        }
+
+        .con-nombre {
+            font-weight: 700;
+            color: #1a2634;
+            font-size: 14px;
+        }
+
+        .con-fecha {
+            font-family: monospace;
+            color: #4a5568;
+            background: #f8fafc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Badges de Estado */
+        .badge-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-activo {
+            background: #e8f8f0;
+            color: #00875a;
+            border: 1px solid #b3e8d0;
+        }
+
+        .badge-cerrado {
+            background: #f4f6f8;
+            color: #7a8898;
+            border: 1px solid #d0d9e2;
+        }
+
+        .badge-config {
+            background: #e8f3ff;
+            color: #2c6fad;
+            border: 1px solid #b3d4f5;
+        }
+
+        /* Botón Activar (Seleccionar) */
+        .btn-activar {
+            background: #fff;
+            border: 1px solid #d0dbe6;
+            color: #3c8dbc;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+
+        .btn-activar:hover {
+            background: #3c8dbc;
+            color: white;
+            border-color: #3c8dbc;
+        }
+    </style>
+@endpush
 
 @section('content')
-    <div class="box box-default">
-        <div class="box-header with-border">
-            <h3 class="box-title"></h3>
-            <button class="btn btn-success pull-right" data-toggle="modal" data-target="#modal-nuevo">
-                <i class="fa fa-plus"></i> Nuevo Ciclo Escolar
-            </button>
 
-        </div>
+    {{-- CABECERA: Solo Botón --}}
+    <div class="con-stats">
+        <button class="btn-registrar-simple" data-toggle="modal" data-target="#modal-nuevo">
+            <i class="fa fa-plus"></i>
+            <span>Nuevo Ciclo Escolar</span>
+        </button>
+    </div>
 
-        <div id="contenedor-filtro" style="float: left; margin-right: 15px;">
-            <label style="font-weight: normal;">Estado:
-                <select id="filtro-estado" class="form-control input-sm" style="width: auto; display: inline-block;">
-                    <option value="">Todos</option>
-                    <option value="Activo">Activo</option>
-                    <option value="Cerrado">Cerrado</option>
-                    <option value="Configuracion">Configuración</option>
-                </select>
-            </label>
-        </div>
-
-        <div class="box-body">
-            <table id="ciclos" class="table table-bordered table-striped">
+    <div class="box box-solid" style="border-radius: 6px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05);">
+        <div class="box-body no-padding">
+            <table class="con-table">
                 <thead>
                     <tr>
                         <th>Nombre del Ciclo</th>
                         <th>Fecha Inicio</th>
                         <th>Fecha Fin</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
+                        <th class="text-center">Estado</th>
+                        <th width="220px" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($ciclos as $ciclo)
                         <tr>
-                            <td>{{ $ciclo->nombre }}</td>
-                            <td>{{ \Carbon\Carbon::parse($ciclo->fecha_inicio)->format('d/m/Y') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($ciclo->fecha_fin)->format('d/m/Y') }}</td>
                             <td>
+                                <div class="con-nombre">{{ $ciclo->nombre }}</div>
+                            </td>
+                            <td><span
+                                    class="con-fecha">{{ \Carbon\Carbon::parse($ciclo->fecha_inicio)->format('d/m/Y') }}</span>
+                            </td>
+                            <td><span
+                                    class="con-fecha">{{ \Carbon\Carbon::parse($ciclo->fecha_fin)->format('d/m/Y') }}</span>
+                            </td>
+                            <td class="text-center">
                                 <span
-                                    class="label {{ $ciclo->estado == 'activo'
-                                        ? 'label-success'
-                                        : ($ciclo->estado == 'cerrado'
-                                            ? 'label-warning'
-                                            : ($ciclo->estado == 'configuracion'
-                                                ? 'label-info'
-                                                : 'label-default')) }}">
+                                    class="badge-status 
+                                    {{ $ciclo->estado == 'activo' ? 'badge-activo' : ($ciclo->estado == 'cerrado' ? 'badge-cerrado' : 'badge-config') }}">
                                     {{ ucfirst($ciclo->estado) }}
                                 </span>
                             </td>
-                            <td>
-                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal"
-                                    data-target="#modal-editar" data-id="{{ $ciclo->id }}"
-                                    data-nombre="{{ $ciclo->nombre }}" data-inicio="{{ $ciclo->fecha_inicio }}"
-                                    data-fin="{{ $ciclo->fecha_fin }}" data-estado="{{ $ciclo->estado }}">
-                                    <i class="fa fa-pencil"></i> Editar
-                                </button>
+                            <td class="text-center">
+                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                    {{-- Botón Activar (Seleccionar) --}}
+                                    <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST"
+                                        style="display:inline;">
+                                        @csrf
+                                        <button type="submit" class="btn-activar" title="Seleccionar este ciclo">
+                                            <i class="fa fa-check-circle"></i> Seleccionar
+                                        </button>
+                                    </form>
 
-                                <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST"
-                                    style="display:inline;">
-                                    @csrf
-                                    <button type="submit" class="btn btn-info btn-sm">
-                                        Seleccionar
+                                    {{-- Botón Editar --}}
+                                    <button class="btn btn-default btn-xs"
+                                        style="border-radius: 50%; width: 26px; height: 26px;" data-toggle="modal"
+                                        data-target="#modal-editar" data-id="{{ $ciclo->id }}"
+                                        data-nombre="{{ $ciclo->nombre }}" data-inicio="{{ $ciclo->fecha_inicio }}"
+                                        data-fin="{{ $ciclo->fecha_fin }}" data-estado="{{ $ciclo->estado }}">
+                                        <i class="fa fa-pencil text-blue"></i>
                                     </button>
-                                </form>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -73,8 +199,6 @@
             </table>
         </div>
     </div>
-    </div>
-
     <x-modal id="modal-editar" title="Editar Ciclo Escolar">
         <form id="form-editar" method="POST">
             @csrf
