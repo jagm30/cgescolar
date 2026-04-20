@@ -183,6 +183,10 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
         ->only(['index', 'show'])
         ->middleware('rol:administrador,caja');
 
+    Route::delete('/cargos/{id}', [CargoController::class, 'destroy'])
+        ->middleware('rol:administrador')
+        ->name('cargos.destroy');
+
     // ── Pagos ────────────────────────────────────────────
     Route::get('/pagos/corte', [PagoController::class, 'corte'])
         ->middleware('rol:administrador,caja')
