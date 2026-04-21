@@ -581,4 +581,90 @@ class AlumnoController extends Controller
 
         return [$nombre, $apPaterno, $apMaterno];
     }
+
+    // ── NUEVAS FUNCIONES DE GESTIÓN DE INSCRIPCIÓN Y EGRESO ──
+
+/**
+     * DELETE /inscripciones/{id}
+     * Quita al alumno de un grupo específico desactivando su inscripción.
+     */
+    public function quitarDelGrupo(int $id)
+    {
+        $inscripcion = Inscripcion::findOrFail($id);
+        $nombre = $inscripcion->alumno->nombre;
+        
+        // En lugar de borrar la fila (lo cual rompe los cargos financieros),
+        // simplemente la desactivamos para que desaparezca de la lista del grupo.
+        $inscripcion->update(['activo' => false]);
+
+        return back()->with('success', "Se ha quitado a $nombre del grupo correctamente.");
+    }
+
+/**
+     * PATCH /alumnos/{id}/dar-baja
+     */
+    public function darBaja(Request $request, int $id)
+    {
+        $request->validate([
+            'tipo_baja' => 'required|in:baja_temporal,baja_definitiva',
+            'observaciones' => 'nullable|string'
+        ]);
+
+        $alumno = Alumno::findOrFail($id);
+        
+        // Obtenemos la observación actual por si ya tenía algo escrito antes
+        $obsAnterior = $alumno->observaciones ? $alumno->observaciones . " | " : "";
+
+        $alumno->update([
+            'estado' => $request->tipo_baja,
+            'fecha_baja' => now(),
+            'observaciones' => $obsAnterior . $request->observaciones // Concatenamos la razón
+        ]);
+
+        $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
+
+        return back()->with('success', "Se registró la baja correctamente en el expediente.");
+    }
+
+    /**
+     * POST /grupos/{id}/egresar-todo
+     * Procesa a múltiples alumnos de un grupo (egreso o cierre de ciclo).
+     */
+    public function egresarTodo(Request $request, int $grupo_id)
+    {
+        // Recibimos los IDs de los checkboxes marcados
+        $ids = $request->input('inscripciones_ids');
+
+        if (!$ids || count($ids) == 0) {
+            return back()->with('error', 'No seleccionaste ningún alumno para procesar.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $inscripciones = Inscripcion::whereIn('id', $ids)->with('alumno', 'grupo.grado')->get();
+
+            foreach ($inscripciones as $inscripcion) {
+                $alumno = $inscripcion->alumno;
+
+                // Si el grado es de sexto, cambia el estado general a egresado
+                if ($inscripcion->grupo->grado->nombre == '6') {
+                    $alumno->update([
+                        'estado' => 'egresado',
+                        'fecha_baja' => now()
+                    ]);
+                }
+
+                // Cerramos la inscripción del ciclo actual para todos los seleccionados
+                $inscripcion->update(['activo' => false]);
+            }
+
+            DB::commit();
+            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
+        }
+    }
 }

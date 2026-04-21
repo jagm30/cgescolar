@@ -72,15 +72,25 @@
     </style>
 
     {{-- ── ENCABEZADO ── --}}
-    <div class="row" style="margin-bottom: 20px;">
-        <div class="col-md-8">
+    <div class="row" style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap;">
+        {{-- Columna del Título --}}
+        <div class="col-md-6 col-sm-12">
             <h2 style="margin: 0; font-weight: bold; color: #1e4d7b;">
                 <i class="fa fa-users text-blue"></i> Grupos Escolares
             </h2>
-            <p class="text-muted">Ciclo Escolar: <b>{{ $ciclo->nombre }}</b></p>
+            <p class="text-muted" style="margin: 5px 0 0 0;">Ciclo Escolar: <b>{{ $ciclo->nombre }}</b></p>
         </div>
-        <div class="col-md-4 text-right" style="padding-top: 10px;">
-            <button class="btn btn-success" data-toggle="modal" data-target="#modalNuevoGrupo">
+
+        {{-- Columna de Botones --}}
+        <div class="col-md-6 col-sm-12 text-right"
+            style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+            {{-- Botón Migrar con estilo plano para que combine --}}
+            <button type="button" class="btn btn-primary btn-flat" data-toggle="modal" data-target="#modalMigrarGrupos">
+                <i class="fa fa-copy"></i> Migrar Estructura a Nuevo Ciclo
+            </button>
+
+            {{-- Botón Nuevo Grupo --}}
+            <button type="button" class="btn btn-success btn-flat" data-toggle="modal" data-target="#modalNuevoGrupo">
                 <i class="fa fa-plus"></i> Crear Nuevo Grupo
             </button>
         </div>
@@ -293,7 +303,8 @@
 
                     <p><i class="fa fa-exclamation-triangle text-orange"></i> <b>Seguridad:</b> Solo se pueden
                         <b>Eliminar</b> grupos vacíos. Los grupos con alumnos solo pueden ser <b>Desactivados</b> para
-                        proteger el historial escolar.</p>
+                        proteger el historial escolar.
+                    </p>
                 </div>
             </div>
         </div>
@@ -343,6 +354,48 @@
             </div>
         </form>
     </x-modal>
+    {{-- ── MODAL MIGRAR  GRUPOs ── --}}
+    <div class="modal fade" id="modalMigrarGrupos" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content" style="border-radius: 12px;">
+                <form action="{{ route('grupos.migrar') }}" method="POST">
+                    @csrf
+                    <div class="modal-header bg-primary" style="border-radius: 12px 12px 0 0;">
+                        <button type="button" class="close" data-dismiss="modal"
+                            style="color:white; opacity:1;"><span>&times;</span></button>
+                        <h4 class="modal-title" style="color:white;"><i class="fa fa-copy"></i> <b>Migrar Estructura</b>
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info" style="font-size: 13px;">
+                            <i class="fa fa-info-circle"></i> Esta acción copiará los salones actuales al nuevo ciclo
+                            seleccionado, <b>sin incluir a los alumnos</b>.
+                        </div>
+
+                        {{-- Usamos $ciclo->id porque es la variable que ya tienes en el index --}}
+                        <input type="hidden" name="ciclo_origen_id" value="{{ $ciclo->id }}">
+
+                        <div class="form-group">
+                            <label>Ciclo de Destino:</label>
+                            <select name="ciclo_destino_id" class="form-control" required>
+                                <option value="">-- Seleccionar Ciclo --</option>
+                                {{-- Usamos $ciclosDisponibles que es la que sí manda tu controlador --}}
+                                @foreach ($ciclosDisponibles ?? [] as $cd)
+                                    @if ($cd->id != $ciclo->id)
+                                        <option value="{{ $cd->id }}">{{ $cd->nombre }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Iniciar Migración</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     {{-- ── MODALES EDITAR GRUPO ── --}}
     @foreach ($grupos as $g)
