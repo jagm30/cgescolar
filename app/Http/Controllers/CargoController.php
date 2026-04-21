@@ -147,6 +147,23 @@ class CargoController extends Controller
         return view('cargos.show', compact('cargo', 'preview'));
     }
 
+    /** DELETE /cargos/{id} */
+    public function destroy(int $id): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+    {
+        $cargo = Cargo::with('inscripcion')->findOrFail($id);
+        $alumnoId = $cargo->inscripcion->alumno_id;
+
+        $cargo->delete();
+
+        return $this->respuestaExito(
+            'alumnos.estado-cuenta',
+            [],
+            'Cargo eliminado correctamente.',
+            200,
+            [$alumnoId]
+        );
+    }
+
     /**
      * POST /cargos/generar
      * Genera cargos para todos los alumnos del ciclo según sus planes.
@@ -218,6 +235,7 @@ class CargoController extends Controller
                     }
                 }
                 }
+            }
 
             Auditoria::registrar('cargo', 0, 'insert', null, [
                 'ciclo_id' => $cicloId,
