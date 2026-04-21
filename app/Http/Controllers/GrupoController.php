@@ -10,6 +10,7 @@ use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class GrupoController extends Controller
 {
@@ -66,20 +67,29 @@ public function index(Request $request)
 }
 
     /** GET /grupos/{id} */
-    public function show(int $id)
-    {
-        $grupo = Grupo::with([
-            'grado.nivel', 'ciclo',
-            'inscripciones' => fn($q) => $q->where('activo', true)
-                ->with(['alumno' => fn($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')]),
-        ])->findOrFail($id);
+public function show(int $id)
+{
+    $grupo = Grupo::with([
+        'grado.nivel', 'ciclo',
+        'inscripciones' => fn($q) => $q->where('activo', true)
+            ->with(['alumno' => fn($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')]),
+    ])->findOrFail($id);
 
-        if (request()->ajax()) {
-            return response()->json($grupo);
-        }
-
-        return view('grupos.show', compact('grupo'));
+    if (request()->ajax()) {
+        return response()->json($grupo);
     }
+
+    // RESTRICCIÓN: Solo grupos del mismo CICLO y mismo GRADO
+    $gruposDisponibles = Grupo::where('ciclo_id', $grupo->ciclo_id)
+        ->where('grado_id', $grupo->grado_id) // <--- Esta es la clave
+        ->with('grado')
+        ->withCount(['inscripciones as inscripciones_count' => function($query) {
+            $query->where('activo', true);
+        }])
+        ->get();
+
+    return view('grupos.show', compact('grupo', 'gruposDisponibles'));
+}
 
     /** GET /grupos/create */
     public function create()
@@ -287,5 +297,22 @@ public function index(Request $request)
             jsonData: ['inscripcion' => $inscripcion->fresh()->load(['alumno', 'grupo.grado.nivel'])],
             mensaje: "Alumno movido al grupo '{$grupoDestino->nombre}' correctamente."
         );
+    }
+
+    public function generarReporte(int $id)
+    {
+    // Solo traemos lo estrictamente necesario
+    $grupo = Grupo::with(['grado', 'inscripciones.alumno'])->findOrFail($id);
+
+    if (ob_get_length()) ob_end_clean();
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('grupos.reportes.lista_pdf', compact('grupo'));
+    
+    // Configuraciones de optimización
+    $pdf->setOption('isPhpEnabled', true);
+    $pdf->setOption('isHtml5ParserEnabled', true);
+    $pdf->setPaper('letter', 'portrait');
+
+    return $pdf->stream("Lista_{$grupo->nombre}.pdf");
     }
 }
