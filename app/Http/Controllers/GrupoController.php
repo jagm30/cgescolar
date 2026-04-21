@@ -19,25 +19,23 @@ class GrupoController extends Controller
     /** GET /grupos */
 public function index(Request $request)
 {
-    $cicloId = auth()->user()->ciclo_seleccionado_id
-        ?? CicloEscolar::activo()->value('id');
-
-    if ($request->filled('ciclo_id')) {
-        $cicloId = $request->ciclo_id;
-    }
+    // 1. Determinamos el ciclo que se está consultando
+    $cicloId = $request->filled('ciclo_id') 
+        ? $request->ciclo_id 
+        : (auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id'));
 
     $query = Grupo::with(['grado.nivel'])->where('ciclo_id', $cicloId);
 
-    // ── LÓGICA DE ESTATUS (Usando tu Scope o Manual) ──
+    // 2. Lógica de Estatus (Filtro Activo/Inactivo)
     if ($request->estatus == 'inactivos') {
         $query->where('activo', false);
     } elseif ($request->estatus == 'todos') {
-        // No filtramos por activo para que salgan todos
+        // No filtramos nada
     } else {
-        // Por defecto (o si elige activos)
         $query->activo(); 
     }
 
+    // 3. Paginación y conteo de alumnos inscritos
     $gruposPaginados = $query
         ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
             'grado', fn($q) => $q->where('nivel_id', $request->nivel_id)
@@ -48,7 +46,7 @@ public function index(Request $request)
         ->orderBy('nombre')
         ->paginate(10);
 
-    // Transformación para los disponibles
+    // 4. Transformación para calcular lugares disponibles
     $gruposPaginados->getCollection()->transform(fn($g) => array_merge($g->toArray(), [
         'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
     ]));
@@ -59,29 +57,36 @@ public function index(Request $request)
         return response()->json($grupos);
     }
 
+    // 5. Variables para la vista
     $niveles = NivelEscolar::activo()->get();
     $grados  = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
     $ciclo   = CicloEscolar::find($cicloId);
 
-    return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo'));
-}
+    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
+    // Traemos todos los ciclos para que el Modal de Migración pueda mostrarlos
+    $ciclosDisponibles = CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
 
+    return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo', 'ciclosDisponibles'));
+}
     /** GET /grupos/{id} */
 public function show(int $id)
 {
     $grupo = Grupo::with([
-        'grado.nivel', 'ciclo',
-        'inscripciones' => fn($q) => $q->where('activo', true)
-            ->with(['alumno' => fn($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')]),
+        'grado.nivel', 
+        'ciclo',
+        // Quitamos el filtro de 'activo' para que cargue el historial completo
+        'inscripciones' => fn($q) => $q->with([
+            'alumno' => fn($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')
+        ]),
     ])->findOrFail($id);
 
     if (request()->ajax()) {
         return response()->json($grupo);
     }
 
-    // RESTRICCIÓN: Solo grupos del mismo CICLO y mismo GRADO
+    // Los grupos disponibles para cambio siguen contando solo a los activos (esto está bien así)
     $gruposDisponibles = Grupo::where('ciclo_id', $grupo->ciclo_id)
-        ->where('grado_id', $grupo->grado_id) // <--- Esta es la clave
+        ->where('grado_id', $grupo->grado_id)
         ->with('grado')
         ->withCount(['inscripciones as inscripciones_count' => function($query) {
             $query->where('activo', true);
@@ -299,20 +304,62 @@ public function show(int $id)
         );
     }
 
-    public function generarReporte(int $id)
-    {
-    // Solo traemos lo estrictamente necesario
-    $grupo = Grupo::with(['grado', 'inscripciones.alumno'])->findOrFail($id);
+public function generarReporte(int $id)
+{
+    // Filtramos las inscripciones para traer solo las ACTIVAS en el reporte
+    $grupo = Grupo::with([
+        'grado', 
+        'inscripciones' => fn($q) => $q->where('activo', true)->with('alumno')
+    ])->findOrFail($id);
 
     if (ob_get_length()) ob_end_clean();
 
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('grupos.reportes.lista_pdf', compact('grupo'));
     
-    // Configuraciones de optimización
     $pdf->setOption('isPhpEnabled', true);
     $pdf->setOption('isHtml5ParserEnabled', true);
     $pdf->setPaper('letter', 'portrait');
 
     return $pdf->stream("Lista_{$grupo->nombre}.pdf");
+}
+public function migrarEstructura(Request $request)
+{
+    // Corregimos el nombre de la tabla a 'ciclo_escolar'
+    $request->validate([
+        'ciclo_destino_id' => 'required|exists:ciclo_escolar,id', 
+        'ciclo_origen_id' => 'required|exists:ciclo_escolar,id',
+    ]);
+
+    // 1. Obtenemos los grupos del ciclo origen
+    $gruposOrigen = Grupo::where('ciclo_id', $request->ciclo_origen_id)->get();
+    
+    if ($gruposOrigen->isEmpty()) {
+        return back()->with('error', "No se encontraron grupos en el ciclo de origen.");
     }
+
+    $contador = 0;
+
+    foreach ($gruposOrigen as $grupo) {
+        // 2. Evitamos duplicados en el ciclo destino
+        $existe = Grupo::where('ciclo_id', $request->ciclo_destino_id)
+            ->where('nombre', $grupo->nombre)
+            ->where('grado_id', $grupo->grado_id)
+            ->exists();
+
+        if (!$existe) {
+            // 3. Creamos el nuevo grupo (sin alumnos)
+            Grupo::create([
+                'nombre'      => $grupo->nombre,
+                'grado_id'    => $grupo->grado_id,
+                'ciclo_id'    => $request->ciclo_destino_id,
+                'docente'     => $grupo->docente, // Puedes dejarlo null si prefieres maestros nuevos
+                'cupo_maximo' => $grupo->cupo_maximo,
+                'activo'      => true
+            ]);
+            $contador++;
+        }
+    }
+
+    return back()->with('success', "¡Estructura migrada! Se crearon $contador salones en el nuevo ciclo.");
+}
 }

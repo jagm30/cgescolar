@@ -72,7 +72,7 @@
             padding: 12px 0 12px 15px !important;
         }
 
-        /* Tabla principal y responsive inteligente */
+        /* Tabla principal */
         .custom-responsive-container {
             width: 100%;
         }
@@ -84,17 +84,10 @@
             }
         }
 
-        @media (min-width: 769px) {
-            .custom-responsive-container {
-                overflow: visible !important;
-            }
-        }
-
         .table-flat {
             border-collapse: separate;
             border-spacing: 0;
             width: 100%;
-            overflow: visible !important;
         }
 
         .table-flat thead th {
@@ -113,14 +106,19 @@
             vertical-align: middle;
             color: #34495e;
             font-size: 14px;
-            overflow: visible !important;
         }
 
         .table-flat tbody tr:hover {
             background-color: #fbfcfc;
         }
 
-        /* Botones y Badges Planos */
+        /* Estilo para fila inactiva/historial */
+        .tr-inactivo {
+            background-color: #fcfcfc;
+            opacity: 0.7;
+        }
+
+        /* Botones Planos */
         .btn-flat-sm {
             padding: 7px 15px;
             border-radius: 6px;
@@ -177,7 +175,13 @@
         .dropdown-menu>li>a:hover {
             background-color: #f0f7ff !important;
             color: #3c8dbc !important;
-            text-decoration: none;
+        }
+
+        .check-alumno {
+            cursor: pointer;
+            width: 17px;
+            height: 17px;
+            accent-color: #605ca8;
         }
     </style>
 @endpush
@@ -210,23 +214,19 @@
                             <td>{{ $grupo->ciclo->nombre }}</td>
                         </tr>
                         <tr>
-                            <th>Alumnos</th>
+                            <th>Alumnos Activos</th>
                             <td><span
-                                    style="font-size: 16px; color: #3498db; font-weight: bold;">{{ $grupo->inscripciones->count() }}</span>
-                                <small class="text-muted">inscritos</small>
+                                    style="font-size: 16px; color: #3498db; font-weight: bold;">{{ $grupo->inscripciones->where('activo', true)->count() }}</span>
                             </td>
                         </tr>
                     </table>
                 </div>
                 <div class="box-footer"
                     style="background: #fafafa; border-top: 1px solid #edf1f2; padding: 15px 25px; border-radius: 0 0 8px 8px;">
-                    <a href="{{ route('grupos.index') }}" class="btn-flat-sm btn-flat-default">
-                        <i class="fa fa-arrow-left"></i> Volver
-                    </a>
+                    <a href="{{ route('grupos.index') }}" class="btn-flat-sm btn-flat-default"><i
+                            class="fa fa-arrow-left"></i> Volver</a>
                     <a href="{{ route('planes.asignar.form', ['grupo_id' => $grupo->id, 'origen' => 'grupo']) }}"
-                        class="btn-flat-sm btn-flat-info pull-right">
-                        <i class="fa fa-link"></i> Asignar Plan
-                    </a>
+                        class="btn-flat-sm btn-flat-info pull-right"><i class="fa fa-link"></i> Asignar Plan</a>
                 </div>
             </div>
         </div>
@@ -234,77 +234,194 @@
         {{-- COLUMNA PRINCIPAL --}}
         <div class="col-md-8">
             <div class="box-flat">
-                <div class="box-header-flat">
-                    <h3 class="box-title-flat"><i class="fa fa-users"></i> Alumnos Inscritos</h3>
-                    <div class="box-tools">
-                        <a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"
-                            class="btn-flat-sm btn-flat-danger">
-                            <i class="fa fa-file-pdf-o"></i> Descargar Lista
-                        </a>
+                <form id="form-egreso-masivo" action="{{ route('grupos.egresar-todo', $grupo->id) }}" method="POST">
+                    @csrf
+                    <div class="box-header-flat">
+                        <h3 class="box-title-flat"><i class="fa fa-users"></i> Alumnos del Grupo</h3>
+                        <div class="box-tools" style="display: flex; gap: 8px; align-items: center;">
+                            <button type="button" id="btn-trigger-modal-egreso" disabled
+                                style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                                <i class="fa fa-graduation-cap"></i> Egresar Seleccionados
+                            </button>
+                            <a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"
+                                class="btn-flat-sm btn-flat-danger"><i class="fa fa-file-pdf-o"></i> Reporte (Activos)</a>
+                        </div>
+                    </div>
+                    <div class="box-body-flat" style="padding: 0;">
+                        <div class="custom-responsive-container">
+                            <table class="table-flat">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px; text-align: center;"><input type="checkbox" id="check-all"
+                                                class="check-alumno"></th>
+                                        <th style="width: 50px; text-align: center;">#</th>
+                                        <th>Matrícula</th>
+                                        <th>Nombre Completo</th>
+                                        <th class="text-center" style="width: 100px;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($grupo->inscripciones as $index => $inscripcion)
+                                        <tr class="{{ !$inscripcion->activo ? 'tr-inactivo' : '' }}">
+                                            <td style="text-align: center;">
+                                                @if ($inscripcion->activo)
+                                                    <input type="checkbox" name="inscripciones_ids[]"
+                                                        value="{{ $inscripcion->id }}" class="check-alumno check-item">
+                                                @else
+                                                    <i class="fa fa-history text-muted"
+                                                        title="Ya no pertenece a este grupo"></i>
+                                                @endif
+                                            </td>
+                                            <td style="text-align: center; color: #95a5a6;">{{ $index + 1 }}</td>
+                                            <td><code
+                                                    style="background: #f4f7f6; color: #7f8c8d; padding: 3px 6px; border-radius: 4px;">{{ $inscripcion->alumno->matricula }}</code>
+                                            </td>
+                                            <td style="font-weight: 500;">
+                                                {{ $inscripcion->alumno->ap_paterno }}
+                                                {{ $inscripcion->alumno->ap_materno }} {{ $inscripcion->alumno->nombre }}
+
+                                                @if (!$inscripcion->activo)
+                                                    <br>
+                                                    @if ($inscripcion->alumno->estado === 'activo')
+                                                        <small class="label"
+                                                            style="background-color: #f39c12; color: white; font-size: 9px;">QUITADO
+                                                            DEL GRUPO / SIN GRUPO</small>
+                                                    @else
+                                                        <small class="label label-default"
+                                                            style="font-size: 9px;">INSCRIPCIÓN CERRADA
+                                                            ({{ strtoupper(str_replace('_', ' ', $inscripcion->alumno->estado)) }})</small>
+                                                    @endif
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="dropdown">
+                                                    <button class="btn-action-flat btn-dropdown-manual" type="button"
+                                                        data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i></button>
+                                                    <ul class="dropdown-menu dropdown-menu-right"
+                                                        style="min-width: 200px; padding: 8px 0; border-radius: 8px;">
+                                                        <li class="dropdown-header">Opciones</li>
+                                                        <li><a href="{{ route('alumnos.show', $inscripcion->alumno->id) }}"
+                                                                style="padding: 8px 20px;"><i class="fa fa-eye"
+                                                                    style="color: #3498db; width:24px"></i> Ver perfil</a>
+                                                        </li>
+                                                        <li><a href="{{ route('alumnos.estado-cuenta', $inscripcion->alumno->id) }}"
+                                                                style="padding: 8px 20px;"><i class="fa fa-money"
+                                                                    style="color: #2ecc71; width:24px"></i> Estado de
+                                                                cuenta</a></li>
+
+                                                        @if ($inscripcion->activo)
+                                                            <li role="separator" class="divider"></li>
+                                                            <li><a href="#" class="btn-action-confirm"
+                                                                    data-type="quitar" data-id="{{ $inscripcion->id }}"
+                                                                    data-nombre="{{ $inscripcion->alumno->nombre }}"
+                                                                    style="padding: 8px 20px;"><i
+                                                                        class="fa fa-user-times text-red"
+                                                                        style="width:24px"></i> Quitar del grupo</a></li>
+                                                            <li><a href="#" class="btn-action-confirm"
+                                                                    data-type="baja_temporal"
+                                                                    data-id="{{ $inscripcion->alumno->id }}"
+                                                                    data-nombre="{{ $inscripcion->alumno->nombre }}"
+                                                                    style="padding: 8px 20px;"><i class="fa fa-clock-o"
+                                                                        style="color: #f39c12; width:24px"></i> Dar de baja
+                                                                    temporal</a></li>
+                                                            <li><a href="#" class="btn-action-confirm"
+                                                                    data-type="baja_definitiva"
+                                                                    data-id="{{ $inscripcion->alumno->id }}"
+                                                                    data-nombre="{{ $inscripcion->alumno->nombre }}"
+                                                                    style="padding: 8px 20px;"><i
+                                                                        class="fa fa-user-times text-red"
+                                                                        style="width:24px"></i> Dar de baja definitiva</a>
+                                                            </li>
+                                                            <li role="separator" class="divider"></li>
+                                                            <li><a href="#" class="btn-cambiar-grupo"
+                                                                    data-alumno-id="{{ $inscripcion->alumno->id }}"
+                                                                    data-alumno-nombre="{{ $inscripcion->alumno->ap_paterno }} {{ $inscripcion->alumno->nombre }}"
+                                                                    style="padding: 8px 20px;"><i
+                                                                        class="fa fa-exchange text-warning"
+                                                                        style="width:24px"></i> Cambiar de grupo</a></li>
+                                                        @else
+                                                            <li role="separator" class="divider"></li>
+                                                            <li class="dropdown-header" style="color: #00a65a;">
+                                                                Reincorporación</li>
+                                                            {{-- BOTÓN NUEVO: Gestionar Alta/Reingreso --}}
+                                                            <li>
+                                                                <a href="{{ route('alumnos.edit', $inscripcion->alumno->id) }}#paso3"
+                                                                    style="padding: 8px 20px; color: #00a65a; font-weight: 600;">
+                                                                    <i class="fa fa-refresh" style="width:24px"></i>
+                                                                    Gestionar Reingreso
+                                                                </a>
+                                                            </li>
+                                                        @endif
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted" style="padding: 50px;">No
+                                                hay historial de alumnos en este grupo.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- FORMULARIOS OCULTOS --}}
+    @foreach ($grupo->inscripciones as $inscripcion)
+        @if ($inscripcion->activo)
+            <form id="delete-form-{{ $inscripcion->id }}"
+                action="{{ route('inscripciones.destroy', $inscripcion->id) }}" method="POST" style="display: none;">
+                @csrf @method('DELETE')
+            </form>
+            <form id="baja-form-{{ $inscripcion->alumno->id }}"
+                action="{{ route('alumnos.darBaja', $inscripcion->alumno->id) }}" method="POST" style="display: none;">
+                @csrf @method('PATCH')
+                <input type="hidden" name="tipo_baja" value="">
+            </form>
+        @endif
+    @endforeach
+
+    {{-- MODAL DE CONFIRMACIÓN ESTILIZADO --}}
+    <div class="modal fade" id="modalConfirmacion" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document" style="width: 350px; margin-top: 15vh;">
+            <div class="modal-content"
+                style="border-radius: 12px; border: none; box-shadow: 0 15px 40px rgba(0,0,0,0.2);">
+                <div class="modal-body" style="padding: 35px 25px; text-align: center;">
+                    <div id="icon-container"
+                        style="width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                        <i id="confirm-icon" class="fa" style="font-size: 32px;"></i>
+                    </div>
+                    <h4 id="confirm-title"
+                        style="font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 18px;"></h4>
+                    <p id="confirm-text" style="color: #7f8c8d; font-size: 14px; line-height: 1.6;"></p>
+
+                    <div id="razon-baja-container" style="display: none; margin-top: 15px; text-align: left;">
+                        <label style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Razón
+                            de la baja:</label>
+                        <textarea id="razon_baja_input" class="form-control" rows="3" placeholder="Escribe el motivo..."
+                            style="border-radius: 8px; resize: none; border: 1px solid #e2e8f0;"></textarea>
                     </div>
                 </div>
-                <div class="box-body-flat" style="padding: 0; overflow: visible !important;">
-                    <div class="custom-responsive-container">
-                        <table class="table-flat">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px; text-align: center;">#</th>
-                                    <th>Matrícula</th>
-                                    <th>Nombre Completo</th>
-                                    <th class="text-center" style="width: 100px;">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($grupo->inscripciones as $index => $inscripcion)
-                                    <tr>
-                                        <td style="text-align: center; color: #95a5a6;">{{ $index + 1 }}</td>
-                                        <td><code
-                                                style="background: #f4f7f6; color: #7f8c8d; padding: 3px 6px; border-radius: 4px;">{{ $inscripcion->alumno->matricula }}</code>
-                                        </td>
-                                        <td style="font-weight: 500;">{{ $inscripcion->alumno->ap_paterno }}
-                                            {{ $inscripcion->alumno->ap_materno }} {{ $inscripcion->alumno->nombre }}</td>
-                                        <td class="text-center">
-                                            <div class="dropdown">
-                                                <button class="btn-action-flat btn-dropdown-manual" type="button"><i
-                                                        class="fa fa-ellipsis-v"></i></button>
-                                                <ul class="dropdown-menu dropdown-menu-right">
-                                                    <li class="dropdown-header">Opciones</li>
-                                                    <li><a href="{{ route('alumnos.show', $inscripcion->alumno->id) }}"><i
-                                                                class="fa fa-eye text-blue"></i> Ver perfil</a></li>
-                                                    <li><a
-                                                            href="{{ route('alumnos.estado-cuenta', $inscripcion->alumno->id) }}"><i
-                                                                class="fa fa-money text-green"></i> Estado de cuenta</a>
-                                                    </li>
-                                                    <li role="separator" class="divider"></li>
-                                                    <li>
-                                                        <a href="#" class="btn-cambiar-grupo"
-                                                            data-alumno-id="{{ $inscripcion->alumno->id }}"
-                                                            data-alumno-nombre="{{ $inscripcion->alumno->ap_paterno }} {{ $inscripcion->alumno->nombre }}">
-                                                            <i class="fa fa-exchange text-warning"></i> Cambiar de grupo
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted" style="padding: 50px;">No hay
-                                            alumnos inscritos.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="modal-footer" style="border: none; padding: 0 25px 30px; display: flex; gap: 12px;">
+                    <button type="button" class="btn-flat-sm btn-flat-default" data-dismiss="modal"
+                        style="flex: 1; height: 40px;">Cancelar</button>
+                    <button type="button" id="btn-confirm-submit" class="btn-flat-sm"
+                        style="flex: 1; color: white; height: 40px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></button>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- MODAL ESTILO PLANO --}}
+    {{-- MODAL CAMBIAR GRUPO --}}
     <div class="modal fade" id="modalCambiarGrupo" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
-            <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-content"
+                style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
                 <form action="{{ route('grupos.cambiar-alumno', $grupo->id) }}" method="POST">
                     @csrf
                     <div class="modal-header" style="border-bottom: 1px solid #f0f2f5; padding: 20px 25px;">
@@ -331,8 +448,7 @@
                                 @foreach ($gruposDisponibles ?? [] as $g)
                                     @if ($g->id !== $grupo->id)
                                         <option value="{{ $g->id }}">{{ $g->grado->nombre }}° {{ $g->nombre }}
-                                            ({{ $g->inscripciones_count }}/{{ $g->cupo_maximo ?? '∞' }})
-                                        </option>
+                                            ({{ $g->inscripciones_count }}/{{ $g->cupo_maximo ?? '∞' }})</option>
                                     @endif
                                 @endforeach
                             </select>
@@ -340,7 +456,8 @@
                     </div>
                     <div class="modal-footer"
                         style="border-top: 1px solid #f0f2f5; padding: 15px 25px; background: #fafbfc; border-radius: 0 0 12px 12px;">
-                        <button type="button" class="btn-flat-sm btn-flat-default" data-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn-flat-sm btn-flat-default"
+                            data-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn-flat-sm btn-flat-info"
                             style="background: #3498db; color: white;">Confirmar Cambio</button>
                     </div>
@@ -353,6 +470,122 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            let formToSubmit = null;
+            let currentType = null;
+
+            $('.btn-action-confirm, #btn-trigger-modal-egreso').on('click', function(e) {
+                e.preventDefault();
+                const btn = $(this);
+                const type = btn.data('type') || 'egreso';
+                const id = btn.data('id');
+                const nombre = btn.data('nombre');
+                currentType = type;
+
+                let config = {
+                    quitar: {
+                        title: '¿Quitar del salón?',
+                        text: `¿Seguro que deseas remover a <b>${nombre}</b> de este grupo?`,
+                        icon: 'fa-user-times',
+                        color: '#e74c3c',
+                        bg: '#fdf2f2',
+                        btnText: 'Quitar',
+                        form: `#delete-form-${id}`
+                    },
+                    baja_temporal: {
+                        title: '¿Baja Temporal?',
+                        text: `Se registrará la baja temporal de <b>${nombre}</b>.`,
+                        icon: 'fa-clock-o',
+                        color: '#f39c12',
+                        bg: '#fdf8e4',
+                        btnText: 'Baja Temporal',
+                        form: `#baja-form-${id}`,
+                        tipo: 'baja_temporal'
+                    },
+                    baja_definitiva: {
+                        title: '¿Baja Definitiva?',
+                        text: `Se registrará la baja definitiva de <b>${nombre}</b>.`,
+                        icon: 'fa-ban',
+                        color: '#e74c3c',
+                        bg: '#fdf2f2',
+                        btnText: 'Baja Definitiva',
+                        form: `#baja-form-${id}`,
+                        tipo: 'baja_definitiva'
+                    },
+                    egreso: {
+                        title: '¿Egresar seleccionados?',
+                        text: `Se procesará el egreso de <b>${$('.check-item:checked').length}</b> alumnos marcados.`,
+                        icon: 'fa-graduation-cap',
+                        color: '#605ca8',
+                        bg: '#f4f3ff',
+                        btnText: 'Egresar',
+                        form: '#form-egreso-masivo'
+                    }
+                };
+
+                const c = config[type];
+                $('#confirm-title').text(c.title);
+                $('#confirm-text').html(c.text);
+                $('#confirm-icon').attr('class', 'fa ' + c.icon).css('color', c.color);
+                $('#icon-container').css('background-color', c.bg);
+                $('#btn-confirm-submit').text(c.btnText).css('background-color', c.color);
+
+                if (type.includes('baja')) {
+                    $('#razon-baja-container').show();
+                    $('#razon_baja_input').val('');
+                } else {
+                    $('#razon-baja-container').hide();
+                }
+
+                formToSubmit = c.form;
+                if (c.tipo) {
+                    $(formToSubmit).find('input[name="tipo_baja"]').val(c.tipo);
+                }
+                $('#modalConfirmacion').modal('show');
+            });
+
+            $('#btn-confirm-submit').on('click', function() {
+                if (currentType.includes('baja')) {
+                    let razon = $('#razon_baja_input').val();
+                    let tipoTexto = (currentType === 'baja_temporal') ? 'Baja Temporal' : 'Baja Definitiva';
+                    $(formToSubmit).find('input[name="observaciones"]').remove();
+                    $(formToSubmit).append(
+                        `<input type="hidden" name="observaciones" value="${tipoTexto}: ${razon}">`);
+                }
+                $(formToSubmit).submit();
+            });
+
+            function actualizarEstadoBoton() {
+                var seleccionados = $('.check-item:checked').length;
+                var btn = $('#btn-trigger-modal-egreso');
+                if (seleccionados > 0) {
+                    btn.prop('disabled', false).css({
+                        'background-color': '#f4f3ff',
+                        'color': '#605ca8',
+                        'border-color': '#e1dbff',
+                        'cursor': 'pointer'
+                    });
+                } else {
+                    btn.prop('disabled', true).css({
+                        'background-color': '#f8f9fa',
+                        'color': '#a0aec0',
+                        'border-color': '#e2e8f0',
+                        'cursor': 'not-allowed'
+                    });
+                }
+            }
+
+            $('#check-all').on('change', function() {
+                $('.check-item').prop('checked', $(this).is(':checked'));
+                actualizarEstadoBoton();
+            });
+
+            $(document).on('change', '.check-item', function() {
+                if (!$(this).is(':checked')) $('#check-all').prop('checked', false);
+                if ($('.check-item:checked').length === $('.check-item').length) $('#check-all').prop(
+                    'checked', true);
+                actualizarEstadoBoton();
+            });
+
             $('.btn-dropdown-manual').on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();

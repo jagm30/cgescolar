@@ -92,11 +92,12 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     Route::post('/grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno'])
         ->middleware('rol:administrador')
         ->name('grupos.cambiar-alumno');
-
     Route::resource('grupos', GrupoController::class)
         ->middleware('rol:administrador');
-
     Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
+    Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
+    Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
+
 
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
@@ -111,6 +112,9 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion');
 
+    Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
+    Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
+    
     // conceptos de cobro
     // Planes de pago
     // conceptos de cobro

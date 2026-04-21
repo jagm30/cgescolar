@@ -11,8 +11,8 @@
 @push('styles')
     <style>
         /* ════════════════════════════════════════════
-                            HERO
-                   ════════════════════════════════════════════ */
+                                                HERO
+                                       ════════════════════════════════════════════ */
         .alm-hero {
             background: linear-gradient(135deg, #1e4d7b 0%, #3c8dbc 100%);
             border-radius: 8px;
@@ -110,8 +110,8 @@
         }
 
         /* ════════════════════════════════════════════
-                    SECCIÓN TÍTULOS
-                   ════════════════════════════════════════════ */
+                                        SECCIÓN TÍTULOS
+                                       ════════════════════════════════════════════ */
         .sec-title {
             font-size: 12px;
             font-weight: 700;
@@ -132,8 +132,8 @@
         }
 
         /* ════════════════════════════════════════════
-                            INSCRIPCIONES
-                   ════════════════════════════════════════════ */
+                                                INSCRIPCIONES
+                                       ════════════════════════════════════════════ */
         .ins-card {
             border: 1px solid #e4eaf0;
             border-radius: 10px;
@@ -212,8 +212,8 @@
         }
 
         /* ════════════════════════════════════════════
-                        CONTACTOS (mismo estilo familias)
-                   ════════════════════════════════════════════ */
+                                            CONTACTOS (mismo estilo familias)
+                                       ════════════════════════════════════════════ */
         .ctc-card {
             border: 1px solid #e4eaf0;
             border-radius: 10px;
@@ -387,8 +387,8 @@
         }
 
         /* ════════════════════════════════════════════
-                            DOCUMENTOS
-                 ════════════════════════════════════════════ */
+                                                DOCUMENTOS
+                                     ════════════════════════════════════════════ */
         .doc-row {
             display: flex;
             align-items: center;
@@ -413,8 +413,8 @@
         }
 
         /* ════════════════════════════════════════════
-                        SIDEBAR — INFO CARD
-                 ════════════════════════════════════════════ */
+                                            SIDEBAR — INFO CARD
+                                     ════════════════════════════════════════════ */
         .info-card {
             border: 1px solid #e4eaf0;
             border-radius: 10px;
@@ -1014,7 +1014,7 @@
                 </div>
             @endif
 
-            <<<<<<< Updated upstream @if (auth()->user()->esAdministrador())
+            @if (auth()->user()->esAdministrador())
                 <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn">
                     <div class="accion-icon" style="background:#fff8e1;">
                         <i class="fa fa-star" style="color:#f39c12;font-size:14px;"></i>
@@ -1022,110 +1022,112 @@
                     Asignar beca
                     <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                 </a>
-                @endif
+            @endif
 
-                @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
-                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}" class="accion-btn">
-                        <div class="accion-icon" style="background:#fff8e1;">
-                            <i class="fa fa-dollar" style="color:#f39c12;font-size:14px;"></i>
-                            =======
-                            {{-- Becas activas --}}
-                            @if ($alumno->becas->where('activo', true)->count() > 0)
-                                <div class="info-card">
-                                    <div class="info-card-header">
-                                        <span class="info-card-title">
-                                            <i class="fa fa-star" style="margin-right:5px;color:#f39c12;"></i>Becas
-                                            activas
-                                        </span>
-                                        <span
-                                            style="background:#fff8e1;color:#b45309;font-size:11px;font-weight:700;
-                         padding:2px 9px;border-radius:10px;">
-                                            {{ $alumno->becas->where('activo', true)->count() }}
-                                        </span>
-                                    </div>
-                                    @foreach ($alumno->becas->where('activo', true) as $beca)
-                                        <div class="beca-row">
-                                            <div
-                                                style="width:34px;height:34px;border-radius:8px;background:#fff8e1;
+            @if (auth()->user()->esAdministrador())
+                <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn"
+                    style="background:#fff; border: 1px solid #e4eaf0; border-radius: 10px; margin-bottom: 18px;">
+                    <div class="accion-icon" style="background:#fff8e1;">
+                        <i class="fa fa-star" style="color:#f39c12;font-size:14px;"></i>
+                    </div>
+                    Asignar beca
+                    <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                </a>
+            @endif
+
+            {{-- Becas activas --}}
+            @if ($alumno->becas->where('activo', true)->count() > 0)
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <span class="info-card-title">
+                            <i class="fa fa-star" style="margin-right:5px;color:#f39c12;"></i>Becas
+                            activas
+                        </span>
+                        <span
+                            style="background:#fff8e1;color:#b45309;font-size:11px;font-weight:700;
+                                        padding:2px 9px;border-radius:10px;">
+                            {{ $alumno->becas->where('activo', true)->count() }}
+                        </span>
+                    </div>
+                    @foreach ($alumno->becas->where('activo', true) as $beca)
+                        <div class="beca-row">
+                            <div
+                                style="width:34px;height:34px;border-radius:8px;background:#fff8e1;
                         display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                <i class="fa fa-percent" style="color:#f39c12;font-size:13px;"></i>
-                                            </div>
-                                            <div style="flex:1;">
-                                                <div style="font-size:13px;font-weight:600;color:#1a2634;">
-                                                    {{ $beca->catalogoBeca->nombre }}
-                                                </div>
-                                                <div style="font-size:11px;color:#8a9ab0;margin-top:2px;">
-                                                    {{ $beca->concepto->nombre ?? '—' }}
-                                                </div>
-                                            </div>
-                                            <span
-                                                style="background:#fff3cd;color:#856404;font-size:12px;font-weight:700;
-                         padding:2px 10px;border-radius:10px;white-space:nowrap;">
-                                                @if ($beca->catalogoBeca->tipo === 'porcentaje')
-                                                    {{ $beca->catalogoBeca->valor }}%
-                                                @else
-                                                    ${{ number_format($beca->catalogoBeca->valor, 2) }}
-                                                @endif
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                    >>>>>>> Stashed changes
+                                <i class="fa fa-percent" style="color:#f39c12;font-size:13px;"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;color:#1a2634;">
+                                    {{ $beca->catalogoBeca->nombre }}
                                 </div>
-                            @endif
-
-                            {{-- Acciones rápidas --}}
-                            <div class="info-card">
-                                <div class="info-card-header">
-                                    <span class="info-card-title">
-                                        <i class="fa fa-bolt" style="margin-right:5px;color:#f39c12;"></i>Acciones rápidas
-                                    </span>
-                                </div>
-                                <div>
-                                    <a href="{{ route('alumnos.index') }}" class="accion-btn">
-                                        <div class="accion-icon" style="background:#f0f3f7;">
-                                            <i class="fa fa-arrow-left" style="color:#6b7a8d;font-size:13px;"></i>
-                                        </div>
-                                        Volver a alumnos
-                                        <i class="fa fa-chevron-right"
-                                            style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                                    </a>
-
-                                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
-                                        <a href="{{ route('alumnos.edit', $alumno->id) }}" class="accion-btn">
-                                            <div class="accion-icon" style="background:#e8f0fb;">
-                                                <i class="fa fa-pencil" style="color:#3c8dbc;font-size:13px;"></i>
-                                            </div>
-                                            Editar datos
-                                            <i class="fa fa-chevron-right"
-                                                style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                                        </a>
-                                    @endif
-
-                                    @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
-                                        <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}" class="accion-btn">
-                                            <div class="accion-icon" style="background:#fff8e1;">
-                                                <i class="fa fa-dollar" style="color:#f39c12;font-size:14px;"></i>
-                                            </div>
-                                            Estado de cuenta
-                                            <i class="fa fa-chevron-right"
-                                                style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                                        </a>
-                                    @endif
-
-                                    @if ($alumno->familia)
-                                        <a href="{{ route('familias.show', $alumno->familia->id) }}" class="accion-btn">
-                                            <div class="accion-icon" style="background:#e8f5e9;">
-                                                <i class="fa fa-home" style="color:#4caf50;font-size:14px;"></i>
-                                            </div>
-                                            Ver familia
-                                            <i class="fa fa-chevron-right"
-                                                style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                                        </a>
-                                    @endif
+                                <div style="font-size:11px;color:#8a9ab0;margin-top:2px;">
+                                    {{ $beca->concepto->nombre ?? '—' }}
                                 </div>
                             </div>
+                            <span
+                                style="background:#fff3cd;color:#856404;font-size:12px;font-weight:700;
+                         padding:2px 10px;border-radius:10px;white-space:nowrap;">
+                                @if ($beca->catalogoBeca->tipo === 'porcentaje')
+                                    {{ $beca->catalogoBeca->valor }}%
+                                @else
+                                    ${{ number_format($beca->catalogoBeca->valor, 2) }}
+                                @endif
+                            </span>
+                        </div>
+                    @endforeach
 
-                        </div>{{-- /col-md-4 --}}
+                </div>
+            @endif
 
-        </div>{{-- /row --}}
-    @endsection
+            {{-- Acciones rápidas --}}
+            <div class="info-card">
+                <div class="info-card-header">
+                    <span class="info-card-title">
+                        <i class="fa fa-bolt" style="margin-right:5px;color:#f39c12;"></i>Acciones rápidas
+                    </span>
+                </div>
+                <div>
+                    <a href="{{ route('alumnos.index') }}" class="accion-btn">
+                        <div class="accion-icon" style="background:#f0f3f7;">
+                            <i class="fa fa-arrow-left" style="color:#6b7a8d;font-size:13px;"></i>
+                        </div>
+                        Volver a alumnos
+                        <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                    </a>
+
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                        <a href="{{ route('alumnos.edit', $alumno->id) }}" class="accion-btn">
+                            <div class="accion-icon" style="background:#e8f0fb;">
+                                <i class="fa fa-pencil" style="color:#3c8dbc;font-size:13px;"></i>
+                            </div>
+                            Editar datos
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </a>
+                    @endif
+
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                        <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}" class="accion-btn">
+                            <div class="accion-icon" style="background:#fff8e1;">
+                                <i class="fa fa-dollar" style="color:#f39c12;font-size:14px;"></i>
+                            </div>
+                            Estado de cuenta
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </a>
+                    @endif
+
+                    @if ($alumno->familia)
+                        <a href="{{ route('familias.show', $alumno->familia->id) }}" class="accion-btn">
+                            <div class="accion-icon" style="background:#e8f5e9;">
+                                <i class="fa fa-home" style="color:#4caf50;font-size:14px;"></i>
+                            </div>
+                            Ver familia
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+        </div>{{-- /col-md-4 --}}
+
+    </div>{{-- /row --}}
+@endsection
