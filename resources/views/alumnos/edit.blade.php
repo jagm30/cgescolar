@@ -11,72 +11,69 @@
 
 @push('styles')
 <style>
-    /* ── Wizard (idéntico al create) ─────────────────── */
-    .wizard-step-trigger.is-active {
-        border-color: #3c8dbc;
-        background: #f7fbfe;
-        box-shadow: inset 0 0 0 1px rgba(60,141,188,.15);
-    }
-    .wizard-step-trigger.is-active .wizard-step-badge {
-        background: #3c8dbc !important;
-        color: #fff !important;
-    }
-    .wizard-step-trigger.is-complete {
-        border-color: #00a65a;
-    }
-    .wizard-step-trigger.is-complete .wizard-step-badge {
-        background: #00a65a !important;
-        color: #fff !important;
-    }
-    .wizard-summary-item.is-active {
-        color: #3c8dbc;
-        font-weight: 700;
-    }
-    .wizard-summary-item.is-active .text-muted {
-        color: #3c8dbc;
-    }
-
-    /* ── Inscripción actual (solo lectura) ─────────── */
-    .ins-actual-card {
-        background: #f0f7ff;
-        border: 1px solid #b8d4ec;
-        border-left: 4px solid #3c8dbc;
-        border-radius: 6px;
-        padding: 14px 16px;
-        margin-bottom: 18px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-    .ins-actual-badge {
-        width: 46px; height: 46px; border-radius: 10px;
-        background: #3c8dbc; display: flex; align-items: center;
-        justify-content: center; flex-shrink: 0;
-    }
-    .ins-actual-titulo { font-size: 14px; font-weight: 700; color: #1e4d7b; }
-    .ins-actual-sub    { font-size: 12px; color: #5b8db8; margin-top: 3px; }
-
-    /* ── Foto preview ──────────────────────────────── */
-    #foto-preview-wrap {
-        width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 6px;
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer; overflow: hidden; background: #fafafa;
-        transition: border-color .2s;
-    }
-    #foto-preview-wrap:hover { border-color: #3c8dbc; }
-
-    @media (max-width: 768px) {
-        #wizard-steps-nav .col-sm-6,
-        #wizard-steps-nav .col-lg-3 { width: 25%; float: left; padding: 4px; }
-        .wizard-step-trigger {
-            padding: 6px !important; min-height: auto !important;
-            text-align: center !important; font-size: 11px;
-        }
-        .wizard-step-trigger span:last-child { display: none; }
-        .wizard-step-badge { width: 26px !important; height: 26px !important; font-size: 12px; margin: 0 auto 4px; }
-        .wizard-step-trigger { opacity: .5; }
-        .wizard-step-trigger.is-active { opacity: 1; transform: scale(1.05); }
-    }
+/* ══ Wizard nav ═══════════════════════════════════════════ */
+.wizard-step-trigger {
+    background: #fff; border: 1px solid #e0e7ef !important;
+    border-top: 3px solid #d0dbe6 !important; border-radius: 6px !important;
+    padding: 14px 16px !important; min-height: 78px;
+    display: flex; align-items: center; gap: 12px;
+    text-align: left; white-space: normal;
+    transition: border-color .15s, box-shadow .15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04); width: 100%;
+}
+.wizard-step-trigger:hover { border-color: #b0c8e0 !important; box-shadow: 0 2px 8px rgba(60,141,188,.10); }
+.wizard-step-trigger.is-active { border-top-color: #3c8dbc !important; border-color: #c8dff0 !important; background: #f7fbff !important; box-shadow: 0 2px 10px rgba(60,141,188,.12); }
+.wizard-step-trigger.is-active .wizard-step-badge { background: #3c8dbc !important; color: #fff !important; }
+.wizard-step-trigger.is-complete { border-top-color: #00a65a !important; border-color: #c3e6cb !important; }
+.wizard-step-trigger.is-complete .wizard-step-badge { background: #00a65a !important; color: #fff !important; }
+.wizard-step-badge {
+    width: 34px; height: 34px; border-radius: 50%; background: #f0f3f7; color: #3c8dbc;
+    font-weight: 700; font-size: 14px; display: inline-flex; align-items: center;
+    justify-content: center; flex-shrink: 0; transition: background .15s, color .15s;
+}
+.wizard-step-label { font-size: 13px; font-weight: 700; color: #1a2634; line-height: 1.2; display: block; }
+.wizard-step-desc  { font-size: 11px; color: #8a9ab0; margin-top: 3px; text-transform: uppercase; letter-spacing: .04em; display: block; }
+/* ══ Barra de progreso ════════════════════════════════════ */
+.wizard-progress-wrap { background: #edf1f5; border-radius: 999px; height: 6px; overflow: hidden; margin-bottom: 20px; }
+.wizard-progress-fill { background: linear-gradient(90deg,#3c8dbc,#2c6fad); height: 6px; transition: width .25s ease; }
+/* ══ Paneles de pasos ═════════════════════════════════════ */
+.form-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; margin-bottom: 20px; background: #fff; }
+.form-panel-header { background: #f4f6f8; border-bottom: 2px solid #e0e7ef; padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; }
+.form-panel-title { font-size: 13px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; margin: 0; }
+.form-panel-body { padding: 20px 20px 16px; }
+/* ══ Sidebar ══════════════════════════════════════════════ */
+.sidebar-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; background: #fff; margin-bottom: 16px; }
+.sidebar-header { background: linear-gradient(135deg,#1e4d7b 0%,#3c8dbc 100%); padding: 14px 18px; color: #fff; font-size: 13px; font-weight: 700; }
+.sidebar-body { padding: 16px 18px; }
+.wizard-summary-item { padding: 9px 0; border-bottom: 1px solid #f0f3f7; font-size: 13px; color: #4a5568; display: flex; align-items: center; gap: 10px; }
+.wizard-summary-item:last-child { border-bottom: none; }
+.wizard-summary-item.is-active { color: #3c8dbc; font-weight: 700; }
+.wizard-summary-item.is-active .step-dot { background: #3c8dbc; }
+.step-dot { width: 22px; height: 22px; border-radius: 50%; background: #e8ecf0; color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* ══ Inscripción actual (solo lectura) ════════════════════ */
+.ins-actual-card {
+    background: #f0f7ff; border: 1px solid #b8d4ec; border-left: 4px solid #3c8dbc;
+    border-radius: 6px; padding: 14px 16px; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 14px;
+}
+.ins-actual-badge { width: 46px; height: 46px; border-radius: 10px; background: #3c8dbc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ins-actual-titulo { font-size: 14px; font-weight: 700; color: #1e4d7b; }
+.ins-actual-sub    { font-size: 12px; color: #5b8db8; margin-top: 3px; }
+/* ══ Foto preview ═════════════════════════════════════════ */
+#foto-preview-wrap {
+    width: 120px; height: 120px; border: 2px dashed #ccc; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden; background: #fafafa; transition: border-color .2s;
+}
+#foto-preview-wrap:hover { border-color: #3c8dbc; }
+/* ══ Responsive ═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+    #wizard-steps-nav .col-sm-6, #wizard-steps-nav .col-lg-3 { width: 25%; float: left; padding: 4px; }
+    .wizard-step-trigger { padding: 8px !important; min-height: auto !important; }
+    .wizard-step-desc { display: none !important; }
+    .wizard-step-badge { width: 28px !important; height: 28px !important; font-size: 12px; }
+    .wizard-step-trigger.is-active { transform: scale(1.04); }
+}
 </style>
 @endpush
 
@@ -111,42 +108,24 @@
 {{-- ══════════════════════════════════
      BARRA DE PROGRESO + NAV WIZARD
 ══════════════════════════════════ --}}
-<div class="box box-primary">
-    <div class="box-body">
-        <div style="background:#f4f4f4;border-radius:999px;height:8px;overflow:hidden;margin-bottom:18px;">
-            <div id="wizard-progress-bar"
-                 style="background:#3c8dbc;height:8px;width:25%;transition:width .2s ease;"></div>
-        </div>
+<div class="wizard-progress-wrap">
+    <div id="wizard-progress-bar" class="wizard-progress-fill" style="width:25%;"></div>
+</div>
 
-        <div class="row" id="wizard-steps-nav">
-            @foreach($pasosWizard as $numero => $paso)
-            <div class="col-sm-6 col-lg-3" style="margin-bottom:12px;">
-                <button type="button"
-                        class="btn btn-default btn-block text-left wizard-step-trigger"
-                        data-step="{{ $numero }}"
-                        onclick="wizardIr({{ $numero }}); return false;"
-                        style="min-height:78px;white-space:normal;border-width:2px;">
-                    <div style="display:flex;align-items:flex-start;gap:10px;">
-                        <span class="wizard-step-badge"
-                              style="display:inline-flex;align-items:center;justify-content:center;
-                                     width:32px;height:32px;border-radius:50%;
-                                     background:#f4f4f4;color:#3c8dbc;font-weight:700;flex-shrink:0;">
-                            {{ $numero }}
-                        </span>
-                        <span>
-                            <span style="display:block;font-weight:700;color:#222;">
-                                Paso {{ $numero }}: {{ $paso['titulo'] }}
-                            </span>
-                            <span class="text-muted" style="display:block;font-size:12px;margin-top:4px;">
-                                {{ $paso['descripcion'] }}
-                            </span>
-                        </span>
-                    </div>
-                </button>
-            </div>
-            @endforeach
-        </div>
+<div class="row" id="wizard-steps-nav" style="margin-bottom:20px;">
+    @foreach($pasosWizard as $numero => $paso)
+    <div class="col-sm-6 col-lg-3" style="margin-bottom:10px;">
+        <button type="button" class="wizard-step-trigger"
+                data-step="{{ $numero }}"
+                onclick="wizardIr({{ $numero }}); return false;">
+            <span class="wizard-step-badge">{{ $numero }}</span>
+            <span>
+                <span class="wizard-step-label">Paso {{ $numero }}: {{ $paso['titulo'] }}</span>
+                <span class="wizard-step-desc">{{ $paso['descripcion'] }}</span>
+            </span>
+        </button>
     </div>
+    @endforeach
 </div>
 
 <div class="row">
@@ -157,13 +136,11 @@
 <div class="col-md-8">
 
     {{-- ────────────── PASO 1: Datos personales ────────────── --}}
-    <div class="box box-primary wizard-step-panel" data-step="1">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-user"></i> Paso 1: Datos personales
-            </h3>
+    <div class="form-panel wizard-step-panel" data-step="1">
+        <div class="form-panel-header">
+            <h3 class="form-panel-title"><i class="fa fa-user" style="color:#3c8dbc;"></i> Paso 1: Datos personales</h3>
         </div>
-        <div class="box-body">
+        <div class="form-panel-body">
 
             <div class="row">
                 <div class="col-md-12">
@@ -268,17 +245,15 @@
                           placeholder="Notas adicionales sobre el alumno (opcional)">{{ old('observaciones', $alumno->observaciones) }}</textarea>
             </div>
 
-        </div>{{-- /.box-body --}}
+        </div>{{-- /.form-panel-body --}}
     </div>{{-- /paso 1 --}}
 
     {{-- ────────────── PASO 2: Foto y estado ────────────── --}}
-    <div class="box box-primary wizard-step-panel" data-step="2" style="display:none;">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-camera"></i> Paso 2: Foto y estado
-            </h3>
+    <div class="form-panel wizard-step-panel" data-step="2" style="display:none;">
+        <div class="form-panel-header">
+            <h3 class="form-panel-title"><i class="fa fa-camera" style="color:#3c8dbc;"></i> Paso 2: Foto y estado</h3>
         </div>
-        <div class="box-body">
+        <div class="form-panel-body">
 
             <div class="row">
                 <div class="col-md-4">
@@ -367,17 +342,15 @@
                 </div>
             </div>
 
-        </div>{{-- /.box-body --}}
+        </div>{{-- /.form-panel-body --}}
     </div>{{-- /paso 2 --}}
 
     {{-- ────────────── PASO 3: Inscripción ────────────── --}}
-    <div class="box box-primary wizard-step-panel" data-step="3" style="display:none;">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-graduation-cap"></i> Paso 3: Inscripción
-            </h3>
+    <div class="form-panel wizard-step-panel" data-step="3" style="display:none;">
+        <div class="form-panel-header">
+            <h3 class="form-panel-title"><i class="fa fa-graduation-cap" style="color:#3c8dbc;"></i> Paso 3: Inscripción</h3>
         </div>
-        <div class="box-body">
+        <div class="form-panel-body">
 
             {{-- Tarjeta inscripción activa (informativa) --}}
             @if($inscActual)
@@ -463,17 +436,15 @@
                 <i class="fa fa-spinner fa-spin"></i> Cargando grupos disponibles...
             </div>
 
-        </div>{{-- /.box-body --}}
+        </div>{{-- /.form-panel-body --}}
     </div>{{-- /paso 3 --}}
 
     {{-- ────────────── PASO 4: Contactos ────────────── --}}
-    <div class="box box-primary wizard-step-panel" data-step="4" style="display:none;">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-phone"></i> Paso 4: Contactos familiares
-            </h3>
+    <div class="form-panel wizard-step-panel" data-step="4" style="display:none;">
+        <div class="form-panel-header">
+            <h3 class="form-panel-title"><i class="fa fa-phone" style="color:#3c8dbc;"></i> Paso 4: Contactos familiares</h3>
         </div>
-        <div class="box-body">
+        <div class="form-panel-body">
 
             <div id="ctc-alerta" style="display:none;" class="alert alert-dismissible">
                 <button type="button" class="close"
@@ -718,7 +689,7 @@
                 </div>
             </div>
 
-        </div>{{-- /.box-body --}}
+        </div>{{-- /.form-panel-body --}}
     </div>{{-- /paso 4 --}}
 
 </div>{{-- /.col-md-8 --}}
@@ -729,41 +700,43 @@
 <div class="col-md-4">
 
     {{-- Navegación del wizard --}}
-    <div class="box box-default">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-list-ol"></i> Progreso de edición
-            </h3>
+    <div class="sidebar-panel">
+        <div class="sidebar-header">
+            <i class="fa fa-list-ol" style="margin-right:6px;"></i> Progreso de edición
         </div>
-        <div class="box-body">
-            <p class="text-muted" id="wizard-step-description" style="margin-bottom:15px;">
+        <div class="sidebar-body">
+            <p style="font-size:12px;color:#8a9ab0;margin-bottom:14px;" id="wizard-step-description">
                 Paso 1 de 4: edita los datos personales del alumno.
             </p>
 
-            <ul class="list-unstyled" style="margin:0 0 15px;">
+            <div style="margin-bottom:16px;">
                 @foreach($pasosWizard as $numero => $paso)
-                <li class="wizard-summary-item" data-step="{{ $numero }}"
-                    style="padding:8px 0;border-bottom:1px solid #f0f0f0;">
-                    <strong>Paso {{ $numero }}</strong><br>
-                    <span class="text-muted">{{ $paso['titulo'] }}</span>
-                </li>
+                <div class="wizard-summary-item" data-step="{{ $numero }}">
+                    <span class="step-dot">{{ $numero }}</span>
+                    <span>
+                        <span style="display:block;font-weight:600;font-size:12px;">{{ $paso['titulo'] }}</span>
+                        <span style="display:block;font-size:11px;color:#8a9ab0;">{{ $paso['descripcion'] }}</span>
+                    </span>
+                </div>
                 @endforeach
-            </ul>
+            </div>
 
             <button type="button" class="btn btn-default btn-block" id="btn-paso-anterior"
                     onclick="wizardIr(wizardPasoActual() - 1); return false;"
-                    style="display:none;">
+                    style="display:none;margin-bottom:6px;">
                 <i class="fa fa-arrow-left"></i> Anterior
             </button>
             <button type="button" class="btn btn-primary btn-block" id="btn-paso-siguiente"
-                    onclick="wizardIr(wizardPasoActual() + 1); return false;">
+                    onclick="wizardIr(wizardPasoActual() + 1); return false;"
+                    style="margin-bottom:6px;">
                 Siguiente <i class="fa fa-arrow-right"></i>
             </button>
-            <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar">
+            <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar"
+                    style="margin-bottom:6px;">
                 <i class="fa fa-save"></i> Guardar cambios
             </button>
             <a href="{{ route('alumnos.show', $alumno->id) }}"
-               class="btn btn-default btn-block" style="margin-top:4px;">
+               class="btn btn-default btn-block">
                 <i class="fa fa-times"></i> Cancelar
             </a>
         </div>
@@ -771,16 +744,14 @@
 
     {{-- Errores de validación --}}
     @if($errors->any())
-    <div class="box box-danger">
-        <div class="box-header with-border">
-            <h3 class="box-title">
-                <i class="fa fa-exclamation-triangle"></i> Corrige los errores
-            </h3>
+    <div class="sidebar-panel" style="border-color:#f5c6cb;">
+        <div class="sidebar-header" style="background:linear-gradient(135deg,#c0392b 0%,#e74c3c 100%);">
+            <i class="fa fa-exclamation-triangle" style="margin-right:6px;"></i> Corrige los errores
         </div>
-        <div class="box-body">
+        <div class="sidebar-body">
             <ul style="padding-left:18px;margin:0;">
                 @foreach($errors->all() as $error)
-                <li style="color:#a94442;font-size:12px;">{{ $error }}</li>
+                <li style="color:#a94442;font-size:12px;margin-bottom:4px;">{{ $error }}</li>
                 @endforeach
             </ul>
         </div>
@@ -788,13 +759,11 @@
     @endif
 
     {{-- Resumen alumno --}}
-    <div class="box box-default">
-        <div class="box-header with-border">
-            <h3 class="box-title" style="font-size:13px;">
-                <i class="fa fa-info-circle"></i> Resumen
-            </h3>
+    <div class="sidebar-panel">
+        <div class="sidebar-header" style="background:linear-gradient(135deg,#2d3748 0%,#4a5568 100%);">
+            <i class="fa fa-info-circle" style="margin-right:6px;"></i> Resumen del alumno
         </div>
-        <div class="box-body no-padding">
+        <div class="sidebar-body" style="padding:0;">
             <table class="table" style="font-size:12px;margin:0;">
                 <tr>
                     <th style="color:#999;font-weight:400;padding:8px 14px;width:45%;">Matrícula</th>
