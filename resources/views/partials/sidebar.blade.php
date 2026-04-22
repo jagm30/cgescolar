@@ -167,30 +167,22 @@
             @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
                 <li class="header">COBRANZA</li>
 
-                <li class="treeview {{ request()->routeIs(['cargos.*']) ? 'active menu-open' : '' }}">
-                    <a href="#">
-                        <i class="fa fa-file-text-o"></i>
-                        <span>Cargos</span>
-                        <span class="pull-right-container">
-                            <i class="fa fa-angle-left pull-right"></i>
-                        </span>
-                    </a>
-                    <ul class="treeview-menu">
-                        <li class="{{ request()->routeIs('cargos.index') ? 'active' : '' }}">
-                            <a href="{{ route('cargos.index') }}">
-                                <i class="fa fa-circle-o"></i> Ver cargos
-                            </a>
-                        </li>
-                        @if (auth()->user()->esAdministrador())
-                            <li>
-                                <a href="{{ route('cargos.index', ['mostrar_generador' => 1]) }}"
-                                    id="btn-generar-cargos">
-                                    <i class="fa fa-circle-o"></i> Generar cargos
-                                </a>
-                            </li>
-                        @endif
-                    </ul>
-                </li>
+            <li class="treeview {{ request()->routeIs(['cargos.*']) ? 'active menu-open' : '' }}">
+                <a href="#">
+                    <i class="fa fa-file-text-o"></i>
+                    <span>Cargos</span>
+                    <span class="pull-right-container">
+                        <i class="fa fa-angle-left pull-right"></i>
+                    </span>
+                </a>
+                <ul class="treeview-menu">
+                    <li class="{{ request()->routeIs('cargos.index') ? 'active' : '' }}">
+                        <a href="{{ route('cargos.index') }}">
+                            <i class="fa fa-circle-o"></i> Ver cargos
+                        </a>
+                    </li>
+                </ul>
+            </li>
 
                 <li class="{{ request()->routeIs('cobros.index') ? 'active' : '' }}">
                     <a href="{{ route('cobros.index') }}">
