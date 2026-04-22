@@ -239,10 +239,26 @@
                     <div class="box-header-flat">
                         <h3 class="box-title-flat"><i class="fa fa-users"></i> Alumnos del Grupo</h3>
                         <div class="box-tools" style="display: flex; gap: 8px; align-items: center;">
-                            <button type="button" id="btn-trigger-modal-egreso" disabled
-                                style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
-                                <i class="fa fa-graduation-cap"></i> Egresar Seleccionados
+
+                            {{-- BOTÓN 1: PROMOCIÓN --}}
+                            <button type="button" id="btn-trigger-promocion" disabled
+                                style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                                <i class="fa fa-arrow-circle-up"></i> Promocionar / Reinscribir
                             </button>
+
+                            {{-- BOTÓN 2: EGRESO (Dinámico) --}}
+                            @php
+                                $esGradoFinal =
+                                    $grupo->grado->nivel->nombre == 'Preparatoria' && $grupo->grado->nombre == '6';
+                            @endphp
+
+                            @if ($esGradoFinal)
+                                <button type="button" id="btn-trigger-modal-egreso" disabled
+                                    style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                                    <i class="fa fa-graduation-cap"></i> Egresar (Fin)
+                                </button>
+                            @endif
+
                             <a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"
                                 class="btn-flat-sm btn-flat-danger"><i class="fa fa-file-pdf-o"></i> Reporte (Activos)</a>
                         </div>
@@ -283,13 +299,33 @@
                                                 @if (!$inscripcion->activo)
                                                     <br>
                                                     @if ($inscripcion->alumno->estado === 'activo')
-                                                        <small class="label"
-                                                            style="background-color: #f39c12; color: white; font-size: 9px;">QUITADO
-                                                            DEL GRUPO / SIN GRUPO</small>
+                                                        {{-- Lógica para deducir si fue promoción --}}
+                                                        @php
+                                                            // Buscamos si el alumno tiene alguna inscripción activa en un ciclo diferente al actual
+                                                            $tieneInscripcionNueva = $inscripcion->alumno->inscripciones
+                                                                ->where('activo', true)
+                                                                ->where('ciclo_id', '!=', $grupo->ciclo_id)
+                                                                ->first();
+                                                        @endphp
+
+                                                        @if ($tieneInscripcionNueva)
+                                                            <small class="label"
+                                                                style="background-color: #2ecc71; color: white; font-size: 9px; padding: 2px 6px; border-radius: 3px;">
+                                                                <i class="fa fa-arrow-up"></i> PROMOCIONADO
+                                                            </small>
+                                                        @else
+                                                            <small class="label"
+                                                                style="background-color: #f39c12; color: white; font-size: 9px; padding: 2px 6px; border-radius: 3px;">
+                                                                <i class="fa fa-exchange"></i> QUITADO DEL GRUPO / CAMBIO
+                                                            </small>
+                                                        @endif
                                                     @else
+                                                        {{-- Si el alumno ya es Egresado o Baja --}}
                                                         <small class="label label-default"
-                                                            style="font-size: 9px;">INSCRIPCIÓN CERRADA
-                                                            ({{ strtoupper(str_replace('_', ' ', $inscripcion->alumno->estado)) }})</small>
+                                                            style="font-size: 9px; padding: 2px 6px; border-radius: 3px;">
+                                                            INSCRIPCIÓN CERRADA
+                                                            ({{ strtoupper(str_replace('_', ' ', $inscripcion->alumno->estado)) }})
+                                                        </small>
                                                     @endif
                                                 @endif
                                             </td>
@@ -343,7 +379,6 @@
                                                             <li role="separator" class="divider"></li>
                                                             <li class="dropdown-header" style="color: #00a65a;">
                                                                 Reincorporación</li>
-                                                            {{-- BOTÓN NUEVO: Gestionar Alta/Reingreso --}}
                                                             <li>
                                                                 <a href="{{ route('alumnos.edit', $inscripcion->alumno->id) }}#paso3"
                                                                     style="padding: 8px 20px; color: #00a65a; font-weight: 600;">
@@ -448,7 +483,8 @@
                                 @foreach ($gruposDisponibles ?? [] as $g)
                                     @if ($g->id !== $grupo->id)
                                         <option value="{{ $g->id }}">{{ $g->grado->nombre }}° {{ $g->nombre }}
-                                            ({{ $g->inscripciones_count }}/{{ $g->cupo_maximo ?? '∞' }})</option>
+                                            ({{ $g->inscripciones_count }}/{{ $g->cupo_maximo ?? '∞' }})
+                                        </option>
                                     @endif
                                 @endforeach
                             </select>
@@ -465,6 +501,64 @@
             </div>
         </div>
     </div>
+
+    {{-- MODAL PROMOCIÓN MASIVA --}}
+    <div class="modal fade" id="modalPromocionMasiva" tabindex="-1" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content"
+                style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                <form action="{{ route('grupos.promocionar-masivo') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="grupo_origen_id" value="{{ $grupo->id }}">
+                    <div id="ids-alumnos-promocion"></div>
+
+                    <div class="modal-header" style="background: #2ecc71; color: white; border-radius: 12px 12px 0 0;">
+                        <button type="button" class="close" data-dismiss="modal"
+                            style="color:white; opacity:1;"><span>&times;</span></button>
+                        <h4 class="modal-title"><b><i class="fa fa-rocket"></i> Promoción de Alumnos</b></h4>
+                    </div>
+                    <div class="modal-body">
+                        <p style="font-size: 15px;">Vas a promover a <b id="contador-promocion">0</b> alumnos del salón
+                            <b>{{ $grupo->nombre }}</b>.
+                        </p>
+                        <hr>
+                        <div class="form-group">
+                            <label>Ciclo Escolar Destino:</label>
+                            <select name="ciclo_destino_id" class="form-control" required style="border-radius: 8px;">
+                                <option value="">-- Seleccionar Ciclo --</option>
+                                @foreach ($ciclosDisponibles ?? [] as $cicloD)
+                                    @if ($cicloD->id != $grupo->ciclo_id)
+                                        <option value="{{ $cicloD->id }}">{{ $cicloD->nombre }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nivel / Grado al que pasan:</label>
+                            <select name="grado_destino_id" class="form-control" required style="border-radius: 8px;">
+                                <option value="">-- Seleccionar Grado --</option>
+                                @foreach ($grados ?? [] as $gr)
+                                    <option value="{{ $gr->id }}">{{ $gr->nivel->nombre }} - {{ $gr->nombre }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info" style="border-radius: 8px; font-size: 13px;">
+                            <i class="fa fa-info-circle"></i> Esto creará una nueva inscripción para el nuevo ciclo. Los
+                            alumnos seguirán estando <b>ACTIVOS</b>.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success"
+                            style="background: #2ecc71; border: none; font-weight: bold;">Realizar Promoción</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -473,6 +567,7 @@
             let formToSubmit = null;
             let currentType = null;
 
+            // Lógica unificada para mostrar el modal de confirmación (Quitar, Bajas, Egreso)
             $('.btn-action-confirm, #btn-trigger-modal-egreso').on('click', function(e) {
                 e.preventDefault();
                 const btn = $(this);
@@ -543,6 +638,24 @@
                 $('#modalConfirmacion').modal('show');
             });
 
+            // Acción del botón Promoción Masiva
+            $('#btn-trigger-promocion').on('click', function(e) {
+                e.preventDefault();
+                var ids = [];
+                $('.check-item:checked').each(function() {
+                    ids.push($(this).val());
+                });
+
+                $('#contador-promocion').text(ids.length);
+                $('#ids-alumnos-promocion').empty();
+                ids.forEach(id => {
+                    $('#ids-alumnos-promocion').append(
+                        `<input type="hidden" name="inscripciones_ids[]" value="${id}">`);
+                });
+
+                $('#modalPromocionMasiva').modal('show');
+            });
+
             $('#btn-confirm-submit').on('click', function() {
                 if (currentType.includes('baja')) {
                     let razon = $('#razon_baja_input').val();
@@ -556,21 +669,41 @@
 
             function actualizarEstadoBoton() {
                 var seleccionados = $('.check-item:checked').length;
-                var btn = $('#btn-trigger-modal-egreso');
+                var btnEgreso = $('#btn-trigger-modal-egreso');
+                var btnPromocion = $('#btn-trigger-promocion');
+
                 if (seleccionados > 0) {
-                    btn.prop('disabled', false).css({
-                        'background-color': '#f4f3ff',
-                        'color': '#605ca8',
-                        'border-color': '#e1dbff',
+                    // Activar Promoción
+                    btnPromocion.prop('disabled', false).css({
+                        'background-color': '#f0fff4',
+                        'color': '#276749',
+                        'border-color': '#c6f6d5',
                         'cursor': 'pointer'
                     });
+                    // Activar Egreso (si el botón existe en el DOM)
+                    if (btnEgreso.length) {
+                        btnEgreso.prop('disabled', false).css({
+                            'background-color': '#fff5f5',
+                            'color': '#c53030',
+                            'border-color': '#fed7d7',
+                            'cursor': 'pointer'
+                        });
+                    }
                 } else {
-                    btn.prop('disabled', true).css({
+                    btnPromocion.prop('disabled', true).css({
                         'background-color': '#f8f9fa',
                         'color': '#a0aec0',
                         'border-color': '#e2e8f0',
                         'cursor': 'not-allowed'
                     });
+                    if (btnEgreso.length) {
+                        btnEgreso.prop('disabled', true).css({
+                            'background-color': '#f8f9fa',
+                            'color': '#a0aec0',
+                            'border-color': '#e2e8f0',
+                            'cursor': 'not-allowed'
+                        });
+                    }
                 }
             }
 
