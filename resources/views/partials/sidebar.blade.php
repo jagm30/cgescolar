@@ -180,13 +180,6 @@
                             <i class="fa fa-circle-o"></i> Ver cargos
                         </a>
                     </li>
-                    @if(auth()->user()->esAdministrador())
-                    <li>
-                        <a href="{{ route('cargos.index', ['mostrar_generador' => 1]) }}" id="btn-generar-cargos">
-                            <i class="fa fa-circle-o"></i> Generar cargos
-                        </a>
-                    </li>
-                    @endif
                 </ul>
             </li>
 

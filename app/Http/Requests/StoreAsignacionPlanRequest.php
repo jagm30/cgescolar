@@ -97,6 +97,10 @@ class StoreAsignacionPlanRequest extends FormRequest
                 $query->where('nivel_id', $nivelId);
             }
 
+            if ($query->exists()) {
+                $validator->errors()->add('plan_id', 'Ya existe un plan asignado para este alcance en el ciclo del plan.');
+            }
+
             // Validar que los conceptos seleccionados pertenezcan al plan
             $planConceptosIds = $plan->planPagoConceptos->pluck('id')->toArray();
             $conceptosSeleccionados = $this->input('conceptos', []);

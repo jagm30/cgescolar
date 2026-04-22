@@ -3,20 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alumno;
-use App\Models\AsignacionPlan;
-use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
-use App\Models\Grupo;
-use App\Models\Inscripcion;
-use App\Models\NivelEscolar;
-use App\Models\PlanPago;
 use App\Traits\RespondsWithJson;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class CargoController extends Controller
 {
@@ -59,26 +51,15 @@ class CargoController extends Controller
             ->orderBy('ap_materno')
             ->orderBy('nombre')
             ->get();
+
         $periodos = Cargo::query()
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId))
             ->select('periodo')
             ->distinct()
             ->orderByDesc('periodo')
             ->pluck('periodo');
+
         $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
-        $planes = PlanPago::with('nivel')
-            ->where('ciclo_id', $cicloId)
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->get();
-        $grupos = Grupo::with('grado.nivel')
-            ->whereHas('inscripciones', function ($query) use ($cicloId) {
-                $query->where('ciclo_id', $cicloId)->where('activo', true);
-            })
-            ->orderBy('grado_id')
-            ->orderBy('nombre')
-            ->get();
-        $niveles = NivelEscolar::activo()->get();
         $resumenBase = Cargo::query()
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId));
 
@@ -106,19 +87,6 @@ class CargoController extends Controller
             ->count();
 
         return view('cargos.index', compact('cargos', 'alumnos', 'periodos', 'ciclos', 'cicloId', 'resumen', 'perPage'));
-
-        return view('cargos.index', compact(
-            'cargos',
-            'alumnos',
-            'periodos',
-            'ciclos',
-            'cicloId',
-            'resumen',
-            'perPage',
-            'planes',
-            'grupos',
-            'niveles'
-        ));
     }
 
     /** GET /cargos/{id} */
@@ -147,98 +115,7 @@ class CargoController extends Controller
         return view('cargos.show', compact('cargo', 'preview'));
     }
 
-    /**
-     * POST /cargos/generar
-     * Genera cargos para todos los alumnos del ciclo según sus planes.
-     */
-    public function generar(Request $request)
-    {
-        $request->validate([
-            'ciclo_id' => ['required', 'exists:ciclo_escolar,id'],
-        ]);
-
-        $cicloId = $request->ciclo_id;
-        $generadoPor = auth()->id();
-
-        DB::beginTransaction();
-        try {
-            $inscripciones = Inscripcion::with(['grupo.grado.nivel', 'alumno'])
-                ->where('ciclo_id', $cicloId)
-                ->where('activo', true)
-                ->get();
-
-            $totalGenerados = 0;
-            $yaExistian = 0;
-
-            foreach ($inscripciones as $inscripcion) {
-                $nivelId = $inscripcion->grupo->grado->nivel_id;
-
-                $asignaciones = AsignacionPlan::with(['conceptosSeleccionados.concepto', 'plan'])
-                    ->where(function ($q) use ($inscripcion, $nivelId) {
-                        $q->where(fn ($q) => $q->where('origen', 'individual')->where('alumno_id', $inscripcion->alumno_id))
-                            ->orWhere(fn ($q) => $q->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id))
-                            ->orWhere(fn ($q) => $q->where('origen', 'nivel')->where('nivel_id', $nivelId));
-                    })
-                    ->whereHas('plan', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
-                    ->get();
-
-                if ($asignaciones->isEmpty()) {
-                    continue;
-                }
-
-                foreach ($asignaciones as $asignacion) {
-                    $plan = $asignacion->plan;
-                    $periodos = $this->calcularPeriodos($plan->fecha_inicio, $plan->fecha_fin, $plan->periodicidad);
-
-                    // Usar solo los conceptos seleccionados en la asignación
-                    foreach ($asignacion->conceptosSeleccionados as $conceptoSeleccionado) {
-                    foreach ($periodos as $periodo) {
-                        $existe = Cargo::where('inscripcion_id', $inscripcion->id)
-                            ->where('concepto_id', $conceptoSeleccionado->concepto_id)
-                            ->where('periodo', $periodo['periodo'])
-                            ->exists();
-
-                        if ($existe) {
-                            $yaExistian++;
-
-                            continue;
-                        }
-
-                        Cargo::create([
-                            'inscripcion_id' => $inscripcion->id,
-                            'concepto_id' => $conceptoSeleccionado->concepto_id,
-                            'asignacion_id' => $asignacion->id,
-                            'generado_por' => $generadoPor,
-                            'monto_original' => $conceptoSeleccionado->monto,
-                            'fecha_vencimiento' => $periodo['vencimiento'],
-                            'estado' => 'pendiente',
-                            'periodo' => $periodo['periodo'],
-                        ]);
-                        $totalGenerados++;
-                    }
-                }
-                }
-
-            Auditoria::registrar('cargo', 0, 'insert', null, [
-                'ciclo_id' => $cicloId,
-                'total_generados' => $totalGenerados,
-            ]);
-
-            DB::commit();
-
-            return $this->respuestaExito(
-                redirectRoute: 'cargos.index',
-                jsonData: ['total_generados' => $totalGenerados, 'ya_existian' => $yaExistian],
-                mensaje: "Generación completada. {$totalGenerados} cargos nuevos."
-            );
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            return $this->respuestaError('Error al generar cargos: '.$e->getMessage());
-        }
-    }
-
-    /** GET /cargos/{id}/preview — solo AJAX */
+    /** GET /cargos/{id}/preview */
     public function preview(int $id)
     {
         $cargo = Cargo::with([
@@ -250,8 +127,6 @@ class CargoController extends Controller
 
         return response()->json($this->calcularPreviewCobro($cargo));
     }
-
-    // ── Cálculo de preview (reutilizado por PagoController) ──
 
     private function aplicarFiltroEstado(Builder $query, string $estado): void
     {
@@ -276,7 +151,6 @@ class CargoController extends Controller
         $conceptoId = $cargo->concepto_id;
         $plan = $cargo->asignacion?->plan;
 
-        // Beca vigente
         $descuentoBeca = 0;
         $becaAplicada = null;
         $beca = BecaAlumno::vigenteHoy()
@@ -291,9 +165,9 @@ class CargoController extends Controller
             $becaAplicada = $beca->catalogoBeca->nombre;
         }
 
-        // Descuentos por política del plan
         $descuentoOtros = 0;
         $descuentosDetalle = [];
+
         if ($plan) {
             foreach ($plan->politicasDescuentoActivas as $politica) {
                 if ($politica->aplicaHoy()) {
@@ -304,13 +178,15 @@ class CargoController extends Controller
             }
         }
 
-        // Recargo por mora
         $recargo = 0;
         $recargoDetalle = null;
+
         if ($plan && $plan->politicaRecargoActiva) {
             $pol = $plan->politicaRecargoActiva;
+
             if ($pol) {
                 $recargo = $pol->calcularRecargo($montoOriginal, $cargo->fecha_vencimiento);
+
                 if ($recargo > 0) {
                     $recargoDetalle = ['tipo' => $pol->tipo_recargo, 'monto' => $recargo];
                 }
@@ -339,34 +215,5 @@ class CargoController extends Controller
             'estado_real' => $cargo->estado_real,
             'fecha_vencimiento' => $cargo->fecha_vencimiento,
         ];
-    }
-
-    // ── Helper privado ───────────────────────────────────
-
-    private function calcularPeriodos(string $fechaInicio, string $fechaFin, string $periodicidad): array
-    {
-        $inicio = Carbon::parse($fechaInicio);
-        $fin = Carbon::parse($fechaFin);
-        $periodos = [];
-
-        if ($periodicidad === 'unico') {
-            return [['periodo' => $inicio->format('Y-m'), 'vencimiento' => $inicio->copy()->day(10)->format('Y-m-d')]];
-        }
-
-        $intervalo = match ($periodicidad) {
-            'mensual' => '1 month',
-            'bimestral' => '2 months',
-            'semestral' => '6 months',
-            'anual' => '1 year',
-            default => '1 month',
-        };
-
-        $actual = $inicio->copy();
-        while ($actual->lte($fin)) {
-            $periodos[] = ['periodo' => $actual->format('Y-m'), 'vencimiento' => $actual->copy()->day(10)->format('Y-m-d')];
-            $actual->add($intervalo);
-        }
-
-        return $periodos;
     }
 }

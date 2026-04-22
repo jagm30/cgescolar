@@ -972,7 +972,8 @@ $(function() {
             url: '/grupos',
             method: 'GET',
             data: { ciclo_id: cicloId, nivel_id: nivelId },
-            success: function(grupos) {
+            success: function(response) {
+                var grupos = Array.isArray(response) ? response : (response.data || []);
                 var opciones = '';
 
                 if (!grupos.length) {
