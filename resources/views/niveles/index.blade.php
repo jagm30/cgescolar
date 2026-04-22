@@ -5,217 +5,256 @@
 
 @push('styles')
     <style>
+        /* Estructura de la página */
+        .content-wrapper {
+            background-color: #f4f7f6 !important;
+        }
+
         .con-stats {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
             margin-bottom: 20px;
-            width: 100%;
         }
 
-        .con-stat-card {
-            flex: 0 0 auto;
-            min-width: 200px;
+        /* Estilo SaaS para la caja de ayuda */
+        .box-ayuda {
             background: #fff;
-            border: 1px solid #e4eaf0;
-            border-top: 3px solid #3c8dbc;
-            border-radius: 6px;
-            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .ayuda-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f2f5;
+            color: #2c3e50;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .ayuda-body {
+            padding: 15px;
+        }
+
+        .ayuda-item {
             display: flex;
             align-items: center;
-            gap: 14px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #64748b;
         }
 
-        .con-stat-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #eaf3fb;
-            flex-shrink: 0;
-            color: #3c8dbc;
-            font-size: 18px;
+        .ayuda-item i {
+            width: 20px;
+            text-align: center;
         }
 
-        .con-stat-num {
-            font-size: 20px;
-            font-weight: 800;
-            line-height: 1;
-            color: #222;
+        .ayuda-sep {
+            border-top: 1px solid #f0f2f5;
+            margin: 15px 0;
         }
 
-        .con-stat-lbl {
-            font-size: 11px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-
-        .btn-registrar-simple {
-            margin-left: auto;
-            background-color: #00a65a;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 25px;
-
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 40px;
-            white-space: nowrap;
-        }
-
-        .btn-registrar-simple:hover {
-            background-color: #008d4c;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
+        /* Tabla y Arrastre */
         .con-table {
-            margin: 0;
+            width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            width: 100%;
+            background: #fff;
+            border-radius: 8px;
         }
 
-        .con-table thead tr th {
-            background: #f4f6f8;
-            color: #6b7a8d;
+        .con-table thead th {
+            background: #fcfcfc;
+            color: #94a3b8;
             font-size: 11px;
-            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .06em;
-            padding: 12px 14px;
-            border-bottom: 2px solid #e0e6ed;
-        }
-
-        .con-table tbody tr:hover td {
-            background: #f0f7ff !important;
+            padding: 15px;
+            border-bottom: 2px solid #f0f2f5;
         }
 
         .con-table td {
-            padding: 12px 14px;
+            padding: 15px;
+            border-bottom: 1px solid #f0f2f5;
             vertical-align: middle;
-            font-size: 13px;
-            border-bottom: 1px solid #f0f3f7;
         }
 
+        /* ICONO DE ARRASTRE REFINADO */
         .handle {
-            cursor: ns-resize;
+            cursor: grab;
+            color: #cbd5e0;
             text-align: center;
-            color: #aab;
-            background: #fafafa;
-            border-right: 1px solid #f0f3f7;
+            transition: color 0.2s;
         }
 
-        .con-nombre {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1a2634;
+        .handle:hover {
+            color: #3498db;
         }
 
-        .con-clave {
-            font-family: monospace;
-            font-size: 12px;
-            background: #f0f3f7;
-            padding: 2px 7px;
-            border-radius: 4px;
-            color: #4a5568;
+        .handle i {
+            font-size: 16px;
         }
 
-        .con-badge-activo {
-            background: #e8f8f0;
-            color: #00875a;
-            border: 1px solid #b3e8d0;
-            padding: 3px 12px;
-            border-radius: 12px;
+        /* Botones y Badges */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
             font-size: 11px;
             font-weight: 700;
+        }
+
+        .bg-activo {
+            background: #e8f6f3;
+            color: #1abc9c;
+            border: 1px solid #d1f2eb;
+        }
+
+        .bg-inactivo {
+            background: #fdf2f2;
+            color: #e74c3c;
+            border: 1px solid #fae1e1;
+        }
+
+        .btn-action-flat {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            color: #7f8c8d;
+            transition: all 0.2s;
+        }
+
+        .btn-action-flat:hover {
+            transform: translateY(-2px);
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
     </style>
 @endpush
 
 @section('content')
 
-
     <div class="con-stats">
-        <div class="con-stat-card">
-            <div class="con-stat-icon"><i class="fa fa-graduation-cap"></i></div>
-            <div>
-                <div class="con-stat-num">{{ $niveles->count() }}</div>
-                <div class="con-stat-lbl">Niveles Totales</div>
+        <div style="display: flex; gap: 15px;">
+            <div
+                style="background: #fff; padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+                <i class="fa fa-graduation-cap" style="color: #3498db; font-size: 20px;"></i>
+                <div>
+                    <span
+                        style="display: block; font-size: 18px; font-weight: 800; line-height: 1;">{{ $niveles->count() }}</span>
+                    <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Niveles</span>
+                </div>
             </div>
         </div>
-
-        <button class="btn-registrar-simple" data-toggle="modal" data-target="#modal-nuevo">
-            <i class="fa fa-plus"></i>
-            <span>Registrar Nuevo Nivel</span>
+        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modal-nuevo"
+            style="border-radius: 6px; font-weight: 600;">
+            <i class="fa fa-plus"></i> Nuevo Nivel
         </button>
     </div>
 
-    {{-- TABLA --}}
-    <div class="box box-default" style="border-top: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="box-body no-padding">
-            <table class="con-table">
-                <thead>
-                    <tr>
-                        <th width="60px" class="text-center">Orden</th>
-                        <th>Información del Nivel</th>
-                        <th>Clave / REVOE</th>
-                        <th width="120px" class="text-center">Estado</th>
-                        <th width="120px" class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="sortable-tbody">
-                    @foreach ($niveles as $nivel)
-                        <tr data-id="{{ $nivel->id }}" class="fila-nivel">
-                            <td class="handle">
-                                <i class="fa fa-ellipsis-v"></i><br>
-                                <strong class="label-orden">{{ $nivel->orden }}</strong>
-                            </td>
-                            <td>
-                                <div class="con-nombre">{{ $nivel->nombre }}</div>
-                            </td>
-                            <td>
-                                <span class="con-clave">{{ $nivel->revoe ?? 'N/A' }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="con-badge-activo">Activo</span>
-                            </td>
-                            <td class="text-center">
-                                <div style="display: flex; gap: 5px; justify-content: center;">
-                                    <button class="btn btn-default btn-xs" data-toggle="modal" data-target="#modal-editar"
-                                        data-id="{{ $nivel->id }}" data-nombre="{{ $nivel->nombre }}"
-                                        data-revoe="{{ $nivel->revoe }}" data-orden="{{ $nivel->orden }}"
-                                        data-activo="{{ $nivel->activo }}">
-                                        <i class="fa fa-pencil text-blue"></i>
-                                    </button>
-                                    <form action="{{ route('niveles.destroy', $nivel->id) }}" method="POST"
-                                        style="display:inline;">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-default btn-xs"
-                                            onclick="return confirm('¿Eliminar?')">
-                                            <i class="fa fa-trash text-red"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+    <div class="row">
+        {{-- COLUMNA DE LA TABLA --}}
+        <div class="col-md-9">
+            <div class="box" style="border: none; border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);">
+                <div class="box-body no-padding">
+                    <table class="con-table">
+                        <thead>
+                            <tr>
+                                <th width="50"></th>
+                                <th>Información del Nivel</th>
+                                <th>REVOE</th>
+                                <th width="150" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sortable-tbody">
+                            @foreach ($niveles as $nivel)
+                                <tr data-id="{{ $nivel->id }}" class="fila-nivel">
+                                    <td class="handle" title="Arrastrar para ordenar"
+                                        style="cursor: grab; color: #cbd5e0; text-align: center;">
+                                        <i class="fa fa-sort" style="font-size: 16px;"></i>
+                                        <strong class="label-orden" style="display: none;">{{ $nivel->orden }}</strong>
+                                    </td>
+                                    <td><b style="color: #2c3e50;">{{ $nivel->nombre }}</b></td>
+                                    <td>
+                                        <code
+                                            style="color: #7f8c8d; background: #f8f9fa; padding: 3px 6px; border-radius: 4px;">
+                                            {{ $nivel->revoe ?? 'N/A' }}
+                                        </code>
+                                    </td>
+                                    <td class="text-center">
+                                        <div style="display: flex; gap: 5px; justify-content: center;">
+                                            <button class="btn-action-flat" data-toggle="modal" data-target="#modal-editar"
+                                                data-id="{{ $nivel->id }}" data-nombre="{{ $nivel->nombre }}"
+                                                data-revoe="{{ $nivel->revoe }}" data-orden="{{ $nivel->orden }}"
+                                                data-activo="{{ $nivel->activo }}" title="Editar">
+                                                <i class="fa fa-pencil text-blue"></i>
+                                            </button>
+
+                                            <form action="{{ route('niveles.forceDelete', $nivel->id) }}" method="POST"
+                                                style="display:inline;">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn-action-flat" title="Eliminar"
+                                                    onclick="return confirm('¿Eliminar permanente?')">
+                                                    <i class="fa fa-trash text-red"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {{-- PANEL DE AYUDA (Estilo imagen) --}}
+        <div class="col-md-3">
+            <div class="box-ayuda"
+                style="background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                <div class="ayuda-header"
+                    style="padding: 12px 15px; border-bottom: 1px solid #f0f2f5; font-weight: 700; color: #2c3e50;">
+                    <i class="fa fa-info-circle text-blue"></i> Ayuda del Módulo
+                </div>
+                <div class="ayuda-body" style="padding: 15px;">
+                    <div
+                        style="font-weight: 700; font-size: 12px; color: #94a3b8; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Acciones Disponibles:</div>
+
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-sort text-muted" style="width: 20px; text-align: center;"></i>
+                        <span><b>Ordenar:</b> Arrastra filas para cambiar prioridad.</span>
+                    </div>
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-pencil text-blue" style="width: 20px; text-align: center;"></i>
+                        <span><b>Editar:</b> Modificar nombre o REVOE.</span>
+                    </div>
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-trash text-red" style="width: 20px; text-align: center;"></i>
+                        <span><b>Eliminar:</b> Borrado físico permanente.</span>
+                    </div>
+
+                    <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
+
+                    <div style="background: #fff8f1; border: 1px solid #ffe7d3; padding: 12px; border-radius: 6px;">
+                        <span
+                            style="color: #c2410c; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                            <i class="fa fa-warning"></i> Seguridad:
+                        </span>
+                        <p style="font-size: 11px; color: #9a3412; margin: 5px 0 0; line-height: 1.4;">
+                            Solo se pueden <b>Eliminar</b> niveles sin grados asociados para proteger el historial escolar.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
     {{-- MODAL EDITAR --}}
     <x-modal id="modal-editar" title="Editar Nivel Escolar">
         <form id="form-editar" method="POST">
@@ -251,7 +290,6 @@
             </div>
         </form>
     </x-modal>
-
     {{-- MODAL NUEVO --}}
     <x-modal id="modal-nuevo" title="Registrar Nuevo Nivel">
         <form action="{{ route('niveles.store') }}" method="POST">
