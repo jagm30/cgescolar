@@ -93,38 +93,6 @@
                             </a>
                         </li>
                         <li class="{{ request()->routeIs('becas.*') ? 'active' : '' }}">
-                            <a href="{{ route('becas.catalogo') }}">
-                                <i class="fa fa-circle-o"></i> Becas
-                            </a>
-                        </li>
-                        <li class="{{ request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
-                            <a href="{{ route('planes.asignar.index') }}">
-                                <i class="fa fa-circle-o"></i> Asignar plan
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li
-                    class="treeview {{ request()->routeIs(['conceptos.*', 'planes.*', 'becas.*']) ? 'active menu-open' : '' }}">
-                    <a href="#">
-                        <i class="fa fa-money"></i>
-                        <span>Planes y conceptos</span>
-                        <span class="pull-right-container">
-                            <i class="fa fa-angle-left pull-right"></i>
-                        </span>
-                    </a>
-                    <ul class="treeview-menu">
-                        <li class="{{ request()->routeIs('conceptos.*') ? 'active' : '' }}">
-                            <a href="{{ route('conceptos.index') }}">
-                                <i class="fa fa-circle-o"></i> Conceptos de cobro
-                            </a>
-                        </li>
-                        <li class="{{ request()->routeIs('planes.*') ? 'active' : '' }}">
-                            <a href="{{ route('planes.index') }}">
-                                <i class="fa fa-circle-o"></i> Planes de pago
-                            </a>
-                        </li>
-                        <li class="{{ request()->routeIs('becas.*') ? 'active' : '' }}">
                             <a href="{{ route('becas.index') }}">
                                 <i class="fa fa-circle-o"></i> Becas
                             </a>
