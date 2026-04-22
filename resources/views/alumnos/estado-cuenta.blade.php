@@ -225,12 +225,19 @@
             <div class="ec-stat-lbl">Vencido</div>
         </div>
         @endif
-        <div class="ec-stat" style="align-self:center;">
+        <div class="ec-stat" style="align-self:center;display:flex;flex-direction:column;gap:6px;">
             <a href="{{ route('alumnos.show', $alumno->id) }}"
                class="btn btn-sm btn-flat"
                style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
                 <i class="fa fa-arrow-left"></i> Alumno
             </a>
+            @if(auth()->user()->esAdministrador() || auth()->user()->esCajero())
+            <a href="{{ route('cobros.alumno', $alumno->id) }}"
+               class="btn btn-sm btn-flat"
+               style="background:rgba(46,204,113,.35);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
+                <i class="fa fa-dollar"></i> Cobrar
+            </a>
+            @endif
         </div>
     </div>
 </div>
@@ -475,9 +482,13 @@
                                 @php $pago = $detalle->pago; @endphp
                                 <tr style="border-top:1px solid #edf1f5;">
                                     <td style="padding:6px 8px;">
-                                        <code style="font-size:11px;background:#f0f3f7;padding:1px 6px;border-radius:3px;">
-                                            {{ $pago->folio_recibo ?? '—' }}
-                                        </code>
+                                        <a href="{{ route('pagos.show', $pago->id) }}"
+                                           title="Ver detalle del pago"
+                                           style="text-decoration:none;">
+                                            <code style="font-size:11px;background:#f0f3f7;padding:1px 6px;border-radius:3px;color:#2c6fad;">
+                                                {{ $pago->folio_recibo ?? '—' }}
+                                            </code>
+                                        </a>
                                     </td>
                                     <td style="padding:6px 8px;color:#4a5568;">
                                         {{ $pago->fecha_pago ? \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y') : '—' }}

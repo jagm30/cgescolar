@@ -268,6 +268,13 @@
                             <span style="background:#f0f0f0;padding:1px 7px;border-radius:8px;font-size:10px;">
                                 {{ $cargo->inscripcion->ciclo->nombre ?? '' }}
                             </span>
+                            @if($cargo->asignacion?->plan)
+                            &nbsp;
+                            <span style="background:#e8f0fb;color:#2c6fad;padding:1px 7px;border-radius:8px;font-size:10px;">
+                                <i class="fa fa-list" style="font-size:9px;"></i>
+                                {{ $cargo->asignacion->plan->nombre }}
+                            </span>
+                            @endif
                             &nbsp;
                             <code style="font-size:11px;">{{ $cargo->periodo }}</code>
                             &nbsp;·&nbsp;
