@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Cargos')
-@section('page_subtitle', 'Listado y generación')
+@section('page_subtitle', 'Listado')
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
@@ -61,24 +61,14 @@
         </div>
     </div>
 
-    {{-- FILTROS --}}
     <div class="box box-default">
         <div class="box-header with-border">
             <h3 class="box-title"><i class="fa fa-filter"></i> Filtros</h3>
-
-            @if (auth()->user()->esAdministrador())
-                <div class="box-tools pull-right">
-                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalGenerarCargos">
-                        <i class="fa fa-refresh"></i> Generar cargos
-                    </button>
-                </div>
-            @endif
         </div>
 
         <div class="box-body">
             <form method="GET" action="{{ route('cargos.index') }}">
                 <div class="row">
-
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Alumno</label>
@@ -133,13 +123,11 @@
                             </a>
                         </div>
                     </div>
-
                 </div>
             </form>
         </div>
     </div>
 
-    {{-- TABLA --}}
     <div class="box box-primary">
         <div class="box-header with-border">
             <h3 class="box-title"><i class="fa fa-list"></i> Listado de cargos</h3>
@@ -182,9 +170,7 @@
                         <tr>
                             <td>
                                 <strong>{{ $cargo->inscripcion?->alumno?->nombre_completo }}</strong><br>
-                                <small class="text-muted">
-                                    {{ $cargo->inscripcion?->alumno?->matricula }}
-                                </small>
+                                <small class="text-muted">{{ $cargo->inscripcion?->alumno?->matricula }}</small>
                             </td>
 
                             <td>
@@ -193,7 +179,6 @@
                             </td>
 
                             <td>{{ $cargo->concepto?->nombre }}</td>
-
                             <td><code>{{ $cargo->periodo }}</code></td>
 
                             <td class="{{ in_array($cargo->estado_real, ['vencido', 'parcial_vencido']) ? 'text-red' : '' }}">
@@ -247,42 +232,6 @@
             {{ $cargos->appends(request()->query())->links() }}
         </div>
     </div>
-
-    {{-- MODAL --}}
-    @if (auth()->user()->esAdministrador())
-        <x-modal id="modalGenerarCargos" title="Generar cargos del ciclo" size="modal-md">
-            <form action="{{ route('cargos.generar') }}" method="POST">
-                @csrf
-
-                <div class="form-group">
-                    <label>Ciclo escolar</label>
-                    <select name="ciclo_id" class="form-control select2" required>
-                        @foreach ($ciclos as $ciclo)
-                            <option value="{{ $ciclo->id }}"
-                                {{ (int) $cicloId === (int) $ciclo->id ? 'selected' : '' }}>
-                                {{ $ciclo->nombre }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <p class="text-muted">
-                    Se tomarán los planes asignados por prioridad: alumno, grupo y nivel.
-                    Los cargos existentes no se duplicarán.
-                </p>
-
-                <div class="text-right">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">
-                        Cancelar
-                    </button>
-
-                    <button type="submit" class="btn btn-success">
-                        <i class="fa fa-refresh"></i> Generar
-                    </button>
-                </div>
-            </form>
-        </x-modal>
-    @endif
 @endsection
 
 @push('scripts')
@@ -296,10 +245,6 @@
                     return $(this).data('placeholder') || '-- Seleccionar --';
                 }
             });
-
-            @if (request('mostrar_generador'))
-                $('#modalGenerarCargos').modal('show');
-            @endif
 
             $('.auto-submit-select').on('change', function() {
                 $(this).closest('form').trigger('submit');

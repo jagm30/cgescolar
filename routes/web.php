@@ -20,7 +20,9 @@ use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\SettingController;
 use Illuminate\Support\Facades\Route;
+
 
 Route::get('/tables', function () {
     return view('plantilla.tables');
@@ -71,13 +73,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Niveles ──────────────────────────────────────────
     // Ruta para el reordenamiento por Drag & Drop
-Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::class, 'reordenar'])
-    ->name('niveles.reordenar')
-    ->middleware('rol:administrador');
+    Route::post('niveles/reordenar', [NivelEscolarController::class, 'reordenar'])
+        ->name('niveles.reordenar')
+        ->middleware('rol:administrador');
     Route::resource('niveles', NivelEscolarController::class)
         ->middleware('rol:administrador');
-
-
 
     // ── Grados ───────────────────────────────────────────
     Route::resource('grados', GradoController::class)
@@ -85,14 +85,17 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
 
     // ── Grupos ───────────────────────────────────────────
     // IMPORTANTE: ruta fija ANTES del resource
+    Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
+
     Route::post('/grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno'])
         ->middleware('rol:administrador')
         ->name('grupos.cambiar-alumno');
-
     Route::resource('grupos', GrupoController::class)
         ->middleware('rol:administrador');
-
     Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
+    Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
+    Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
+
 
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
@@ -107,6 +110,9 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion');
 
+    Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
+    Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
+    
     // conceptos de cobro
     // Planes de pago
     // conceptos de cobro
@@ -171,10 +177,6 @@ Route::post('niveles/reordenar', [App\Http\Controllers\NivelEscolarController::c
     })->middleware('rol:administrador');
 
     // ── Cargos ───────────────────────────────────────────
-    Route::post('/cargos/generar', [CargoController::class, 'generar'])
-        ->middleware('rol:administrador')
-        ->name('cargos.generar');
-
     Route::get('/cargos/{id}/preview', [CargoController::class, 'preview'])
         ->middleware('rol:administrador,caja')
         ->name('cargos.preview');
@@ -385,3 +387,14 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
+
+// Agrupamos las rutas de configuración
+Route::prefix('configuracion')->group(function () {
+    
+    // Ruta para ver el formulario (el que tiene los inputs de nombre y logo)
+    Route::get('/', [SettingController::class, 'index'])->name('settings.index');
+    
+    // Ruta para procesar el formulario cuando le das a "Guardar Cambios"
+    Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
+    
+});

@@ -793,12 +793,13 @@
                     nivel_id: nivelId
                 },
                 success: function(response) {
+                    var grupos = Array.isArray(response) ? response : (response.data || []);
                     var opciones = '<option value="">-- Seleccionar grupo --</option>';
 
-                    if (!response.length) {
+                    if (!grupos.length) {
                         opciones = '<option value="">Sin grupos disponibles</option>';
                     } else {
-                        response.forEach(function(grupo) {
+                        grupos.forEach(function(grupo) {
                             var disponibles = grupo.cupo_maximo ?
                                 grupo.alumnos_inscritos + '/' + grupo.cupo_maximo :
                                 grupo.alumnos_inscritos + ' inscritos';

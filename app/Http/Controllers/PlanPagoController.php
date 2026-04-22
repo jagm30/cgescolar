@@ -8,6 +8,7 @@ use App\Models\Alumno;
 use App\Models\AsignacionPlan;
 use App\Models\AsignacionPlanConcepto;
 use App\Models\Auditoria;
+use App\Models\Cargo;
 use App\Models\CicloEscolar;
 use App\Models\ConceptoCobro;
 use App\Models\Grupo;
@@ -18,6 +19,7 @@ use App\Models\PlanPagoConcepto;
 use App\Models\PoliticaDescuento;
 use App\Models\PoliticaRecargo;
 use App\Traits\RespondsWithJson;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -256,33 +258,51 @@ class PlanPagoController extends Controller
     public function asignar(StoreAsignacionPlanRequest $request)
     {
         $validated = $request->validated();
-        $conceptosSeleccionados = $request->input('conceptos', []);
+        $conceptosSeleccionados = collect($request->input('conceptos', []))
+            ->map(fn ($conceptoId) => (int) $conceptoId)
+            ->unique()
+            ->values();
 
         // Crear la asignación sin los conceptos
-        $asignacionData = collect($validated)->except('conceptos')->toArray();
-        $asignacion = AsignacionPlan::create($asignacionData);
+        DB::beginTransaction();
 
-        // Crear los conceptos seleccionados
-        $planConceptos = PlanPagoConcepto::where('plan_id', $asignacion->plan_id)
-            ->whereIn('id', $conceptosSeleccionados)
-            ->get();
+        try {
+            $asignacionData = collect($validated)->except('conceptos')->toArray();
+            $asignacion = AsignacionPlan::create($asignacionData);
 
-        foreach ($planConceptos as $planConcepto) {
-            AsignacionPlanConcepto::create([
-                'asignacion_id' => $asignacion->id,
-                'concepto_id' => $planConcepto->concepto_id,
-                'monto' => $planConcepto->monto,
-            ]);
+            $planConceptos = PlanPagoConcepto::where('plan_id', $asignacion->plan_id)
+                ->whereIn('id', $conceptosSeleccionados)
+                ->get();
+
+            foreach ($planConceptos as $planConcepto) {
+                AsignacionPlanConcepto::create([
+                    'asignacion_id' => $asignacion->id,
+                    'concepto_id' => $planConcepto->concepto_id,
+                    'monto' => $planConcepto->monto,
+                ]);
+            }
+
+            $asignacion->load(['plan', 'conceptosSeleccionados']);
+            $cargosGenerados = $this->generarCargosParaAsignacion($asignacion);
+
+            Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
+
+            DB::commit();
+
+            return $this->respuestaExito(
+                redirectRoute: 'planes.asignar.index',
+                jsonData: [
+                    'asignacion' => $asignacion->load('plan'),
+                    'cargos_generados' => $cargosGenerados,
+                ],
+                mensaje: "Plan asignado correctamente. Se generaron {$cargosGenerados} cargos.",
+                jsonStatus: 201
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return $this->respuestaError('Error al asignar el plan: '.$e->getMessage());
         }
-
-        Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
-
-        return $this->respuestaExito(
-            redirectRoute: 'planes.asignar.index',
-            jsonData: ['asignacion' => $asignacion->load('plan')],
-            mensaje: 'Plan asignado correctamente.',
-            jsonStatus: 201
-        );
     }
 
     /** GET /planes/asignaciones */
@@ -462,5 +482,130 @@ public function clonarMasivo(Request $request)
             'niveles',
             'asignaciones'
         ));
+    }
+
+    private function generarCargosParaAsignacion(AsignacionPlan $asignacion): int
+    {
+        $asignacion->loadMissing(['plan', 'conceptosSeleccionados']);
+
+        $plan = $asignacion->plan;
+        $periodos = $this->calcularPeriodos(
+            $plan->fecha_inicio->format('Y-m-d'),
+            $plan->fecha_fin->format('Y-m-d'),
+            $plan->periodicidad
+        );
+        $inscripciones = $this->obtenerInscripcionesParaAsignacion($asignacion);
+        $cargosAfectados = 0;
+
+        foreach ($inscripciones as $inscripcion) {
+            foreach ($asignacion->conceptosSeleccionados as $conceptoSeleccionado) {
+                foreach ($periodos as $periodo) {
+                    $cargo = Cargo::with('asignacion')
+                        ->where('inscripcion_id', $inscripcion->id)
+                        ->where('concepto_id', $conceptoSeleccionado->concepto_id)
+                        ->where('periodo', $periodo['periodo'])
+                        ->first();
+
+                    $payload = [
+                        'inscripcion_id' => $inscripcion->id,
+                        'concepto_id' => $conceptoSeleccionado->concepto_id,
+                        'asignacion_id' => $asignacion->id,
+                        'generado_por' => auth()->id(),
+                        'monto_original' => $conceptoSeleccionado->monto,
+                        'fecha_vencimiento' => $periodo['vencimiento'],
+                        'estado' => 'pendiente',
+                        'periodo' => $periodo['periodo'],
+                    ];
+
+                    if (! $cargo) {
+                        Cargo::create($payload);
+                        $cargosAfectados++;
+
+                        continue;
+                    }
+
+                    if ($this->puedeReemplazarCargoExistente($cargo, $asignacion)) {
+                        $cargo->fill($payload);
+                        $cargo->save();
+                        $cargosAfectados++;
+                    }
+                }
+            }
+        }
+
+        return $cargosAfectados;
+    }
+
+    private function obtenerInscripcionesParaAsignacion(AsignacionPlan $asignacion)
+    {
+        $cicloId = $asignacion->plan->ciclo_id;
+
+        return Inscripcion::query()
+            ->where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            ->when($asignacion->origen === 'individual', fn ($query) => $query->where('alumno_id', $asignacion->alumno_id))
+            ->when($asignacion->origen === 'grupo', fn ($query) => $query->where('grupo_id', $asignacion->grupo_id))
+            ->when($asignacion->origen === 'nivel', fn ($query) => $query->whereHas(
+                'grupo.grado',
+                fn ($query) => $query->where('nivel_id', $asignacion->nivel_id)
+            ))
+            ->get();
+    }
+
+    private function puedeReemplazarCargoExistente(Cargo $cargo, AsignacionPlan $nuevaAsignacion): bool
+    {
+        if ((float) $cargo->saldo_abonado > 0 || $cargo->estado !== 'pendiente') {
+            return false;
+        }
+
+        if (! $cargo->asignacion_id || (int) $cargo->asignacion_id === (int) $nuevaAsignacion->id) {
+            return true;
+        }
+
+        return $this->prioridadOrigen($nuevaAsignacion->origen) < $this->prioridadOrigen($cargo->asignacion?->origen);
+    }
+
+    private function prioridadOrigen(?string $origen): int
+    {
+        return match ($origen) {
+            'individual' => 1,
+            'grupo' => 2,
+            'nivel' => 3,
+            default => 99,
+        };
+    }
+
+    private function calcularPeriodos(string $fechaInicio, string $fechaFin, string $periodicidad): array
+    {
+        $inicio = Carbon::parse($fechaInicio);
+        $fin = Carbon::parse($fechaFin);
+        $periodos = [];
+
+        if ($periodicidad === 'unico') {
+            return [[
+                'periodo' => $inicio->format('Y-m'),
+                'vencimiento' => $inicio->copy()->day(10)->format('Y-m-d'),
+            ]];
+        }
+
+        $intervalo = match ($periodicidad) {
+            'mensual' => '1 month',
+            'bimestral' => '2 months',
+            'semestral' => '6 months',
+            'anual' => '1 year',
+            default => '1 month',
+        };
+
+        $actual = $inicio->copy();
+
+        while ($actual->lte($fin)) {
+            $periodos[] = [
+                'periodo' => $actual->format('Y-m'),
+                'vencimiento' => $actual->copy()->day(10)->format('Y-m-d'),
+            ];
+            $actual->add($intervalo);
+        }
+
+        return $periodos;
     }
 }
