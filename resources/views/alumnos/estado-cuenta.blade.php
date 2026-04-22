@@ -308,6 +308,7 @@
                         <th style="text-align:right;">Pendiente</th>
                         <th style="text-align:right;">Recargo / Dto.</th>
                         <th style="text-align:center;">Estado</th>
+                        <th style="width:50px;"></th>
                     </tr>
                 </thead>
                 <tbody id="tabla-cargos">
@@ -362,6 +363,11 @@
                     <td>
                         <div style="font-weight:700;color:#1a2634;">{{ $cargo->concepto->nombre }}</div>
                         <div style="font-size:11px;color:#8a9ab0;margin-top:2px;">{{ ucfirst($cargo->concepto->tipo) }}</div>
+                        @if($cargo->asignacion?->plan)
+                        <div style="font-size:11px;color:#6b7a8d;margin-top:3px;">
+                            <i class="fa fa-list" style="font-size:10px;"></i> {{ $cargo->asignacion->plan->nombre }}
+                        </div>
+                        @endif
                     </td>
 
                     <td>
@@ -430,12 +436,26 @@
                             {{ $estadoLabel }}
                         </span>
                     </td>
+
+                    <td style="text-align:center;" onclick="event.stopPropagation()">
+                        @if(auth()->user()->esAdministrador())
+                        <form method="POST" action="{{ route('cargos.destroy', $cargo->id) }}"
+                              onsubmit="return confirm('¿Eliminar este cargo? Esta acción no se puede deshacer.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-xs btn-danger btn-flat"
+                                    title="Eliminar cargo" style="padding:3px 7px;">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </form>
+                        @endif
+                    </td>
                 </tr>
 
                 {{-- Detalle de pagos colapsado --}}
                 @if($tienePagos)
                 <tr class="ec-pagos-detalle" id="pagos-{{ $cargo->id }}" style="display:none;">
-                    <td colspan="9" style="padding:0;">
+                    <td colspan="10" style="padding:0;">
                         <div class="ec-pagos-inner" style="padding:10px 16px 14px 46px;">
                             <table style="width:100%;">
                                 <thead>
@@ -494,7 +514,7 @@
 
                 @empty
                 <tr>
-                    <td colspan="9" style="padding:56px 20px;text-align:center;">
+                    <td colspan="10" style="padding:56px 20px;text-align:center;">
                         <i class="fa fa-inbox" style="font-size:42px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
                         <p style="color:#b0bec5;margin:0;font-weight:600;">Sin cargos registrados</p>
                         @if(request('ciclo_id'))

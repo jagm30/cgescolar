@@ -20,7 +20,9 @@ use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\SettingController;
 use Illuminate\Support\Facades\Route;
+
 
 Route::get('/tables', function () {
     return view('plantilla.tables');
@@ -83,14 +85,17 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Grupos ───────────────────────────────────────────
     // IMPORTANTE: ruta fija ANTES del resource
+    Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
+
     Route::post('/grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno'])
         ->middleware('rol:administrador')
         ->name('grupos.cambiar-alumno');
-
     Route::resource('grupos', GrupoController::class)
         ->middleware('rol:administrador');
-
     Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
+    Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
+    Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
+
 
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
@@ -105,6 +110,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion');
 
+    Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
+    Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
+    
     // conceptos de cobro
     // Planes de pago
     // conceptos de cobro
@@ -176,6 +184,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::resource('cargos', CargoController::class)
         ->only(['index', 'show'])
         ->middleware('rol:administrador,caja');
+
+    Route::delete('/cargos/{id}', [CargoController::class, 'destroy'])
+        ->middleware('rol:administrador')
+        ->name('cargos.destroy');
 
     // ── Pagos ────────────────────────────────────────────
     Route::get('/pagos/corte', [PagoController::class, 'corte'])
@@ -375,3 +387,14 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
+
+// Agrupamos las rutas de configuración
+Route::prefix('configuracion')->group(function () {
+    
+    // Ruta para ver el formulario (el que tiene los inputs de nombre y logo)
+    Route::get('/', [SettingController::class, 'index'])->name('settings.index');
+    
+    // Ruta para procesar el formulario cuando le das a "Guardar Cambios"
+    Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
+    
+});

@@ -115,6 +115,116 @@ class CargoController extends Controller
         return view('cargos.show', compact('cargo', 'preview'));
     }
 
+    /** DELETE /cargos/{id} */
+    public function destroy(int $id): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+    {
+        $cargo = Cargo::with('inscripcion')->findOrFail($id);
+        $alumnoId = $cargo->inscripcion->alumno_id;
+
+        $cargo->delete();
+
+        return $this->respuestaExito(
+            'alumnos.estado-cuenta',
+            [],
+            'Cargo eliminado correctamente.',
+            200,
+            [$alumnoId]
+        );
+    }
+
+    /**
+     * POST /cargos/generar
+     * Genera cargos para todos los alumnos del ciclo según sus planes.
+     */
+    public function generar(Request $request)
+    {
+        $request->validate([
+            'ciclo_id' => ['required', 'exists:ciclo_escolar,id'],
+        ]);
+
+        $cicloId = $request->ciclo_id;
+        $generadoPor = auth()->id();
+
+        DB::beginTransaction();
+        try {
+            $inscripciones = Inscripcion::with(['grupo.grado.nivel', 'alumno'])
+                ->where('ciclo_id', $cicloId)
+                ->where('activo', true)
+                ->get();
+
+            $totalGenerados = 0;
+            $yaExistian = 0;
+
+            foreach ($inscripciones as $inscripcion) {
+                $nivelId = $inscripcion->grupo->grado->nivel_id;
+
+                $asignaciones = AsignacionPlan::with(['conceptosSeleccionados.concepto', 'plan'])
+                    ->where(function ($q) use ($inscripcion, $nivelId) {
+                        $q->where(fn ($q) => $q->where('origen', 'individual')->where('alumno_id', $inscripcion->alumno_id))
+                            ->orWhere(fn ($q) => $q->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id))
+                            ->orWhere(fn ($q) => $q->where('origen', 'nivel')->where('nivel_id', $nivelId));
+                    })
+                    ->whereHas('plan', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
+                    ->get();
+
+                if ($asignaciones->isEmpty()) {
+                    continue;
+                }
+
+                foreach ($asignaciones as $asignacion) {
+                    $plan = $asignacion->plan;
+                    $periodos = $this->calcularPeriodos($plan->fecha_inicio, $plan->fecha_fin, $plan->periodicidad);
+
+                    // Usar solo los conceptos seleccionados en la asignación
+                    foreach ($asignacion->conceptosSeleccionados as $conceptoSeleccionado) {
+                    foreach ($periodos as $periodo) {
+                        $existe = Cargo::where('inscripcion_id', $inscripcion->id)
+                            ->where('concepto_id', $conceptoSeleccionado->concepto_id)
+                            ->where('periodo', $periodo['periodo'])
+                            ->exists();
+
+                        if ($existe) {
+                            $yaExistian++;
+
+                            continue;
+                        }
+
+                        Cargo::create([
+                            'inscripcion_id' => $inscripcion->id,
+                            'concepto_id' => $conceptoSeleccionado->concepto_id,
+                            'asignacion_id' => $asignacion->id,
+                            'generado_por' => $generadoPor,
+                            'monto_original' => $conceptoSeleccionado->monto,
+                            'fecha_vencimiento' => $periodo['vencimiento'],
+                            'estado' => 'pendiente',
+                            'periodo' => $periodo['periodo'],
+                        ]);
+                        $totalGenerados++;
+                    }
+                }
+                }
+            }
+
+            Auditoria::registrar('cargo', 0, 'insert', null, [
+                'ciclo_id' => $cicloId,
+                'total_generados' => $totalGenerados,
+            ]);
+
+            DB::commit();
+
+            return $this->respuestaExito(
+                redirectRoute: 'cargos.index',
+                jsonData: ['total_generados' => $totalGenerados, 'ya_existian' => $yaExistian],
+                mensaje: "Generación completada. {$totalGenerados} cargos nuevos."
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return $this->respuestaError('Error al generar cargos: '.$e->getMessage());
+        }
+    }
+
+    /** GET /cargos/{id}/preview — solo AJAX */
     /** GET /cargos/{id}/preview */
     public function preview(int $id)
     {

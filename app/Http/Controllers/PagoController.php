@@ -8,6 +8,7 @@ use App\Models\Auditoria;
 use App\Models\Cargo;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
+use App\Models\Usuario;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,12 @@ class PagoController extends Controller
     /** GET /pagos */
     public function index(Request $request)
     {
-        $query = Pago::with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+        $perPage = (int) $request->get('per_page', 30);
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 30;
+        }
+
+        $base = Pago::query()
             ->when($request->filled('alumno_id'), fn ($q) => $q->whereHas(
                 'detalles.cargo.inscripcion', fn ($q) => $q->where('alumno_id', $request->alumno_id)
             ))
@@ -27,17 +33,27 @@ class PagoController extends Controller
             ->when($request->filled('fecha_hasta'), fn ($q) => $q->where('fecha_pago', '<=', $request->fecha_hasta))
             ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
             ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('folio'), fn ($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"))
-            ->orderByDesc('fecha_pago')
-            ->orderByDesc('id');
+            ->when($request->filled('folio'), fn ($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"));
 
-        $pagos = $query->paginate($request->get('per_page', 30));
+        $resumen = [
+            'total'        => (clone $base)->count(),
+            'vigentes'     => (clone $base)->where('estado', 'vigente')->count(),
+            'anulados'     => (clone $base)->where('estado', 'anulado')->count(),
+            'total_cobrado'=> (clone $base)->where('estado', 'vigente')->sum('monto_total'),
+        ];
+
+        $pagos = (clone $base)
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->orderByDesc('fecha_pago')
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
 
         if ($request->ajax()) {
             return response()->json($pagos);
         }
 
-        return view('pagos.index', compact('pagos'));
+        return view('pagos.index', compact('pagos', 'resumen', 'perPage'));
     }
 
     /** GET /pagos/{id} */
@@ -150,7 +166,8 @@ class PagoController extends Controller
                 redirectRoute: 'pagos.show',
                 jsonData: ['pago' => $pago->load(['cajero', 'detalles.cargo.concepto'])],
                 mensaje: "Pago registrado. Folio: {$pago->folio_recibo}",
-                jsonStatus: 201
+                jsonStatus: 201,
+                routeParams: [$pago->id]
             );
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -190,7 +207,8 @@ class PagoController extends Controller
             return $this->respuestaExito(
                 redirectRoute: 'pagos.show',
                 jsonData: ['pago' => $pago->fresh()->load('detalles.cargo')],
-                mensaje: "Pago {$pago->folio_recibo} anulado correctamente."
+                mensaje: "Pago {$pago->folio_recibo} anulado correctamente.",
+                routeParams: [$pago->id]
             );
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -202,31 +220,59 @@ class PagoController extends Controller
     /** GET /pagos/corte */
     public function corte(Request $request)
     {
-        $fecha = $request->get('fecha', now()->toDateString());
-        $cajeroId = auth()->id();
+        $fecha    = $request->get('fecha', now()->toDateString());
+        $usuario  = auth()->user();
+        $esAdmin  = $usuario->esAdministrador();
 
-        $pagos = Pago::with(['detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
-            ->where('cajero_id', $cajeroId)
+        $baseVigente = Pago::query()
             ->where('fecha_pago', $fecha)
             ->where('estado', 'vigente')
+            ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
+            ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id));
+
+        $pagos = (clone $baseVigente)
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->orderBy('id')
             ->get();
 
+        $totalAnulados = Pago::query()
+            ->where('fecha_pago', $fecha)
+            ->where('estado', 'anulado')
+            ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
+            ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id))
+            ->count();
+
         $resumen = [
-            'fecha' => $fecha,
-            'total_pagos' => $pagos->count(),
-            'total_cargos' => $pagos->sum(fn ($p) => $p->detalles->count()),
-            'total_cobrado' => $pagos->sum('monto_total'),
+            'fecha'          => $fecha,
+            'total_pagos'    => $pagos->count(),
+            'total_cargos'   => $pagos->sum(fn ($p) => $p->detalles->count()),
+            'total_cobrado'  => $pagos->sum('monto_total'),
+            'total_anulados' => $totalAnulados,
             'por_forma_pago' => $pagos->groupBy('forma_pago')->map(fn ($g) => [
                 'cantidad' => $g->count(),
-                'total' => $g->sum('monto_total'),
+                'total'    => $g->sum('monto_total'),
             ]),
         ];
+
+        // Desglose por cajero (solo admin)
+        $porCajero = $esAdmin
+            ? $pagos->groupBy('cajero_id')->map(fn ($g) => [
+                'cajero'   => $g->first()->cajero,
+                'cantidad' => $g->count(),
+                'total'    => $g->sum('monto_total'),
+                'pagos'    => $g,
+            ])->values()
+            : null;
+
+        $cajeros = $esAdmin
+            ? Usuario::internos()->activo()->orderBy('nombre')->get()
+            : null;
 
         if ($request->ajax()) {
             return response()->json(['resumen' => $resumen, 'pagos' => $pagos]);
         }
 
-        return view('pagos.corte', compact('resumen', 'pagos', 'fecha'));
+        return view('pagos.corte', compact('resumen', 'pagos', 'fecha', 'esAdmin', 'porCajero', 'cajeros'));
     }
 
     // ── Helper ───────────────────────────────────────────
