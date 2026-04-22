@@ -121,6 +121,12 @@ class CargoController extends Controller
         $cargo = Cargo::with('inscripcion')->findOrFail($id);
         $alumnoId = $cargo->inscripcion->alumno_id;
 
+        if ($cargo->estado_real === 'pagado') {
+            return $this->respuestaError(
+                'No se puede eliminar un cargo con estatus "Pagado". Primero anule los pagos asociados.'
+            );
+        }
+
         $cargo->delete();
 
         return $this->respuestaExito(
