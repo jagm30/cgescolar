@@ -101,6 +101,7 @@ class NivelEscolarController extends Controller
         'nombre' => ['sometimes', 'required', 'string', 'max:100', Rule::unique('nivel_escolar', 'nombre')->ignore($id)],
         'orden'  => ['sometimes', 'required', 'integer', 'min:1'],
         'activo' => ['boolean'],
+        'revoe'  => ['nullable', 'string', 'max:50'], // <--- AGREGA ESTA LÍNEA
     ]);
 
     // LÓGICA DE REORDENAMIENTO
@@ -171,5 +172,27 @@ public function reordenar(Request $request)
     } catch (\Exception $e) {
         return response()->json(['status' => 'error', 'mensaje' => $e->getMessage()], 500);
     }
+}
+/** DELETE /niveles/{id}/force-delete */
+public function forceDelete(int $id)
+{
+    $nivel = NivelEscolar::findOrFail($id);
+
+    // Validación de integridad: No borrar si tiene grados asociados
+    if ($nivel->grados()->exists()) {
+        return $this->respuestaError(
+            "No se puede eliminar físicamente el nivel '{$nivel->nombre}' porque tiene grados registrados."
+        );
+    }
+
+    $copia = $nivel->toArray();
+    $nivel->delete(); // Borrado físico de la BD
+
+    Auditoria::registrar('nivel_escolar', $id, 'delete', $copia, null);
+
+    return $this->respuestaExito(
+        redirectRoute: 'niveles.index',
+        mensaje: "El nivel ha sido eliminado permanentemente de la base de datos."
+    );
 }
 }

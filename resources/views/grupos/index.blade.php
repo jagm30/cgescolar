@@ -70,7 +70,77 @@
             content: none !important;
         }
     </style>
+    {{--  WIDGETS DE RESUMEN --}}
+    <div class="row" style="margin-bottom: 10px;">
+        {{-- Total Grupos --}}
+        <div class="col-md-3 col-sm-6">
+            <div
+                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #3498db; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div
+                    style="width: 45px; height: 45px; border-radius: 50%; background: #ebf5fb; color: #3498db; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #d6eaf8;">
+                    <i class="fa fa-users"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">{{ $grupos->total() }}</h3>
+                    <p class="text-muted"
+                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
+                        Total Grupos</p>
+                </div>
+            </div>
+        </div>
 
+        {{-- Grupos Activos --}}
+        <div class="col-md-3 col-sm-6">
+            <div
+                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #2ecc71; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div
+                    style="width: 45px; height: 45px; border-radius: 50%; background: #eafaf1; color: #2ecc71; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #d5f5e3;">
+                    <i class="fa fa-check-circle"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">
+                        {{ $grupos->where('activo', true)->count() }}</h3>
+                    <p class="text-muted"
+                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
+                        Activos (Página)</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Grados --}}
+        <div class="col-md-3 col-sm-6">
+            <div
+                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #f39c12; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div
+                    style="width: 45px; height: 45px; border-radius: 50%; background: #fef9e7; color: #f39c12; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #fcf3cf;">
+                    <i class="fa fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">{{ $grados->count() }}</h3>
+                    <p class="text-muted"
+                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
+                        Grados</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Ciclo Activo --}}
+        <div class="col-md-3 col-sm-6">
+            <div
+                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #9b59b6; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div
+                    style="width: 45px; height: 45px; border-radius: 50%; background: #f5eef8; color: #9b59b6; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #ebdef0;">
+                    <i class="fa fa-calendar"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">{{ $ciclo->nombre }}</h3>
+                    <p class="text-muted"
+                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
+                        Ciclo Activo</p>
+                </div>
+            </div>
+        </div>
+    </div>
     {{-- ── ENCABEZADO ── --}}
     <div class="row" style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap;">
         {{-- Columna del Título --}}
@@ -78,7 +148,7 @@
             <h2 style="margin: 0; font-weight: bold; color: #1e4d7b;">
                 <i class="fa fa-users text-blue"></i> Grupos Escolares
             </h2>
-            <p class="text-muted" style="margin: 5px 0 0 0;">Ciclo Escolar: <b>{{ $ciclo->nombre }}</b></p>
+
         </div>
 
         {{-- Columna de Botones --}}
@@ -183,7 +253,8 @@
                                 <td style="vertical-align: middle;">
                                     <span class="label label-info label-grupo">{{ $g['nombre'] }}</span>
                                 </td>
-                                <td class="text-center" style="vertical-align: middle;">{{ $g['cupo_maximo'] ?? '∞' }}</td>
+                                <td class="text-center" style="vertical-align: middle;">{{ $g['cupo_maximo'] ?? '∞' }}
+                                </td>
                                 <td class="text-center" style="vertical-align: middle;">
                                     @if ($g['alumnos_inscritos'] == 0)
                                         <span class="badge bg-gray">0</span>

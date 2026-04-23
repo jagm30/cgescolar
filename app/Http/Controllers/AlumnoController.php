@@ -630,11 +630,81 @@ class AlumnoController extends Controller
 
         return back()->with('success', 'Se registró la baja correctamente en el expediente.');
     }
+    public function promocionarMasivo(Request $request)
+{
+    $request->validate([
+        'inscripciones_ids' => 'required|array',
+        'ciclo_destino_id'  => 'required|exists:ciclo_escolar,id',
+        'grado_destino_id'  => 'required|exists:grados,id',
+        'grupo_origen_id'   => 'required'
+    ]);
+
+    $contador = 0;
+
+    try {
+        \DB::transaction(function () use ($request, &$contador) {
+            foreach ($request->inscripciones_ids as $inscripcionId) {
+                // 1. Obtener la inscripción actual
+                $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
+                $alumno = $inscripcionActual->alumno;
+
+                // 2. Cerrar la inscripción actual (Historial)
+                $inscripcionActual->update([
+                    'activo' => false,
+                    'observaciones' => ($inscripcionActual->observaciones ?? '') . " | Promocionado al ciclo ID: {$request->ciclo_destino_id}"
+                ]);
+
+                // 3. Crear la nueva inscripción en el ciclo/grado destino
+                // Nota: Aquí se crea sin grupo asignado (para que luego los repartas)
+                // o puedes asignar un grupo_id si lo añades al modal.
+                \App\Models\Inscripcion::create([
+                    'alumno_id' => $alumno->id,
+                    'ciclo_id'  => $request->ciclo_destino_id,
+                    'grado_id'  => $request->grado_destino_id,
+                    'fecha_inscripcion' => now(),
+                    'activo'    => true,
+                    'estado'    => 'inscrito'
+                ]);
+
+                // 4. Asegurarnos que el alumno siga como activo en su ficha general
+                $alumno->update(['estado' => 'activo']);
+
+                $contador++;
+            }
+        });
+
+        return redirect()->route('grupos.show', $request->grupo_origen_id)
+            ->with('success', "¡Éxito! Se han promocionado $contador alumnos correctamente.");
+
+    } catch (\Exception $e) {
+        return back()->with('error', "Hubo un error al promocionar: " . $e->getMessage());
+    }
+}
 
     /**
      * POST /grupos/{id}/egresar-todo
      * Procesa a múltiples alumnos de un grupo (egreso o cierre de ciclo).
      */
+public function egresarTodo(Request $request, $grupoId)
+{
+    $request->validate(['inscripciones_ids' => 'required|array']);
+
+    \DB::transaction(function () use ($request) {
+        foreach ($request->inscripciones_ids as $id) {
+            $inscripcion = Inscripcion::findOrFail($id);
+
+            // 1. Cerramos la inscripción actual
+            $inscripcion->update(['activo' => false]);
+
+            // 2. CAMBIO CLAVE: Marcamos al alumno como EGRESADO (Ya no es un alumno activo)
+            $inscripcion->alumno->update([
+                'estado' => 'egresado'
+            ]);
+        }
+    });
+
+    return back()->with('success', "Alumnos egresados correctamente.");
+}
     public function egresarTodo(Request $request, int $grupo_id)
     {
         // Recibimos los IDs de los checkboxes marcados

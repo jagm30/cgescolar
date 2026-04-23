@@ -137,6 +137,17 @@
     height: 50px;
     letter-spacing: .02em;
 }
+.btn-billete {
+    border-color: #b2dfdb;
+    color: #00695c;
+    background: #e0f2f1;
+    transition: background .12s, border-color .12s;
+}
+.btn-billete:hover, .btn-billete.activo {
+    background: #27ae60;
+    border-color: #27ae60;
+    color: #fff;
+}
 </style>
 @endpush
 
@@ -268,6 +279,13 @@
                             <span style="background:#f0f0f0;padding:1px 7px;border-radius:8px;font-size:10px;">
                                 {{ $cargo->inscripcion->ciclo->nombre ?? '' }}
                             </span>
+                            @if($cargo->asignacion?->plan)
+                            &nbsp;
+                            <span style="background:#e8f0fb;color:#2c6fad;padding:1px 7px;border-radius:8px;font-size:10px;">
+                                <i class="fa fa-list" style="font-size:9px;"></i>
+                                {{ $cargo->asignacion->plan->nombre }}
+                            </span>
+                            @endif
                             &nbsp;
                             <code style="font-size:11px;">{{ $cargo->periodo }}</code>
                             &nbsp;·&nbsp;
@@ -571,6 +589,58 @@
                 <input type="text" name="referencia" class="form-control input-sm"
                        placeholder="Número de transferencia...">
             </div>
+
+            {{-- Efectivo: ¿con cuánto paga? --}}
+            <div id="bloque-efectivo" style="display:none;margin-top:12px;">
+                <label style="font-size:12px;color:#27ae60;font-weight:700;display:block;margin-bottom:6px;">
+                    <i class="fa fa-money"></i> ¿Con cuánto paga el cliente?
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon"
+                          style="background:#27ae60;color:#fff;font-weight:700;font-size:15px;
+                                 border:2px solid #27ae60;border-right:none;">$</span>
+                    <input type="number" id="monto-entregado"
+                           class="form-control"
+                           placeholder="0.00" min="0" step="0.01"
+                           style="font-size:18px;font-weight:700;text-align:right;
+                                  border:2px solid #27ae60;border-left:none;height:42px;">
+                </div>
+                <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">
+                    @foreach([50,100,200,500,1000] as $bill)
+                    <button type="button" class="btn btn-xs btn-default btn-billete"
+                            data-monto="{{ $bill }}"
+                            style="font-size:11px;border-radius:10px;padding:2px 8px;">
+                        ${{ $bill }}
+                    </button>
+                    @endforeach
+                </div>
+
+                {{-- Cambio a devolver --}}
+                <div id="bloque-cambio" style="display:none;margin-top:10px;padding:12px 14px;
+                     border-radius:8px;background:#e8f8f0;border:2px solid #00a65a;text-align:center;">
+                    <div style="font-size:10px;color:#00875a;text-transform:uppercase;
+                                letter-spacing:.06em;font-weight:700;margin-bottom:4px;">
+                        <i class="fa fa-arrow-left"></i> Cambio a devolver
+                    </div>
+                    <div id="monto-cambio"
+                         style="font-size:30px;font-weight:800;color:#00875a;line-height:1;">
+                        $0.00
+                    </div>
+                </div>
+
+                {{-- Monto insuficiente --}}
+                <div id="bloque-faltante" style="display:none;margin-top:10px;padding:10px 14px;
+                     border-radius:8px;background:#fdecea;border:2px solid #dd4b39;text-align:center;">
+                    <div style="font-size:10px;color:#b91c1c;text-transform:uppercase;
+                                letter-spacing:.06em;font-weight:700;margin-bottom:4px;">
+                        <i class="fa fa-exclamation-triangle"></i> Monto insuficiente
+                    </div>
+                    <div id="monto-faltante"
+                         style="font-size:20px;font-weight:800;color:#b91c1c;">
+                        $0.00 de falta
+                    </div>
+                </div>
+            </div>
         </div>
 
         {{-- Fecha --}}
@@ -761,8 +831,67 @@ $(function() {
         $(this).closest('label').find('.forma-radio').prop('checked', true);
 
         $('#campo-referencia').toggle(forma === 'transferencia' || forma === 'cheque');
+
+        if (forma === 'efectivo') {
+            $('#bloque-efectivo').show();
+            sugerirMonto();
+            calcularCambio();
+        } else {
+            $('#bloque-efectivo').hide();
+            $('#bloque-cambio, #bloque-faltante').hide();
+        }
+
         actualizarBtnCobrar();
     });
+
+    // ── Botones de billete ────────────────────────────
+    $(document).on('click', '.btn-billete', function() {
+        var monto = parseFloat($(this).data('monto'));
+        $('#monto-entregado').val(monto.toFixed(2));
+        $('.btn-billete').removeClass('activo');
+        $(this).addClass('activo');
+        calcularCambio();
+    });
+
+    // ── Cambio al escribir en el campo ───────────────
+    $('#monto-entregado').on('input', function() {
+        $('.btn-billete').removeClass('activo');
+        calcularCambio();
+    });
+
+    // ══════════════════════════════════════════════════
+    // CÁLCULO DE CAMBIO (efectivo)
+    // ══════════════════════════════════════════════════
+    function obtenerTotal() {
+        return parseFloat($('#resumen-total').text().replace(/[$,]/g, '')) || 0;
+    }
+
+    function sugerirMonto() {
+        var total = obtenerTotal();
+        if (total <= 0 || $('#monto-entregado').val()) return;
+        var billetes = [20, 50, 100, 200, 500, 1000];
+        var sugerido = billetes.find(function(b) { return b >= total; }) || total;
+        $('#monto-entregado').val(sugerido.toFixed(2));
+    }
+
+    function calcularCambio() {
+        var total     = obtenerTotal();
+        var entregado = parseFloat($('#monto-entregado').val()) || 0;
+
+        $('#bloque-cambio').hide();
+        $('#bloque-faltante').hide();
+
+        if (entregado <= 0 || total <= 0) return;
+
+        var diff = entregado - total;
+        if (diff >= 0) {
+            $('#monto-cambio').text('$' + diff.toFixed(2));
+            $('#bloque-cambio').show();
+        } else {
+            $('#monto-faltante').text('$' + Math.abs(diff).toFixed(2) + ' de falta');
+            $('#bloque-faltante').show();
+        }
+    }
 
     // ══════════════════════════════════════════════════
     // RESUMEN Y BOTÓN
@@ -809,6 +938,12 @@ $(function() {
         }
 
         $('#resumen-total').text('$' + totalGlobal.toFixed(2));
+
+        // Recalcular cambio si la forma de pago es efectivo
+        if ($('input[name="forma_pago"]:checked').val() === 'efectivo') {
+            if (!$('#monto-entregado').val()) sugerirMonto();
+            calcularCambio();
+        }
     }
 
     function actualizarBtnCobrar() {
