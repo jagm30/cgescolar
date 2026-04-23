@@ -585,7 +585,7 @@
                 <tbody>
                     @forelse($alumnos as $alumno)
                         @php
-                            // AQUÍ ESTÁ LA MAGIA: Filtramos para que solo tome la inscripción activa
+                            // Filtramos para que solo tome la inscripción activa
                             $inscripcion = $alumno->inscripciones->where('activo', true)->first();
                             $inicial = mb_strtoupper(mb_substr($alumno->ap_paterno, 0, 1));
                             $estado = $alumno->estado;
@@ -611,9 +611,8 @@
                             {{-- NOMBRE --}}
                             <td>
                                 <div class="alm-nombre">
-                                    {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}
+                                    {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }} {{ $alumno->nombre }}
                                 </div>
-                                <div class="alm-sub">{{ $alumno->nombre }}</div>
                             </td>
 
                             {{-- NIVEL / GRUPO --}}
