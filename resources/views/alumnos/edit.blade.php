@@ -36,11 +36,6 @@
 /* ══ Barra de progreso ════════════════════════════════════ */
 .wizard-progress-wrap { background: #edf1f5; border-radius: 999px; height: 6px; overflow: hidden; margin-bottom: 20px; }
 .wizard-progress-fill { background: linear-gradient(90deg,#3c8dbc,#2c6fad); height: 6px; transition: width .25s ease; }
-/* ══ Paneles de pasos ═════════════════════════════════════ */
-.form-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; margin-bottom: 20px; background: #fff; }
-.form-panel-header { background: #f4f6f8; border-bottom: 2px solid #e0e7ef; padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; }
-.form-panel-title { font-size: 13px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; margin: 0; }
-.form-panel-body { padding: 20px 20px 16px; }
 /* ══ Sidebar ══════════════════════════════════════════════ */
 .sidebar-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; background: #fff; margin-bottom: 16px; }
 .sidebar-header { background: linear-gradient(135deg,#1e4d7b 0%,#3c8dbc 100%); padding: 14px 18px; color: #fff; font-size: 13px; font-weight: 700; }
@@ -77,11 +72,6 @@
 </style>
 @endpush
 
-        .wizard-step-trigger.is-active .wizard-step-badge {
-            background: #3c8dbc !important;
-            color: #fff !important;
-        }
-
 @php
     $pasosWizard = [
         1 => ['titulo' => 'Datos personales', 'descripcion' => 'Nombre, fechas y CURP'],
@@ -95,10 +85,12 @@
                   ?? $inscripciones->sortByDesc('id')->first();
 
     // Valores precargados para el paso 3 (old() tiene prioridad)
-    $cicloIdActual  = old('ciclo_id',  $inscActual?->grupo?->ciclo_id              ?? '');
-    $nivelActual  = old('nivel_id',  $inscActual?->grupo?->grado?->nivel_id      ?? '');
-    $grupoActual  = old('grupo_id',  $inscActual?->grupo_id                      ?? '');
+    $cicloIdActual = old('ciclo_id', $inscActual?->grupo?->ciclo_id           ?? '');
+    $nivelActual   = old('nivel_id', $inscActual?->grupo?->grado?->nivel_id   ?? '');
+    $grupoActual   = old('grupo_id', $inscActual?->grupo_id                   ?? '');
 @endphp
+
+@section('content')
 
 <form method="POST"
       action="{{ route('alumnos.update', $alumno->id) }}"
@@ -108,9 +100,7 @@
 @csrf
 @method('PUT')
 
-{{-- ══════════════════════════════════
-     BARRA DE PROGRESO + NAV WIZARD
-══════════════════════════════════ --}}
+{{-- ══ BARRA DE PROGRESO + NAV WIZARD ══ --}}
 <div class="wizard-progress-wrap">
     <div id="wizard-progress-bar" class="wizard-progress-fill" style="width:25%;"></div>
 </div>
@@ -131,939 +121,704 @@
     @endforeach
 </div>
 
-        .wizard-summary-item.is-active {
-            color: #3c8dbc;
-            font-weight: 700;
-        }
+<div class="row">
 
-{{-- ══════════════════════════════════
-     COLUMNA IZQUIERDA — pasos
-══════════════════════════════════ --}}
-<div class="col-md-8">
+    {{-- ══ COLUMNA IZQUIERDA — pasos ══ --}}
+    <div class="col-md-8">
 
-    {{-- ────────────── PASO 1: Datos personales ────────────── --}}
-    <div class="form-panel wizard-step-panel" data-step="1">
-        <div class="form-panel-header">
-            <h3 class="form-panel-title"><i class="fa fa-user" style="color:#3c8dbc;"></i> Paso 1: Datos personales</h3>
-        </div>
-        <div class="form-panel-body">
-
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="form-group {{ $errors->has('nombre') ? 'has-error' : '' }}">
-                        <label for="nombre">Nombre(s) <span class="text-red">*</span></label>
-                        <input type="text" name="nombre" id="nombre" class="form-control"
-                               placeholder="Ej: Juan Carlos"
-                               value="{{ old('nombre', $alumno->nombre) }}" maxlength="100">
-                        @error('nombre')
-                            <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
-                        @enderror
-                    </div>
-                </div>
+        {{-- ────────────── PASO 1: Datos personales ────────────── --}}
+        <div class="box box-primary wizard-step-panel" data-step="1">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-user"></i> Paso 1: Datos personales
+                </h3>
             </div>
+            <div class="box-body">
 
-        /* ── Inscripción actual (solo lectura) ─────────── */
-        .ins-actual-card {
-            background: #f0f7ff;
-            border: 1px solid #b8d4ec;
-            border-left: 4px solid #3c8dbc;
-            border-radius: 6px;
-            padding: 14px 16px;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .ins-actual-badge {
-            width: 46px;
-            height: 46px;
-            border-radius: 10px;
-            background: #3c8dbc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .ins-actual-titulo {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e4d7b;
-        }
-
-        .ins-actual-sub {
-            font-size: 12px;
-            color: #5b8db8;
-            margin-top: 3px;
-        }
-
-        </div>{{-- /.form-panel-body --}}
-    </div>{{-- /paso 1 --}}
-
-    {{-- ────────────── PASO 2: Foto y estado ────────────── --}}
-    <div class="form-panel wizard-step-panel" data-step="2" style="display:none;">
-        <div class="form-panel-header">
-            <h3 class="form-panel-title"><i class="fa fa-camera" style="color:#3c8dbc;"></i> Paso 2: Foto y estado</h3>
-        </div>
-        <div class="form-panel-body">
-
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group {{ $errors->has('foto') ? 'has-error' : '' }}">
-                        <label>Foto del alumno</label>
-                        <div style="margin-bottom:10px;">
-                            <div id="foto-preview-wrap"
-                                 onclick="document.getElementById('foto').click()">
-                                @if($alumno->foto_url)
-                                    <img src="{{ asset('storage/' . $alumno->foto_url) }}"
-                                         alt="Foto" style="width:100%;height:100%;object-fit:cover;">
-                                @else
-                                    <div style="text-align:center;color:#ccc;">
-                                        <i class="fa fa-camera" style="font-size:28px;"></i>
-                                        <div style="font-size:11px;margin-top:4px;">Sin foto</div>
-                                    </div>
-                                @endif
-                            </div>
-                            <small class="text-muted" style="display:block;margin-top:4px;font-size:11px;">
-                                <i class="fa fa-hand-pointer-o"></i> Click para cambiar
-                            </small>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group {{ $errors->has('nombre') ? 'has-error' : '' }}">
+                            <label for="nombre">Nombre(s) <span class="text-red">*</span></label>
+                            <input type="text" name="nombre" id="nombre" class="form-control"
+                                placeholder="Ej: Juan Carlos" value="{{ old('nombre', $alumno->nombre) }}"
+                                maxlength="100">
+                            @error('nombre')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
                         </div>
-                        <input type="file" name="foto" id="foto"
-                               accept="image/jpeg,image/png,image/webp" style="display:none">
-                        <div class="input-group">
-                            <span class="input-group-btn">
-                                <label class="btn btn-default btn-sm btn-flat"
-                                       for="foto" style="margin:0;cursor:pointer;">
-                                    <i class="fa fa-camera"></i>
-                                    {{ $alumno->foto_url ? 'Cambiar foto' : 'Seleccionar' }}
-                                </label>
-                            </span>
-                            <input type="text" id="foto-nombre" class="form-control input-sm"
-                                   placeholder="Sin cambios" readonly>
-                        </div>
-                        <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB.</span>
-                        @error('foto')
-                            <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
-                        @enderror
                     </div>
                 </div>
 
-        @media (max-width: 768px) {
-
-            #wizard-steps-nav .col-sm-6,
-            #wizard-steps-nav .col-lg-3 {
-                width: 25%;
-                float: left;
-                padding: 4px;
-            }
-
-        </div>{{-- /.form-panel-body --}}
-    </div>{{-- /paso 2 --}}
-
-    {{-- ────────────── PASO 3: Inscripción ────────────── --}}
-    <div class="form-panel wizard-step-panel" data-step="3" style="display:none;">
-        <div class="form-panel-header">
-            <h3 class="form-panel-title"><i class="fa fa-graduation-cap" style="color:#3c8dbc;"></i> Paso 3: Inscripción</h3>
-        </div>
-        <div class="form-panel-body">
-
-            .wizard-step-badge {
-                width: 26px !important;
-                height: 26px !important;
-                font-size: 12px;
-                margin: 0 auto 4px;
-            }
-
-            .wizard-step-trigger {
-                opacity: .5;
-            }
-
-            .wizard-step-trigger.is-active {
-                opacity: 1;
-                transform: scale(1.05);
-            }
-        }
-    </style>
-@endpush
-
-@section('content')
-
-        </div>{{-- /.form-panel-body --}}
-    </div>{{-- /paso 3 --}}
-
-    {{-- ────────────── PASO 4: Contactos ────────────── --}}
-    <div class="form-panel wizard-step-panel" data-step="4" style="display:none;">
-        <div class="form-panel-header">
-            <h3 class="form-panel-title"><i class="fa fa-phone" style="color:#3c8dbc;"></i> Paso 4: Contactos familiares</h3>
-        </div>
-        <div class="form-panel-body">
-
-        <div class="row">
-
-            {{-- ══════════════════════════════════
-     COLUMNA IZQUIERDA — pasos
-══════════════════════════════════ --}}
-            <div class="col-md-8">
-
-                {{-- ────────────── PASO 1: Datos personales ────────────── --}}
-                <div class="box box-primary wizard-step-panel" data-step="1">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">
-                            <i class="fa fa-user"></i> Paso 1: Datos personales
-                        </h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group {{ $errors->has('ap_paterno') ? 'has-error' : '' }}">
+                            <label for="ap_paterno">Apellido paterno <span class="text-red">*</span></label>
+                            <input type="text" name="ap_paterno" id="ap_paterno" class="form-control"
+                                value="{{ old('ap_paterno', $alumno->ap_paterno) }}" maxlength="100">
+                            @error('ap_paterno')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
                     </div>
-                    <div class="box-body">
-
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group {{ $errors->has('nombre') ? 'has-error' : '' }}">
-                                    <label for="nombre">Nombre(s) <span class="text-red">*</span></label>
-                                    <input type="text" name="nombre" id="nombre" class="form-control"
-                                        placeholder="Ej: Juan Carlos" value="{{ old('nombre', $alumno->nombre) }}"
-                                        maxlength="100">
-                                    @error('nombre')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="ap_materno">Apellido materno</label>
+                            <input type="text" name="ap_materno" id="ap_materno" class="form-control"
+                                value="{{ old('ap_materno', $alumno->ap_materno) }}" maxlength="100">
                         </div>
+                    </div>
+                </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group {{ $errors->has('ap_paterno') ? 'has-error' : '' }}">
-                                    <label for="ap_paterno">Apellido paterno <span class="text-red">*</span></label>
-                                    <input type="text" name="ap_paterno" id="ap_paterno" class="form-control"
-                                        value="{{ old('ap_paterno', $alumno->ap_paterno) }}" maxlength="100">
-                                    @error('ap_paterno')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="ap_materno">Apellido materno</label>
-                                    <input type="text" name="ap_materno" id="ap_materno" class="form-control"
-                                        value="{{ old('ap_materno', $alumno->ap_materno) }}" maxlength="100">
-                                </div>
-                            </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('fecha_nacimiento') ? 'has-error' : '' }}">
+                            <label for="fecha_nacimiento">Fecha de nacimiento <span class="text-red">*</span></label>
+                            <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control"
+                                value="{{ old('fecha_nacimiento', $alumno->fecha_nacimiento?->format('Y-m-d')) }}"
+                                max="{{ now()->subYears(2)->format('Y-m-d') }}">
+                            @error('fecha_nacimiento')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('fecha_nacimiento') ? 'has-error' : '' }}">
-                                    <label for="fecha_nacimiento">Fecha de nacimiento <span
-                                            class="text-red">*</span></label>
-                                    <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control"
-                                        value="{{ old('fecha_nacimiento', $alumno->fecha_nacimiento?->format('Y-m-d')) }}"
-                                        max="{{ now()->subYears(2)->format('Y-m-d') }}">
-                                    @error('fecha_nacimiento')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="genero">Género</label>
-                                    <select name="genero" id="genero" class="form-control">
-                                        <option value="">-- Seleccionar --</option>
-                                        <option value="M"
-                                            {{ old('genero', $alumno->genero) === 'M' ? 'selected' : '' }}>Masculino
-                                        </option>
-                                        <option value="F"
-                                            {{ old('genero', $alumno->genero) === 'F' ? 'selected' : '' }}>Femenino
-                                        </option>
-                                        <option value="Otro"
-                                            {{ old('genero', $alumno->genero) === 'Otro' ? 'selected' : '' }}>Otro</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('fecha_inscripcion') ? 'has-error' : '' }}">
-                                    <label for="fecha_inscripcion">Fecha de inscripción <span
-                                            class="text-red">*</span></label>
-                                    <input type="date" name="fecha_inscripcion" id="fecha_inscripcion"
-                                        class="form-control"
-                                        value="{{ old('fecha_inscripcion', $alumno->fecha_inscripcion?->format('Y-m-d')) }}">
-                                    @error('fecha_inscripcion')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="genero">Género</label>
+                            <select name="genero" id="genero" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="M" {{ old('genero', $alumno->genero) === 'M' ? 'selected' : '' }}>Masculino</option>
+                                <option value="F" {{ old('genero', $alumno->genero) === 'F' ? 'selected' : '' }}>Femenino</option>
+                                <option value="Otro" {{ old('genero', $alumno->genero) === 'Otro' ? 'selected' : '' }}>Otro</option>
+                            </select>
                         </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('fecha_inscripcion') ? 'has-error' : '' }}">
+                            <label for="fecha_inscripcion">Fecha de inscripción <span class="text-red">*</span></label>
+                            <input type="date" name="fecha_inscripcion" id="fecha_inscripcion" class="form-control"
+                                value="{{ old('fecha_inscripcion', $alumno->fecha_inscripcion?->format('Y-m-d')) }}">
+                            @error('fecha_inscripcion')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group {{ $errors->has('curp') ? 'has-error' : '' }}">
-                                    <label for="curp">
-                                        CURP
-                                        <small class="text-muted" id="curp-lbl">
-                                            (<span
-                                                id="curp-chars">{{ strlen(old('curp', $alumno->curp ?? '')) }}</span>/18)
-                                        </small>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group {{ $errors->has('curp') ? 'has-error' : '' }}">
+                            <label for="curp">
+                                CURP
+                                <small class="text-muted" id="curp-lbl">
+                                    (<span id="curp-chars">{{ strlen(old('curp', $alumno->curp ?? '')) }}</span>/18)
+                                </small>
+                            </label>
+                            <input type="text" name="curp" id="curp" class="form-control"
+                                placeholder="18 caracteres" value="{{ old('curp', $alumno->curp) }}"
+                                maxlength="18" style="text-transform:uppercase">
+                            @error('curp')
+                                <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Matrícula</label>
+                            <input type="text" class="form-control" value="{{ $alumno->matricula }}" disabled>
+                            <span class="help-block" style="font-size:11px;">No se puede modificar.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>{{-- /.box-body --}}
+        </div>{{-- /paso 1 --}}
+
+        {{-- ────────────── PASO 2: Foto y estado ────────────── --}}
+        <div class="box box-primary wizard-step-panel" data-step="2" style="display:none;">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-camera"></i> Paso 2: Foto y estado
+                </h3>
+            </div>
+            <div class="box-body">
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('foto') ? 'has-error' : '' }}">
+                            <label>Foto del alumno</label>
+                            <div style="margin-bottom:10px;">
+                                <div id="foto-preview-wrap" onclick="document.getElementById('foto').click()">
+                                    @if($alumno->foto_url)
+                                        <img src="{{ asset('storage/' . $alumno->foto_url) }}" alt="Foto"
+                                            style="width:100%;height:100%;object-fit:cover;">
+                                    @else
+                                        <div style="text-align:center;color:#ccc;">
+                                            <i class="fa fa-camera" style="font-size:28px;"></i>
+                                            <div style="font-size:11px;margin-top:4px;">Sin foto</div>
+                                        </div>
+                                    @endif
+                                </div>
+                                <small class="text-muted" style="display:block;margin-top:4px;font-size:11px;">
+                                    <i class="fa fa-hand-pointer-o"></i> Click para cambiar
+                                </small>
+                            </div>
+                            <input type="file" name="foto" id="foto"
+                                accept="image/jpeg,image/png,image/webp" style="display:none">
+                            <div class="input-group">
+                                <span class="input-group-btn">
+                                    <label class="btn btn-default btn-sm btn-flat" for="foto"
+                                        style="margin:0;cursor:pointer;">
+                                        <i class="fa fa-camera"></i>
+                                        {{ $alumno->foto_url ? 'Cambiar foto' : 'Seleccionar' }}
                                     </label>
-                                    <input type="text" name="curp" id="curp" class="form-control"
-                                        placeholder="18 caracteres" value="{{ old('curp', $alumno->curp) }}"
-                                        maxlength="18" style="text-transform:uppercase">
-                                    @error('curp')
-                                        <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Matrícula</label>
-                                    <input type="text" class="form-control" value="{{ $alumno->matricula }}"
-                                        disabled>
-                                    <span class="help-block" style="font-size:11px;">No se puede modificar.</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group {{ $errors->has('observaciones') ? 'has-error' : '' }}">
-                            <label for="observaciones">Observaciones</label>
-                            <textarea name="observaciones" id="observaciones" class="form-control" rows="2" maxlength="1000"
-                                placeholder="Notas adicionales sobre el alumno (opcional)">{{ old('observaciones', $alumno->observaciones) }}</textarea>
-                        </div>
-
-                    </div>{{-- /.box-body --}}
-                </div>{{-- /paso 1 --}}
-
-                {{-- ────────────── PASO 2: Foto y estado ────────────── --}}
-                <div class="box box-primary wizard-step-panel" data-step="2" style="display:none;">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">
-                            <i class="fa fa-camera"></i> Paso 2: Foto y estado
-                        </h3>
-                    </div>
-                    <div class="box-body">
-
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('foto') ? 'has-error' : '' }}">
-                                    <label>Foto del alumno</label>
-                                    <div style="margin-bottom:10px;">
-                                        <div id="foto-preview-wrap" onclick="document.getElementById('foto').click()">
-                                            @if ($alumno->foto_url)
-                                                <img src="{{ asset('storage/' . $alumno->foto_url) }}" alt="Foto"
-                                                    style="width:100%;height:100%;object-fit:cover;">
-                                            @else
-                                                <div style="text-align:center;color:#ccc;">
-                                                    <i class="fa fa-camera" style="font-size:28px;"></i>
-                                                    <div style="font-size:11px;margin-top:4px;">Sin foto</div>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        <small class="text-muted" style="display:block;margin-top:4px;font-size:11px;">
-                                            <i class="fa fa-hand-pointer-o"></i> Click para cambiar
-                                        </small>
-                                    </div>
-                                    <input type="file" name="foto" id="foto"
-                                        accept="image/jpeg,image/png,image/webp" style="display:none">
-                                    <div class="input-group">
-                                        <span class="input-group-btn">
-                                            <label class="btn btn-default btn-sm btn-flat" for="foto"
-                                                style="margin:0;cursor:pointer;">
-                                                <i class="fa fa-camera"></i>
-                                                {{ $alumno->foto_url ? 'Cambiar foto' : 'Seleccionar' }}
-                                            </label>
-                                        </span>
-                                        <input type="text" id="foto-nombre" class="form-control input-sm"
-                                            placeholder="Sin cambios" readonly>
-                                    </div>
-                                    <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB.</span>
-                                    @error('foto')
-                                        <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('estado') ? 'has-error' : '' }}">
-                                    <label for="estado">Estado <span class="text-red">*</span></label>
-                                    <select name="estado" id="estado" class="form-control">
-                                        <option value="activo"
-                                            {{ old('estado', $alumno->estado) === 'activo' ? 'selected' : '' }}>
-                                            Activo</option>
-                                        <option value="baja_temporal"
-                                            {{ old('estado', $alumno->estado) === 'baja_temporal' ? 'selected' : '' }}>
-                                            Baja temporal</option>
-                                        <option value="baja_definitiva"
-                                            {{ old('estado', $alumno->estado) === 'baja_definitiva' ? 'selected' : '' }}>
-                                            Baja definitiva</option>
-                                        <option value="egresado"
-                                            {{ old('estado', $alumno->estado) === 'egresado' ? 'selected' : '' }}>
-                                            Egresado</option>
-                                    </select>
-                                    @error('estado')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                                <div class="form-group {{ $errors->has('fecha_baja') ? 'has-error' : '' }}"
-                                    id="bloque-fecha-baja"
-                                    style="{{ in_array(old('estado', $alumno->estado), ['baja_temporal', 'baja_definitiva']) ? '' : 'display:none;' }}">
-                                    <label for="fecha_baja">Fecha de baja</label>
-                                    <input type="date" name="fecha_baja" id="fecha_baja" class="form-control"
-                                        value="{{ old('fecha_baja', $alumno->fecha_baja?->format('Y-m-d')) }}">
-                                    @error('fecha_baja')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Información del registro</label>
-                                    <table class="table table-condensed"
-                                        style="font-size:12px;margin:0;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px;">
-                                        <tr>
-                                            <th style="color:#999;font-weight:400;padding:6px 10px;">Matrícula</th>
-                                            <td style="padding:6px 10px;"><code>{{ $alumno->matricula }}</code></td>
-                                        </tr>
-                                        <tr>
-                                            <th style="color:#999;font-weight:400;padding:6px 10px;">Familia</th>
-                                            <td style="padding:6px 10px;">{{ $alumno->familia?->apellido_familia ?? '—' }}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th style="color:#999;font-weight:400;padding:6px 10px;">Registrado</th>
-                                            <td style="padding:6px 10px;font-size:11px;">
-                                                {{ $alumno->created_at?->format('d/m/Y') }}</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>{{-- /.box-body --}}
-                </div>{{-- /paso 2 --}}
-
-                {{-- ────────────── PASO 3: Inscripción ────────────── --}}
-                <div class="box box-primary wizard-step-panel" data-step="3" style="display:none;">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">
-                            <i class="fa fa-graduation-cap"></i> Paso 3: Inscripción
-                        </h3>
-                    </div>
-                    <div class="box-body">
-
-                        {{-- Tarjeta inscripción activa (informativa) --}}
-                        @if ($inscActual)
-                            <div class="ins-actual-card">
-                                <div class="ins-actual-badge">
-                                    <i class="fa fa-graduation-cap" style="color:#fff;font-size:20px;"></i>
-                                </div>
-                                <div style="flex:1;">
-                                    <div class="ins-actual-titulo">Inscripción actual</div>
-                                    <div class="ins-actual-sub">
-                                        {{ $inscActual->grupo?->ciclo?->nombre ?? '—' }}
-                                        &nbsp;·&nbsp;
-                                        {{ $inscActual->grupo?->grado?->nivel?->nombre ?? '—' }}
-                                        &nbsp;·&nbsp;
-                                        {{ $inscActual->grupo?->grado?->nombre ?? '' }}
-                                        {{ $inscActual->grupo?->nombre ?? '—' }}
-                                    </div>
-                                </div>
-                                <span
-                                    style="background:#3c8dbc;color:#fff;font-size:10px;padding:2px 10px;border-radius:10px;font-weight:600;">
-                                    {{ strtoupper($inscActual->estado ?? 'activo') }}
                                 </span>
+                                <input type="text" id="foto-nombre" class="form-control input-sm"
+                                    placeholder="Sin cambios" readonly>
                             </div>
-                        @else
-                            <div class="alert alert-info" style="font-size:12px;">
-                                <i class="fa fa-info-circle"></i>
-                                Este alumno no tiene inscripción activa. Selecciona un ciclo, nivel y grupo para
-                                inscribirlo.
-                            </div>
-                        @endif
-
-                        {{-- Selectores editables --}}
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('ciclo_id') ? 'has-error' : '' }}">
-                                    <label for="ciclo_id">Ciclo escolar <span class="text-red">*</span></label>
-                                    <select name="ciclo_id" id="ciclo_id" class="form-control">
-                                        <option value="">-- Seleccionar ciclo --</option>
-                                        @foreach ($ciclosDisponibles as $ciclo)
-                                            <option value="{{ $ciclo->id }}"
-                                                {{ $cicloIdActual == $ciclo->id ? 'selected' : '' }}>
-                                                {{ $ciclo->nombre }}
-                                                @if ($ciclo->estado === 'activo')
-                                                    (Activo)
-                                                @endif
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('ciclo_id')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('nivel_id') ? 'has-error' : '' }}">
-                                    <label for="nivel_id">Nivel educativo <span class="text-red">*</span></label>
-                                    <select name="nivel_id" id="nivel_id" class="form-control">
-                                        <option value="">-- Seleccionar nivel --</option>
-                                        @foreach ($niveles as $nivel)
-                                            <option value="{{ $nivel->id }}"
-                                                {{ $nivelActual == $nivel->id ? 'selected' : '' }}>
-                                                {{ $nivel->nombre }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('nivel_id')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group {{ $errors->has('grupo_id') ? 'has-error' : '' }}">
-                                    <label for="grupo_id">Grado y grupo <span class="text-red">*</span></label>
-                                    <select name="grupo_id" id="grupo_id" class="form-control">
-                                        <option value="">-- Primero selecciona ciclo y nivel --</option>
-                                    </select>
-                                    @error('grupo_id')
-                                        <span class="help-block"><i class="fa fa-exclamation-circle"></i>
-                                            {{ $message }}</span>
-                                    @enderror
-                                </div>
-                            </div>
+                            <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB.</span>
+                            @error('foto')
+                                <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
                         </div>
-
-                        <div id="grupos-cargando" style="display:none;color:#999;font-size:12px;margin-top:-10px;">
-                            <i class="fa fa-spinner fa-spin"></i> Cargando grupos disponibles...
-                        </div>
-
-                    </div>{{-- /.box-body --}}
-                </div>{{-- /paso 3 --}}
-
-                {{-- ────────────── PASO 4: Contactos ────────────── --}}
-                <div class="box box-primary wizard-step-panel" data-step="4" style="display:none;">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">
-                            <i class="fa fa-phone"></i> Paso 4: Contactos familiares
-                        </h3>
                     </div>
-                    <div class="box-body">
 
-                        <div id="ctc-alerta" style="display:none;" class="alert alert-dismissible">
-                            <button type="button" class="close"
-                                onclick="this.parentElement.style.display='none'">&times;</button>
-                            <span id="ctc-alerta-msg"></span>
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('estado') ? 'has-error' : '' }}">
+                            <label for="estado">Estado <span class="text-red">*</span></label>
+                            <select name="estado" id="estado" class="form-control">
+                                <option value="activo" {{ old('estado', $alumno->estado) === 'activo' ? 'selected' : '' }}>Activo</option>
+                                <option value="baja_temporal" {{ old('estado', $alumno->estado) === 'baja_temporal' ? 'selected' : '' }}>Baja temporal</option>
+                                <option value="baja_definitiva" {{ old('estado', $alumno->estado) === 'baja_definitiva' ? 'selected' : '' }}>Baja definitiva</option>
+                                <option value="egresado" {{ old('estado', $alumno->estado) === 'egresado' ? 'selected' : '' }}>Egresado</option>
+                            </select>
+                            @error('estado')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div class="form-group {{ $errors->has('fecha_baja') ? 'has-error' : '' }}"
+                            id="bloque-fecha-baja"
+                            style="{{ in_array(old('estado', $alumno->estado), ['baja_temporal', 'baja_definitiva']) ? '' : 'display:none;' }}">
+                            <label for="fecha_baja">Fecha de baja</label>
+                            <input type="date" name="fecha_baja" id="fecha_baja" class="form-control"
+                                value="{{ old('fecha_baja', $alumno->fecha_baja?->format('Y-m-d')) }}">
+                            @error('fecha_baja')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
                         </div>
 
-                        {{-- Contactos existentes --}}
-                        @forelse($alumno->contactos as $contacto)
-                            <div class="panel panel-default ctc-panel" style="margin-bottom:10px;"
-                                data-id="{{ $contacto->id }}">
-                                <div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">
-                                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                                        <strong style="font-size:13px;">
-                                            <span class="ctc-titulo">{{ $contacto->nombre }}
-                                                {{ $contacto->ap_paterno }}</span>
-                                            @if ($contacto->pivot->orden == 1)
-                                                <span class="label label-primary"
-                                                    style="font-size:10px;margin-left:4px;">Principal</span>
-                                            @endif
-                                        </strong>
-                                        <div>
-                                            <button type="button" class="btn btn-success btn-xs btn-ctc-guardar">
-                                                <i class="fa fa-save"></i> Guardar
-                                            </button>
-                                            <button type="button" class="btn btn-danger btn-xs btn-ctc-eliminar"
-                                                style="margin-left:4px;">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="panel-body" style="padding:12px;">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Nombre(s) <span
-                                                        class="text-red">*</span></label>
-                                                <input type="text" class="form-control input-sm ctc-nombre"
-                                                    value="{{ $contacto->nombre }}" maxlength="100">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Apellido paterno</label>
-                                                <input type="text" class="form-control input-sm ctc-ap-paterno"
-                                                    value="{{ $contacto->ap_paterno }}" maxlength="100">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Apellido materno</label>
-                                                <input type="text" class="form-control input-sm ctc-ap-materno"
-                                                    value="{{ $contacto->ap_materno }}" maxlength="100">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-3">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Teléfono <span
-                                                        class="text-red">*</span></label>
-                                                <input type="tel" class="form-control input-sm ctc-telefono"
-                                                    value="{{ $contacto->telefono_celular }}" maxlength="20">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Correo</label>
-                                                <input type="email" class="form-control input-sm ctc-email"
-                                                    value="{{ $contacto->email }}" maxlength="200">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Parentesco</label>
-                                                <select class="form-control input-sm ctc-parentesco">
-                                                    @foreach (['padre' => 'Padre', 'madre' => 'Madre', 'abuelo' => 'Abuelo/a', 'tio' => 'Tío/a', 'otro' => 'Otro'] as $val => $lbl)
-                                                        <option value="{{ $val }}"
-                                                            {{ $contacto->pivot->parentesco === $val ? 'selected' : '' }}>
-                                                            {{ $lbl }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Tipo</label>
-                                                <select class="form-control input-sm ctc-tipo">
-                                                    <option value="padre"
-                                                        {{ $contacto->pivot->tipo === 'padre' ? 'selected' : '' }}>
-                                                        Padre/Madre</option>
-                                                    <option value="tutor"
-                                                        {{ $contacto->pivot->tipo === 'tutor' ? 'selected' : '' }}>
-                                                        Tutor</option>
-                                                    <option value="tercero_autorizado"
-                                                        {{ $contacto->pivot->tipo === 'tercero_autorizado' ? 'selected' : '' }}>
-                                                        Tercero autorizado</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <div class="form-group">
-                                                <label style="font-size:12px;">Orden</label>
-                                                <select class="form-control input-sm ctc-orden">
-                                                    <option value="1"
-                                                        {{ $contacto->pivot->orden == 1 ? 'selected' : '' }}>1 — Principal
-                                                    </option>
-                                                    <option value="2"
-                                                        {{ $contacto->pivot->orden == 2 ? 'selected' : '' }}>2 — Secundario
-                                                    </option>
-                                                    <option value="3"
-                                                        {{ $contacto->pivot->orden == 3 ? 'selected' : '' }}>3 — Tercero
-                                                    </option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <label class="checkbox-inline">
-                                                <input type="checkbox" class="ctc-recoger"
-                                                    {{ $contacto->pivot->autorizado_recoger ? 'checked' : '' }}>
-                                                Autorizado para recoger
-                                            </label>
-                                            <label class="checkbox-inline" style="margin-left:16px;">
-                                                <input type="checkbox" class="ctc-pago"
-                                                    {{ $contacto->pivot->es_responsable_pago ? 'checked' : '' }}>
-                                                Responsable de pagos
-                                            </label>
-                                            <label class="checkbox-inline" style="margin-left:16px;">
-                                                <input type="checkbox" class="ctc-portal"
-                                                    {{ $contacto->tiene_acceso_portal ? 'checked' : '' }}>
-                                                Acceso al portal
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="alert alert-warning">
-                                <i class="fa fa-exclamation-triangle"></i> Sin contactos registrados.
-                            </div>
-                        @endforelse
+                        <div class="form-group {{ $errors->has('observaciones') ? 'has-error' : '' }}"
+                            id="bloque-observaciones"
+                            style="{{ (old('estado', $alumno->estado) !== $alumno->estado || old('observaciones', $alumno->observaciones)) ? '' : 'display:none;' }}">
+                            <label for="observaciones">
+                                <i class="fa fa-comment-o"></i> Observaciones del cambio de estado
+                            </label>
+                            <textarea name="observaciones" id="observaciones" class="form-control" rows="3"
+                                maxlength="1000"
+                                placeholder="Ej: Solicitud de baja por cambio de domicilio, egreso anticipado, etc.">{{ old('observaciones', $alumno->observaciones) }}</textarea>
+                            @error('observaciones')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                            <span class="help-block" style="font-size:11px;color:#8a9ab0;">
+                                Indica el motivo o cualquier nota relacionada con este cambio de estado.
+                            </span>
+                        </div>
+                    </div>
 
-                        {{-- Formulario nuevo contacto --}}
-                        <div class="panel panel-success" style="margin-top:16px;">
-                            <div class="panel-heading" style="padding:8px 12px;cursor:pointer;background:#00a65a;"
-                                onclick="(function(){
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Información del registro</label>
+                            <table class="table table-condensed"
+                                style="font-size:12px;margin:0;background:#fafafa;border:1px solid #f0f0f0;border-radius:4px;">
+                                <tr>
+                                    <th style="color:#999;font-weight:400;padding:6px 10px;">Matrícula</th>
+                                    <td style="padding:6px 10px;"><code>{{ $alumno->matricula }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th style="color:#999;font-weight:400;padding:6px 10px;">Familia</th>
+                                    <td style="padding:6px 10px;">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
+                                </tr>
+                                <tr>
+                                    <th style="color:#999;font-weight:400;padding:6px 10px;">Registrado</th>
+                                    <td style="padding:6px 10px;font-size:11px;">
+                                        {{ $alumno->created_at?->format('d/m/Y') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>{{-- /.box-body --}}
+        </div>{{-- /paso 2 --}}
+
+        {{-- ────────────── PASO 3: Inscripción ────────────── --}}
+        <div class="box box-primary wizard-step-panel" data-step="3" style="display:none;">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-graduation-cap"></i> Paso 3: Inscripción
+                </h3>
+            </div>
+            <div class="box-body">
+
+                {{-- Tarjeta inscripción activa (informativa) --}}
+                @if($inscActual)
+                    <div class="ins-actual-card">
+                        <div class="ins-actual-badge">
+                            <i class="fa fa-graduation-cap" style="color:#fff;font-size:20px;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div class="ins-actual-titulo">Inscripción actual</div>
+                            <div class="ins-actual-sub">
+                                {{ $inscActual->grupo?->ciclo?->nombre ?? '—' }}
+                                &nbsp;·&nbsp;
+                                {{ $inscActual->grupo?->grado?->nivel?->nombre ?? '—' }}
+                                &nbsp;·&nbsp;
+                                {{ $inscActual->grupo?->grado?->nombre ?? '' }}
+                                {{ $inscActual->grupo?->nombre ?? '—' }}
+                            </div>
+                        </div>
+                        <span style="background:#3c8dbc;color:#fff;font-size:10px;padding:2px 10px;border-radius:10px;font-weight:600;">
+                            {{ strtoupper($inscActual->estado ?? 'activo') }}
+                        </span>
+                    </div>
+                @else
+                    <div class="alert alert-info" style="font-size:12px;">
+                        <i class="fa fa-info-circle"></i>
+                        Este alumno no tiene inscripción activa. Selecciona un ciclo, nivel y grupo para inscribirlo.
+                    </div>
+                @endif
+
+                {{-- Selectores editables --}}
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('ciclo_id') ? 'has-error' : '' }}">
+                            <label for="ciclo_id">Ciclo escolar <span class="text-red">*</span></label>
+                            <select name="ciclo_id" id="ciclo_id" class="form-control">
+                                <option value="">-- Seleccionar ciclo --</option>
+                                @foreach($ciclosDisponibles as $ciclo)
+                                    <option value="{{ $ciclo->id }}"
+                                        {{ $cicloIdActual == $ciclo->id ? 'selected' : '' }}>
+                                        {{ $ciclo->nombre }}
+                                        @if($ciclo->estado === 'activo') (Activo) @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('ciclo_id')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('nivel_id') ? 'has-error' : '' }}">
+                            <label for="nivel_id">Nivel educativo <span class="text-red">*</span></label>
+                            <select name="nivel_id" id="nivel_id" class="form-control">
+                                <option value="">-- Seleccionar nivel --</option>
+                                @foreach($niveles as $nivel)
+                                    <option value="{{ $nivel->id }}"
+                                        {{ $nivelActual == $nivel->id ? 'selected' : '' }}>
+                                        {{ $nivel->nombre }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('nivel_id')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('grupo_id') ? 'has-error' : '' }}">
+                            <label for="grupo_id">Grado y grupo <span class="text-red">*</span></label>
+                            <select name="grupo_id" id="grupo_id" class="form-control">
+                                <option value="">-- Primero selecciona ciclo y nivel --</option>
+                            </select>
+                            @error('grupo_id')
+                                <span class="help-block"><i class="fa fa-exclamation-circle"></i>
+                                    {{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <div id="grupos-cargando" style="display:none;color:#999;font-size:12px;margin-top:-10px;">
+                    <i class="fa fa-spinner fa-spin"></i> Cargando grupos disponibles...
+                </div>
+
+            </div>{{-- /.box-body --}}
+        </div>{{-- /paso 3 --}}
+
+        {{-- ────────────── PASO 4: Contactos ────────────── --}}
+        <div class="box box-primary wizard-step-panel" data-step="4" style="display:none;">
+            <div class="box-header with-border">
+                <h3 class="box-title">
+                    <i class="fa fa-phone"></i> Paso 4: Contactos familiares
+                </h3>
+            </div>
+            <div class="box-body">
+
+                <div id="ctc-alerta" style="display:none;" class="alert alert-dismissible">
+                    <button type="button" class="close"
+                        onclick="this.parentElement.style.display='none'">&times;</button>
+                    <span id="ctc-alerta-msg"></span>
+                </div>
+
+                {{-- Contactos existentes --}}
+                @forelse($alumno->contactos as $contacto)
+                    <div class="panel panel-default ctc-panel" style="margin-bottom:10px;"
+                        data-id="{{ $contacto->id }}">
+                        <div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <strong style="font-size:13px;">
+                                    <span class="ctc-titulo">{{ $contacto->nombre }}
+                                        {{ $contacto->ap_paterno }}</span>
+                                    @if($contacto->pivot->orden == 1)
+                                        <span class="label label-primary"
+                                            style="font-size:10px;margin-left:4px;">Principal</span>
+                                    @endif
+                                </strong>
+                                <div>
+                                    <button type="button" class="btn btn-success btn-xs btn-ctc-guardar">
+                                        <i class="fa fa-save"></i> Guardar
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-xs btn-ctc-eliminar"
+                                        style="margin-left:4px;">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-body" style="padding:12px;">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label>
+                                        <input type="text" class="form-control input-sm ctc-nombre"
+                                            value="{{ $contacto->nombre }}" maxlength="100">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Apellido paterno</label>
+                                        <input type="text" class="form-control input-sm ctc-ap-paterno"
+                                            value="{{ $contacto->ap_paterno }}" maxlength="100">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Apellido materno</label>
+                                        <input type="text" class="form-control input-sm ctc-ap-materno"
+                                            value="{{ $contacto->ap_materno }}" maxlength="100">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Teléfono <span class="text-red">*</span></label>
+                                        <input type="tel" class="form-control input-sm ctc-telefono"
+                                            value="{{ $contacto->telefono_celular }}" maxlength="20">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Correo</label>
+                                        <input type="email" class="form-control input-sm ctc-email"
+                                            value="{{ $contacto->email }}" maxlength="200">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Parentesco</label>
+                                        <select class="form-control input-sm ctc-parentesco">
+                                            @foreach(['padre' => 'Padre', 'madre' => 'Madre', 'abuelo' => 'Abuelo/a', 'tio' => 'Tío/a', 'otro' => 'Otro'] as $val => $lbl)
+                                                <option value="{{ $val }}"
+                                                    {{ $contacto->pivot->parentesco === $val ? 'selected' : '' }}>
+                                                    {{ $lbl }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Tipo</label>
+                                        <select class="form-control input-sm ctc-tipo">
+                                            <option value="padre" {{ $contacto->pivot->tipo === 'padre' ? 'selected' : '' }}>Padre/Madre</option>
+                                            <option value="tutor" {{ $contacto->pivot->tipo === 'tutor' ? 'selected' : '' }}>Tutor</option>
+                                            <option value="tercero_autorizado" {{ $contacto->pivot->tipo === 'tercero_autorizado' ? 'selected' : '' }}>Tercero autorizado</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label style="font-size:12px;">Orden</label>
+                                        <select class="form-control input-sm ctc-orden">
+                                            <option value="1" {{ $contacto->pivot->orden == 1 ? 'selected' : '' }}>1 — Principal</option>
+                                            <option value="2" {{ $contacto->pivot->orden == 2 ? 'selected' : '' }}>2 — Secundario</option>
+                                            <option value="3" {{ $contacto->pivot->orden == 3 ? 'selected' : '' }}>3 — Tercero</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" class="ctc-recoger"
+                                            {{ $contacto->pivot->autorizado_recoger ? 'checked' : '' }}>
+                                        Autorizado para recoger
+                                    </label>
+                                    <label class="checkbox-inline" style="margin-left:16px;">
+                                        <input type="checkbox" class="ctc-pago"
+                                            {{ $contacto->pivot->es_responsable_pago ? 'checked' : '' }}>
+                                        Responsable de pagos
+                                    </label>
+                                    <label class="checkbox-inline" style="margin-left:16px;">
+                                        <input type="checkbox" class="ctc-portal"
+                                            {{ $contacto->tiene_acceso_portal ? 'checked' : '' }}>
+                                        Acceso al portal
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="alert alert-warning">
+                        <i class="fa fa-exclamation-triangle"></i> Sin contactos registrados.
+                    </div>
+                @endforelse
+
+                {{-- Formulario nuevo contacto --}}
+                <div class="panel panel-success" style="margin-top:16px;">
+                    <div class="panel-heading" style="padding:8px 12px;cursor:pointer;background:#00a65a;"
+                        onclick="(function(){
                          var f=document.getElementById('form-nuevo-ctc');
                          var i=document.getElementById('ico-toggle-ctc');
                          var v=f.style.display!=='none';
                          f.style.display=v?'none':'block';
                          i.className=v?'fa fa-chevron-down':'fa fa-chevron-up';
                      })()">
-                                <div style="display:flex;justify-content:space-between;align-items:center;">
-                                    <strong style="font-size:13px;color:#fff;">
-                                        <i class="fa fa-plus-circle"></i> Agregar nuevo contacto
-                                    </strong>
-                                    <i class="fa fa-chevron-down" id="ico-toggle-ctc" style="color:#fff;"></i>
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <strong style="font-size:13px;color:#fff;">
+                                <i class="fa fa-plus-circle"></i> Agregar nuevo contacto
+                            </strong>
+                            <i class="fa fa-chevron-down" id="ico-toggle-ctc" style="color:#fff;"></i>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="form-nuevo-ctc" style="display:none;padding:12px;">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label>
+                                    <input type="text" id="nctc-nombre" class="form-control input-sm"
+                                        maxlength="100" placeholder="Nombre(s)">
                                 </div>
                             </div>
-                            <div class="panel-body" id="form-nuevo-ctc" style="display:none;padding:12px;">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Nombre(s) <span
-                                                    class="text-red">*</span></label>
-                                            <input type="text" id="nctc-nombre" class="form-control input-sm"
-                                                maxlength="100" placeholder="Nombre(s)">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Apellido paterno</label>
-                                            <input type="text" id="nctc-ap-paterno" class="form-control input-sm"
-                                                maxlength="100">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Apellido materno</label>
-                                            <input type="text" id="nctc-ap-materno" class="form-control input-sm"
-                                                maxlength="100">
-                                        </div>
-                                    </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Apellido paterno</label>
+                                    <input type="text" id="nctc-ap-paterno" class="form-control input-sm" maxlength="100">
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Teléfono celular <span
-                                                    class="text-red">*</span></label>
-                                            <input type="tel" id="nctc-telefono" class="form-control input-sm"
-                                                maxlength="10" placeholder="10 dígitos">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Correo electrónico</label>
-                                            <input type="email" id="nctc-email" class="form-control input-sm"
-                                                maxlength="200">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">CURP</label>
-                                            <input type="text" id="nctc-curp" class="form-control input-sm"
-                                                maxlength="18" style="text-transform:uppercase">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Parentesco <span
-                                                    class="text-red">*</span></label>
-                                            <select id="nctc-parentesco" class="form-control input-sm">
-                                                <option value="">-- Seleccionar --</option>
-                                                <option value="padre">Padre</option>
-                                                <option value="madre">Madre</option>
-                                                <option value="abuelo">Abuelo/a</option>
-                                                <option value="tio">Tío/a</option>
-                                                <option value="otro">Otro</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Tipo <span class="text-red">*</span></label>
-                                            <select id="nctc-tipo" class="form-control input-sm">
-                                                <option value="">-- Seleccionar --</option>
-                                                <option value="padre">Padre/Madre</option>
-                                                <option value="tutor">Tutor</option>
-                                                <option value="tercero_autorizado">Tercero autorizado</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <label style="font-size:12px;">Orden</label>
-                                            <select id="nctc-orden" class="form-control input-sm">
-                                                <option value="1">1 — Principal</option>
-                                                <option value="2">2 — Secundario</option>
-                                                <option value="3">3 — Tercero</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4" style="padding-top:22px;">
-                                        <label class="checkbox-inline">
-                                            <input type="checkbox" id="nctc-recoger"> Autorizado recoger
-                                        </label>
-                                        <label class="checkbox-inline" style="margin-left:8px;">
-                                            <input type="checkbox" id="nctc-pago"> Resp. pagos
-                                        </label>
-                                        <label class="checkbox-inline" style="margin-left:8px;">
-                                            <input type="checkbox" id="nctc-portal"> Portal
-                                        </label>
-                                    </div>
-                                </div>
-                                <div style="text-align:right;margin-top:4px;">
-                                    <button type="button" class="btn btn-default btn-sm"
-                                        id="btn-cancelar-ctc">Cancelar</button>
-                                    <button type="button" class="btn btn-success btn-sm" id="btn-guardar-ctc">
-                                        <i class="fa fa-plus"></i> Agregar contacto
-                                    </button>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Apellido materno</label>
+                                    <input type="text" id="nctc-ap-materno" class="form-control input-sm" maxlength="100">
                                 </div>
                             </div>
                         </div>
-
-        </div>{{-- /.form-panel-body --}}
-    </div>{{-- /paso 4 --}}
-
-            </div>{{-- /.col-md-8 --}}
-
-            {{-- ══════════════════════════════════
-     COLUMNA DERECHA — nav + acciones
-══════════════════════════════════ --}}
-<div class="col-md-4">
-
-    {{-- Navegación del wizard --}}
-    <div class="sidebar-panel">
-        <div class="sidebar-header">
-            <i class="fa fa-list-ol" style="margin-right:6px;"></i> Progreso de edición
-        </div>
-        <div class="sidebar-body">
-            <p style="font-size:12px;color:#8a9ab0;margin-bottom:14px;" id="wizard-step-description">
-                Paso 1 de 4: edita los datos personales del alumno.
-            </p>
-
-            <div style="margin-bottom:16px;">
-                @foreach($pasosWizard as $numero => $paso)
-                <div class="wizard-summary-item" data-step="{{ $numero }}">
-                    <span class="step-dot">{{ $numero }}</span>
-                    <span>
-                        <span style="display:block;font-weight:600;font-size:12px;">{{ $paso['titulo'] }}</span>
-                        <span style="display:block;font-size:11px;color:#8a9ab0;">{{ $paso['descripcion'] }}</span>
-                    </span>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Teléfono celular <span class="text-red">*</span></label>
+                                    <input type="tel" id="nctc-telefono" class="form-control input-sm"
+                                        maxlength="10" placeholder="10 dígitos">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Correo electrónico</label>
+                                    <input type="email" id="nctc-email" class="form-control input-sm" maxlength="200">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">CURP</label>
+                                    <input type="text" id="nctc-curp" class="form-control input-sm"
+                                        maxlength="18" style="text-transform:uppercase">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Parentesco <span class="text-red">*</span></label>
+                                    <select id="nctc-parentesco" class="form-control input-sm">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="padre">Padre</option>
+                                        <option value="madre">Madre</option>
+                                        <option value="abuelo">Abuelo/a</option>
+                                        <option value="tio">Tío/a</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Tipo <span class="text-red">*</span></label>
+                                    <select id="nctc-tipo" class="form-control input-sm">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="padre">Padre/Madre</option>
+                                        <option value="tutor">Tutor</option>
+                                        <option value="tercero_autorizado">Tercero autorizado</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Orden</label>
+                                    <select id="nctc-orden" class="form-control input-sm">
+                                        <option value="1">1 — Principal</option>
+                                        <option value="2">2 — Secundario</option>
+                                        <option value="3">3 — Tercero</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4" style="padding-top:22px;">
+                                <label class="checkbox-inline">
+                                    <input type="checkbox" id="nctc-recoger"> Autorizado recoger
+                                </label>
+                                <label class="checkbox-inline" style="margin-left:8px;">
+                                    <input type="checkbox" id="nctc-pago"> Resp. pagos
+                                </label>
+                                <label class="checkbox-inline" style="margin-left:8px;">
+                                    <input type="checkbox" id="nctc-portal"> Portal
+                                </label>
+                            </div>
+                        </div>
+                        <div style="text-align:right;margin-top:4px;">
+                            <button type="button" class="btn btn-default btn-sm" id="btn-cancelar-ctc">Cancelar</button>
+                            <button type="button" class="btn btn-success btn-sm" id="btn-guardar-ctc">
+                                <i class="fa fa-plus"></i> Agregar contacto
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                @endforeach
+
+            </div>{{-- /.box-body --}}
+        </div>{{-- /paso 4 --}}
+
+    </div>{{-- /.col-md-8 --}}
+
+    {{-- ══ COLUMNA DERECHA — nav + acciones ══ --}}
+    <div class="col-md-4">
+
+        {{-- Navegación del wizard --}}
+        <div class="sidebar-panel">
+            <div class="sidebar-header">
+                <i class="fa fa-list-ol" style="margin-right:6px;"></i> Progreso de edición
             </div>
+            <div class="sidebar-body">
+                <p style="font-size:12px;color:#8a9ab0;margin-bottom:14px;" id="wizard-step-description">
+                    Paso 1 de 4: edita los datos personales del alumno.
+                </p>
 
-            <button type="button" class="btn btn-default btn-block" id="btn-paso-anterior"
-                    onclick="wizardIr(wizardPasoActual() - 1); return false;"
-                    style="display:none;margin-bottom:6px;">
-                <i class="fa fa-arrow-left"></i> Anterior
-            </button>
-            <button type="button" class="btn btn-primary btn-block" id="btn-paso-siguiente"
-                    onclick="wizardIr(wizardPasoActual() + 1); return false;"
-                    style="margin-bottom:6px;">
-                Siguiente <i class="fa fa-arrow-right"></i>
-            </button>
-            <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar"
-                    style="margin-bottom:6px;">
-                <i class="fa fa-save"></i> Guardar cambios
-            </button>
-            <a href="{{ route('alumnos.show', $alumno->id) }}"
-               class="btn btn-default btn-block">
-                <i class="fa fa-times"></i> Cancelar
-            </a>
-        </div>
-    </div>
-
-    {{-- Errores de validación --}}
-    @if($errors->any())
-    <div class="sidebar-panel" style="border-color:#f5c6cb;">
-        <div class="sidebar-header" style="background:linear-gradient(135deg,#c0392b 0%,#e74c3c 100%);">
-            <i class="fa fa-exclamation-triangle" style="margin-right:6px;"></i> Corrige los errores
-        </div>
-        <div class="sidebar-body">
-            <ul style="padding-left:18px;margin:0;">
-                @foreach($errors->all() as $error)
-                <li style="color:#a94442;font-size:12px;margin-bottom:4px;">{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-    @endif
-
-    {{-- Resumen alumno --}}
-    <div class="sidebar-panel">
-        <div class="sidebar-header" style="background:linear-gradient(135deg,#2d3748 0%,#4a5568 100%);">
-            <i class="fa fa-info-circle" style="margin-right:6px;"></i> Resumen del alumno
-        </div>
-        <div class="sidebar-body" style="padding:0;">
-            <table class="table" style="font-size:12px;margin:0;">
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:8px 14px;width:45%;">Matrícula</th>
-                    <td style="padding:8px 14px;"><code>{{ $alumno->matricula }}</code></td>
-                </tr>
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:8px 14px;">Familia</th>
-                    <td style="padding:8px 14px;">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
-                </tr>
-                @if($inscActual)
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:8px 14px;">Ciclo</th>
-                    <td style="padding:8px 14px;">{{ $inscActual->grupo?->cicloEscolar?->nombre ?? '—' }}</td>
-                </tr>
-                <tr>
-                    <th style="color:#999;font-weight:400;padding:8px 14px;">Grupo actual</th>
-                    <td style="padding:8px 14px;font-weight:600;">
-                        {{ $inscActual->grupo?->grado?->nombre ?? '' }}°
-                        {{ $inscActual->grupo?->nombre ?? '—' }}
-                    </td>
-                </tr>
-                @endif
-
-                {{-- Resumen alumno --}}
-                <div class="box box-default">
-                    <div class="box-header with-border">
-                        <h3 class="box-title" style="font-size:13px;">
-                            <i class="fa fa-info-circle"></i> Resumen
-                        </h3>
+                <div style="margin-bottom:16px;">
+                    @foreach($pasosWizard as $numero => $paso)
+                    <div class="wizard-summary-item" data-step="{{ $numero }}">
+                        <span class="step-dot">{{ $numero }}</span>
+                        <span>
+                            <span style="display:block;font-weight:600;font-size:12px;">{{ $paso['titulo'] }}</span>
+                            <span style="display:block;font-size:11px;color:#8a9ab0;">{{ $paso['descripcion'] }}</span>
+                        </span>
                     </div>
-                    <div class="box-body no-padding">
-                        <table class="table" style="font-size:12px;margin:0;">
-                            <tr>
-                                <th style="color:#999;font-weight:400;padding:8px 14px;width:45%;">Matrícula</th>
-                                <td style="padding:8px 14px;"><code>{{ $alumno->matricula }}</code></td>
-                            </tr>
-                            <tr>
-                                <th style="color:#999;font-weight:400;padding:8px 14px;">Familia</th>
-                                <td style="padding:8px 14px;">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
-                            </tr>
-                            @if ($inscActual)
-                                <tr>
-                                    <th style="color:#999;font-weight:400;padding:8px 14px;">Ciclo</th>
-                                    <td style="padding:8px 14px;">{{ $inscActual->grupo?->cicloEscolar?->nombre ?? '—' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th style="color:#999;font-weight:400;padding:8px 14px;">Grupo actual</th>
-                                    <td style="padding:8px 14px;font-weight:600;">
-                                        {{ $inscActual->grupo?->grado?->nombre ?? '' }}°
-                                        {{ $inscActual->grupo?->nombre ?? '—' }}
-                                    </td>
-                                </tr>
-                            @endif
-                        </table>
-                    </div>
+                    @endforeach
                 </div>
 
-            </div>{{-- /.col-md-4 --}}
+                <button type="button" class="btn btn-default btn-block" id="btn-paso-anterior"
+                        onclick="wizardIr(wizardPasoActual() - 1); return false;"
+                        style="display:none;margin-bottom:6px;">
+                    <i class="fa fa-arrow-left"></i> Anterior
+                </button>
+                <button type="button" class="btn btn-primary btn-block" id="btn-paso-siguiente"
+                        onclick="wizardIr(wizardPasoActual() + 1); return false;"
+                        style="margin-bottom:6px;">
+                    Siguiente <i class="fa fa-arrow-right"></i>
+                </button>
+                <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar"
+                        style="margin-bottom:6px;">
+                    <i class="fa fa-save"></i> Guardar cambios
+                </button>
+                <a href="{{ route('alumnos.show', $alumno->id) }}"
+                   class="btn btn-default btn-block">
+                    <i class="fa fa-times"></i> Cancelar
+                </a>
+            </div>
+        </div>
 
-        </div>{{-- /.row --}}
-    </form>
+        {{-- Errores de validación --}}
+        @if($errors->any())
+        <div class="sidebar-panel" style="border-color:#f5c6cb;">
+            <div class="sidebar-header" style="background:linear-gradient(135deg,#c0392b 0%,#e74c3c 100%);">
+                <i class="fa fa-exclamation-triangle" style="margin-right:6px;"></i> Corrige los errores
+            </div>
+            <div class="sidebar-body">
+                <ul style="padding-left:18px;margin:0;">
+                    @foreach($errors->all() as $error)
+                    <li style="color:#a94442;font-size:12px;margin-bottom:4px;">{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+        @endif
+
+        {{-- Resumen alumno --}}
+        <div class="sidebar-panel">
+            <div class="sidebar-header" style="background:linear-gradient(135deg,#2d3748 0%,#4a5568 100%);">
+                <i class="fa fa-info-circle" style="margin-right:6px;"></i> Resumen del alumno
+            </div>
+            <div class="sidebar-body" style="padding:0;">
+                <table class="table" style="font-size:12px;margin:0;">
+                    <tr>
+                        <th style="color:#999;font-weight:400;padding:8px 14px;width:45%;">Matrícula</th>
+                        <td style="padding:8px 14px;"><code>{{ $alumno->matricula }}</code></td>
+                    </tr>
+                    <tr>
+                        <th style="color:#999;font-weight:400;padding:8px 14px;">Familia</th>
+                        <td style="padding:8px 14px;">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
+                    </tr>
+                    @if($inscActual)
+                    <tr>
+                        <th style="color:#999;font-weight:400;padding:8px 14px;">Ciclo</th>
+                        <td style="padding:8px 14px;">{{ $inscActual->grupo?->ciclo?->nombre ?? '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th style="color:#999;font-weight:400;padding:8px 14px;">Grupo actual</th>
+                        <td style="padding:8px 14px;font-weight:600;">
+                            {{ $inscActual->grupo?->grado?->nombre ?? '' }}°
+                            {{ $inscActual->grupo?->nombre ?? '—' }}
+                        </td>
+                    </tr>
+                    @endif
+                </table>
+            </div>
+        </div>
+
+    </div>{{-- /.col-md-4 --}}
+
+</div>{{-- /.row --}}
+
+</form>
 
 @endsection
 
@@ -1112,8 +867,6 @@
                 $('#btn-paso-anterior').toggle(pasoActual > 1);
                 $('#btn-paso-siguiente').toggle(pasoActual < TOTAL_PASOS);
 
-                // Al entrar al paso 3 cargar grupos si ya hay ciclo+nivel
-                // Solo preselecciona GRUPO_ACTUAL la primera vez (grupos aún vacíos)
                 if (pasoActual === 3) {
                     var ci = $('#ciclo_id').val();
                     var ni = $('#nivel_id').val();
@@ -1132,7 +885,6 @@
                 return pasoActual;
             };
 
-            // Detectar paso con error de validación del servidor
             function pasoConError() {
                 var $e = $('.has-error').first();
                 if (!$e.length) return null;
@@ -1142,14 +894,11 @@
 
             // ══════════════════════════════════════════════════
             // PASO 3 — valores actuales inyectados desde PHP
-            // (deben estar antes de wizardIr para que estén
-            //  disponibles si hay error de validación en paso 3)
             // ══════════════════════════════════════════════════
             var CICLO_ACTUAL = '{{ $cicloIdActual }}';
             var NIVEL_ACTUAL = '{{ $nivelActual }}';
             var GRUPO_ACTUAL = '{{ $grupoActual }}';
 
-            // Iniciar en el paso con error o en el 1
             wizardIr(pasoConError() || 1, false);
 
             // ══════════════════════════════════════════════════
@@ -1218,13 +967,11 @@
             // ══════════════════════════════════════════════════
             // PASO 3 — CARGA DINÁMICA DE GRUPOS
             // ══════════════════════════════════════════════════
-
-            // Cuando cambia ciclo o nivel → recargar grupos
             $('#ciclo_id, #nivel_id').on('change', function() {
                 var ci = $('#ciclo_id').val();
                 var ni = $('#nivel_id').val();
                 if (ci && ni) {
-                    cargarGrupos(ci, ni, null); // null → no pre-seleccionar al cambiar manualmente
+                    cargarGrupos(ci, ni, null);
                 } else {
                     $('#grupo_id').html('<option value="">-- Primero selecciona ciclo y nivel --</option>');
                 }
@@ -1238,10 +985,7 @@
                 $.ajax({
                     url: '/grupos',
                     method: 'GET',
-                    data: {
-                        ciclo_id: cicloId,
-                        nivel_id: nivelId
-                    },
+                    data: { ciclo_id: cicloId, nivel_id: nivelId },
                     success: function(grupos) {
                         var opciones = '';
 
@@ -1253,14 +997,9 @@
                                 var capacidad = g.cupo_maximo ?
                                     g.alumnos_inscritos + '/' + g.cupo_maximo :
                                     g.alumnos_inscritos + ' inscritos';
-                                var lleno = (g.cupo_maximo && g.alumnos_inscritos >= g
-                                    .cupo_maximo) ? ' [LLENO]' : '';
-                                var sel = (preseleccionar && g.id == preseleccionar) ?
-                                    ' selected' : '';
-
-                                // Construir etiqueta: "Grado Nombre (capacidad)"
-                                var gradoNombre = (g.grado && g.grado.nombre) ? g.grado.nombre +
-                                    '° ' : '';
+                                var lleno = (g.cupo_maximo && g.alumnos_inscritos >= g.cupo_maximo) ? ' [LLENO]' : '';
+                                var sel = (preseleccionar && g.id == preseleccionar) ? ' selected' : '';
+                                var gradoNombre = (g.grado && g.grado.nombre) ? g.grado.nombre + '° ' : '';
                                 opciones += '<option value="' + g.id + '"' + sel + '>' +
                                     gradoNombre + g.nombre +
                                     ' (' + capacidad + ')' + lleno +
@@ -1290,8 +1029,10 @@
             });
 
             // ══════════════════════════════════════════════════
-            // ESTADO → FECHA BAJA
+            // ESTADO → FECHA BAJA + OBSERVACIONES
             // ══════════════════════════════════════════════════
+            var ESTADO_ORIGINAL = '{{ $alumno->estado }}';
+
             $('#estado').on('change', function() {
                 var v = $(this).val();
                 if (v === 'baja_temporal' || v === 'baja_definitiva') {
@@ -1300,6 +1041,12 @@
                 } else {
                     $('#bloque-fecha-baja').hide();
                     $('#fecha_baja').val('');
+                }
+                if (v !== ESTADO_ORIGINAL) {
+                    $('#bloque-observaciones').show();
+                    $('#observaciones').focus();
+                } else {
+                    $('#bloque-observaciones').hide();
                 }
             });
 
@@ -1358,14 +1105,8 @@
                     tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
                 };
 
-                if (!datos.nombre) {
-                    alertaCtc('El nombre es obligatorio.', 'danger');
-                    return;
-                }
-                if (!datos.telefono_celular) {
-                    alertaCtc('El teléfono es obligatorio.', 'danger');
-                    return;
-                }
+                if (!datos.nombre) { alertaCtc('El nombre es obligatorio.', 'danger'); return; }
+                if (!datos.telefono_celular) { alertaCtc('El teléfono es obligatorio.', 'danger'); return; }
 
                 $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
 
@@ -1376,12 +1117,9 @@
                     data: JSON.stringify(datos),
                     success: function(res) {
                         $panel.find('.ctc-titulo').text(datos.nombre + ' ' + datos.ap_paterno);
-                        $btn.prop('disabled', false).html(
-                            '<i class="fa fa-check"></i> Guardado');
+                        $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Guardado');
                         alertaCtc(res.message || 'Contacto guardado.', 'success');
-                        setTimeout(function() {
-                            $btn.html(orig);
-                        }, 2500);
+                        setTimeout(function() { $btn.html(orig); }, 2500);
                     },
                     error: function(xhr) {
                         $btn.prop('disabled', false).html(orig);
@@ -1411,9 +1149,7 @@
                     url: '/familias/contactos/' + id,
                     method: 'DELETE',
                     success: function(res) {
-                        $panel.fadeOut(300, function() {
-                            $(this).remove();
-                        });
+                        $panel.fadeOut(300, function() { $(this).remove(); });
                         alertaCtc(res.message || 'Contacto eliminado.', 'success');
                     },
                     error: function(xhr) {
@@ -1455,26 +1191,10 @@
                     tiene_acceso_portal: $('#nctc-portal').is(':checked'),
                 };
 
-                if (!datos.nombre) {
-                    alertaCtc('El nombre es obligatorio.', 'danger');
-                    $('#nctc-nombre').focus();
-                    return;
-                }
-                if (!datos.telefono_celular) {
-                    alertaCtc('El teléfono es obligatorio.', 'danger');
-                    $('#nctc-telefono').focus();
-                    return;
-                }
-                if (!datos.parentesco) {
-                    alertaCtc('El parentesco es obligatorio.', 'danger');
-                    $('#nctc-parentesco').focus();
-                    return;
-                }
-                if (!datos.tipo) {
-                    alertaCtc('El tipo es obligatorio.', 'danger');
-                    $('#nctc-tipo').focus();
-                    return;
-                }
+                if (!datos.nombre) { alertaCtc('El nombre es obligatorio.', 'danger'); $('#nctc-nombre').focus(); return; }
+                if (!datos.telefono_celular) { alertaCtc('El teléfono es obligatorio.', 'danger'); $('#nctc-telefono').focus(); return; }
+                if (!datos.parentesco) { alertaCtc('El parentesco es obligatorio.', 'danger'); $('#nctc-parentesco').focus(); return; }
+                if (!datos.tipo) { alertaCtc('El tipo es obligatorio.', 'danger'); $('#nctc-tipo').focus(); return; }
 
                 $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
 
@@ -1484,102 +1204,63 @@
                     contentType: 'application/json',
                     data: JSON.stringify(datos),
                     success: function(res) {
-                        $btn.prop('disabled', false).html(
-                            '<i class="fa fa-plus"></i> Agregar contacto');
+                        $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
 
-                        var c = res.contacto,
-                            piv = res.pivot;
+                        var c = res.contacto, piv = res.pivot;
 
-                        // Opciones selects
-                        var pOpts = [
-                                ['padre', 'Padre'],
-                                ['madre', 'Madre'],
-                                ['abuelo', 'Abuelo/a'],
-                                ['tio', 'Tío/a'],
-                                ['otro', 'Otro']
-                            ]
+                        var pOpts = [['padre','Padre'],['madre','Madre'],['abuelo','Abuelo/a'],['tio','Tío/a'],['otro','Otro']]
                             .map(function(p) {
-                                return '<option value="' + p[0] + '"' + (datos
-                                    .parentesco === p[0] ? ' selected' : '') + '>' + p[
-                                    1] + '</option>';
+                                return '<option value="' + p[0] + '"' + (datos.parentesco === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
                             }).join('');
                         var tOpts =
-                            '<option value="padre"' + (datos.tipo === 'padre' ? ' selected' :
-                                '') + '>Padre/Madre</option>' +
-                            '<option value="tutor"' + (datos.tipo === 'tutor' ? ' selected' :
-                                '') + '>Tutor</option>' +
-                            '<option value="tercero_autorizado"' + (datos.tipo ===
-                                'tercero_autorizado' ? ' selected' : '') +
-                            '>Tercero autorizado</option>';
+                            '<option value="padre"' + (datos.tipo === 'padre' ? ' selected' : '') + '>Padre/Madre</option>' +
+                            '<option value="tutor"' + (datos.tipo === 'tutor' ? ' selected' : '') + '>Tutor</option>' +
+                            '<option value="tercero_autorizado"' + (datos.tipo === 'tercero_autorizado' ? ' selected' : '') + '>Tercero autorizado</option>';
                         var oOpts =
-                            '<option value="1"' + (datos.orden === 1 ? ' selected' : '') +
-                            '>1 — Principal</option>' +
-                            '<option value="2"' + (datos.orden === 2 ? ' selected' : '') +
-                            '>2 — Secundario</option>' +
-                            '<option value="3"' + (datos.orden === 3 ? ' selected' : '') +
-                            '>3 — Tercero</option>';
+                            '<option value="1"' + (datos.orden === 1 ? ' selected' : '') + '>1 — Principal</option>' +
+                            '<option value="2"' + (datos.orden === 2 ? ' selected' : '') + '>2 — Secundario</option>' +
+                            '<option value="3"' + (datos.orden === 3 ? ' selected' : '') + '>3 — Tercero</option>';
 
                         var html =
-                            '<div class="panel panel-default ctc-panel" style="margin-bottom:10px;" data-id="' +
-                            c.id + '">' +
+                            '<div class="panel panel-default ctc-panel" style="margin-bottom:10px;" data-id="' + c.id + '">' +
                             '<div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">' +
                             '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-                            '<strong style="font-size:13px;"><span class="ctc-titulo">' + datos
-                            .nombre + ' ' + datos.ap_paterno + '</span></strong>' +
+                            '<strong style="font-size:13px;"><span class="ctc-titulo">' + datos.nombre + ' ' + datos.ap_paterno + '</span></strong>' +
                             '<div>' +
                             '<button type="button" class="btn btn-success btn-xs btn-ctc-guardar"><i class="fa fa-save"></i> Guardar</button>' +
                             '<button type="button" class="btn btn-danger btn-xs btn-ctc-eliminar" style="margin-left:4px;"><i class="fa fa-trash"></i></button>' +
-                            '</div>' +
-                            '</div>' +
-                            '</div>' +
+                            '</div></div></div>' +
                             '<div class="panel-body" style="padding:12px;">' +
                             '<div class="row">' +
-                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label><input type="text" class="form-control input-sm ctc-nombre" value="' +
-                            datos.nombre + '" maxlength="100"></div></div>' +
-                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido paterno</label><input type="text" class="form-control input-sm ctc-ap-paterno" value="' +
-                            (datos.ap_paterno || '') + '" maxlength="100"></div></div>' +
-                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido materno</label><input type="text" class="form-control input-sm ctc-ap-materno" value="' +
-                            (datos.ap_materno || '') + '" maxlength="100"></div></div>' +
+                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label><input type="text" class="form-control input-sm ctc-nombre" value="' + datos.nombre + '" maxlength="100"></div></div>' +
+                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido paterno</label><input type="text" class="form-control input-sm ctc-ap-paterno" value="' + (datos.ap_paterno || '') + '" maxlength="100"></div></div>' +
+                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido materno</label><input type="text" class="form-control input-sm ctc-ap-materno" value="' + (datos.ap_materno || '') + '" maxlength="100"></div></div>' +
                             '</div>' +
                             '<div class="row">' +
-                            '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Teléfono</label><input type="tel" class="form-control input-sm ctc-telefono" value="' +
-                            (datos.telefono_celular || '') + '"></div></div>' +
-                            '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Correo</label><input type="email" class="form-control input-sm ctc-email" value="' +
-                            (datos.email || '') + '"></div></div>' +
-                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Parentesco</label><select class="form-control input-sm ctc-parentesco">' +
-                            pOpts + '</select></div></div>' +
-                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Tipo</label><select class="form-control input-sm ctc-tipo">' +
-                            tOpts + '</select></div></div>' +
-                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Orden</label><select class="form-control input-sm ctc-orden">' +
-                            oOpts + '</select></div></div>' +
+                            '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Teléfono</label><input type="tel" class="form-control input-sm ctc-telefono" value="' + (datos.telefono_celular || '') + '"></div></div>' +
+                            '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Correo</label><input type="email" class="form-control input-sm ctc-email" value="' + (datos.email || '') + '"></div></div>' +
+                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Parentesco</label><select class="form-control input-sm ctc-parentesco">' + pOpts + '</select></div></div>' +
+                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Tipo</label><select class="form-control input-sm ctc-tipo">' + tOpts + '</select></div></div>' +
+                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Orden</label><select class="form-control input-sm ctc-orden">' + oOpts + '</select></div></div>' +
                             '</div>' +
                             '<div class="row"><div class="col-md-12">' +
-                            '<label class="checkbox-inline"><input type="checkbox" class="ctc-recoger"' +
-                            (piv.autorizado_recoger ? ' checked' : '') +
-                            '>  Autorizado recoger</label>' +
-                            '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-pago"' +
-                            (piv.es_responsable_pago ? ' checked' : '') +
-                            '>  Resp. pagos</label>' +
-                            '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' +
-                            (c.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
+                            '<label class="checkbox-inline"><input type="checkbox" class="ctc-recoger"' + (piv.autorizado_recoger ? ' checked' : '') + '>  Autorizado recoger</label>' +
+                            '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-pago"' + (piv.es_responsable_pago ? ' checked' : '') + '>  Resp. pagos</label>' +
+                            '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' + (c.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
                             '</div></div>' +
-                            '</div>' +
-                            '</div>';
+                            '</div></div>';
 
                         $('.panel.panel-success').before(html);
                         $('.alert.alert-warning').remove();
                         limpiarCtc();
                         $('#form-nuevo-ctc').hide();
-                        $('#ico-toggle-ctc').removeClass('fa-chevron-up').addClass(
-                            'fa-chevron-down');
+                        $('#ico-toggle-ctc').removeClass('fa-chevron-up').addClass('fa-chevron-down');
                         alertaCtc(res.message || 'Contacto agregado.', 'success');
                     },
                     error: function(xhr) {
-                        $btn.prop('disabled', false).html(
-                            '<i class="fa fa-plus"></i> Agregar contacto');
+                        $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
                         var msg = xhr.responseJSON?.message || 'Error al agregar el contacto.';
-                        if (xhr.responseJSON?.errors) msg = Object.values(xhr.responseJSON
-                            .errors).flat().join(' ');
+                        if (xhr.responseJSON?.errors) msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
                         alertaCtc(msg, 'danger');
                     }
                 });
@@ -1599,9 +1280,7 @@
                 $('#ctc-alerta-msg').text(msg);
                 $('#ctc-alerta').removeClass('alert-success alert-danger alert-warning')
                     .addClass('alert-' + tipo).show();
-                if (tipo === 'success') setTimeout(function() {
-                    $('#ctc-alerta').hide();
-                }, 4000);
+                if (tipo === 'success') setTimeout(function() { $('#ctc-alerta').hide(); }, 4000);
             }
 
         });

@@ -326,10 +326,12 @@
                     $saldoPendiente = max(0, (float) $cargo->monto_original - $saldoAbonado);
                     $hoy            = now();
                     $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
-                    $descuentoCalc  = (float) ($cargo->descuento_calc ?? 0);
-                    $recargoCalc    = (float) ($cargo->recargo_calc   ?? 0);
-                    $mesesRetraso   = (int)   ($cargo->meses_retraso  ?? 0);
-                    $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0)
+                    $descuentoCalc  = (float) ($cargo->descuento_calc      ?? 0);
+                    $recargoCalc    = (float) ($cargo->recargo_calc        ?? 0);
+                    $becaDesc       = (float) ($cargo->beca_descuento_calc ?? 0);
+                    $becaPct        = $cargo->beca_porcentaje ?? null;
+                    $mesesRetraso   = (int)   ($cargo->meses_retraso       ?? 0);
+                    $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0 || $becaDesc > 0)
                                       && !in_array($cargo->estado, ['pagado', 'condonado']);
                     $estadoReal = match($cargo->estado) {
                         'pagado'    => 'pagado',
@@ -430,6 +432,15 @@
                                 </span>
                                 <div style="font-size:10px;color:#00875a;margin-top:2px;">
                                     <i class="fa fa-tag"></i> pronto pago
+                                </div>
+                            @endif
+                            @if($becaDesc > 0)
+                                <span style="color:#e67e22;font-weight:700;{{ ($recargoCalc > 0 || $descuentoCalc > 0) ? 'display:block;margin-top:4px;' : '' }}">
+                                    -${{ number_format($becaDesc, 2) }}
+                                </span>
+                                <div style="font-size:10px;color:#e67e22;margin-top:2px;">
+                                    <i class="fa fa-star"></i> beca
+                                    @if($becaPct) ({{ $becaPct }}%) @endif
                                 </div>
                             @endif
                         @else
@@ -606,7 +617,17 @@
             </span>
         </div>
         @endif
-        @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0)
+        @if($resumen['total_becas'] > 0)
+        <div class="balance-row">
+            <span class="balance-row-label" style="color:#e67e22;font-size:11px;">
+                <i class="fa fa-star"></i> − Descuento becas
+            </span>
+            <span style="color:#e67e22;font-weight:700;font-size:12px;">
+                -${{ number_format($resumen['total_becas'], 2) }}
+            </span>
+        </div>
+        @endif
+        @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0 || $resumen['total_becas'] > 0)
         <div class="balance-row" style="background:#fff8e1;border-top:2px solid #f39c12;">
             <span class="balance-row-label" style="color:#b45309;font-weight:700;">
                 <i class="fa fa-calculator"></i> A pagar hoy

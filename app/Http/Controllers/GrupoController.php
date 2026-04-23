@@ -36,15 +36,25 @@ public function index(Request $request)
     }
 
     // 3. Paginación y conteo de alumnos inscritos
-    $gruposPaginados = $query
+    $baseQuery = $query
         ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
             'grado', fn($q) => $q->where('nivel_id', $request->nivel_id)
         ))
         ->when($request->filled('grado_id'), fn($q) => $q->where('grado_id', $request->grado_id))
         ->withCount(['inscripciones as alumnos_inscritos' => fn($q) => $q->where('activo', true)])
         ->orderBy('grado_id')
-        ->orderBy('nombre')
-        ->paginate(10);
+        ->orderBy('nombre');
+
+    // Cuando es AJAX para poblar un select (ciclo_id + nivel_id), devolver array plano
+    if ($request->ajax() && $request->filled('nivel_id')) {
+        return response()->json(
+            $baseQuery->get()->map(fn($g) => array_merge($g->toArray(), [
+                'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
+            ]))
+        );
+    }
+
+    $gruposPaginados = $baseQuery->paginate(10);
 
     // 4. Transformación para calcular lugares disponibles
     $gruposPaginados->getCollection()->transform(fn($g) => array_merge($g->toArray(), [
@@ -52,7 +62,7 @@ public function index(Request $request)
     ]));
 
     $grupos = $gruposPaginados->appends($request->except('page'));
-    
+
     if ($request->ajax()) {
         return response()->json($grupos);
     }
