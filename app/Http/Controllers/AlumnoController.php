@@ -86,6 +86,8 @@ class AlumnoController extends Controller
             'contactos',
             'documentos',
             'becas.catalogoBeca',
+            'becas.plan',
+            'becas.concepto',
         ])->findOrFail($id);
 
         if (request()->ajax()) {
@@ -357,8 +359,7 @@ class AlumnoController extends Controller
 
         $cargos = $cargosQuery->orderBy('fecha_vencimiento')->get();
 
-        // Becas activas en el ciclo actual, indexadas por concepto_id para lookup O(1)
-        $becas = BecaAlumno::with(['catalogoBeca', 'concepto'])
+        $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
             ->where('alumno_id', $alumno->id)
             ->where('activo', true)
             ->when($inscripcionActual, fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
@@ -367,8 +368,9 @@ class AlumnoController extends Controller
                 ->whereNull('vigencia_fin')
                 ->orWhere('vigencia_fin', '>=', now())
             )
-            ->get()
-            ->keyBy('concepto_id');
+            ->get();
+        $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
+        $becasPorConcepto = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
 
         // ── Resumen ───────────────────────────────────────
         $hoy = now();
@@ -393,7 +395,10 @@ class AlumnoController extends Controller
             $becaPorcentaje = null;
 
             if ($esPendiente) {
-                $becaItem = $becas->get($cargo->concepto_id);
+                $becaItem = $cargo->asignacion?->plan_id
+                    ? $becasPorPlan->get($cargo->asignacion->plan_id)
+                    : null;
+                $becaItem ??= $becasPorConcepto->get($cargo->concepto_id);
                 if ($becaItem) {
                     $becaDescuento = min(
                         $becaItem->calcularDescuento((float) $cargo->monto_original),
@@ -584,7 +589,7 @@ class AlumnoController extends Controller
 
     // ── NUEVAS FUNCIONES DE GESTIÓN DE INSCRIPCIÓN Y EGRESO ──
 
-/**
+    /**
      * DELETE /inscripciones/{id}
      * Quita al alumno de un grupo específico desactivando su inscripción.
      */
@@ -592,7 +597,7 @@ class AlumnoController extends Controller
     {
         $inscripcion = Inscripcion::findOrFail($id);
         $nombre = $inscripcion->alumno->nombre;
-        
+
         // En lugar de borrar la fila (lo cual rompe los cargos financieros),
         // simplemente la desactivamos para que desaparezca de la lista del grupo.
         $inscripcion->update(['activo' => false]);
@@ -600,30 +605,30 @@ class AlumnoController extends Controller
         return back()->with('success', "Se ha quitado a $nombre del grupo correctamente.");
     }
 
-/**
+    /**
      * PATCH /alumnos/{id}/dar-baja
      */
     public function darBaja(Request $request, int $id)
     {
         $request->validate([
             'tipo_baja' => 'required|in:baja_temporal,baja_definitiva',
-            'observaciones' => 'nullable|string'
+            'observaciones' => 'nullable|string',
         ]);
 
         $alumno = Alumno::findOrFail($id);
-        
+
         // Obtenemos la observación actual por si ya tenía algo escrito antes
-        $obsAnterior = $alumno->observaciones ? $alumno->observaciones . " | " : "";
+        $obsAnterior = $alumno->observaciones ? $alumno->observaciones.' | ' : '';
 
         $alumno->update([
             'estado' => $request->tipo_baja,
             'fecha_baja' => now(),
-            'observaciones' => $obsAnterior . $request->observaciones // Concatenamos la razón
+            'observaciones' => $obsAnterior.$request->observaciones, // Concatenamos la razón
         ]);
 
         $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
 
-        return back()->with('success', "Se registró la baja correctamente en el expediente.");
+        return back()->with('success', 'Se registró la baja correctamente en el expediente.');
     }
 
     /**
@@ -635,7 +640,7 @@ class AlumnoController extends Controller
         // Recibimos los IDs de los checkboxes marcados
         $ids = $request->input('inscripciones_ids');
 
-        if (!$ids || count($ids) == 0) {
+        if (! $ids || count($ids) == 0) {
             return back()->with('error', 'No seleccionaste ningún alumno para procesar.');
         }
 
@@ -651,7 +656,7 @@ class AlumnoController extends Controller
                 if ($inscripcion->grupo->grado->nombre == '6') {
                     $alumno->update([
                         'estado' => 'egresado',
-                        'fecha_baja' => now()
+                        'fecha_baja' => now(),
                     ]);
                 }
 
@@ -660,11 +665,13 @@ class AlumnoController extends Controller
             }
 
             DB::commit();
-            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
+
+            return back()->with('success', '¡Proceso completado! Se actualizaron '.count($ids).' alumnos.');
 
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
+
+            return back()->with('error', 'Error al procesar: '.$e->getMessage());
         }
     }
 }

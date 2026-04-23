@@ -8,6 +8,8 @@ use App\Models\Cargo;
 use App\Models\CicloEscolar;
 use App\Traits\RespondsWithJson;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class CargoController extends Controller
@@ -116,7 +118,7 @@ class CargoController extends Controller
     }
 
     /** DELETE /cargos/{id} */
-    public function destroy(int $id): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+    public function destroy(int $id): JsonResponse|RedirectResponse
     {
         $cargo = Cargo::with('inscripcion')->findOrFail($id);
         $alumnoId = $cargo->inscripcion->alumno_id;
@@ -177,31 +179,31 @@ class CargoController extends Controller
 
                     // Usar solo los conceptos seleccionados en la asignación
                     foreach ($asignacion->conceptosSeleccionados as $conceptoSeleccionado) {
-                    foreach ($periodos as $periodo) {
-                        $existe = Cargo::where('inscripcion_id', $inscripcion->id)
-                            ->where('concepto_id', $conceptoSeleccionado->concepto_id)
-                            ->where('periodo', $periodo['periodo'])
-                            ->exists();
+                        foreach ($periodos as $periodo) {
+                            $existe = Cargo::where('inscripcion_id', $inscripcion->id)
+                                ->where('concepto_id', $conceptoSeleccionado->concepto_id)
+                                ->where('periodo', $periodo['periodo'])
+                                ->exists();
 
-                        if ($existe) {
-                            $yaExistian++;
+                            if ($existe) {
+                                $yaExistian++;
 
-                            continue;
+                                continue;
+                            }
+
+                            Cargo::create([
+                                'inscripcion_id' => $inscripcion->id,
+                                'concepto_id' => $conceptoSeleccionado->concepto_id,
+                                'asignacion_id' => $asignacion->id,
+                                'generado_por' => $generadoPor,
+                                'monto_original' => $conceptoSeleccionado->monto,
+                                'fecha_vencimiento' => $periodo['vencimiento'],
+                                'estado' => 'pendiente',
+                                'periodo' => $periodo['periodo'],
+                            ]);
+                            $totalGenerados++;
                         }
-
-                        Cargo::create([
-                            'inscripcion_id' => $inscripcion->id,
-                            'concepto_id' => $conceptoSeleccionado->concepto_id,
-                            'asignacion_id' => $asignacion->id,
-                            'generado_por' => $generadoPor,
-                            'monto_original' => $conceptoSeleccionado->monto,
-                            'fecha_vencimiento' => $periodo['vencimiento'],
-                            'estado' => 'pendiente',
-                            'periodo' => $periodo['periodo'],
-                        ]);
-                        $totalGenerados++;
                     }
-                }
                 }
             }
 
@@ -258,16 +260,25 @@ class CargoController extends Controller
         $montoOriginal = (float) $cargo->monto_original;
         $cicloId = $cargo->inscripcion->ciclo_id;
         $alumnoId = $cargo->inscripcion->alumno_id;
-        $conceptoId = $cargo->concepto_id;
         $plan = $cargo->asignacion?->plan;
 
         $descuentoBeca = 0;
         $becaAplicada = null;
         $beca = BecaAlumno::vigenteHoy()
             ->where('alumno_id', $alumnoId)
-            ->where('concepto_id', $conceptoId)
             ->where('ciclo_id', $cicloId)
             ->with('catalogoBeca')
+            ->where(function (Builder $query) use ($cargo) {
+                if ($cargo->asignacion?->plan_id) {
+                    $query->where('plan_id', $cargo->asignacion->plan_id)
+                        ->orWhere('concepto_id', $cargo->concepto_id);
+
+                    return;
+                }
+
+                $query->where('concepto_id', $cargo->concepto_id);
+            })
+            ->orderByRaw('plan_id is null')
             ->first();
 
         if ($beca) {

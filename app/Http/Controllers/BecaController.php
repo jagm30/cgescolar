@@ -9,7 +9,7 @@ use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\CatalogoBeca;
 use App\Models\CicloEscolar;
-use App\Models\ConceptoCobro;
+use App\Models\PlanPago;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 
@@ -17,7 +17,6 @@ class BecaController extends Controller
 {
     use RespondsWithJson;
 
-    /** GET /becas/catalogo */
     public function catalogo()
     {
         $catalogo = CatalogoBeca::activo()->orderBy('nombre')->get();
@@ -29,7 +28,6 @@ class BecaController extends Controller
         return view('becas.catalogo', compact('catalogo'));
     }
 
-    /** POST /becas/catalogo */
     public function storeCatalogo(CatalogoBecaRequest $request)
     {
         $beca = CatalogoBeca::create($request->validated());
@@ -42,28 +40,31 @@ class BecaController extends Controller
         );
     }
 
-    /** GET /becas/crear */
     public function create(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $catalogo      = CatalogoBeca::activo()->orderBy('nombre')->get();
-        $conceptos     = ConceptoCobro::where('aplica_beca', true)->activo()->orderBy('nombre')->get();
-        $ciclos        = CicloEscolar::orderByDesc('fecha_inicio')->get();
-        $alumnos       = Alumno::whereHas('inscripciones', function ($query) use ($cicloId) {
+        $catalogo = CatalogoBeca::activo()->orderBy('nombre')->get();
+        $planes = PlanPago::with('nivel')
+            ->where('ciclo_id', $cicloId)
+            ->activo()
+            ->orderBy('nombre')
+            ->get();
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $alumnos = Alumno::whereHas('inscripciones', function ($query) use ($cicloId) {
             $query->where('ciclo_id', $cicloId)->where('activo', true);
         })->orderBy('ap_paterno')->orderBy('ap_materno')->orderBy('nombre')->get();
-        $cicloActual   = CicloEscolar::find($cicloId);
-        $alumnoActual  = null;
-        $alumnoId      = $request->query('alumno_id') ?? session('_old_input.alumno_id');
+        $cicloActual = CicloEscolar::find($cicloId);
+        $alumnoActual = null;
+        $alumnoId = $request->query('alumno_id') ?? session('_old_input.alumno_id');
 
         if ($alumnoId) {
-            $alumnoActual = Alumno::with(['becas.catalogoBeca', 'becas.concepto'])
+            $alumnoActual = Alumno::with(['becas.catalogoBeca', 'becas.plan', 'becas.concepto'])
                 ->find($alumnoId);
         }
 
-        return view('becas.create', compact('catalogo', 'conceptos', 'ciclos', 'alumnos', 'alumnoActual', 'cicloActual'));
+        return view('becas.create', compact('catalogo', 'planes', 'ciclos', 'alumnos', 'alumnoActual', 'cicloActual'));
     }
 
     public function editCatalogo(int $id)
@@ -108,7 +109,7 @@ class BecaController extends Controller
 
         $alumno = Alumno::findOrFail($alumnoId);
 
-        $becas = BecaAlumno::with(['catalogoBeca', 'concepto'])
+        $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
             ->where('alumno_id', $alumnoId)
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
@@ -123,7 +124,8 @@ class BecaController extends Controller
                 return [
                     'id' => $beca->id,
                     'nombre' => $beca->catalogoBeca->nombre,
-                    'concepto' => $beca->concepto->nombre ?? '—',
+                    'plan' => $beca->plan?->nombre,
+                    'destino' => $beca->destino_beca,
                     'tipo' => $beca->catalogoBeca->tipo,
                     'valor' => $beca->catalogoBeca->valor,
                     'vigencia_inicio' => $beca->vigencia_inicio?->format('d/m/Y'),
@@ -133,16 +135,15 @@ class BecaController extends Controller
         ]);
     }
 
-    /** GET /becas */
     public function index(Request $request)
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $becas = BecaAlumno::with(['catalogoBeca', 'alumno', 'concepto', 'creadoPor'])
+        $becas = BecaAlumno::with(['catalogoBeca', 'alumno', 'plan', 'concepto', 'ciclo', 'creadoPor'])
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('alumno_id'), fn($q) => $q->where('alumno_id', $request->alumno_id))
-            ->when($request->filled('activo'),    fn($q) => $q->where('activo', $request->boolean('activo')))
+            ->when($request->filled('alumno_id'), fn ($q) => $q->where('alumno_id', $request->alumno_id))
+            ->when($request->filled('activo'), fn ($q) => $q->where('activo', $request->boolean('activo')))
             ->orderBy('alumno_id')
             ->get();
 
@@ -150,13 +151,12 @@ class BecaController extends Controller
             return response()->json($becas);
         }
 
-        $catalogo  = CatalogoBeca::activo()->get();
-        $conceptos = ConceptoCobro::where('aplica_beca', true)->activo()->get();
+        $catalogo = CatalogoBeca::activo()->get();
+        $planes = PlanPago::where('ciclo_id', $cicloId)->activo()->get();
 
-        return view('becas.index', compact('becas', 'catalogo', 'conceptos'));
+        return view('becas.index', compact('becas', 'catalogo', 'planes'));
     }
 
-    /** POST /becas */
     public function store(StoreBecaAlumnoRequest $request)
     {
         $datos = $request->validated();
@@ -180,23 +180,22 @@ class BecaController extends Controller
 
         $beca = BecaAlumno::create(array_merge(
             $datos,
-            ['creado_por' => auth()->id(), 'activo' => true]
+            ['concepto_id' => null, 'creado_por' => auth()->id(), 'activo' => true]
         ));
 
         Auditoria::registrar('beca_alumno', $beca->id, 'insert', null, $beca->toArray());
 
         return $this->respuestaExito(
             redirectRoute: 'becas.index',
-            jsonData: ['beca' => $beca->load(['catalogoBeca', 'alumno', 'concepto'])],
+            jsonData: ['beca' => $beca->load(['catalogoBeca', 'alumno', 'plan', 'concepto'])],
             mensaje: 'Beca asignada correctamente.',
             jsonStatus: 201
         );
     }
 
-    /** DELETE /becas/{id} */
     public function destroy(int $id)
     {
-        $beca     = BecaAlumno::findOrFail($id);
+        $beca = BecaAlumno::findOrFail($id);
         $anterior = $beca->toArray();
 
         $beca->update(['activo' => false]);
