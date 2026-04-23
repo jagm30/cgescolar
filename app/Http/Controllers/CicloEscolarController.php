@@ -12,17 +12,34 @@ class CicloEscolarController extends Controller
     use RespondsWithJson;
 
     /** GET /ciclos */
-    public function index()
-    {
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+public function index(Request $request)
+{
+    $query = CicloEscolar::orderByDesc('fecha_inicio');
 
-        if (request()->ajax()) {
-            return response()->json($ciclos);
-        }
-
-        return view('ciclos.index', compact('ciclos'));
+    // Filtro por Estado
+    if ($request->filled('estado')) {
+        $query->where('estado', $request->estado);
     }
 
+    // Filtro por Año
+    if ($request->filled('anio')) {
+        $anio = $request->anio;
+        $query->where(function($q) use ($anio) {
+            $q->whereYear('fecha_inicio', $anio)
+              ->orWhereYear('fecha_fin', $anio);
+        });
+    }
+
+    // CAMBIO CRÍTICO: Usar paginate() en lugar de get()
+    // Capturamos el valor de 'mostrar' (10, 25, 50) o usamos 10 por defecto
+    $ciclos = $query->paginate($request->input('mostrar', 10));
+
+    if ($request->ajax()) {
+        return response()->json($ciclos);
+    }
+
+    return view('ciclos.index', compact('ciclos'));
+}
     /** GET /ciclos/{id} */
     public function show(int $id)
     {
@@ -128,4 +145,26 @@ class CicloEscolarController extends Controller
             mensaje: "Ahora trabajas en el ciclo '{$ciclo->nombre}'."
         );
     }
+    /** DELETE /ciclos/{id}/force */
+public function forceDelete(int $id)
+{
+    $ciclo = CicloEscolar::findOrFail($id);
+
+    // Validación de seguridad: No borrar si tiene grupos asociados
+    if ($ciclo->grupos()->exists()) {
+        return $this->respuestaError(
+            "No se puede eliminar el ciclo '{$ciclo->nombre}' porque tiene grupos registrados. Primero elimine o mueva los grupos."
+        );
+    }
+
+    $copia = $ciclo->toArray();
+    $ciclo->delete(); // Borrado físico
+
+    Auditoria::registrar('ciclo_escolar', $id, 'delete', $copia, null);
+
+    return $this->respuestaExito(
+        redirectRoute: 'ciclos.index',
+        mensaje: "El ciclo escolar ha sido eliminado permanentemente."
+    );
+}
 }

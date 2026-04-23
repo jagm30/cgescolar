@@ -4,60 +4,40 @@
 
 @push('styles')
     <style>
+        /* Estructura Global */
+        .content-wrapper {
+            background-color: #f4f7f6 !important;
+        }
+
         .con-stats {
             display: flex;
-            justify-content: flex-end;
-            /* Empuja el botón a la derecha */
-            margin-bottom: 20px;
-            width: 100%;
-        }
-
-        /* BOTÓN REGISTRAR SIMPLE (Estilo Píldora) */
-        .btn-registrar-simple {
-            background-color: #00a65a;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 25px;
-            font-weight: 600;
-            display: flex;
             align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 40px;
-            white-space: nowrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
         }
 
-        .btn-registrar-simple:hover {
-            background-color: #008d4c;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
+        /* Tabla SaaS */
         .con-table {
-            margin: 0;
+            width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            width: 100%;
+            background: #fff;
+            border-radius: 8px;
         }
 
-        .con-table thead tr th {
-            background: #f4f6f8;
-            color: #6b7a8d;
+        .con-table thead th {
+            background: #fcfcfc;
+            color: #94a3b8;
             font-size: 11px;
-            font-weight: 700;
             text-transform: uppercase;
-            padding: 12px 14px;
-            border-bottom: 2px solid #e0e6ed;
+            padding: 15px;
+            border-bottom: 2px solid #f0f2f5;
         }
 
         .con-table td {
-            padding: 12px 14px;
-            vertical-align: middle;
-            font-size: 13px;
+            padding: 15px;
             border-bottom: 1px solid #f0f3f7;
+            vertical-align: middle;
         }
 
         .con-nombre {
@@ -73,41 +53,43 @@
             padding: 2px 6px;
             border-radius: 4px;
             border: 1px solid #e2e8f0;
+            font-size: 12px;
         }
 
-
+        /* Badges de Estado */
         .badge-status {
             padding: 4px 12px;
-            border-radius: 12px;
+            border-radius: 20px;
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
+            border: 1px solid transparent;
         }
 
         .badge-activo {
-            background: #e8f8f0;
-            color: #00875a;
-            border: 1px solid #b3e8d0;
+            background: #e8f6f3;
+            color: #1abc9c;
+            border-color: #d1f2eb;
         }
 
         .badge-cerrado {
-            background: #f4f6f8;
-            color: #7a8898;
-            border: 1px solid #d0d9e2;
+            background: #fdf2f2;
+            color: #e74c3c;
+            border-color: #fae1e1;
         }
 
         .badge-config {
             background: #e8f3ff;
             color: #2c6fad;
-            border: 1px solid #b3d4f5;
+            border-color: #b3d4f5;
         }
 
-        /* Botón Activar (Seleccionar) */
-        .btn-activar {
+        /* Botón Seleccionar (Activar) */
+        .btn-activar-saas {
             background: #fff;
             border: 1px solid #d0dbe6;
             color: #3c8dbc;
-            padding: 5px 12px;
+            padding: 5px 15px;
             border-radius: 15px;
             font-size: 11px;
             font-weight: 700;
@@ -115,12 +97,73 @@
             align-items: center;
             gap: 5px;
             transition: 0.2s;
+            cursor: pointer;
         }
 
-        .btn-activar:hover {
+        .btn-activar-saas:hover {
             background: #3c8dbc;
             color: white;
             border-color: #3c8dbc;
+            transform: translateY(-1px);
+        }
+
+        /* Panel de Ayuda */
+        .box-ayuda {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .ayuda-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f2f5;
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .ayuda-body {
+            padding: 15px;
+        }
+
+        .ayuda-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .con-filter-toolbar {
+            display: flex;
+            gap: 10px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            align-items: center;
+        }
+
+        .filter-select {
+            height: 35px;
+            border-radius: 6px;
+            border: 1px solid #d2d6de;
+            padding: 0 10px;
+            color: #475569;
+            font-size: 13px;
+            outline: none;
+            min-width: 150px;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-right: 5px;
         }
     </style>
 @endpush
@@ -129,70 +172,174 @@
 
 
     <div class="con-stats">
-        <button class="btn-registrar-simple" data-toggle="modal" data-target="#modal-nuevo">
-            <i class="fa fa-plus"></i>
-            <span>Nuevo Ciclo Escolar</span>
+        {{-- Indicador de total --}}
+        <div
+            style="background: #fff; padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+            <i class="fa fa-calendar" style="color: #3498db;"></i>
+            <span style="font-weight: 800;">{{ $ciclos->total() }}</span> {{-- Usamos total() por la paginación de Laravel --}}
+        </div>
+
+        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modal-nuevo" style="border-radius: 6px;">
+            <i class="fa fa-plus"></i> Nuevo Ciclo
         </button>
     </div>
 
-    <div class="box box-solid" style="border-radius: 6px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05);">
-        <div class="box-body no-padding">
-            <table class="con-table">
-                <thead>
-                    <tr>
-                        <th>Nombre del Ciclo</th>
-                        <th>Fecha Inicio</th>
-                        <th>Fecha Fin</th>
-                        <th class="text-center">Estado</th>
-                        <th width="220px" class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($ciclos as $ciclo)
-                        <tr>
-                            <td>
-                                <div class="con-nombre">{{ $ciclo->nombre }}</div>
-                            </td>
-                            <td><span
-                                    class="con-fecha">{{ \Carbon\Carbon::parse($ciclo->fecha_inicio)->format('d/m/Y') }}</span>
-                            </td>
-                            <td><span
-                                    class="con-fecha">{{ \Carbon\Carbon::parse($ciclo->fecha_fin)->format('d/m/Y') }}</span>
-                            </td>
-                            <td class="text-center">
-                                <span
-                                    class="badge-status 
-                                    {{ $ciclo->estado == 'activo' ? 'badge-activo' : ($ciclo->estado == 'cerrado' ? 'badge-cerrado' : 'badge-config') }}">
-                                    {{ ucfirst($ciclo->estado) }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <div style="display: flex; gap: 8px; justify-content: center;">
-                                    {{-- Botón Activar (Seleccionar) --}}
-                                    <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST"
-                                        style="display:inline;">
-                                        @csrf
-                                        <button type="submit" class="btn-activar" title="Seleccionar este ciclo">
-                                            <i class="fa fa-check-circle"></i> Seleccionar
-                                        </button>
-                                    </form>
+    <div class="row">
+        <div class="col-md-9">
+            {{-- TOOLBAR DE FILTRADO (SUBMIT AUTOMÁTICO) --}}
+            <form method="GET" action="{{ route('ciclos.index') }}" class="con-filter-toolbar">
+                <div>
+                    <span class="filter-label">Mostrar:</span>
+                    <select name="mostrar" class="filter-select" style="min-width: 70px;" onchange="this.form.submit()">
+                        <option value="10" {{ request('mostrar') == '10' ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('mostrar') == '50' ? 'selected' : '' }}>50</option>
+                    </select>
+                </div>
 
-                                    {{-- Botón Editar --}}
-                                    <button class="btn btn-default btn-xs"
-                                        style="border-radius: 50%; width: 26px; height: 26px;" data-toggle="modal"
-                                        data-target="#modal-editar" data-id="{{ $ciclo->id }}"
-                                        data-nombre="{{ $ciclo->nombre }}" data-inicio="{{ $ciclo->fecha_inicio }}"
-                                        data-fin="{{ $ciclo->fecha_fin }}" data-estado="{{ $ciclo->estado }}">
-                                        <i class="fa fa-pencil text-blue"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                <div>
+                    <span class="filter-label">Estado:</span>
+                    <select name="estado" class="filter-select" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        <option value="activo" {{ request('estado') == 'activo' ? 'selected' : '' }}>Activo</option>
+                        <option value="cerrado" {{ request('estado') == 'cerrado' ? 'selected' : '' }}>Cerrado</option>
+                        <option value="configuracion" {{ request('estado') == 'configuracion' ? 'selected' : '' }}>
+                            Configuración</option>
+                    </select>
+                </div>
+
+                <div>
+                    <span class="filter-label">Año:</span>
+                    <select name="anio" class="filter-select" onchange="this.form.submit()">
+                        <option value="">Cualquier año</option>
+                        @php
+                            $anios = App\Models\CicloEscolar::selectRaw('YEAR(fecha_inicio) as anio')
+                                ->distinct()
+                                ->pluck('anio')
+                                ->sortDesc();
+                        @endphp
+                        @foreach ($anios as $a)
+                            <option value="{{ $a }}" {{ request('anio') == $a ? 'selected' : '' }}>
+                                {{ $a }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+
+            <div class="box"
+                style="border: none; border-radius: 0 0 8px 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);">
+                <div class="box-body no-padding">
+                    <table class="con-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre del Ciclo</th>
+                                <th>Periodo</th>
+                                <th class="text-center">Estado</th>
+                                <th width="200" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($ciclos as $ciclo)
+                                <tr>
+                                    <td>
+                                        <div class="con-nombre">{{ $ciclo->nombre }}</div>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="con-fecha">{{ \Carbon\Carbon::parse($ciclo->fecha_inicio)->format('d/m/Y') }}</span>
+                                        <i class="fa fa-arrow-right text-muted" style="font-size: 10px; margin: 0 5px;"></i>
+                                        <span
+                                            class="con-fecha">{{ \Carbon\Carbon::parse($ciclo->fecha_fin)->format('d/m/Y') }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span
+                                            class="badge-status {{ $ciclo->estado == 'activo' ? 'badge-activo' : ($ciclo->estado == 'cerrado' ? 'badge-cerrado' : 'badge-config') }}">
+                                            {{ ucfirst($ciclo->estado) }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div style="display: flex; gap: 5px; justify-content: center;">
+                                            {{-- Botón Seleccionar --}}
+                                            <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST"
+                                                style="margin:0;">
+                                                @csrf
+                                                <button type="submit" class="btn-activar-saas" title="Seleccionar">
+                                                    <i class="fa fa-check-circle"></i>
+                                                </button>
+                                            </form>
+
+                                            {{-- Botón Editar --}}
+                                            <button class="btn-action-flat" data-toggle="modal" data-target="#modal-editar"
+                                                data-id="{{ $ciclo->id }}" data-nombre="{{ $ciclo->nombre }}"
+                                                data-inicio="{{ $ciclo->fecha_inicio }}"
+                                                data-fin="{{ $ciclo->fecha_fin }}" data-estado="{{ $ciclo->estado }}">
+                                                <i class="fa fa-pencil text-blue"></i>
+                                            </button>
+
+                                            {{-- Botón ELIMINAR PERMANENTE --}}
+                                            <form action="{{ route('ciclos.forceDelete', $ciclo->id) }}" method="POST"
+                                                style="display:inline;">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn-action-flat"
+                                                    title="Eliminar definitivamente"
+                                                    onclick="return confirm('¿Eliminar permanentemente de la base de datos? Esta acción no se puede deshacer.')">
+                                                    <i class="fa fa-trash text-red"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                {{-- PAGINACIÓN MANUAL DE LARAVEL --}}
+                <div class="box-footer clearfix" style="background: #fff; border-radius: 0 0 8px 8px;">
+                    <div class="pull-left" style="margin: 20px 0; color: #94a3b8; font-size: 12px;">
+                        Mostrando {{ $ciclos->firstItem() }} a {{ $ciclos->lastItem() }} de {{ $ciclos->total() }}
+                        registros
+                    </div>
+                    <div class="pull-right">
+                        {{ $ciclos->appends(request()->query())->links('pagination::bootstrap-4') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- AYUDA DEL MÓDULO --}}
+        <div class="col-md-3">
+            <div class="box-ayuda">
+                <div class="ayuda-header"><i class="fa fa-info-circle text-blue"></i> Ayuda del Módulo</div>
+                <div class="ayuda-body">
+                    <div class="ayuda-item">
+                        <i class="fa fa-check-circle text-blue"></i>
+                        <span><b>Seleccionar:</b> Establece el ciclo como el predeterminado del sistema.</span>
+                    </div>
+                    <div class="ayuda-item">
+                        <i class="fa fa-refresh text-aqua"></i>
+                        <span><b>Activo:</b> El ciclo está operando actualmente.</span>
+                    </div>
+                    <div class="ayuda-item">
+                        <i class="fa fa-lock text-red"></i>
+                        <span><b>Cerrado:</b> Ciclo finalizado, solo lectura.</span>
+                    </div>
+                    <div class="ayuda-item">
+                        <i class="fa fa-cog text-muted"></i>
+                        <span><b>Configuración:</b> Ciclo en preparación, no visible.</span>
+                    </div>
+                    <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
+                    <div style="background: #f0f7ff; border: 1px solid #cfe2ff; padding: 10px; border-radius: 6px;">
+                        <span style="color: #084298; font-size: 12px; font-weight: 700;"><i class="fa fa-lightbulb-o"></i>
+                            Tip:</span>
+                        <p style="font-size: 11px; color: #084298; margin-top: 5px;">Recuerda que solo puede haber un ciclo
+                            <b>Activo</b> seleccionado a la vez para evitar conflictos en inscripciones.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
     <x-modal id="modal-editar" title="Editar Ciclo Escolar">
         <form id="form-editar" method="POST">
             @csrf
@@ -278,57 +425,28 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset('bower_components/datatables.net/js/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ asset('bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
-    {{-- configuracion de datatables para mostrar el filtro al lado del selector de "Mostrar" y agregar el filtro por estado,
-    ademas de configurar el idioma a español --}}
     <script>
         $(document).ready(function() {
-            var table = $('#ciclos').DataTable({
-                "language": {
-                    "url": "{{ asset('/bower_components/idioma/datatables_spanish.json') }}"
-                },
-                "initComplete": function() {
 
-                    var filtro = $('#contenedor-filtro');
-                    $('#ciclos_length').after(filtro);
-                }
+            // Script para cargar datos en el MODAL EDITAR
+            $('#modal-editar').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var id = button.data('id');
+                var modal = $(this);
+
+                modal.find('#edit-nombre').val(button.data('nombre'));
+                modal.find('#edit-inicio').val(button.data('inicio').split(' ')[0]);
+                modal.find('#edit-fin').val(button.data('fin').split(' ')[0]);
+                modal.find('#edit-estado').val(button.data('estado'));
+
+                var url = "{{ route('ciclos.update', ':id') }}".replace(':id', id);
+                modal.find('#form-editar').attr('action', url);
             });
 
-            // Filtro por columna
-            $(document).on('change', '#filtro-estado', function() {
-                var valor = $(this).val();
-                table.column(3).search(valor).draw();
+            // Resetear modal nuevo
+            $('#modal-nuevo').on('show.bs.modal', function() {
+                $(this).find('form')[0].reset();
             });
-        });
-    </script>
-    <script>
-        $('#modal-editar').on('show.bs.modal', function(event) {
-            var button = $(event.relatedTarget);
-
-            var id = button.data('id');
-            var nombre = button.data('nombre');
-            var estado = button.data('estado');
-
-
-            var inicio = button.data('inicio').split(' ')[0];
-            var fin = button.data('fin').split(' ')[0];
-
-            var modal = $(this);
-
-            modal.find('#edit-nombre').val(nombre);
-            modal.find('#edit-inicio').val(inicio);
-            modal.find('#edit-fin').val(fin);
-            modal.find('#edit-estado').val(estado);
-
-            var url = "{{ route('ciclos.update', ':id') }}";
-            url = url.replace(':id', id);
-            modal.find('#form-editar').attr('action', url);
-        });
-    </script>
-    <script>
-        $('#modal-nuevo').on('show.bs.modal', function() {
-            $(this).find('form')[0].reset();
         });
     </script>
 @endpush
