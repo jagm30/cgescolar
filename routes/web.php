@@ -76,6 +76,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('niveles/reordenar', [NivelEscolarController::class, 'reordenar'])
         ->name('niveles.reordenar')
         ->middleware('rol:administrador');
+    Route::delete('niveles/{id}/force', [NivelEscolarController::class, 'forceDelete'])
+        ->name('niveles.forceDelete');
     Route::resource('niveles', NivelEscolarController::class)
         ->middleware('rol:administrador');
 
