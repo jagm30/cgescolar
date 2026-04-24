@@ -100,6 +100,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
     Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
     Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
+    // Ruta para procesar la promoción/reinscripción masiva
+    Route::post('grupos/promocionar-masivo', [App\Http\Controllers\GrupoController::class, 'promocionarMasivo'])
+    ->name('grupos.promocionar-masivo');
 
 
     // ── Alumnos ──────────────────────────────────────────
@@ -403,3 +406,4 @@ Route::prefix('configuracion')->group(function () {
     Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
     
 });
+

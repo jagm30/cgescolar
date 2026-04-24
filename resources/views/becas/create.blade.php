@@ -79,13 +79,13 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Concepto</label>
-                            <select name="concepto_id" class="form-control" required>
-                                <option value="">Selecciona un concepto</option>
-                                @foreach ($conceptos as $concepto)
-                                    <option value="{{ $concepto->id }}"
-                                        {{ old('concepto_id') == $concepto->id ? 'selected' : '' }}>
-                                        {{ $concepto->nombre }}
+                            <label>Plan de pagos</label>
+                            <select name="plan_id" class="form-control" required>
+                                <option value="">Selecciona un plan</option>
+                                @foreach ($planes as $plan)
+                                    <option value="{{ $plan->id }}"
+                                        {{ old('plan_id') == $plan->id ? 'selected' : '' }}>
+                                        {{ $plan->nombre }}{{ $plan->nivel ? ' · '.$plan->nivel->nombre : '' }}
                                     </option>
                                 @endforeach
                             </select>
@@ -160,7 +160,7 @@
                 const lista = becas.map((beca) => `
                     <div class="well" style="padding:10px; margin-bottom:10px;">
                         <strong>${beca.nombre}</strong><br>
-                        Concepto: ${beca.concepto}<br>
+                        Plan: ${beca.destino}<br>
                         Vigencia: ${beca.vigencia_inicio} ${beca.vigencia_fin ? 'a ' + beca.vigencia_fin : ''}
                     </div>
                 `).join('');

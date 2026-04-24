@@ -36,15 +36,25 @@ public function index(Request $request)
     }
 
     // 3. Paginación y conteo de alumnos inscritos
-    $gruposPaginados = $query
+    $baseQuery = $query
         ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
             'grado', fn($q) => $q->where('nivel_id', $request->nivel_id)
         ))
         ->when($request->filled('grado_id'), fn($q) => $q->where('grado_id', $request->grado_id))
         ->withCount(['inscripciones as alumnos_inscritos' => fn($q) => $q->where('activo', true)])
         ->orderBy('grado_id')
-        ->orderBy('nombre')
-        ->paginate(10);
+        ->orderBy('nombre');
+
+    // Cuando es AJAX para poblar un select (ciclo_id + nivel_id), devolver array plano
+    if ($request->ajax() && $request->filled('nivel_id')) {
+        return response()->json(
+            $baseQuery->get()->map(fn($g) => array_merge($g->toArray(), [
+                'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
+            ]))
+        );
+    }
+
+    $gruposPaginados = $baseQuery->paginate(10);
 
     // 4. Transformación para calcular lugares disponibles
     $gruposPaginados->getCollection()->transform(fn($g) => array_merge($g->toArray(), [
@@ -52,7 +62,7 @@ public function index(Request $request)
     ]));
 
     $grupos = $gruposPaginados->appends($request->except('page'));
-    
+
     if ($request->ajax()) {
         return response()->json($grupos);
     }
@@ -74,7 +84,6 @@ public function show(int $id)
     $grupo = Grupo::with([
         'grado.nivel', 
         'ciclo',
-        // Quitamos el filtro de 'activo' para que cargue el historial completo
         'inscripciones' => fn($q) => $q->with([
             'alumno' => fn($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')
         ]),
@@ -84,7 +93,16 @@ public function show(int $id)
         return response()->json($grupo);
     }
 
-    // Los grupos disponibles para cambio siguen contando solo a los activos (esto está bien así)
+    // 1. OBTENEMOS LOS GRADOS (Versión limpia sin JOIN manual)
+    // Usamos el modelo para que Laravel use los nombres de tabla correctos automáticamente
+    $grados = \App\Models\Grado::with('nivel')->get()->sortBy(function($grado) {
+        return $grado->nivel->id . '-' . $grado->numero;
+    });
+
+    // 2. OBTENEMOS LOS CICLOS ESCOLARES
+    $ciclosDisponibles = \App\Models\CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
+
+    // 3. Grupos disponibles para cambios (tu lógica original)
     $gruposDisponibles = Grupo::where('ciclo_id', $grupo->ciclo_id)
         ->where('grado_id', $grupo->grado_id)
         ->with('grado')
@@ -93,9 +111,8 @@ public function show(int $id)
         }])
         ->get();
 
-    return view('grupos.show', compact('grupo', 'gruposDisponibles'));
+    return view('grupos.show', compact('grupo', 'gruposDisponibles', 'grados', 'ciclosDisponibles'));
 }
-
     /** GET /grupos/create */
     public function create()
     {
@@ -322,8 +339,8 @@ public function generarReporte(int $id)
 
     return $pdf->stream("Lista_{$grupo->nombre}.pdf");
 }
-public function migrarEstructura(Request $request)
-{
+    public function migrarEstructura(Request $request)
+    {
     // Corregimos el nombre de la tabla a 'ciclo_escolar'
     $request->validate([
         'ciclo_destino_id' => 'required|exists:ciclo_escolar,id', 
@@ -361,5 +378,67 @@ public function migrarEstructura(Request $request)
     }
 
     return back()->with('success', "¡Estructura migrada! Se crearon $contador salones en el nuevo ciclo.");
+    }
+public function promocionarMasivo(Request $request)
+{
+    // 1. Validaciones iniciales
+    $request->validate([
+        'inscripciones_ids' => 'required|array',
+        'ciclo_destino_id'  => 'required',
+        'grado_destino_id'  => 'required',
+        'grupo_origen_id'   => 'required'
+    ]);
+
+    // 2. Buscamos el grupo origen para conocer su identificador (ej: "A", "B")
+    $grupoOrigen = \App\Models\Grupo::findOrFail($request->grupo_origen_id);
+    $identificador = trim($grupoOrigen->nombre);
+
+    // 3. Buscamos el grupo destino
+    $grupoDestino = \App\Models\Grupo::where('ciclo_id', $request->ciclo_destino_id)
+        ->where('grado_id', $request->grado_destino_id)
+        ->where('nombre', $identificador)
+        ->first();
+
+    if (!$grupoDestino) {
+        return back()->with('error', "No se pudo realizar la promoción. No existe el grupo '{$identificador}' en el grado y ciclo seleccionados. Por favor, créalo o migra la estructura primero.");
+    }
+
+    $contador = 0;
+
+    try {
+        \DB::transaction(function () use ($request, $grupoDestino, &$contador) {
+            foreach ($request->inscripciones_ids as $inscripcionId) {
+                
+                $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
+                $alumno = $inscripcionActual->alumno;
+
+                // 4. Cerramos la inscripción actual
+                $inscripcionActual->update([
+                    'activo' => false,
+                    'observaciones' => ($inscripcionActual->observaciones ?? '') . " | Promocionado al grupo {$grupoDestino->nombre} ({$grupoDestino->ciclo->nombre})"
+                ]);
+
+                // 5. Creamos la nueva inscripción (CORREGIDO: usando el campo 'fecha')
+                \App\Models\Inscripcion::create([
+                    'alumno_id' => $alumno->id,
+                    'ciclo_id'  => $request->ciclo_destino_id,
+                    'grado_id'  => $request->grado_destino_id,
+                    'grupo_id'  => $grupoDestino->id,
+                    'fecha'     => now()->format('Y-m-d'), // <--- CAMBIADO de 'fecha_inscripcion' a 'fecha'
+                    'activo'    => true,
+                    'estado'    => 'inscrito'
+                ]);
+
+                $alumno->update(['estado' => 'activo']);
+                $contador++;
+            }
+        });
+
+        return redirect()->route('grupos.show', $request->grupo_origen_id)
+            ->with('success', "Se han promocionado $contador alumnos al grupo '{$identificador}' correctamente.");
+
+    } catch (\Exception $e) {
+        return back()->with('error', "Hubo un problema de base de datos: " . $e->getMessage());
+    }
 }
 }

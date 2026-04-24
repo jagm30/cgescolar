@@ -48,7 +48,7 @@
                         <tr>
                             <th>Alumno</th>
                             <th>Beca</th>
-                            <th>Concepto</th>
+                            <th>Plan</th>
                             <th>Ciclo</th>
                             <th>Vigencia</th>
                             <th>Estado</th>
@@ -61,7 +61,7 @@
                             <tr>
                                 <td>{{ $beca->alumno->nombre_completo }}</td>
                                 <td>{{ $beca->catalogoBeca->nombre }}</td>
-                                <td>{{ $beca->concepto->nombre ?? '—' }}</td>
+                                <td>{{ $beca->destino_beca }}</td>
                                 <td>{{ $beca->ciclo->nombre ?? $beca->ciclo->fecha_inicio?->format('Y') }}</td>
                                 <td>
                                     {{ $beca->vigencia_inicio?->format('d/m/Y') }}
