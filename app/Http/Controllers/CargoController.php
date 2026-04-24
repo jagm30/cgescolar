@@ -299,8 +299,12 @@ class CargoController extends Controller
         if ($plan && $plan->politicaRecargoActiva) {
             $pol = $plan->politicaRecargoActiva;
 
-            if ($pol) {
-                $recargo = $pol->calcularRecargo($montoOriginal, $cargo->fecha_vencimiento);
+            if ($pol && $pol->aplicaHoy()) {
+                $mesesRetraso = (int) now()->startOfMonth()
+                    ->diffInMonths(\Carbon\Carbon::parse($cargo->fecha_vencimiento)->startOfMonth());
+                $mesesRetraso = max(1, $mesesRetraso);
+
+                $recargo = $pol->calcular($montoOriginal, $mesesRetraso);
 
                 if ($recargo > 0) {
                     $recargoDetalle = ['tipo' => $pol->tipo_recargo, 'monto' => $recargo];

@@ -6,8 +6,10 @@ use App\Http\Requests\AnularPagoRequest;
 use App\Http\Requests\StorePagoRequest;
 use App\Models\Auditoria;
 use App\Models\Cargo;
+use App\Models\ConfigFiscal;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
+use App\Models\RazonSocialContacto;
 use App\Models\Usuario;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
@@ -63,17 +65,30 @@ class PagoController extends Controller
             'cajero', 'autorizadoPor',
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
-            'cfdis',
+            'cfdis.razonSocial',
         ])->findOrFail($id);
 
         if (request()->ajax()) {
             return response()->json(array_merge($pago->toArray(), [
                 'total_descuentos' => $pago->total_descuentos,
-                'total_recargos' => $pago->total_recargos,
+                'total_recargos'   => $pago->total_recargos,
             ]));
         }
 
-        return view('pagos.show', compact('pago'));
+        // RFCs disponibles de los alumnos incluidos en este pago
+        $alumnoIds = $pago->detalles
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno_id)
+            ->filter()->unique()->values();
+
+        $razonesDisponibles = RazonSocialContacto::query()
+            ->where('activo', true)
+            ->whereHas('contacto.alumnos', fn ($q) => $q->whereIn('alumno.id', $alumnoIds))
+            ->with('contacto')
+            ->get();
+
+        $configFiscal = ConfigFiscal::first();
+
+        return view('pagos.show', compact('pago', 'razonesDisponibles', 'configFiscal'));
     }
 
     /** GET /pagos/create */
