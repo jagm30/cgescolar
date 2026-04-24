@@ -70,6 +70,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::delete('ciclos/{id}/force', [CicloEscolarController::class, 'forceDelete'])
     ->middleware('rol:administrador,caja,recepcion')
     ->name('ciclos.forceDelete');
+    
     Route::resource('ciclos', CicloEscolarController::class)
         ->middleware('rol:administrador');
 
