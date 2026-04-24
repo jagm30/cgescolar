@@ -391,14 +391,27 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
 
-// Agrupamos las rutas de configuración
-Route::prefix('configuracion')->group(function () {
-    
+// =======================================================
+// Rutas para  configuración general (nombre del colegio, logo, etc.)
+// =======================================================
+    // Agrupamos las rutas de configuración
+    Route::prefix('configuracion')->group(function () {
     // Ruta para ver el formulario (el que tiene los inputs de nombre y logo)
     Route::get('/', [SettingController::class, 'index'])->name('settings.index');
-    
     // Ruta para procesar el formulario cuando le das a "Guardar Cambios"
     Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
-    
+    });
+// =======================================================
+// Rutas para diseño de credenciales
+// =======================================================
+Route::prefix('credenciales')->group(function () {
+    Route::get('/', [App\Http\Controllers\CredencialController::class, 'index'])->name('credenciales.index');
+    Route::post('/store', [App\Http\Controllers\CredencialController::class, 'store'])->name('credenciales.store');
+    Route::get('/{id}/edit', [App\Http\Controllers\CredencialController::class, 'edit'])->name('credenciales.edit');
+    Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');
+
+    // --- AÑADE ESTAS DOS LÍNEAS AQUÍ ---
+    Route::post('/{id}/config', [App\Http\Controllers\CredencialController::class, 'updateConfig'])->name('credenciales.updateConfig');
+    Route::post('/{id}/upload-fondo', [App\Http\Controllers\CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
 });
 
