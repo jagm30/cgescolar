@@ -844,6 +844,11 @@
                 if (validar && paso > pasoActual && !validarPaso(pasoActual)) {
                     alert('Corrige los campos requeridos del paso ' + pasoActual + ' antes de continuar.');
                     return;
+            window.wizardIr = function(paso, validar) {
+                if (typeof validar === 'undefined') validar = true;
+                if (validar && paso > pasoActual && !validarPaso(pasoActual)) {
+                    alert('Corrige los campos requeridos del paso ' + pasoActual + ' antes de continuar.');
+                    return;
                 }
 
                 pasoActual = Math.min(Math.max(paso, 1), TOTAL_PASOS);
@@ -986,7 +991,8 @@
                     url: '/grupos',
                     method: 'GET',
                     data: { ciclo_id: cicloId, nivel_id: nivelId },
-                    success: function(grupos) {
+                    success: function(response) {
+                var grupos = Array.isArray(response) ? response : (response.data || []);
                         var opciones = '';
 
                         if (!grupos.length) {

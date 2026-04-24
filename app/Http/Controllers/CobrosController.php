@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alumno;
+use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\ConceptoCobro;
-use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
-use App\Models\Auditoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -21,24 +20,24 @@ class CobrosController extends Controller
     // ══════════════════════════════════════════════════════════
     public function index(Request $request)
     {
-        $alumnos   = collect();
-        $busqueda  = $request->get('q', '');
+        $alumnos = collect();
+        $busqueda = $request->get('q', '');
 
         if ($request->filled('q')) {
             $alumnos = Alumno::with([
-                'inscripciones' => fn($q) => $q
+                'inscripciones' => fn ($q) => $q
                     ->where('activo', true)
                     ->with('grupo.grado.nivel', 'ciclo'),
             ])
-            ->where(function ($q) use ($busqueda) {
-                $q->where('nombre',     'like', "%{$busqueda}%")
-                  ->orWhere('ap_paterno', 'like', "%{$busqueda}%")
-                  ->orWhere('matricula',  'like', "%{$busqueda}%")
-                  ->orWhere('curp',       'like', "%{$busqueda}%");
-            })
-            ->where('estado', 'activo')
-            ->limit(10)
-            ->get();
+                ->where(function ($q) use ($busqueda) {
+                    $q->where('nombre', 'like', "%{$busqueda}%")
+                        ->orWhere('ap_paterno', 'like', "%{$busqueda}%")
+                        ->orWhere('matricula', 'like', "%{$busqueda}%")
+                        ->orWhere('curp', 'like', "%{$busqueda}%");
+                })
+                ->where('estado', 'activo')
+                ->limit(10)
+                ->get();
         }
 
         return view('cobros.index', compact('alumnos', 'busqueda'));
@@ -52,7 +51,7 @@ class CobrosController extends Controller
     {
         $alumno = Alumno::with([
             'familia',
-            'inscripciones' => fn($q) => $q
+            'inscripciones' => fn ($q) => $q
                 ->where('activo', true)
                 ->with('grupo.grado.nivel', 'ciclo')
                 ->orderByDesc('id'),
@@ -60,12 +59,12 @@ class CobrosController extends Controller
 
         $inscripcionActual = $alumno->inscripciones->first();
 
-        // Becas activas y vigentes del alumno, indexadas por concepto_id
         $becasAlumno = BecaAlumno::with('catalogoBeca')
             ->where('alumno_id', $alumnoId)
             ->vigenteHoy()
-            ->get()
-            ->keyBy('concepto_id');
+            ->get();
+        $becasPorPlan = $becasAlumno->whereNotNull('plan_id')->keyBy('plan_id');
+        $becasPorConcepto = $becasAlumno->whereNotNull('concepto_id')->keyBy('concepto_id');
 
         // Cargos pendientes y parciales de todas sus inscripciones
         $hoy = now();
@@ -77,65 +76,68 @@ class CobrosController extends Controller
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
         ])
-        ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumnoId))
-        ->whereIn('estado', ['pendiente', 'parcial'])
-        ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
-        ->orderBy('fecha_vencimiento')
-        ->get()
-        ->map(function ($cargo) use ($hoy, $becasAlumno) {
-            $abonado    = (float) ($cargo->total_abonado ?? 0);
-            $pendiente  = max(0, round((float) $cargo->monto_original - $abonado, 2));
-            $vencido    = $hoy->gt($cargo->fecha_vencimiento);
+            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumnoId))
+            ->whereIn('estado', ['pendiente', 'parcial'])
+            ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
+            ->orderBy('fecha_vencimiento')
+            ->get()
+            ->map(function ($cargo) use ($hoy, $becasPorPlan, $becasPorConcepto) {
+                $abonado = (float) ($cargo->total_abonado ?? 0);
+                $pendiente = max(0, round((float) $cargo->monto_original - $abonado, 2));
+                $vencido = $hoy->gt($cargo->fecha_vencimiento);
 
-            $cargo->abonado     = $abonado;
-            $cargo->pendiente   = $pendiente;
-            $cargo->vencido     = $vencido;
-            $cargo->dias_atraso = $vencido
-                ? $cargo->fecha_vencimiento->diffInDays($hoy)
-                : 0;
+                $cargo->abonado = $abonado;
+                $cargo->pendiente = $pendiente;
+                $cargo->vencido = $vencido;
+                $cargo->dias_atraso = $vencido
+                    ? $cargo->fecha_vencimiento->diffInDays($hoy)
+                    : 0;
 
-            // ── Calcular descuento por beca ──
-            $becaDescuento  = 0.0;
-            $becaPorcentaje = null;
-            $beca = $becasAlumno->get($cargo->concepto_id);
-            if ($beca && $pendiente > 0) {
-                $becaDescuento = $beca->calcularDescuento($pendiente);
-                if ($beca->catalogoBeca->tipo === 'porcentaje') {
-                    $becaPorcentaje = (float) $beca->catalogoBeca->valor;
-                }
-            }
-
-            // ── Calcular recargo / descuento según política del plan ──
-            $descuento    = 0.0;
-            $recargo      = 0.0;
-            $mesesRetraso = 0;
-
-            if ($pendiente > 0 && $cargo->asignacion?->plan) {
-                $plan = $cargo->asignacion->plan;
-
-                if ($vencido) {
-                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
-                    $pr = $plan->politicasRecargo->firstWhere('activo', true);
-                    if ($pr) {
-                        $recargo = $pr->calcular($pendiente, $mesesRetraso);
-                    }
-                } else {
-                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
-                    if ($pd) {
-                        $descuento = $pd->calcular($pendiente);
+                // ── Calcular descuento por beca ──
+                $becaDescuento = 0.0;
+                $becaPorcentaje = null;
+                $beca = $cargo->asignacion?->plan_id
+                    ? $becasPorPlan->get($cargo->asignacion->plan_id)
+                    : null;
+                $beca ??= $becasPorConcepto->get($cargo->concepto_id);
+                if ($beca && $pendiente > 0) {
+                    $becaDescuento = $beca->calcularDescuento($pendiente);
+                    if ($beca->catalogoBeca->tipo === 'porcentaje') {
+                        $becaPorcentaje = (float) $beca->catalogoBeca->valor;
                     }
                 }
-            }
 
-            $cargo->beca_descuento_calc = $becaDescuento;
-            $cargo->beca_porcentaje     = $becaPorcentaje;
-            $cargo->recargo_calc        = $recargo;
-            $cargo->descuento_calc      = $descuento;
-            $cargo->meses_retraso       = $mesesRetraso;
-            $cargo->monto_a_pagar_hoy   = max(0, $pendiente - $becaDescuento - $descuento + $recargo);
+                // ── Calcular recargo / descuento según política del plan ──
+                $descuento = 0.0;
+                $recargo = 0.0;
+                $mesesRetraso = 0;
 
-            return $cargo;
-        });
+                if ($pendiente > 0 && $cargo->asignacion?->plan) {
+                    $plan = $cargo->asignacion->plan;
+
+                    if ($vencido) {
+                        $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
+                        $pr = $plan->politicasRecargo->firstWhere('activo', true);
+                        if ($pr) {
+                            $recargo = $pr->calcular($pendiente, $mesesRetraso);
+                        }
+                    } else {
+                        $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
+                        if ($pd) {
+                            $descuento = $pd->calcular($pendiente);
+                        }
+                    }
+                }
+
+                $cargo->beca_descuento_calc = $becaDescuento;
+                $cargo->beca_porcentaje = $becaPorcentaje;
+                $cargo->recargo_calc = $recargo;
+                $cargo->descuento_calc = $descuento;
+                $cargo->meses_retraso = $mesesRetraso;
+                $cargo->monto_a_pagar_hoy = max(0, $pendiente - $becaDescuento - $descuento + $recargo);
+
+                return $cargo;
+            });
 
         // Conceptos para cargo único en el momento
         $conceptos = ConceptoCobro::where('activo', true)
@@ -161,28 +163,28 @@ class CobrosController extends Controller
         }
 
         $alumnos = Alumno::with([
-            'inscripciones' => fn($q) => $q
+            'inscripciones' => fn ($q) => $q
                 ->where('activo', true)
                 ->with('grupo.grado.nivel')
                 ->orderByDesc('id'),
         ])
-        ->where(function ($query) use ($q) {
-            $query->where('nombre',     'like', "%{$q}%")
-                  ->orWhere('ap_paterno', 'like', "%{$q}%")
-                  ->orWhere('matricula',  'like', "%{$q}%");
-        })
-        ->where('estado', 'activo')
-        ->limit(8)
-        ->get()
-        ->map(fn($a) => [
-            'id'         => $a->id,
-            'nombre'     => "{$a->nombre} {$a->ap_paterno} {$a->ap_materno}",
-            'matricula'  => $a->matricula,
-            'grupo'      => $a->inscripciones->first()?->grupo?->grado?->nivel?->nombre . ' '
-                          . ($a->inscripciones->first()?->grupo?->grado?->nombre ?? '') . '° '
-                          . ($a->inscripciones->first()?->grupo?->nombre ?? ''),
-            'url'        => route('cobros.alumno', $a->id),
-        ]);
+            ->where(function ($query) use ($q) {
+                $query->where('nombre', 'like', "%{$q}%")
+                    ->orWhere('ap_paterno', 'like', "%{$q}%")
+                    ->orWhere('matricula', 'like', "%{$q}%");
+            })
+            ->where('estado', 'activo')
+            ->limit(8)
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'nombre' => "{$a->nombre} {$a->ap_paterno} {$a->ap_materno}",
+                'matricula' => $a->matricula,
+                'grupo' => $a->inscripciones->first()?->grupo?->grado?->nivel?->nombre.' '
+                              .($a->inscripciones->first()?->grupo?->grado?->nombre ?? '').'° '
+                              .($a->inscripciones->first()?->grupo?->nombre ?? ''),
+                'url' => route('cobros.alumno', $a->id),
+            ]);
 
         return response()->json($alumnos);
     }
@@ -194,66 +196,66 @@ class CobrosController extends Controller
     public function registrar(Request $request)
     {
         $request->validate([
-            'alumno_id'              => ['required', 'integer', 'exists:alumno,id'],
-            'forma_pago'             => ['required', 'in:efectivo,transferencia,tarjeta,cheque'],
-            'referencia'             => ['nullable', 'string', 'max:100'],
-            'fecha_pago'             => ['required', 'date'],
-            'items'                  => ['required', 'array', 'min:1'],
-            'items.*.tipo'           => ['required', 'in:cargo,nuevo'],
+            'alumno_id' => ['required', 'integer', 'exists:alumno,id'],
+            'forma_pago' => ['required', 'in:efectivo,transferencia,tarjeta,cheque'],
+            'referencia' => ['nullable', 'string', 'max:100'],
+            'fecha_pago' => ['required', 'date'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.tipo' => ['required', 'in:cargo,nuevo'],
             // Para cargos existentes
-            'items.*.cargo_id'       => ['required_if:items.*.tipo,cargo', 'integer'],
-            'items.*.monto_abonado'  => ['required', 'numeric', 'min:0.01'],
+            'items.*.cargo_id' => ['required_if:items.*.tipo,cargo', 'integer'],
+            'items.*.monto_abonado' => ['required', 'numeric', 'min:0.01'],
             'items.*.descuento_beca' => ['nullable', 'numeric', 'min:0'],
-            'items.*.descuento_otros'=> ['nullable', 'numeric', 'min:0'],
-            'items.*.recargo'        => ['nullable', 'numeric', 'min:0'],
+            'items.*.descuento_otros' => ['nullable', 'numeric', 'min:0'],
+            'items.*.recargo' => ['nullable', 'numeric', 'min:0'],
             // Para cargo nuevo en el momento
-            'items.*.concepto_id'   => ['required_if:items.*.tipo,nuevo', 'integer'],
-            'items.*.inscripcion_id'=> ['required_if:items.*.tipo,nuevo', 'integer'],
+            'items.*.concepto_id' => ['required_if:items.*.tipo,nuevo', 'integer'],
+            'items.*.inscripcion_id' => ['required_if:items.*.tipo,nuevo', 'integer'],
         ], [
-            'items.required'             => 'Debe seleccionar al menos un concepto a cobrar.',
-            'items.*.monto_abonado.min'  => 'El monto a cobrar debe ser mayor a cero.',
-            'forma_pago.required'        => 'Selecciona la forma de pago.',
+            'items.required' => 'Debe seleccionar al menos un concepto a cobrar.',
+            'items.*.monto_abonado.min' => 'El monto a cobrar debe ser mayor a cero.',
+            'forma_pago.required' => 'Selecciona la forma de pago.',
         ]);
 
         DB::beginTransaction();
 
         try {
-            $cajeroId   = auth()->id();
+            $cajeroId = auth()->id();
             $montoTotal = 0;
-            $detalles   = [];
+            $detalles = [];
 
             foreach ($request->items as $item) {
-                $abonado    = (float) $item['monto_abonado'];
-                $descBeca   = (float) ($item['descuento_beca']   ?? 0);
-                $descOtros  = (float) ($item['descuento_otros']  ?? 0);
-                $recargo    = (float) ($item['recargo']          ?? 0);
+                $abonado = (float) $item['monto_abonado'];
+                $descBeca = (float) ($item['descuento_beca'] ?? 0);
+                $descOtros = (float) ($item['descuento_otros'] ?? 0);
+                $recargo = (float) ($item['recargo'] ?? 0);
                 $montoFinal = round($abonado - $descBeca - $descOtros + $recargo, 2);
 
                 if ($montoFinal <= 0) {
-                    throw new \Exception("El monto final de un concepto no puede ser cero o negativo.");
+                    throw new \Exception('El monto final de un concepto no puede ser cero o negativo.');
                 }
 
                 if ($item['tipo'] === 'nuevo') {
                     // Crear cargo nuevo en el momento
                     $cargo = Cargo::create([
-                        'inscripcion_id'  => $item['inscripcion_id'],
-                        'concepto_id'     => $item['concepto_id'],
-                        'generado_por'    => $cajeroId,
-                        'monto_original'  => $abonado,
+                        'inscripcion_id' => $item['inscripcion_id'],
+                        'concepto_id' => $item['concepto_id'],
+                        'generado_por' => $cajeroId,
+                        'monto_original' => $abonado,
                         'fecha_vencimiento' => $request->fecha_pago,
-                        'estado'          => 'pagado',
-                        'periodo'         => now()->format('Y-m'),
+                        'estado' => 'pagado',
+                        'periodo' => now()->format('Y-m'),
                     ]);
                 } else {
                     $cargo = Cargo::findOrFail($item['cargo_id']);
                 }
 
                 $detalles[] = [
-                    'cargo'      => $cargo,
-                    'abonado'    => $abonado,
-                    'descBeca'   => $descBeca,
-                    'descOtros'  => $descOtros,
-                    'recargo'    => $recargo,
+                    'cargo' => $cargo,
+                    'abonado' => $abonado,
+                    'descBeca' => $descBeca,
+                    'descOtros' => $descOtros,
+                    'recargo' => $recargo,
                     'montoFinal' => $montoFinal,
                 ];
 
@@ -265,31 +267,31 @@ class CobrosController extends Controller
 
             // Crear encabezado de pago
             $pago = Pago::create([
-                'cajero_id'    => $cajeroId,
-                'monto_total'  => $montoTotal,
-                'fecha_pago'   => $request->fecha_pago,
-                'forma_pago'   => $request->forma_pago,
-                'referencia'   => $request->referencia ?? null,
+                'cajero_id' => $cajeroId,
+                'monto_total' => $montoTotal,
+                'fecha_pago' => $request->fecha_pago,
+                'forma_pago' => $request->forma_pago,
+                'referencia' => $request->referencia ?? null,
                 'folio_recibo' => $folio,
-                'estado'       => 'vigente',
+                'estado' => 'vigente',
             ]);
 
             // Crear detalles y actualizar estado de cargos
             foreach ($detalles as $d) {
                 PagoDetalle::create([
-                    'pago_id'         => $pago->id,
-                    'cargo_id'        => $d['cargo']->id,
-                    'descuento_beca'  => $d['descBeca'],
+                    'pago_id' => $pago->id,
+                    'cargo_id' => $d['cargo']->id,
+                    'descuento_beca' => $d['descBeca'],
                     'descuento_otros' => $d['descOtros'],
-                    'recargo_aplicado'=> $d['recargo'],
-                    'monto_abonado'   => $d['abonado'],
-                    'monto_final'     => $d['montoFinal'],
+                    'recargo_aplicado' => $d['recargo'],
+                    'monto_abonado' => $d['abonado'],
+                    'monto_final' => $d['montoFinal'],
                 ]);
 
                 // Actualizar estado del cargo
                 if ($d['cargo']->estado !== 'pagado') {
                     $totalAbonado = PagoDetalle::where('cargo_id', $d['cargo']->id)
-                        ->whereHas('pago', fn($q) => $q->where('estado', 'vigente'))
+                        ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
                         ->sum('monto_abonado');
 
                     $nuevoEstado = $totalAbonado >= $d['cargo']->monto_original
@@ -301,10 +303,10 @@ class CobrosController extends Controller
             }
 
             Auditoria::registrar('pago', $pago->id, 'insert', null, [
-                'folio'       => $folio,
-                'alumno_id'   => $request->alumno_id,
+                'folio' => $folio,
+                'alumno_id' => $request->alumno_id,
                 'monto_total' => $montoTotal,
-                'items'       => count($detalles),
+                'items' => count($detalles),
             ]);
 
             DB::commit();
@@ -315,9 +317,10 @@ class CobrosController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return back()
                 ->withInput()
-                ->with('error', 'Error al registrar el pago: ' . $e->getMessage());
+                ->with('error', 'Error al registrar el pago: '.$e->getMessage());
         }
     }
 
@@ -344,12 +347,12 @@ class CobrosController extends Controller
     // ══════════════════════════════════════════════════════════
     private function generarFolio(): string
     {
-        $prefijo = 'R' . now()->format('Ymd');
-        $ultimo  = Pago::where('folio_recibo', 'like', "{$prefijo}%")
+        $prefijo = 'R'.now()->format('Ymd');
+        $ultimo = Pago::where('folio_recibo', 'like', "{$prefijo}%")
             ->orderByDesc('folio_recibo')
             ->value('folio_recibo');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $prefijo . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $prefijo.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 }
