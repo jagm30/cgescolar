@@ -234,7 +234,7 @@
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
 /* Modal */
-#modal-familia .modal-dialog { width: 540px; max-width: 95vw; }
+#modal-familia .modal-dialog { width: 580px; max-width: 95vw; }
 #modal-familia .modal-header {
     background: linear-gradient(135deg,#2c6fad,#3c8dbc);
     color: #fff; border-radius: 4px 4px 0 0;
