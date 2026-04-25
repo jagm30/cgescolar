@@ -341,26 +341,38 @@
                 });
             });
 
-            const formData = new FormData();
-            formData.append('configuracion', JSON.stringify(elementos));
-            formData.append('_token', "{{ csrf_token() }}");
-            if (imagenTemporal) formData.append('fondo', imagenTemporal);
+            if (elementos.length === 0 && !imagenTemporal) {
+                alert("No hay nada que guardar, mano.");
+                return;
+            }
 
-            $.ajax({
-                url: "{{ route('credenciales.updateConfig', $diseno->id) }}",
-                method: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function(r) {
-                    alert("¡Diseño guardado en la base de datos!");
-                },
-                error: function() {
-                    alert("Error al guardar. Revisa el tamaño de la imagen.");
-                }
-            });
+            const fData = new FormData();
+            fData.append('configuracion', JSON.stringify(elementos));
+            fData.append('_token', "{{ csrf_token() }}");
+            if (imagenTemporal) fData.append('fondo', imagenTemporal);
+
+            // Usamos fetch para ser más directos
+            fetch("{{ route('credenciales.updateConfig', $diseno->id) }}", {
+                    method: "POST",
+                    body: fData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Respuesta:", data);
+                    if (data.status === 'success') {
+                        alert("¡Por fin quedó! Diseño de La Salle guardado.");
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error técnico:", error);
+                    alert("Error de red o servidor.");
+                });
         }
-
         // --- ABAJO TODA TU LÓGICA DE MOVIMIENTO, TECLADO E INTERACT (SIN TOCAR) ---
         window.addEventListener('keydown', function(e) {
             if (!selected || e.target.tagName === 'INPUT') return;

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Credencial;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Storage; // Esta línea es la que manda
 
 class CredencialController extends Controller
 {
@@ -38,48 +38,71 @@ class CredencialController extends Controller
         return view('credenciales.edit', compact('diseno'));
     }
 
-    // Guarda la estructura JSON de las posiciones y estilos
-    public function updateConfig(Request $request, $id)
+    public function uploadFondo(Request $request, $id)
     {
         $credencial = Credencial::findOrFail($id);
-        $credencial->update([
-            'config_anverso' => $request->configuracion
-        ]);
 
-        return response()->json(['status' => 'success', 'message' => '¡Diseño guardado!']);
-    }
+        if ($request->hasFile('fondo')) {
+            $file = $request->file('fondo');
+            
+            if ($credencial->fondo_anverso) {
+                Storage::disk('public')->delete($credencial->fondo_anverso);
+            }
+            
+            $path = $file->store('credenciales/fondos', 'public');
+            $credencial->update(['fondo_anverso' => $path]);
 
-public function uploadFondo(Request $request, $id)
-{
-    $credencial = Credencial::findOrFail($id);
-
-    // Usamos el nombre 'fondo' que mandamos en el append del JS
-    if ($request->file('fondo')) {
-        $file = $request->file('fondo');
-        
-        if ($credencial->fondo_anverso) {
-            Storage::delete($credencial->fondo_anverso);
+            return response()->json([
+                'status' => 'success', 
+                'path' => asset('storage/' . $path)
+            ]);
         }
-        
-        $path = $file->store('credenciales/fondos', 'public');
-        $credencial->update(['fondo_anverso' => $path]);
 
-        return response()->json([
-            'status' => 'success', 
-            'path' => asset('storage/' . $path)
-        ]);
+        return response()->json(['message' => 'El servidor recibió la petición pero el archivo "fondo" no llegó.'], 422);
     }
 
-    // Si llega aquí, es que $request->file('fondo') sigue siendo null
-    return response()->json(['message' => 'El servidor recibió la petición pero el archivo "fondo" no llegó.'], 422);
-}
     public function destroy($id)
     {
         $credencial = Credencial::findOrFail($id);
-        if ($credencial->fondo_anverso) Storage::delete($credencial->fondo_anverso);
-        if ($credencial->fondo_reverso) Storage::delete($credencial->fondo_reverso);
+        if ($credencial->fondo_anverso) Storage::disk('public')->delete($credencial->fondo_anverso);
+        if ($credencial->fondo_reverso) Storage::disk('public')->delete($credencial->fondo_reverso);
         $credencial->delete();
 
         return redirect()->route('credenciales.index')->with('success', 'Eliminado.');
     }
+    public function updateConfig(Request $request, $id)
+{
+    // Esto es para que en la pestaña Network -> Response veas TODO lo que llegó
+    // Si sigue saliendo el error anterior, es que el JS está mandando basura
+    if (!$request->has('configuracion') && !$request->hasFile('fondo')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'El servidor recibió la petición VACÍA',
+            'debug_recibido' => $request->all() 
+        ], 422);
+    }
+
+    $credencial = Credencial::findOrFail($id);
+
+    // Guardar Fondo
+    if ($request->hasFile('fondo')) {
+        $path = $request->file('fondo')->store('credenciales/fondos', 'public');
+        $credencial->fondo_anverso = $path;
+    }
+
+    // Guardar JSON
+    if ($request->has('configuracion')) {
+        // A veces el FormData llega con comillas extra, aseguramos limpieza
+        $datos = is_string($request->configuracion) ? json_decode($request->configuracion, true) : $request->configuracion;
+        $credencial->config_anverso = $datos;
+    }
+
+    $credencial->save();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => '¡Guardado con éxito!',
+        'debug' => $credencial->config_anverso
+    ]);
+}
 }
