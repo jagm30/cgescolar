@@ -143,6 +143,13 @@
         <div class="col-md-3">
             <div class="box box-primary">
                 <div class="box-header with-border">
+                    <h3 class="box-title">Acciones</h3>
+                    <div class="pull-right">
+                        <a href="{{ route('credenciales.preview', [$diseno->id, 1]) }}" target="_blank"
+                            class="btn btn-warning">
+                            <i class="fa fa-eye"></i> Vista Previa con Alumno #1
+                        </a>
+                    </div>
                     <h3 class="box-title">Datos Alumno</h3>
                     <div class="box-tools pull-right">
                         <button class="btn btn-box-tool" data-toggle="modal" data-target="#modalHelp"
@@ -325,10 +332,22 @@
         function saveAll() {
             const elementos = [];
             document.querySelectorAll('.draggable-item').forEach(el => {
+                // --- LÓGICA DE INGENIERO PARA EL TEXTO ---
+                let textoAGuardar = el.querySelector('.content-span').innerText;
+                const tipo = el.dataset.type;
+
+                // Si es un campo dinámico, guardamos la "Llave" para que el Preview sepa qué inyectar
+                // Esto evita que se quede grabado el nombre de prueba "ALBERTO SAMAYOA"
+                if (tipo === 'nombre') textoAGuardar = 'Nombre';
+                else if (tipo === 'matricula') textoAGuardar = 'Matrícula';
+                else if (tipo === 'tipo_sangre') textoAGuardar = 'Tipo de sangre';
+                else if (tipo === 'grado_grupo') textoAGuardar = 'Grado y Grupo';
+                // Si no es ninguno de estos, se queda con lo que tenga el innerText (etiquetas fijas)
+
                 elementos.push({
                     id: el.id,
                     parentId: el.dataset.parentId || null,
-                    type: el.dataset.type,
+                    type: tipo,
                     x: el.dataset.x,
                     y: el.dataset.y,
                     width: el.style.width,
@@ -336,7 +355,7 @@
                     fontSize: el.style.fontSize,
                     color: el.style.color,
                     textAlign: el.style.textAlign,
-                    text: el.querySelector('.content-span').innerText,
+                    text: textoAGuardar, // <--- Guardamos la etiqueta limpia
                     isLabel: el.classList.contains('is-label')
                 });
             });
@@ -351,7 +370,6 @@
             fData.append('_token', "{{ csrf_token() }}");
             if (imagenTemporal) fData.append('fondo', imagenTemporal);
 
-            // Usamos fetch para ser más directos
             fetch("{{ route('credenciales.updateConfig', $diseno->id) }}", {
                     method: "POST",
                     body: fData,
@@ -363,7 +381,7 @@
                 .then(data => {
                     console.log("Respuesta:", data);
                     if (data.status === 'success') {
-                        alert("¡Por fin quedó! Diseño de La Salle guardado.");
+                        alert("¡Configuración de La Salle guardada correctamente!");
                     } else {
                         alert("Error: " + data.message);
                     }

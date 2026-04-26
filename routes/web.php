@@ -7,6 +7,7 @@ use App\Http\Controllers\CargoController;
 use App\Http\Controllers\CicloEscolarController;
 use App\Http\Controllers\CobrosController;
 use App\Http\Controllers\ConceptoCobroController;
+use App\Http\Controllers\CredencialController; 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\GradoController;
@@ -413,7 +414,7 @@ Route::prefix('credenciales')->group(function () {
     Route::post('/store', [App\Http\Controllers\CredencialController::class, 'store'])->name('credenciales.store');
     Route::get('/{id}/edit', [App\Http\Controllers\CredencialController::class, 'edit'])->name('credenciales.edit');
     Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');
-
+    Route::get('/preview/{credencial_id}/{alumno_id}', [CredencialController::class, 'preview'])->name('credenciales.preview');
     // --- AÑADE ESTAS DOS LÍNEAS AQUÍ ---
     Route::post('/{id}/config', [App\Http\Controllers\CredencialController::class, 'updateConfig'])->name('credenciales.updateConfig');
     Route::post('/{id}/upload-fondo', [App\Http\Controllers\CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
