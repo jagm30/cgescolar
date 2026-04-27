@@ -223,8 +223,8 @@
         }
 
         /* ==========================================================================
-                   MODO VISUALIZACIÓN Y CERO MÁRGENES
-                   ========================================================================== */
+                                               MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                               ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -287,8 +287,8 @@
         }
 
         /* ==========================================================================
-                   REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (MARGEN CERO ABSOLUTO)
-                   ========================================================================== */
+                                               REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (MARGEN CERO ABSOLUTO)
+                                               ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -481,7 +481,7 @@
                                 data-grado="{{ $alumno->inscripciones->first()?->grupo?->grado?->nombre ?? '' }} {{ $alumno->inscripciones->first()?->grupo?->nombre ?? '' }}"
                                 data-ciclo="{{ $cicloActual->nombre ?? 'Sin ciclo' }}"
                                 data-sangre="{{ $alumno->tipo_sangre ?? 'O+' }}"
-                                data-foto="{{ $alumno->foto ? asset('storage/' . $alumno->foto) : '' }}"
+                                data-foto="{{ $alumno->foto_url ? Storage::url($alumno->foto_url) : '' }}"
                                 onclick="deselect(event)">
                                 <div id="group-outline-{{ $alumno->id }}" class="group-outline"></div>
                                 <div id="guide-v-{{ $alumno->id }}" class="guide-line guide-v"></div>
@@ -686,13 +686,16 @@
             if (data.type === 'foto') {
                 el.style.padding = '0';
                 el.style.border = isModeVisual ? 'none' : '1px dashed #ccc';
+
                 if (isModeVisual) {
+                    // AQUÍ ESTÁ EL TRUCO: object-fit: cover hace que la foto se recorte 
+                    // automáticamente para llenar el recuadro sin deformarse.
                     span.innerHTML = fotoUrl ?
-                        `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; background-color: transparent;">` :
-                        `<div style="width:100%;height:100%;background:transparent;"></div>`;
+                        `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; display:block;">` :
+                        `<div style="width:100%; height:100%; background:transparent;"></div>`;
                 } else {
                     span.innerHTML =
-                        `<div style="width:100%;height:100%;background:#f8f9fa;display:flex;align-items:center;justify-content:center;"><i class="fa fa-camera fa-3x" style="color:#bdc3c7"></i></div>`;
+                        `<div style="width:100%; height:100%; background:#f8f9fa; display:flex; align-items:center; justify-content:center;"><i class="fa fa-camera fa-3x" style="color:#bdc3c7"></i></div>`;
                 }
             } else {
                 span.innerText = textoFinal;

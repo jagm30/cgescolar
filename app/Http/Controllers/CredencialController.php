@@ -117,9 +117,9 @@ public function imprimirLote($credencial_id, $grupo_id)
     $diseno = Credencial::findOrFail($credencial_id); 
 
     // 2. Buscamos a los alumnos y cargamos TODAS las relaciones en cadena
-    $alumnos = Alumno::whereHas('inscripciones', function ($query) use ($grupo_id) {
+$alumnos = Alumno::whereHas('inscripciones', function ($query) use ($grupo_id) {
         $query->where('grupo_id', $grupo_id);
-    })->with(['inscripciones.grupo.grado.nivel'])->get();
+    })->with(['inscripciones.grupo.grado.nivel'])->get(); // <-- Esta es la clave
 
     // 3. Retornamos la vista del DISEÑADOR (no la de impresion_lote)
     return view('credenciales.edit', [
