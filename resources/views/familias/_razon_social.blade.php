@@ -41,13 +41,13 @@ $usosCfdi = [
             </span>
         </h3>
         <div class="box-tools pull-right">
-            @can('administrador', 'caja')
+            @if(in_array(auth()->user()->rol, ['administrador', 'caja']))
             <button type="button" id="btn-nueva-rs"
                     class="btn btn-xs btn-flat"
                     style="color:#fff;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);">
                 <i class="fa fa-plus"></i> Agregar RFC
             </button>
-            @endcan
+            @endif
         </div>
     </div>
 
@@ -231,7 +231,7 @@ $usosCfdi = [
                         </div>
 
                         {{-- Botones --}}
-                        @can('administrador', 'caja')
+                        @if(in_array(auth()->user()->rol, ['administrador', 'caja']))
                         <div style="flex-shrink:0;display:flex;gap:4px;flex-direction:column;align-items:flex-end;">
                             @if(!$rs->es_principal)
                             <button type="button"
@@ -244,7 +244,14 @@ $usosCfdi = [
                             <div style="display:flex;gap:4px;">
                                 <button type="button"
                                         class="btn btn-default btn-xs btn-flat btn-rs-editar"
-                                        data-id="{{ $rs->id }}" title="Editar">
+                                        data-id="{{ $rs->id }}"
+                                        data-rfc="{{ $rs->rfc }}"
+                                        data-razon-social="{{ $rs->razon_social }}"
+                                        data-regimen="{{ $rs->regimen_fiscal }}"
+                                        data-cp="{{ $rs->domicilio_fiscal }}"
+                                        data-uso="{{ $rs->uso_cfdi_default }}"
+                                        data-principal="{{ $rs->es_principal ? '1' : '0' }}"
+                                        title="Editar">
                                     <i class="fa fa-pencil"></i>
                                 </button>
                                 <button type="button"
@@ -255,7 +262,7 @@ $usosCfdi = [
                                 </button>
                             </div>
                         </div>
-                        @endcan
+                        @endif
                     </div>
                 </div>
 

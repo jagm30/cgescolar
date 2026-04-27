@@ -875,16 +875,241 @@
             @endcan
             @can('administrador')
             <a href="{{ route('familias.edit', $familia->id) }}"
-               class="btn btn-primary btn-block btn-sm btn-flat" style="border-radius:6px;text-align:left;">
+               class="btn btn-primary btn-block btn-sm btn-flat" style="border-radius:6px;margin-bottom:6px;text-align:left;">
                 <i class="fa fa-pencil" style="margin-right:6px;"></i> Editar familia
             </a>
             @endcan
+            @if(in_array(auth()->user()->rol, ['administrador', 'caja']))
+            <button type="button"
+                    class="btn btn-default btn-block btn-sm btn-flat"
+                    data-toggle="modal" data-target="#modal-datos-fiscales"
+                    style="border-radius:6px;text-align:left;">
+                <i class="fa fa-file-text-o" style="margin-right:6px;color:#546e7a;"></i> Agregar datos fiscales
+            </button>
+            @endif
         </div>
     </div>
 
 </div>{{-- /col-md-4 --}}
 
 </div>{{-- /row --}}
+
+@if(in_array(auth()->user()->rol, ['administrador', 'caja']))
+{{-- ══ MODAL: AGREGAR DATOS FISCALES ══ --}}
+<div class="modal fade" id="modal-datos-fiscales" tabindex="-1" role="dialog"
+     aria-labelledby="modal-datos-fiscales-titulo">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header"
+                 style="background:linear-gradient(135deg,#37474f,#546e7a);border-radius:3px 3px 0 0;">
+                <button type="button" class="close" data-dismiss="modal"
+                        style="color:#fff;opacity:.8;"><span>&times;</span></button>
+                <h4 class="modal-title" id="modal-datos-fiscales-titulo" style="color:#fff;">
+                    <i class="fa fa-file-text-o"></i> Agregar datos fiscales / RFC
+                </h4>
+            </div>
+
+            <div class="modal-body">
+                <div id="modal-rs-alerta" class="alert alert-dismissible" style="display:none;">
+                    <button type="button" class="close"
+                            onclick="$('#modal-rs-alerta').hide()">&times;</button>
+                    <span id="modal-rs-alerta-msg"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Contacto <span class="text-red">*</span></label>
+                            <select id="mrs-contacto" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                @foreach($familia->contactos->sortBy('pivot.orden') as $ctc)
+                                <option value="{{ $ctc->id }}">
+                                    {{ trim("{$ctc->nombre} {$ctc->ap_paterno}") }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>RFC <span class="text-red">*</span></label>
+                            <input type="text" id="mrs-rfc" class="form-control"
+                                   maxlength="13" placeholder="Ej: AAAA000000AA0"
+                                   style="text-transform:uppercase;letter-spacing:.06em;">
+                            <span class="help-block" style="font-size:11px;margin-top:2px;">
+                                Persona física: 13 chars · Moral: 12
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Razón social <span class="text-red">*</span></label>
+                            <input type="text" id="mrs-razon-social" class="form-control"
+                                   maxlength="300"
+                                   placeholder="Nombre completo como aparece en el SAT">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Régimen fiscal <span class="text-red">*</span></label>
+                            <select id="mrs-regimen" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="601">601 – General de Ley Personas Morales</option>
+                                <option value="603">603 – Personas Morales con Fines no Lucrativos</option>
+                                <option value="605">605 – Sueldos y Salarios e Ingresos Asimilados</option>
+                                <option value="606">606 – Arrendamiento</option>
+                                <option value="608">608 – Demás ingresos</option>
+                                <option value="612">612 – Personas Físicas con Actividades Empresariales y Profesionales</option>
+                                <option value="616">616 – Sin obligaciones fiscales</option>
+                                <option value="621">621 – Incorporación Fiscal</option>
+                                <option value="626">626 – Régimen Simplificado de Confianza (RESICO)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>CP fiscal <span class="text-red">*</span></label>
+                            <input type="text" id="mrs-cp" class="form-control"
+                                   maxlength="5" placeholder="00000"
+                                   style="letter-spacing:.1em;">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Uso CFDI predeterminado <span class="text-red">*</span></label>
+                            <select id="mrs-uso-cfdi" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="D10" selected>D10 – Pagos por servicios educativos</option>
+                                <option value="G03">G03 – Gastos en general</option>
+                                <option value="D01">D01 – Honorarios médicos y hospitalarios</option>
+                                <option value="D08">D08 – Transportación escolar obligatoria</option>
+                                <option value="I04">I04 – Equipo de cómputo y accesorios</option>
+                                <option value="S01">S01 – Sin efectos fiscales</option>
+                                <option value="CP01">CP01 – Pagos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <label style="font-weight:400;">
+                            <input type="checkbox" id="mrs-principal" style="margin-right:6px;">
+                            Marcar como RFC principal del contacto
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-success" id="btn-guardar-modal-rs">
+                    <i class="fa fa-save"></i> Guardar RFC
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+@endif
+
+@if(in_array(auth()->user()->rol, ['administrador', 'caja']))
+{{-- ══ MODAL: EDITAR DATOS FISCALES ══ --}}
+<div class="modal fade" id="modal-editar-fiscal" tabindex="-1" role="dialog"
+     aria-labelledby="modal-editar-fiscal-titulo">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header"
+                 style="background:linear-gradient(135deg,#37474f,#546e7a);border-radius:3px 3px 0 0;">
+                <button type="button" class="close" data-dismiss="modal"
+                        style="color:#fff;opacity:.8;"><span>&times;</span></button>
+                <h4 class="modal-title" id="modal-editar-fiscal-titulo" style="color:#fff;">
+                    <i class="fa fa-pencil"></i> Editar datos fiscales
+                    <small id="mers-rfc-titulo" style="opacity:.75;margin-left:8px;font-size:14px;font-family:monospace;"></small>
+                </h4>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="mers-id">
+
+                <div id="modal-editar-rs-alerta" class="alert alert-dismissible" style="display:none;">
+                    <button type="button" class="close"
+                            onclick="$('#modal-editar-rs-alerta').hide()">&times;</button>
+                    <span id="modal-editar-rs-alerta-msg"></span>
+                </div>
+
+                <div class="form-group">
+                    <label>Razón social <span class="text-red">*</span></label>
+                    <input type="text" id="mers-razon-social" class="form-control"
+                           maxlength="300" placeholder="Nombre completo como aparece en el SAT">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Régimen fiscal <span class="text-red">*</span></label>
+                            <select id="mers-regimen" class="form-control">
+                                <option value="601">601 – General de Ley Personas Morales</option>
+                                <option value="603">603 – Personas Morales con Fines no Lucrativos</option>
+                                <option value="605">605 – Sueldos y Salarios e Ingresos Asimilados</option>
+                                <option value="606">606 – Arrendamiento</option>
+                                <option value="608">608 – Demás ingresos</option>
+                                <option value="612">612 – Personas Físicas con Actividades Empresariales y Profesionales</option>
+                                <option value="616">616 – Sin obligaciones fiscales</option>
+                                <option value="621">621 – Incorporación Fiscal</option>
+                                <option value="626">626 – Régimen Simplificado de Confianza (RESICO)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>CP fiscal <span class="text-red">*</span></label>
+                            <input type="text" id="mers-cp" class="form-control"
+                                   maxlength="5" placeholder="00000"
+                                   style="letter-spacing:.1em;">
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Uso CFDI <span class="text-red">*</span></label>
+                            <select id="mers-uso-cfdi" class="form-control">
+                                <option value="D10">D10 – Pagos por servicios educativos</option>
+                                <option value="G03">G03 – Gastos en general</option>
+                                <option value="D01">D01 – Honorarios médicos y hospitalarios</option>
+                                <option value="D08">D08 – Transportación escolar obligatoria</option>
+                                <option value="I04">I04 – Equipo de cómputo y accesorios</option>
+                                <option value="S01">S01 – Sin efectos fiscales</option>
+                                <option value="CP01">CP01 – Pagos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <label style="font-weight:400;">
+                    <input type="checkbox" id="mers-principal" style="margin-right:6px;">
+                    Marcar como RFC principal del contacto
+                </label>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-actualizar-modal-rs">
+                    <i class="fa fa-save"></i> Guardar cambios
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+@endif
+
 @endsection
 
 @push('scripts')
@@ -1008,6 +1233,155 @@ $(function() {
             error: function(xhr) {
                 btn.prop('disabled', false).html(orig);
                 mostrarAlerta(xhr.responseJSON?.message || 'Error al guardar.', 'danger');
+            }
+        });
+    });
+
+    // ── Modal datos fiscales ──────────────────────────────
+    function mostrarModalRsAlerta(msg, tipo) {
+        $('#modal-rs-alerta-msg').text(msg);
+        $('#modal-rs-alerta')
+            .removeClass('alert-success alert-danger alert-warning')
+            .addClass('alert-' + tipo).show();
+    }
+
+    $('#modal-datos-fiscales').on('hidden.bs.modal', function() {
+        $('#mrs-contacto').val('');
+        $('#mrs-rfc, #mrs-razon-social, #mrs-cp').val('');
+        $('#mrs-regimen').val('');
+        $('#mrs-uso-cfdi option[value="D10"]').prop('selected', true);
+        $('#mrs-principal').prop('checked', false);
+        $('#modal-rs-alerta').hide();
+        $('#btn-guardar-modal-rs').prop('disabled', false)
+            .html('<i class="fa fa-save"></i> Guardar RFC');
+    });
+
+    $(document).on('input', '#mrs-rfc', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-ZÑ&0-9]/g, '');
+    });
+
+    $(document).on('input', '#mrs-cp', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 5);
+    });
+
+    $('#btn-guardar-modal-rs').on('click', function() {
+        var btn = $(this);
+        var datos = {
+            contacto_id:      $('#mrs-contacto').val(),
+            rfc:              $('#mrs-rfc').val().trim().toUpperCase(),
+            razon_social:     $('#mrs-razon-social').val().trim(),
+            regimen_fiscal:   $('#mrs-regimen').val(),
+            domicilio_fiscal: $('#mrs-cp').val().trim(),
+            uso_cfdi_default: $('#mrs-uso-cfdi').val(),
+            es_principal:     $('#mrs-principal').is(':checked'),
+        };
+
+        if (!datos.contacto_id)    { mostrarModalRsAlerta('Selecciona el contacto.', 'danger'); return; }
+        if (!datos.rfc)            { mostrarModalRsAlerta('El RFC es obligatorio.', 'danger'); return; }
+        if (datos.rfc.length < 12 || datos.rfc.length > 13) {
+            mostrarModalRsAlerta('El RFC debe tener 12 caracteres (persona moral) o 13 (persona física).', 'danger'); return;
+        }
+        if (!datos.razon_social)   { mostrarModalRsAlerta('La razón social es obligatoria.', 'danger'); return; }
+        if (!datos.regimen_fiscal) { mostrarModalRsAlerta('Selecciona el régimen fiscal.', 'danger'); return; }
+        if (!/^\d{5}$/.test(datos.domicilio_fiscal)) {
+            mostrarModalRsAlerta('El código postal debe tener exactamente 5 dígitos.', 'danger'); return;
+        }
+        if (!datos.uso_cfdi_default) { mostrarModalRsAlerta('Selecciona el uso de CFDI.', 'danger'); return; }
+
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
+
+        $.ajax({
+            url:         '{{ route("familias.razon-social.store") }}',
+            method:      'POST',
+            contentType: 'application/json',
+            data:        JSON.stringify(datos),
+            success: function(res) {
+                mostrarModalRsAlerta(res.message || 'RFC registrado correctamente.', 'success');
+                setTimeout(function() {
+                    $('#modal-datos-fiscales').modal('hide');
+                    location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="fa fa-save"></i> Guardar RFC');
+                var msg = xhr.responseJSON?.message || 'Error al guardar.';
+                if (xhr.responseJSON?.errors) {
+                    msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
+                }
+                mostrarModalRsAlerta(msg, 'danger');
+            }
+        });
+    });
+
+    // ── Modal editar datos fiscales ───────────────────────
+    // Reemplaza el handler inline del partial _razon_social
+    $(document).off('click', '.btn-rs-editar');
+    $(document).on('click', '.btn-rs-editar', function() {
+        var btn = $(this);
+        $('#mers-id').val(btn.data('id'));
+        $('#mers-rfc-titulo').text(btn.data('rfc'));
+        $('#mers-razon-social').val(btn.data('razon-social'));
+        $('#mers-regimen').val(btn.data('regimen'));
+        $('#mers-cp').val(btn.data('cp'));
+        $('#mers-uso-cfdi').val(btn.data('uso'));
+        $('#mers-principal').prop('checked', btn.data('principal') == '1');
+        $('#modal-editar-rs-alerta').hide();
+        $('#btn-actualizar-modal-rs').prop('disabled', false)
+            .html('<i class="fa fa-save"></i> Guardar cambios');
+        $('#modal-editar-fiscal').modal('show');
+    });
+
+    $(document).on('input', '#mers-cp', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 5);
+    });
+
+    function mostrarEditarRsAlerta(msg, tipo) {
+        $('#modal-editar-rs-alerta-msg').text(msg);
+        $('#modal-editar-rs-alerta')
+            .removeClass('alert-success alert-danger')
+            .addClass('alert-' + tipo).show();
+    }
+
+    $('#btn-actualizar-modal-rs').on('click', function() {
+        var btn = $(this);
+        var id  = $('#mers-id').val();
+
+        var datos = {
+            razon_social:     $('#mers-razon-social').val().trim(),
+            regimen_fiscal:   $('#mers-regimen').val(),
+            domicilio_fiscal: $('#mers-cp').val().trim(),
+            uso_cfdi_default: $('#mers-uso-cfdi').val(),
+            es_principal:     $('#mers-principal').is(':checked'),
+        };
+
+        if (!datos.razon_social)   { mostrarEditarRsAlerta('La razón social es obligatoria.', 'danger'); return; }
+        if (!datos.regimen_fiscal) { mostrarEditarRsAlerta('Selecciona el régimen fiscal.', 'danger'); return; }
+        if (!/^\d{5}$/.test(datos.domicilio_fiscal)) {
+            mostrarEditarRsAlerta('El código postal debe tener exactamente 5 dígitos.', 'danger'); return;
+        }
+        if (!datos.uso_cfdi_default) { mostrarEditarRsAlerta('Selecciona el uso de CFDI.', 'danger'); return; }
+
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
+
+        $.ajax({
+            url:         '{{ url("familias/razon-social") }}/' + id,
+            method:      'PUT',
+            contentType: 'application/json',
+            data:        JSON.stringify(datos),
+            success: function(res) {
+                mostrarEditarRsAlerta(res.message || 'RFC actualizado correctamente.', 'success');
+                setTimeout(function() {
+                    $('#modal-editar-fiscal').modal('hide');
+                    location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="fa fa-save"></i> Guardar cambios');
+                var msg = xhr.responseJSON?.message || 'Error al guardar.';
+                if (xhr.responseJSON?.errors) {
+                    msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
+                }
+                mostrarEditarRsAlerta(msg, 'danger');
             }
         });
     });

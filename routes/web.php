@@ -432,9 +432,9 @@ Route::prefix('credenciales')->group(function () {
     Route::get('/{id}/edit', [App\Http\Controllers\CredencialController::class, 'edit'])->name('credenciales.edit');
     Route::post('/{id}/config', [App\Http\Controllers\CredencialController::class, 'updateConfig'])->name('credenciales.updateConfig');
     Route::post('/{id}/upload-fondo', [App\Http\Controllers\CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
-    Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');
-
-    // Configuración fiscal (datos del emisor para CFDI)
-    Route::post('/fiscal', [SettingController::class, 'updateFiscal'])->name('settings.fiscal');
+    Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');    
 });
-
+// Configuración fiscal (datos del emisor para CFDI)
+Route::post('/fiscal', [SettingController::class, 'updateFiscal'])
+    ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador'])
+    ->name('settings.fiscal');
