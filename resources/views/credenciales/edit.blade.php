@@ -7,8 +7,29 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
+    @if (request()->has('preview') || isset($alumnos))
+        <style>
+            /* ANIQUILADOR DE ADMINLTE: Esconde todo el cascarón en modo impresión/preview */
+            .main-header,
+            .main-sidebar,
+            .main-footer {
+                display: none !important;
+            }
+
+            .content-wrapper {
+                margin-left: 0 !important;
+                padding: 0 !important;
+                background-color: white !important;
+            }
+
+            body {
+                background-color: white !important;
+            }
+        </style>
+    @endif
+
     <style>
-        /* Animación para cuando hay cambios sin guardar */
+        /* --- ESTILOS BASE Y ANIMACIONES --- */
         @keyframes pulseWarning {
             0% {
                 box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
@@ -47,36 +68,42 @@
             padding: 50px;
             display: flex;
             justify-content: center;
-            min-height: 800px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 40px;
+            min-height: 850px;
             position: relative;
         }
 
+        /* LIENZO BASE (CON !IMPORTANT PARA VENCER A BOOTSTRAP EN IMPRESIÓN) */
+        .credencial-canvas-instance,
         #credencial-canvas {
-            background-color: white;
-            background-image: url('{{ $diseno->fondo_anverso ? asset('storage/' . $diseno->fondo_anverso) : '' }}');
-
-            /* CAMBIO DE INGENIERÍA: */
-            /* En lugar de 100%, le damos un 102% para que el azul 'bañe' los bordes */
-            background-size: 102% 102%;
-            background-position: center;
-            /* Centra la imagen para que el exceso sea igual en todos lados */
-            background-repeat: no-repeat;
-
+            background-color: white !important;
+            background-image: url('{{ $diseno->fondo_anverso ? asset('storage/' . $diseno->fondo_anverso) : '' }}') !important;
+            background-size: 102% 102% !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
             position: relative;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             width: {{ $diseno->orientacion == 'vertical' ? '320px' : '500px' }};
             height: {{ $diseno->orientacion == 'vertical' ? '500px' : '320px' }};
             overflow: hidden;
-            /* Esto 'corta' el exceso de la imagen para que tú lo veas limpio */
+            flex-shrink: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
 
+        /* ELEMENTOS DRAGGABLE (Textos y Fotos) */
         .draggable-item {
             position: absolute;
+            top: 0 !important;
+            left: 0 !important;
             cursor: move;
             touch-action: none;
             user-select: none;
             pointer-events: auto;
             padding: 4px 8px;
+            /* ESPACIO PARA TEXTOS */
             border: 1px dashed #ccc;
             white-space: normal;
             word-wrap: break-word;
@@ -92,20 +119,12 @@
         }
 
         .draggable-item.selected {
-            border: 1px solid #3498db;
+            border: 1px solid #3498db !important;
             background: rgba(52, 152, 219, 0.1);
             z-index: 100;
         }
 
-        .group-outline {
-            position: absolute;
-            border: 1px solid rgba(52, 152, 219, 0.4);
-            background: rgba(52, 152, 219, 0.05);
-            pointer-events: none;
-            display: none;
-            z-index: 5;
-        }
-
+        /* NODOS DE ANCLAJE Y ELIMINACIÓN */
         .node {
             position: absolute;
             width: 14px;
@@ -173,6 +192,7 @@
             display: block;
         }
 
+        /* GUÍAS MAGNÉTICAS Y GRUPOS */
         .guide-line {
             position: absolute;
             background-color: #ff4757;
@@ -192,103 +212,289 @@
             width: 100%;
             left: 0;
         }
+
+        .group-outline {
+            position: absolute;
+            border: 1px solid rgba(52, 152, 219, 0.4);
+            background: rgba(52, 152, 219, 0.05);
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
+
+        /* ==========================================================================
+                   MODO VISUALIZACIÓN Y CERO MÁRGENES
+                   ========================================================================== */
+        .modo-visualizacion,
+        .modo-visualizacion .content,
+        .modo-visualizacion .row,
+        .modo-visualizacion .col-md-9 {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .modo-visualizacion #canvas-container {
+            background: transparent !important;
+            display: block !important;
+            padding: 0 !important;
+            min-height: auto !important;
+            position: relative !important;
+            top: 0 !important;
+            left: 0 !important;
+        }
+
+        .modo-visualizacion .credencial-canvas-instance {
+            box-shadow: none !important;
+            margin: 0 auto 30px auto !important;
+            page-break-after: always;
+            border: 1px solid transparent !important;
+        }
+
+        .modo-visualizacion .col-md-3,
+        .modo-visualizacion .box-header,
+        .modo-visualizacion .btn-del,
+        .modo-visualizacion .node,
+        .modo-visualizacion #panel-edicion,
+        .modo-visualizacion #btn-save-design,
+        .modo-visualizacion .guide-line,
+        .modo-visualizacion .group-outline {
+            display: none !important;
+        }
+
+        .modo-visualizacion .draggable-item {
+            border-color: transparent !important;
+            cursor: default !important;
+        }
+
+        .header-impresion {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #222;
+            color: white;
+            border-radius: 8px;
+        }
+
+        .badge-alumno {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #3c8dbc;
+            color: white;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ==========================================================================
+                   REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (MARGEN CERO ABSOLUTO)
+                   ========================================================================== */
+        @media print {
+            @page {
+                margin: 0 !important;
+            }
+
+            html,
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background-color: white !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            #wrapper-principal,
+            .content-wrapper,
+            .content,
+            #canvas-container {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
+            .modo-visualizacion .credencial-canvas-instance {
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                border-radius: 0 !important;
+                position: relative !important;
+                top: 0 !important;
+                left: 0 !important;
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
     </style>
 
-    <div class="row">
-        <div class="col-md-3">
-            <div class="box box-primary">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Acciones</h3>
-                    <div class="box-tools pull-right">
-                        <button class="btn btn-box-tool" data-toggle="modal" data-target="#modalHelp">
-                            <i class="fa fa-question-circle"></i>
+    {{-- ENVOLTORIO MAESTRO QUE DETECTA EL MODO (EDITOR / PREVIEW / LOTE) --}}
+    <div id="wrapper-principal" class="{{ request()->has('preview') || isset($alumnos) ? 'modo-visualizacion' : '' }}">
+
+        @if (isset($alumnos) && count($alumnos) > 0)
+            <div class="header-impresion no-print">
+                <h2 style="margin:0"><i class="fa fa-users"></i> Lote de Impresión: {{ count($alumnos) }} alumnos</h2>
+                <p style="color: #bbb; margin-top:5px;">Diseño: {{ $diseno->nombre }}</p>
+                <button onclick="window.print()" class="btn btn-success btn-lg"
+                    style="margin-top:15px; font-weight:bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    <i class="fa fa-print"></i> MANDAR A IMPRESORA EVOLIS
+                </button>
+            </div>
+        @endif
+
+        <div class="row">
+            <div class="col-md-3 no-print">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Acciones</h3>
+                        <div class="box-tools pull-right">
+                            <button class="btn btn-box-tool" data-toggle="modal" data-target="#modalHelp"><i
+                                    class="fa fa-question-circle"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <a href="{{ route('credenciales.imprimirLote', [$diseno->id, $loteActual->id ?? 1]) }}"
+                            target="_blank" class="btn btn-success btn-block text-bold" style="margin-bottom: 10px;">
+                            <i class="fa fa-users"></i> IMPRIMIR LOTE COMPLETO
+                        </a>
+                        <a href="{{ url()->current() }}?preview=1" target="_blank"
+                            class="btn btn-warning btn-block text-bold" style="margin-bottom: 15px;">
+                            <i class="fa fa-eye"></i> VISTA PREVIA
+                        </a>
+
+                        <button class="btn btn-primary btn-block text-left" onclick="addElement('label', 'Etiqueta Fija:')">
+                            <i class="fa fa-tag"></i> <b>Añadir Etiqueta Fija</b>
                         </button>
+                        <hr>
+
+                        <label>Datos Dinámicos BD:</label>
+                        <div class="row">
+                            <div class="col-xs-6" style="padding-right: 5px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('nombre', 'ALBERTO SAMAYOA RAMOS JIMENEZ LOPEZ')"><i
+                                        class="fa fa-user"></i> Nombre</button>
+                            </div>
+                            <div class="col-xs-6" style="padding-left: 5px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('matricula', '2026-0001')"><i class="fa fa-barcode"></i>
+                                    Matrícula</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-6" style="padding-right: 5px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('nivel', 'NIVEL ESCOLAR')"><i class="fa fa-university"></i> Nivel
+                                    Escolar</button>
+                            </div>
+                            <div class="col-xs-6" style="padding-left: 5px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('grado', '1° SEMESTRE - A')"><i class="fa fa-graduation-cap"></i>
+                                    Grado/Grupo</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-6" style="padding-right: 5px;">
+                                {{-- USO DE CICLO DESDE COMPOSER --}}
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('ciclo', '{{ $cicloActual->nombre ?? 'Sin ciclo' }}')"><i
+                                        class="fa fa-calendar"></i> Ciclo Escolar</button>
+                            </div>
+                            <div class="col-xs-6" style="padding-left: 5px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('sangre', 'O+')"><i class="fa fa-tint"></i> Tipo Sangre</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-default btn-block btn-sm text-left" style="margin-top: 5px;"
+                            onclick="addElement('foto', 'FOTO')"><i class="fa fa-camera"></i> Foto del Alumno</button>
+                        <hr>
+
+                        <label>Fondo de Imagen</label>
+                        <input type="file" id="inputFondo" class="form-control" accept="image/*">
                     </div>
                 </div>
-                <div class="box-body">
-                    <a href="{{ route('credenciales.preview', [$diseno->id, 1]) }}" target="_blank"
-                        class="btn btn-warning btn-block text-bold" style="margin-bottom: 15px;">
-                        <i class="fa fa-eye"></i> Vista Previa
-                    </a>
 
-                    <button class="btn btn-primary btn-block text-left" onclick="addElement('label', 'Etiqueta:')">
-                        <i class="fa fa-tag"></i> <b>Añadir Etiqueta Fija</b>
-                    </button>
-
-                    <hr>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('nombre', 'ALBERTO SAMAYOA')"><i
-                            class="fa fa-user"></i> Nombre</button>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('matricula', '2026-0001')"><i
-                            class="fa fa-barcode"></i> Matrícula</button>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('nivel', 'PREPARATORIA')"><i
-                            class="fa fa-university"></i> Nivel Escolar</button>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('grado', '1° SEMESTRE - A')"><i
-                            class="fa fa-graduation-cap"></i> Grado y Grupo</button>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('ciclo', '2025-2026')"><i
-                            class="fa fa-calendar"></i> Ciclo Escolar</button>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('sangre', 'O+')"><i
-                            class="fa fa-tint"></i> Tipo de Sangre</button>
-                    <button class="btn btn-default btn-block text-left" onclick="addElement('foto', 'FOTO')"><i
-                            class="fa fa-camera"></i> Foto Alumno</button>
-                    <hr>
-                    <label>Fondo de Imagen</label>
-                    <input type="file" id="inputFondo" class="form-control" accept="image/*">
+                <div id="panel-edicion" class="box box-warning" style="display: none; border-top: 3px solid #f39c12;">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">Propiedades</h3>
+                    </div>
+                    <div class="box-body">
+                        <label>Texto Contenido:</label>
+                        <input type="text" id="prop-text" class="form-control" oninput="updateLive()"><br>
+                        <label>Tipografía:</label>
+                        <select id="prop-font" class="form-control" onchange="updateLive()">
+                            <option value="'Roboto', sans-serif">Roboto</option>
+                            <option value="'Montserrat', sans-serif">Montserrat</option>
+                            <option value="'Oswald', sans-serif">Oswald</option>
+                        </select><br>
+                        <label>Estilo y Alineación:</label>
+                        <div class="btn-group btn-group-justified" style="margin-bottom: 10px;">
+                            <a class="btn btn-default btn-sm" id="btn-bold" onclick="toggleBold()"><i
+                                    class="fa fa-bold"></i></a>
+                            <a class="btn btn-default btn-sm" id="btn-italic" onclick="toggleItalic()"><i
+                                    class="fa fa-italic"></i></a>
+                            <a class="btn btn-default btn-sm" id="align-left" onclick="setAlign('left')"><i
+                                    class="fa fa-align-left"></i></a>
+                            <a class="btn btn-default btn-sm" id="align-center" onclick="setAlign('center')"><i
+                                    class="fa fa-align-center"></i></a>
+                            <a class="btn btn-default btn-sm" id="align-right" onclick="setAlign('right')"><i
+                                    class="fa fa-align-right"></i></a>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-8">
+                                <label>Tamaño: <span id="txt-size">14</span>px</label>
+                                <input type="range" id="prop-size" min="6" max="100"
+                                    oninput="updateLive()">
+                            </div>
+                            <div class="col-xs-4">
+                                <label>Color:</label>
+                                <input type="color" id="prop-color" class="form-control" onchange="updateLive()">
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <button id="btn-save-design" class="btn btn-success btn-block btn-lg btn-flat" onclick="saveAll()">
+                    <i class="fa fa-save"></i> GUARDAR DISEÑO
+                </button>
             </div>
 
-            <div id="panel-edicion" class="box box-warning" style="display: none; border-top: 3px solid #f39c12;">
-                <div class="box-header with-border">
-                    <h3 class="box-title">Propiedades</h3>
-                </div>
-                <div class="box-body">
-                    <label>Texto:</label>
-                    <input type="text" id="prop-text" class="form-control" oninput="updateLive()"><br>
-
-                    <label>Tipografía:</label>
-                    <select id="prop-font" class="form-control" onchange="updateLive()">
-                        <option value="Roboto, sans-serif">Roboto</option>
-                        <option value="'Montserrat', sans-serif">Montserrat</option>
-                        <option value="'Oswald', sans-serif">Oswald</option>
-                    </select><br>
-
-                    <label>Estilo y Alineación:</label>
-                    <div class="btn-group btn-group-justified" style="margin-bottom: 10px;">
-                        <a class="btn btn-default btn-sm" id="btn-bold" onclick="toggleBold()"><i
-                                class="fa fa-bold"></i></a>
-                        <a class="btn btn-default btn-sm" id="btn-italic" onclick="toggleItalic()"><i
-                                class="fa fa-italic"></i></a>
-                        <a class="btn btn-default btn-sm" id="align-left" onclick="setAlign('left')"><i
-                                class="fa fa-align-left"></i></a>
-                        <a class="btn btn-default btn-sm" id="align-center" onclick="setAlign('center')"><i
-                                class="fa fa-align-center"></i></a>
-                        <a class="btn btn-default btn-sm" id="align-right" onclick="setAlign('right')"><i
-                                class="fa fa-align-right"></i></a>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-xs-8">
-                            <label>Tamaño: <span id="txt-size">14</span>px</label>
-                            <input type="range" id="prop-size" min="6" max="100" oninput="updateLive()">
+            <div class="col-md-9">
+                <div id="canvas-container">
+                    @if (isset($alumnos) && count($alumnos) > 0)
+                        @foreach ($alumnos as $alumno)
+                            <div class="no-print" style="width: 100%; text-align: center;">
+                                <span class="badge-alumno">Alumno {{ $loop->iteration }} de {{ $loop->count }}:
+                                    {{ $alumno->nombre }} {{ $alumno->ap_paterno }}</span>
+                            </div>
+                            <div id="credencial-canvas-{{ $alumno->id }}" class="credencial-canvas-instance"
+                                {{-- SE CORRIGEN LAS RUTAS DE DATOS USANDO EL PLURAL Y OPERADORES NULLSAFE --}}
+                                data-nombre="{{ $alumno->nombre }} {{ $alumno->ap_paterno ?? '' }} {{ $alumno->ap_materno ?? '' }}"
+                                data-matricula="{{ $alumno->matricula ?? 'S/N' }}"
+                                data-nivel="{{ $alumno->inscripciones->first()?->grupo?->grado?->nivel?->nombre ?? 'SIN NIVEL' }}"
+                                data-grado="{{ $alumno->inscripciones->first()?->grupo?->grado?->nombre ?? '' }} {{ $alumno->inscripciones->first()?->grupo?->nombre ?? '' }}"
+                                data-ciclo="{{ $cicloActual->nombre ?? 'Sin ciclo' }}"
+                                data-sangre="{{ $alumno->tipo_sangre ?? 'O+' }}"
+                                data-foto="{{ $alumno->foto ? asset('storage/' . $alumno->foto) : '' }}"
+                                onclick="deselect(event)">
+                                <div id="group-outline-{{ $alumno->id }}" class="group-outline"></div>
+                                <div id="guide-v-{{ $alumno->id }}" class="guide-line guide-v"></div>
+                                <div id="guide-h-{{ $alumno->id }}" class="guide-line guide-h"></div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div id="credencial-canvas" class="credencial-canvas-instance" onclick="deselect(event)">
+                            <div id="group-outline" class="group-outline"></div>
+                            <div id="guide-v" class="guide-line guide-v"></div>
+                            <div id="guide-h" class="guide-line guide-h"></div>
                         </div>
-                        <div class="col-xs-4">
-                            <label>Color:</label>
-                            <input type="color" id="prop-color" class="form-control" onchange="updateLive()">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <button id="btn-save-design" class="btn btn-success btn-block btn-lg btn-flat" onclick="saveAll()">
-                <i class="fa fa-save"></i> GUARDAR DISEÑO
-            </button>
-        </div>
-
-        <div class="col-md-9">
-            <div id="canvas-container">
-                <div id="credencial-canvas" onclick="deselect(event)">
-                    <div id="group-outline" class="group-outline"></div>
-                    <div id="guide-v" class="guide-line guide-v"></div>
-                    <div id="guide-h" class="guide-line guide-h"></div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -298,21 +504,29 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4>Atajos de Teclado</h4>
+                    <h4>Atajos de Teclado y Comandos</h4>
                 </div>
                 <div class="modal-body">
                     <table class="table">
                         <tr>
                             <td><kbd>Flechas</kbd></td>
-                            <td>Mover (1px)</td>
+                            <td>Mover libremente (1px)</td>
                         </tr>
                         <tr>
                             <td><kbd>Shift + Flechas</kbd></td>
-                            <td>Mover (10px) / Snap Magnético</td>
+                            <td>Mover rápido (10px)</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Arrastrar</kbd></td>
+                            <td>Mover libremente (Muestra guías)</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift + Arrastrar</kbd></td>
+                            <td>Snap Magnético a las guías</td>
                         </tr>
                         <tr>
                             <td><kbd>Supr / Backspace</kbd></td>
-                            <td>Eliminar elemento</td>
+                            <td>Eliminar elemento seleccionado</td>
                         </tr>
                         <tr>
                             <td><kbd>Esc</kbd></td>
@@ -328,14 +542,14 @@
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
                 <div class="modal-body">
-                    <h4>Anclar Dato BD</h4>
+                    <h4>Anclar Dato Dinámico</h4>
                     <button class="btn btn-default btn-block"
                         onclick="confirmAnchor('nombre', 'ALBERTO SAMAYOA')">Nombre</button>
                     <button class="btn btn-default btn-block"
                         onclick="confirmAnchor('matricula', '2026-0001')">Matrícula</button>
                     <button class="btn btn-default btn-block" onclick="confirmAnchor('grado', '1° SEMESTRE - A')">Grado y
                         Grupo</button>
-                    <button class="btn btn-default btn-block" onclick="confirmAnchor('sangre', 'O+')">Sangre</button>
+                    <button class="btn btn-default btn-block" onclick="confirmAnchor('sangre', 'O+')">Tipo Sangre</button>
                 </div>
             </div>
         </div>
@@ -350,14 +564,17 @@
         let anchorPending = null;
         let imagenTemporal = null;
         let unsavedChanges = false;
+        const wrapperPrincipal = document.getElementById('wrapper-principal');
+        const isModeVisual = wrapperPrincipal.classList.contains('modo-visualizacion');
+        if (isModeVisual) {
+            document.body.classList.add('modo-visualizacion-body');
+        }
 
-        // LÓGICA DE ALERTA DE CAMBIOS (A prueba de balas)
         function markAsUnsaved() {
-            if (!unsavedChanges) { // Solo ejecutar si no estaba ya marcado
+            if (!unsavedChanges && !isModeVisual) {
                 unsavedChanges = true;
                 const btn = document.getElementById('btn-save-design');
                 if (btn) {
-                    // Forzamos el cambio de clases directo
                     btn.className = 'btn btn-warning btn-block btn-lg btn-flat pulse-warning';
                     btn.innerHTML = '<i class="fa fa-exclamation-triangle"></i> CAMBIOS SIN GUARDAR *';
                 }
@@ -374,7 +591,7 @@
         }
 
         window.addEventListener('beforeunload', function(e) {
-            if (unsavedChanges) {
+            if (unsavedChanges && !isModeVisual) {
                 e.preventDefault();
                 e.returnValue = '';
             }
@@ -383,116 +600,128 @@
         document.addEventListener('DOMContentLoaded', function() {
             const configInicial = @json($diseno->config_anverso ?? []);
             if (configInicial && configInicial.length > 0) {
-                configInicial.forEach(item => restoreElement(item));
+                document.querySelectorAll('.credencial-canvas-instance').forEach(lienzo => {
+                    configInicial.forEach(item => restoreElement(item, lienzo));
+                });
             }
         });
 
         function checkOverflow(el) {
+            if (isModeVisual || el.dataset.type === 'foto') return;
             const span = el.querySelector('.content-span');
             if (!span) return;
-
-            // 1. TRUCO DE INGENIERÍA: Le quitamos el tamaño forzado temporalmente
             span.style.width = 'auto';
             span.style.height = 'auto';
-
-            // 2. Medimos cuánto miden las letras puras (texto REAL)
             const textoAlto = span.offsetHeight;
             const textoAncho = span.offsetWidth;
-
-            // 3. Restauramos los tamaños al 100% para que el arrastre siga funcionando
             span.style.width = '100%';
             span.style.height = '100%';
-
-            // 4. Medimos el espacio interno de la caja azul (el contenedor)
-            // Le restamos unos 4px de tolerancia por si las letras rozan el borde
             const cajaAlto = el.clientHeight;
             const cajaAncho = el.clientWidth;
-
-            // 5. El veredicto infalible:
-            if (textoAlto > cajaAlto || textoAncho > cajaAncho) {
-                el.classList.add('overflow-warning');
-            } else {
-                el.classList.remove('overflow-warning');
-            }
+            if (textoAlto > cajaAlto || textoAncho > cajaAncho) el.classList.add('overflow-warning');
+            else el.classList.remove('overflow-warning');
         }
 
-        function restoreElement(data) {
-            const id = data.id,
-                el = document.createElement('div');
+        function restoreElement(data, canvas) {
+            const id = isModeVisual && canvas.id !== 'credencial-canvas' ? canvas.id + '_' + data.id : data.id;
+            const el = document.createElement('div');
             el.id = id;
             el.className = 'draggable-item ' + (data.isLabel ? 'is-label' : '');
             el.dataset.type = data.type;
-            el.dataset.parentId = data.parentId || '';
+            el.dataset.originalId = data.id;
             el.dataset.x = data.x;
             el.dataset.y = data.y;
+            el.dataset.parentId = data.parentId ? (isModeVisual && canvas.id !== 'credencial-canvas' ? canvas.id + '_' +
+                data.parentId : data.parentId) : '';
 
-            el.style.transform = `translate(${data.x}px, ${data.y}px)`;
-            el.style.fontSize = data.fontSize || '14px';
-            el.style.color = data.color || '#000000';
-            el.style.width = data.width || 'auto';
-            el.style.height = data.height || 'auto';
-            el.style.textAlign = data.textAlign || 'left';
-            el.style.fontWeight = data.fontWeight || 'normal';
-            el.style.fontStyle = data.fontStyle || 'normal';
-            el.style.fontFamily = data.fontFamily || 'Roboto, sans-serif';
+            Object.assign(el.style, {
+                transform: `translate(${data.x}px, ${data.y}px)`,
+                fontSize: data.fontSize || '14px',
+                width: data.width || 'auto',
+                height: data.height || 'auto',
+                textAlign: data.textAlign || 'left',
+                fontWeight: data.fontWeight || 'normal',
+                fontStyle: data.fontStyle || 'normal',
+                fontFamily: data.fontFamily || 'Roboto, sans-serif'
+            });
 
-            const btnDel = document.createElement('div');
-            btnDel.className = 'btn-del';
-            btnDel.innerHTML = '×';
-            btnDel.onclick = (e) => {
-                e.stopPropagation();
-                deleteEl(el.id);
-            };
-            el.appendChild(btnDel);
-
-            if (data.isLabel) {
-                ['top', 'bottom', 'left', 'right'].forEach(dir => {
-                    const node = document.createElement('div');
-                    node.className = `node node-${dir}`;
-                    node.innerHTML = '+';
-                    node.onclick = (e) => {
-                        e.stopPropagation();
-                        openAnchor(el.id, dir);
-                    };
-                    el.appendChild(node);
-                });
+            if (!isModeVisual) {
+                const btnDel = document.createElement('div');
+                btnDel.className = 'btn-del';
+                btnDel.innerHTML = '×';
+                btnDel.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteEl(el.id);
+                };
+                el.appendChild(btnDel);
+                if (data.isLabel) {
+                    ['top', 'bottom', 'left', 'right'].forEach(dir => {
+                        const node = document.createElement('div');
+                        node.className = `node node-${dir}`;
+                        node.innerHTML = '+';
+                        node.onclick = (e) => {
+                            e.stopPropagation();
+                            openAnchor(el.id, dir);
+                        };
+                        el.appendChild(node);
+                    });
+                }
             }
 
             const span = document.createElement('span');
             span.className = 'content-span';
-            if (data.type === 'foto') {
-                el.style.background = '#eee';
-                el.style.border = '1px solid #999';
-                el.style.display = 'flex';
-                el.style.alignItems = 'center';
-                el.style.justifyContent = 'center';
-                span.innerHTML = '<i class="fa fa-user fa-3x"></i>';
-            } else {
-                span.innerText = data.text;
-            }
-            el.appendChild(span);
+            let textoFinal = data.text;
+            let fotoUrl = null;
 
-            el.onclick = (e) => {
-                e.stopPropagation();
-                selectEl(el);
-            };
-            document.getElementById('credencial-canvas').appendChild(el);
-            initInteract(el);
-            setTimeout(() => checkOverflow(el), 100);
+            if (isModeVisual && canvas.id !== 'credencial-canvas') {
+                if (data.type === 'nombre') textoFinal = canvas.dataset.nombre || textoFinal;
+                if (data.type === 'matricula') textoFinal = canvas.dataset.matricula || textoFinal;
+                if (data.type === 'nivel') textoFinal = canvas.dataset.nivel || textoFinal;
+                if (data.type === 'grado') textoFinal = canvas.dataset.grado || textoFinal;
+                if (data.type === 'ciclo') textoFinal = canvas.dataset.ciclo || textoFinal;
+                if (data.type === 'sangre') textoFinal = canvas.dataset.sangre || textoFinal;
+                if (data.type === 'foto') fotoUrl = canvas.dataset.foto;
+            }
+
+            if (data.type === 'foto') {
+                el.style.padding = '0';
+                el.style.border = isModeVisual ? 'none' : '1px dashed #ccc';
+                if (isModeVisual) {
+                    span.innerHTML = fotoUrl ?
+                        `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; background-color: transparent;">` :
+                        `<div style="width:100%;height:100%;background:transparent;"></div>`;
+                } else {
+                    span.innerHTML =
+                        `<div style="width:100%;height:100%;background:#f8f9fa;display:flex;align-items:center;justify-content:center;"><i class="fa fa-camera fa-3x" style="color:#bdc3c7"></i></div>`;
+                }
+            } else {
+                span.innerText = textoFinal;
+                span.style.setProperty('color', data.color || '#000000', 'important');
+            }
+
+            el.appendChild(span);
+            if (!isModeVisual) {
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    selectEl(el);
+                };
+                initInteract(el, canvas);
+                setTimeout(() => checkOverflow(el), 100);
+            }
+            canvas.appendChild(el);
         }
 
-        function initInteract(el) {
-            let canvasW = document.getElementById('credencial-canvas').offsetWidth;
-            let canvasH = document.getElementById('credencial-canvas').offsetHeight;
+        function initInteract(el, canvas) {
+            let canvasW = canvas.offsetWidth;
+            let canvasH = canvas.offsetHeight;
             let cachedItems = [];
-
             interact(el).draggable({
                 inertia: false,
                 autoScroll: true,
                 listeners: {
                     start(event) {
                         cachedItems = [];
-                        document.querySelectorAll('.draggable-item').forEach(item => {
+                        canvas.querySelectorAll('.draggable-item').forEach(item => {
                             if (item.id !== event.target.id) {
                                 cachedItems.push({
                                     id: item.id,
@@ -512,7 +741,6 @@
                         let y = oldY + event.dy;
                         const w = target.offsetWidth;
                         const h = target.offsetHeight;
-
                         const threshold = 6;
                         let alignedX = false,
                             alignedY = false;
@@ -565,9 +793,8 @@
                             }
                         });
 
-                        const gV = document.getElementById('guide-v');
-                        const gH = document.getElementById('guide-h');
-
+                        const gV = canvas.querySelector('.guide-v');
+                        const gH = canvas.querySelector('.guide-h');
                         if (alignedX) {
                             gV.style.left = guideX + 'px';
                             gV.style.display = 'block';
@@ -580,7 +807,6 @@
                         } else {
                             gH.style.display = 'none';
                         }
-
                         if (event.shiftKey) {
                             if (alignedX) x = snapX;
                             if (alignedY) y = snapY;
@@ -589,23 +815,19 @@
                         let effectiveDx = x - oldX;
                         let effectiveDy = y - oldY;
                         updatePos(target, x, y);
-
-                        document.querySelectorAll(`[data-parent-id="${target.id}"]`).forEach(c => {
+                        canvas.querySelectorAll(`[data-parent-id="${target.id}"]`).forEach(c => {
                             updatePos(c, parseFloat(c.dataset.x) + effectiveDx, parseFloat(c.dataset.y) +
                                 effectiveDy);
                         });
-
                         const p = target.dataset.parentId ? document.getElementById(target.dataset.parentId) :
                             target;
-                        drawGroupOutline(p);
+                        drawGroupOutline(p, canvas);
                         checkOverflow(target);
-
-                        // DISPARA ALERTA AL MOVER
                         markAsUnsaved();
                     },
                     end() {
-                        document.getElementById('guide-v').style.display = 'none';
-                        document.getElementById('guide-h').style.display = 'none';
+                        canvas.querySelector('.guide-v').style.display = 'none';
+                        canvas.querySelector('.guide-h').style.display = 'none';
                     }
                 }
             }).resizable({
@@ -630,8 +852,6 @@
                         });
                         updatePos(event.target, x, y);
                         checkOverflow(event.target);
-
-                        // DISPARA ALERTA AL REDIMENSIONAR
                         markAsUnsaved();
                     }
                 }
@@ -642,6 +862,50 @@
             el.style.transform = `translate(${x}px, ${y}px)`;
             el.dataset.x = x;
             el.dataset.y = y;
+        }
+
+        function selectEl(el) {
+            if (isModeVisual) return;
+            deselect();
+            selected = el;
+            el.classList.add('selected');
+            document.getElementById('panel-edicion').style.display = 'block';
+            const span = el.querySelector('.content-span');
+            const isFoto = el.dataset.type === 'foto';
+            const propText = document.getElementById('prop-text');
+            propText.value = isFoto ? 'Elemento de Imagen' : span.innerText;
+            propText.disabled = isFoto;
+            document.getElementById('prop-size').value = parseInt(el.style.fontSize) || 14;
+            document.getElementById('prop-color').value = rgbToHex(el.style.color) || '#000000';
+            document.getElementById('txt-size').innerText = parseInt(el.style.fontSize) || 14;
+            updateUIButtons();
+        }
+
+        function deselect(e) {
+            if (isModeVisual) return;
+            if (e && (!e.target.closest || !e.target.closest('.credencial-canvas-instance'))) return;
+            document.querySelectorAll('.draggable-item').forEach(i => i.classList.remove('selected'));
+            selected = null;
+            document.getElementById('panel-edicion').style.display = 'none';
+            document.querySelectorAll('.group-outline').forEach(o => o.style.display = 'none');
+        }
+
+        function updateLive() {
+            if (!selected) return;
+            const span = selected.querySelector('.content-span');
+            if (selected.dataset.type !== 'foto') {
+                span.innerText = document.getElementById('prop-text').value;
+            }
+            selected.style.fontSize = document.getElementById('prop-size').value + 'px';
+            document.getElementById('txt-size').innerText = document.getElementById('prop-size').value;
+            const colorHex = document.getElementById('prop-color').value;
+            selected.style.color = colorHex;
+            span.style.setProperty('color', colorHex, 'important');
+            selected.style.fontFamily = document.getElementById('prop-font').value;
+            checkOverflow(selected);
+            const p = selected.dataset.parentId ? document.getElementById(selected.dataset.parentId) : selected;
+            drawGroupOutline(p, document.getElementById('credencial-canvas'));
+            markAsUnsaved();
         }
 
         function updateUIButtons() {
@@ -678,46 +942,6 @@
             updateLive();
         }
 
-        function selectEl(el) {
-            deselect();
-            selected = el;
-            el.classList.add('selected');
-            document.getElementById('panel-edicion').style.display = 'block';
-            document.getElementById('prop-text').value = el.querySelector('.content-span').innerText;
-            document.getElementById('prop-size').value = parseInt(el.style.fontSize) || 14;
-            document.getElementById('prop-color').value = rgbToHex(el.style.color) || '#000000';
-            updateUIButtons();
-        }
-
-        function updateLive() {
-            if (!selected) return;
-            const span = selected.querySelector('.content-span');
-            const inputSize = document.getElementById('prop-size');
-            const txtSize = document.getElementById('txt-size');
-            const inputFont = document.getElementById('prop-font');
-
-            span.innerText = document.getElementById('prop-text').value;
-            selected.style.fontSize = inputSize.value + 'px';
-            selected.style.color = document.getElementById('prop-color').value;
-            if (inputFont) selected.style.fontFamily = inputFont.value;
-            if (txtSize) txtSize.innerText = inputSize.value;
-
-            checkOverflow(selected);
-            const p = selected.dataset.parentId ? document.getElementById(selected.dataset.parentId) : selected;
-            drawGroupOutline(p);
-
-            // DISPARA ALERTA AL CAMBIAR PROPIEDADES
-            markAsUnsaved();
-        }
-
-        function deselect(e) {
-            if (e && e.target.id !== 'credencial-canvas') return;
-            document.querySelectorAll('.draggable-item').forEach(i => i.classList.remove('selected'));
-            selected = null;
-            document.getElementById('panel-edicion').style.display = 'none';
-            document.getElementById('group-outline').style.display = 'none';
-        }
-
         function deleteEl(id) {
             const el = document.getElementById(id);
             if (el) el.remove();
@@ -726,6 +950,7 @@
         }
 
         function addElement(type, text) {
+            if (isModeVisual) return;
             const id = 'el_' + Date.now();
             restoreElement({
                 id: id,
@@ -734,15 +959,15 @@
                 y: 30,
                 text: text,
                 fontSize: '14px',
-                color: '#000000',
+                color: (type === 'sangre') ? '#e74c3c' : '#033b8a',
                 width: 'auto',
                 height: 'auto',
-                textAlign: 'left',
-                fontWeight: 'normal',
+                textAlign: 'center',
+                fontWeight: 'bold',
                 fontStyle: 'normal',
-                fontFamily: 'Roboto, sans-serif',
+                fontFamily: "'Montserrat', sans-serif",
                 isLabel: (type === 'label')
-            });
+            }, document.getElementById('credencial-canvas'));
             selectEl(document.getElementById(id));
             markAsUnsaved();
         }
@@ -763,23 +988,22 @@
                 pH = parent.offsetHeight;
             let nX = pX,
                 nY = pY;
-
             if (anchorPending.dir === 'right') nX = pX + pW + 10;
             else if (anchorPending.dir === 'bottom') nY = pY + pH + 5;
-
             addElement(type, text);
             const child = selected;
             child.dataset.parentId = anchorPending.parentId;
             updatePos(child, nX, nY);
             $('#modalAnclaje').modal('hide');
-            drawGroupOutline(parent);
+            drawGroupOutline(parent, document.getElementById('credencial-canvas'));
             markAsUnsaved();
         }
 
-        function drawGroupOutline(parentEl) {
-            if (!parentEl) return;
-            const children = document.querySelectorAll(`[data-parent-id="${parentEl.id}"]`),
-                outline = document.getElementById('group-outline');
+        function drawGroupOutline(parentEl, canvas) {
+            if (!parentEl || isModeVisual) return;
+            const children = canvas.querySelectorAll(`[data-parent-id="${parentEl.id}"]`);
+            const outline = canvas.querySelector('.group-outline');
+            if (!outline) return;
             if (children.length === 0) {
                 outline.style.display = 'none';
                 return;
@@ -788,7 +1012,6 @@
                 minY = parseFloat(parentEl.dataset.y),
                 maxX = minX + parentEl.offsetWidth,
                 maxY = minY + parentEl.offsetHeight;
-
             children.forEach(c => {
                 minX = Math.min(minX, parseFloat(c.dataset.x));
                 minY = Math.min(minY, parseFloat(c.dataset.y));
@@ -801,53 +1024,11 @@
             outline.style.transform = `translate(${minX - 5}px, ${minY - 5}px)`;
         }
 
-        function saveAll() {
-            const elementos = [];
-            document.querySelectorAll('.draggable-item').forEach(el => {
-                elementos.push({
-                    id: el.id,
-                    parentId: el.dataset.parentId || null,
-                    type: el.dataset.type,
-                    x: el.dataset.x,
-                    y: el.dataset.y,
-                    width: el.style.width,
-                    height: el.style.height,
-                    fontSize: el.style.fontSize,
-                    color: el.style.color,
-                    text: el.querySelector('.content-span').innerText,
-                    isLabel: el.classList.contains('is-label'),
-                    textAlign: el.style.textAlign || 'left',
-                    fontWeight: el.style.fontWeight || 'normal',
-                    fontStyle: el.style.fontStyle || 'normal',
-                    fontFamily: el.style.fontFamily || 'Roboto, sans-serif'
-                });
-            });
-
-            const fData = new FormData();
-            fData.append('configuracion', JSON.stringify(elementos));
-            fData.append('_token', "{{ csrf_token() }}");
-            if (imagenTemporal) fData.append('fondo', imagenTemporal);
-
-            fetch("{{ route('credenciales.updateConfig', $diseno->id) }}", {
-                method: "POST",
-                body: fData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            }).then(r => r.json()).then(data => {
-                if (data.status === 'success') {
-                    alert("Guardado con éxito");
-                    markAsSaved();
-                }
-            });
-        }
-
         window.addEventListener('keydown', function(e) {
-            if (!selected || e.target.tagName === 'INPUT') return;
+            if (isModeVisual || !selected || e.target.tagName === 'INPUT') return;
             const step = e.shiftKey ? 10 : 1;
             let x = parseFloat(selected.dataset.x),
                 y = parseFloat(selected.dataset.y);
-
             switch (e.key) {
                 case 'ArrowUp':
                     e.preventDefault();
@@ -867,9 +1048,11 @@
                     break;
                 case 'Delete':
                 case 'Backspace':
+                    e.preventDefault();
                     deleteEl(selected.id);
                     break;
                 case 'Escape':
+                    e.preventDefault();
                     deselect();
                     break;
             }
@@ -883,11 +1066,50 @@
                 updatePos(c, parseFloat(c.dataset.x) + dx, parseFloat(c.dataset.y) + dy);
             });
             const p = selected.dataset.parentId ? document.getElementById(selected.dataset.parentId) : selected;
-            drawGroupOutline(p);
+            drawGroupOutline(p, document.getElementById('credencial-canvas'));
             checkOverflow(selected);
-
-            // DISPARA ALERTA CON TECLADO
             markAsUnsaved();
+        }
+
+        function saveAll() {
+            if (isModeVisual) return;
+            const elementos = [];
+            document.querySelectorAll('#credencial-canvas .draggable-item').forEach(el => {
+                elementos.push({
+                    id: el.id,
+                    parentId: el.dataset.parentId || null,
+                    type: el.dataset.type,
+                    x: el.dataset.x,
+                    y: el.dataset.y,
+                    width: el.style.width,
+                    height: el.style.height,
+                    fontSize: el.style.fontSize,
+                    color: el.style.color,
+                    text: el.dataset.type === 'foto' ? 'FOTO' : el.querySelector('.content-span').innerText,
+                    isLabel: el.classList.contains('is-label'),
+                    textAlign: el.style.textAlign || 'left',
+                    fontWeight: el.style.fontWeight || 'normal',
+                    fontStyle: el.style.fontStyle || 'normal',
+                    fontFamily: el.style.fontFamily || 'Roboto, sans-serif'
+                });
+            });
+            const fData = new FormData();
+            fData.append('configuracion', JSON.stringify(elementos));
+            fData.append('_token', "{{ csrf_token() }}");
+            if (imagenTemporal) fData.append('fondo', imagenTemporal);
+            fetch("{{ route('credenciales.updateConfig', $diseno->id) }}", {
+                    method: "POST",
+                    body: fData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(r => r.json()).then(data => {
+                    if (data.status === 'success') {
+                        alert("¡Guardado con éxito! Tu lote está listo para imprimir.");
+                        markAsSaved();
+                    }
+                });
         }
 
         function rgbToHex(rgb) {
@@ -904,7 +1126,6 @@
                 reader.onload = (ev) => document.getElementById('credencial-canvas').style.backgroundImage =
                     `url(${ev.target.result})`;
                 reader.readAsDataURL(file);
-                // DISPARA ALERTA AL SUBIR FONDO
                 markAsUnsaved();
             }
         };
