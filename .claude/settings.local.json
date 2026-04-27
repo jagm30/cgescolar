@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(php artisan:*)",
-      "Bash(php -l app/Http/Controllers/PagoController.php)"
+      "Bash(php -l app/Http/Controllers/PagoController.php)",
+      "Bash(git checkout:*)",
+      "WebSearch"
     ]
   }
 }

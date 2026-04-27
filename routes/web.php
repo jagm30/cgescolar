@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\CicloEscolarController;
+use App\Http\Controllers\CfdiController;
 use App\Http\Controllers\CobrosController;
 use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\CredencialController; 
@@ -71,6 +72,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::delete('ciclos/{id}/force', [CicloEscolarController::class, 'forceDelete'])
     ->middleware('rol:administrador,caja,recepcion')
     ->name('ciclos.forceDelete');
+    
     Route::resource('ciclos', CicloEscolarController::class)
         ->middleware('rol:administrador');
 
@@ -358,6 +360,13 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // POST   /familias/contactos/{id}/resetear-password   → resetearPassword
     // =======================================================
 });
+// ── CFDI / Facturación ────────────────────────────────
+Route::middleware('rol:administrador,caja')->prefix('cfdis')->name('cfdis.')->group(function () {
+    Route::post('/emitir/{pago}', [CfdiController::class, 'emitir'])->name('emitir');
+    Route::post('/{cfdi}/cancelar', [CfdiController::class, 'cancelar'])->name('cancelar');
+    Route::get('/{cfdi}/descargar/{formato}', [CfdiController::class, 'descargar'])->name('descargar');
+});
+
 // ── Cobros / Caja ─────────────────────────────────────
 Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->group(function () {
 
@@ -424,5 +433,8 @@ Route::prefix('credenciales')->group(function () {
     Route::post('/{id}/config', [App\Http\Controllers\CredencialController::class, 'updateConfig'])->name('credenciales.updateConfig');
     Route::post('/{id}/upload-fondo', [App\Http\Controllers\CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
     Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');
+
+    // Configuración fiscal (datos del emisor para CFDI)
+    Route::post('/fiscal', [SettingController::class, 'updateFiscal'])->name('settings.fiscal');
 });
 
