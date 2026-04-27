@@ -27,8 +27,12 @@ class UpdateAlumnoRequest extends FormRequest
             'estado'           => ['sometimes', 'required', 'in:activo,baja_temporal,baja_definitiva,egresado'],
             'foto_url'         => ['nullable', 'string', 'max:500'],
             'observaciones'    => ['nullable', 'string', 'max:1000'],
-            'fecha_baja'       => ['nullable', 'date', 'required_if:estado,baja_definitiva'],
+            'fecha_inscripcion' => ['sometimes', 'required', 'date'],
+            'fecha_baja'        => ['nullable', 'date', 'required_if:estado,baja_definitiva'],
             'familia_id'       => ['nullable', 'exists:familia,id'],
+            'ciclo_id'         => ['nullable', 'exists:ciclo_escolar,id'],
+            'nivel_id'         => ['nullable', 'exists:nivel_escolar,id'],
+            'grupo_id'         => ['nullable', 'exists:grupo,id'],
         ];
     }
 

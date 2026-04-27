@@ -15,7 +15,7 @@ class StoreRazonSocialContactoRequest extends FormRequest
     {
         return [
             'contacto_id'      => ['required', 'exists:contacto_familiar,id'],
-            'rfc'              => ['required', 'string', 'size:12,13',
+            'rfc'              => ['required', 'string', 'between:12,13',
                                    'regex:/^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/'],
             'razon_social'     => ['required', 'string', 'max:300'],
             'regimen_fiscal'   => ['required', 'string', 'max:10'],

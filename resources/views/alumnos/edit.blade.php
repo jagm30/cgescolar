@@ -844,11 +844,6 @@
                 if (validar && paso > pasoActual && !validarPaso(pasoActual)) {
                     alert('Corrige los campos requeridos del paso ' + pasoActual + ' antes de continuar.');
                     return;
-            window.wizardIr = function(paso, validar) {
-                if (typeof validar === 'undefined') validar = true;
-                if (validar && paso > pasoActual && !validarPaso(pasoActual)) {
-                    alert('Corrige los campos requeridos del paso ' + pasoActual + ' antes de continuar.');
-                    return;
                 }
 
                 pasoActual = Math.min(Math.max(paso, 1), TOTAL_PASOS);
@@ -1081,11 +1076,47 @@
             });
 
             // ══════════════════════════════════════════════════
-            // SUBMIT — deshabilitar botón
+            // SUBMIT — guardar contactos vía AJAX y luego enviar el formulario
             // ══════════════════════════════════════════════════
-            $('#form-editar-alumno').on('submit', function() {
+            $('#form-editar-alumno').on('submit', function(e) {
+                var $form = $(this);
+                var $paneles = $('.ctc-panel');
+
                 $('#btn-guardar').prop('disabled', true)
                     .html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
+
+                if ($paneles.length === 0) return; // sin contactos, enviar directo
+
+                e.preventDefault();
+
+                var peticiones = $paneles.map(function() {
+                    var $panel = $(this);
+                    var id = $panel.data('id');
+                    return $.ajax({
+                        url: '/familias/contactos/' + id,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            nombre:              $panel.find('.ctc-nombre').val().trim(),
+                            ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
+                            ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
+                            telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
+                            email:               $panel.find('.ctc-email').val().trim(),
+                            parentesco:          $panel.find('.ctc-parentesco').val(),
+                            tipo:                $panel.find('.ctc-tipo').val(),
+                            orden:               parseInt($panel.find('.ctc-orden').val()),
+                            autorizado_recoger:  $panel.find('.ctc-recoger').is(':checked'),
+                            es_responsable_pago: $panel.find('.ctc-pago').is(':checked'),
+                            tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
+                        }),
+                    });
+                }).get();
+
+                // Cuando terminen todos (éxito o error), enviar el formulario principal.
+                // Se usa el submit nativo (DOM) para no disparar este handler de nuevo.
+                $.when.apply($, peticiones).always(function() {
+                    $form[0].submit();
+                });
             });
 
             // ══════════════════════════════════════════════════

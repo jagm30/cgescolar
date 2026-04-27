@@ -274,6 +274,11 @@ class AlumnoController extends Controller
 
         $campos = $request->validated();
 
+        // Separar campos de inscripción — viven en tabla aparte
+        $grupoId = $campos['grupo_id'] ?? null;
+        $cicloId = $campos['ciclo_id'] ?? null;
+        unset($campos['grupo_id'], $campos['nivel_id'], $campos['ciclo_id']);
+
         // Procesar foto si viene en el request
         // Al igual que en store(), el archivo no está en validated()
         if ($request->hasFile('foto')) {
@@ -285,6 +290,34 @@ class AlumnoController extends Controller
         }
 
         $alumno->update($campos);
+
+        // Actualizar inscripción activa si se seleccionó grupo
+        if ($grupoId && $cicloId) {
+            $inscActiva = $alumno->inscripciones()->where('activo', true)->latest('id')->first();
+
+            if ($inscActiva) {
+                if ((int) $inscActiva->ciclo_id === (int) $cicloId) {
+                    $inscActiva->update(['grupo_id' => $grupoId]);
+                } else {
+                    $inscActiva->update(['activo' => false]);
+                    Inscripcion::create([
+                        'alumno_id' => $alumno->id,
+                        'ciclo_id'  => $cicloId,
+                        'grupo_id'  => $grupoId,
+                        'fecha'     => now()->toDateString(),
+                        'activo'    => true,
+                    ]);
+                }
+            } else {
+                Inscripcion::create([
+                    'alumno_id' => $alumno->id,
+                    'ciclo_id'  => $cicloId,
+                    'grupo_id'  => $grupoId,
+                    'fecha'     => now()->toDateString(),
+                    'activo'    => true,
+                ]);
+            }
+        }
 
         Auditoria::registrar('alumno', $alumno->id, 'update', $anterior, $alumno->fresh()->toArray());
 
