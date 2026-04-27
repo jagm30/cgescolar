@@ -685,26 +685,7 @@ class AlumnoController extends Controller
      * POST /grupos/{id}/egresar-todo
      * Procesa a múltiples alumnos de un grupo (egreso o cierre de ciclo).
      */
-public function egresarTodo(Request $request, $grupoId)
-{
-    $request->validate(['inscripciones_ids' => 'required|array']);
 
-    \DB::transaction(function () use ($request) {
-        foreach ($request->inscripciones_ids as $id) {
-            $inscripcion = Inscripcion::findOrFail($id);
-
-            // 1. Cerramos la inscripción actual
-            $inscripcion->update(['activo' => false]);
-
-            // 2. CAMBIO CLAVE: Marcamos al alumno como EGRESADO (Ya no es un alumno activo)
-            $inscripcion->alumno->update([
-                'estado' => 'egresado'
-            ]);
-        }
-    });
-
-    return back()->with('success', "Alumnos egresados correctamente.");
-}
     public function egresarTodo(Request $request, int $grupo_id)
     {
         // Recibimos los IDs de los checkboxes marcados
