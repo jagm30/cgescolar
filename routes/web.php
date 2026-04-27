@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\CicloEscolarController;
+use App\Http\Controllers\CfdiController;
 use App\Http\Controllers\CobrosController;
 use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\DashboardController;
@@ -357,6 +358,13 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // POST   /familias/contactos/{id}/resetear-password   → resetearPassword
     // =======================================================
 });
+// ── CFDI / Facturación ────────────────────────────────
+Route::middleware('rol:administrador,caja')->prefix('cfdis')->name('cfdis.')->group(function () {
+    Route::post('/emitir/{pago}', [CfdiController::class, 'emitir'])->name('emitir');
+    Route::post('/{cfdi}/cancelar', [CfdiController::class, 'cancelar'])->name('cancelar');
+    Route::get('/{cfdi}/descargar/{formato}', [CfdiController::class, 'descargar'])->name('descargar');
+});
+
 // ── Cobros / Caja ─────────────────────────────────────
 Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->group(function () {
 
@@ -403,6 +411,8 @@ Route::prefix('configuracion')->group(function () {
     
     // Ruta para procesar el formulario cuando le das a "Guardar Cambios"
     Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
-    
+
+    // Configuración fiscal (datos del emisor para CFDI)
+    Route::post('/fiscal', [SettingController::class, 'updateFiscal'])->name('settings.fiscal');
 });
 

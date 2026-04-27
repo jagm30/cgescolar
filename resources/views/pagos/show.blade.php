@@ -333,6 +333,175 @@
     </div>
     @endif
 
+    {{-- ══ Facturación CFDI ══ --}}
+    @if(auth()->user()->esAdministrador() || auth()->user()->esCajero())
+    <div class="recibo-card">
+        <div class="recibo-card-header">
+            <i class="fa fa-file-text-o" style="color:#7b2d8b;"></i>
+            <span class="recibo-card-title" style="color:#7b2d8b;">Facturación CFDI</span>
+        </div>
+
+        @if(!isset($configFiscal) || !$configFiscal)
+        {{-- Sin configuración fiscal --}}
+        <div style="padding:14px 16px;text-align:center;color:#b0bec5;font-size:12px;">
+            <i class="fa fa-exclamation-triangle"></i>
+            Sin configuración fiscal.<br>
+            <a href="{{ route('settings.index') }}" style="font-size:11px;">Configurar</a>
+        </div>
+
+        @elseif($esAnulado)
+        {{-- Pago anulado: no facturable --}}
+        <div style="padding:14px 16px;font-size:12px;color:#b0bec5;text-align:center;">
+            <i class="fa fa-ban"></i> Los pagos anulados no pueden facturarse.
+        </div>
+
+        @else
+        @php $cfdiVigente = $pago->cfdis->where('estado','vigente')->first(); @endphp
+
+        @if($cfdiVigente)
+        {{-- ── CFDI ya emitido ── --}}
+        <div class="info-row">
+            <span class="info-lbl">Estado</span>
+            <span style="background:#e8f5ee;color:#00875a;font-size:11px;font-weight:700;padding:2px 9px;border-radius:8px;">
+                <i class="fa fa-check-circle"></i> Timbrado
+            </span>
+        </div>
+        @if($cfdiVigente->folio)
+        <div class="info-row">
+            <span class="info-lbl">Folio fiscal</span>
+            <code style="font-size:12px;background:#f0f3f7;padding:2px 7px;border-radius:3px;font-weight:700;">
+                {{ $cfdiVigente->folio }}
+            </code>
+        </div>
+        @endif
+        @if($cfdiVigente->uuid_sat)
+        <div class="info-row" style="align-items:flex-start;">
+            <span class="info-lbl" style="flex-shrink:0;">UUID SAT</span>
+            <code style="font-size:9px;word-break:break-all;text-align:right;color:#4a5568;line-height:1.4;">
+                {{ $cfdiVigente->uuid_sat }}
+            </code>
+        </div>
+        @endif
+        @if($cfdiVigente->fecha_timbrado)
+        <div class="info-row">
+            <span class="info-lbl">Timbrado</span>
+            <span class="info-val" style="font-size:12px;">{{ $cfdiVigente->fecha_timbrado->format('d/m/Y H:i') }}</span>
+        </div>
+        @endif
+
+        {{-- Descargas --}}
+        <div style="padding:10px 16px;display:flex;gap:8px;">
+            <a href="{{ route('cfdis.descargar', [$cfdiVigente->id, 'pdf']) }}"
+               class="btn btn-sm btn-default btn-flat"
+               style="border-radius:6px;font-size:12px;">
+                <i class="fa fa-file-pdf-o" style="color:#e74c3c;"></i> PDF
+            </a>
+            <a href="{{ route('cfdis.descargar', [$cfdiVigente->id, 'xml']) }}"
+               class="btn btn-sm btn-default btn-flat"
+               style="border-radius:6px;font-size:12px;">
+                <i class="fa fa-code" style="color:#3c8dbc;"></i> XML
+            </a>
+        </div>
+
+        {{-- Cancelar CFDI (solo administrador) --}}
+        @if(auth()->user()->esAdministrador())
+        <div style="padding:0 16px 14px;">
+            <button type="button" class="btn btn-xs btn-flat btn-block"
+                    style="border:1px solid #fca5a5;color:#b91c1c;border-radius:6px;"
+                    onclick="var f=document.getElementById('form-cancel-cfdi');f.style.display=f.style.display==='none'?'block':'none';">
+                <i class="fa fa-ban"></i> Cancelar CFDI
+            </button>
+            <form id="form-cancel-cfdi" method="POST"
+                  action="{{ route('cfdis.cancelar', $cfdiVigente->id) }}"
+                  style="display:none;margin-top:8px;">
+                @csrf
+                <div style="margin-bottom:6px;">
+                    <label style="font-size:11px;color:#b91c1c;font-weight:700;">Motivo SAT</label>
+                    <select name="motivo" class="form-control input-sm" style="border-radius:5px;">
+                        <option value="02">02 — Errores sin relación</option>
+                        <option value="01">01 — Errores con relación</option>
+                        <option value="03">03 — Operación no realizada</option>
+                        <option value="04">04 — Operación nominativa</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-danger btn-xs btn-flat btn-block"
+                        style="border-radius:5px;"
+                        onclick="return confirm('¿Confirmar cancelación del CFDI {{ $cfdiVigente->folio }}?')">
+                    Confirmar cancelación
+                </button>
+            </form>
+        </div>
+        @endif
+
+        @else
+        {{-- ── Sin CFDI: formulario para emitir ── --}}
+        <div style="padding:14px 16px;">
+            <p style="font-size:11px;color:#8a9ab0;margin-bottom:12px;">
+                Selecciona el RFC del receptor y genera el CFDI de este pago.
+            </p>
+
+            <form method="POST" action="{{ route('cfdis.emitir', $pago->id) }}">
+                @csrf
+
+                {{-- Selector de RFC --}}
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:6px;">
+                        RFC del receptor
+                    </label>
+
+                    @forelse($razonesDisponibles as $rs)
+                    <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;
+                                  border:1px solid #e0e7ef;border-radius:6px;margin-bottom:4px;
+                                  cursor:pointer;font-weight:400;background:#fafbfc;">
+                        <input type="radio" name="razon_social_id" value="{{ $rs->id }}"
+                               {{ $loop->first && $razonesDisponibles->isNotEmpty() ? 'checked' : '' }}
+                               style="margin-top:3px;flex-shrink:0;">
+                        <span>
+                            <span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">{{ $rs->rfc }}</span>
+                            <span style="display:block;font-size:11px;color:#4a5568;">{{ $rs->razon_social }}</span>
+                            <span style="display:block;font-size:10px;color:#b0bec5;">{{ $rs->contacto?->nombre_completo }}</span>
+                        </span>
+                    </label>
+                    @empty
+                    @endforelse
+
+                    {{-- Público en general --}}
+                    <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;
+                                  border:1px solid #e0e7ef;border-radius:6px;cursor:pointer;
+                                  font-weight:400;background:#fafbfc;">
+                        <input type="radio" name="razon_social_id" value=""
+                               {{ $razonesDisponibles->isEmpty() ? 'checked' : '' }}>
+                        <span>
+                            <span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">XAXX010101000</span>
+                            <span style="display:block;font-size:11px;color:#8a9ab0;">Público en general</span>
+                        </span>
+                    </label>
+                </div>
+
+                {{-- Uso CFDI --}}
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                        Uso CFDI
+                    </label>
+                    <select name="uso_cfdi" class="form-control input-sm" style="border-radius:5px;">
+                        <option value="D10">D10 — Servicios educativos</option>
+                        <option value="S01">S01 — Sin efectos fiscales</option>
+                        <option value="G03">G03 — Gastos en general</option>
+                        <option value="CN01">CN01 — Nómina</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-sm btn-flat btn-block"
+                        style="background:#7b2d8b;color:#fff;border-radius:6px;font-weight:600;">
+                    <i class="fa fa-file-text-o"></i> Emitir CFDI
+                </button>
+            </form>
+        </div>
+        @endif
+        @endif
+    </div>
+    @endif
+
     {{-- Navegación --}}
     <div class="recibo-card">
         <div class="recibo-card-header">
