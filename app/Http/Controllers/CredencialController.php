@@ -106,23 +106,24 @@ class CredencialController extends Controller
     public function preview($credencial_id, $alumno_id)
     {
     $credencial = Credencial::findOrFail($credencial_id);
-    
-    // Traemos al alumno con sus relaciones necesarias
-    $alumno = Alumno::with(['inscripciones.grupo.grado', 'inscripciones.ciclo'])->findOrFail($alumno_id);
+    // Solo cargamos el alumno para que la vista tenga el objeto, pero no usaremos sus datos
+    $alumno = Alumno::find($alumno_id) ?? new Alumno();
 
-    // 1. Armamos el nombre (tu lógica actual está bien)
-    $alumno->nombre_render = trim($alumno->nombre . ' ' . $alumno->ap_paterno . ' ' . ($alumno->ap_materno ?? ''));
-
-    // 2. BUSCAMOS EL ID DEL CICLO ACTIVO (Esto es lo que faltaba)
-    // Buscamos la inscripción que esté marcada como activa
-    $inscripcion = $alumno->inscripciones->where('activo', 1)->first();
-
-    // 3. Asignamos los datos académicos al objeto alumno para usarlos en la vista
-    $alumno->grupo_render = $inscripcion ? $inscripcion->grupo->nombre : 'Sin Grupo';
-    $alumno->grado_render = $inscripcion ? $inscripcion->grupo->grado->nombre : 'Sin Grado';
-    
-    // Si no hay inscripción activa, el ciclo lo sacará el Composer globalmente en la vista
-    
     return view('credenciales.preview', compact('credencial', 'alumno'));
     }
+public function imprimirLote($credencial_id, $grupo_id)
+{
+    // 1. Buscamos el diseño de credencial
+    $credencial = Credencial::findOrFail($credencial_id);
+
+    // 2. Buscamos a los alumnos y cargamos relaciones de grupo para acceder a Grado y Grupo
+    $alumnos = Alumno::whereHas('inscripciones', function ($query) use ($grupo_id) {
+        $query->where('grupo_id', $grupo_id);
+    })->with('inscripciones.grupo')->get(); // Incluimos la relación del grupo
+
+    // El View Composer debería hacer que la variable $ciclo_escolar_global esté disponible en la vista.
+
+    // Pasamos las variables correctas
+    return view('credenciales.impresion_lote', compact('credencial', 'alumnos'));
+}
 }
