@@ -114,16 +114,18 @@ class CredencialController extends Controller
 public function imprimirLote($credencial_id, $grupo_id)
 {
     // 1. Buscamos el diseño de credencial
-    $credencial = Credencial::findOrFail($credencial_id);
+    $diseno = Credencial::findOrFail($credencial_id); 
 
-    // 2. Buscamos a los alumnos y cargamos relaciones de grupo para acceder a Grado y Grupo
-    $alumnos = Alumno::whereHas('inscripciones', function ($query) use ($grupo_id) {
+    // 2. Buscamos a los alumnos y cargamos TODAS las relaciones en cadena
+$alumnos = Alumno::whereHas('inscripciones', function ($query) use ($grupo_id) {
         $query->where('grupo_id', $grupo_id);
-    })->with('inscripciones.grupo')->get(); // Incluimos la relación del grupo
+    })->with(['inscripciones.grupo.grado.nivel'])->get(); // <-- Esta es la clave
 
-    // El View Composer debería hacer que la variable $ciclo_escolar_global esté disponible en la vista.
-
-    // Pasamos las variables correctas
-    return view('credenciales.impresion_lote', compact('credencial', 'alumnos'));
+    // 3. Retornamos la vista del DISEÑADOR (no la de impresion_lote)
+    return view('credenciales.edit', [
+        'diseno' => $diseno,
+        'alumnos' => $alumnos,
+        'impresionLote' => true // <-- Esta bandera activa el Modo Visualización que creamos
+    ]);
 }
 }
