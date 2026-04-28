@@ -273,8 +273,11 @@
                                     @endif
                                 </td>
                                 <td class="text-center" style="vertical-align: middle;">
-                                <td class="text-center" style="vertical-align: middle;">
                                     <div class="btn-group">
+                                        <a href="{{ route('credenciales.imprimirLote', ['credencial_id' => 1, 'grupo_id' => $g['id']]) }}"
+                                            target="_blank" class="btn btn-default btn-xs" title="Imprimir Credenciales">
+                                            <i class="fa fa-id-card"></i>
+                                        </a>
                                         {{-- BOTÓN VER --}}
                                         <a href="{{ route('grupos.show', $g['id']) }}" class="btn btn-default btn-xs"
                                             title="Ver alumnos">
