@@ -87,7 +87,7 @@
                                 <i class="fa fa-circle-o"></i> Conceptos de cobro
                             </a>
                         </li>
-                        <li class="{{ request()->routeIs('planes.*') ? 'active' : '' }}">
+                        <li class="{{ request()->routeIs('planes.*') && ! request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
                             <a href="{{ route('planes.index') }}">
                                 <i class="fa fa-circle-o"></i> Planes de pago
                             </a>
@@ -97,8 +97,8 @@
                                 <i class="fa fa-circle-o"></i> Becas
                             </a>
                         </li>
-                        <li class="{{ request()->routeIs('planes.asignar.form') ? 'active' : '' }}">
-                            <a href="{{ route('planes.asignar.form') }}">
+                        <li class="{{ request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
+                            <a href="{{ route('planes.asignar.index') }}">
                                 <i class="fa fa-circle-o"></i> Asignar plan
                             </a>
                         </li>
