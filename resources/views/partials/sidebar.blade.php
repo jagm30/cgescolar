@@ -215,6 +215,11 @@
                                 <i class="fa fa-circle-o"></i> Corte del día
                             </a>
                         </li>
+                        <li class="{{ request()->routeIs('reportes.deudores') ? 'active' : '' }}">
+                            <a href="{{ route('reportes.deudores') }}">
+                                <i class="fa fa-circle-o"></i> Reporte de deudores
+                            </a>
+                        </li>
                     </ul>
                 </li>
             @endif
