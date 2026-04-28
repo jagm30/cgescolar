@@ -70,10 +70,11 @@ class AlumnoController extends Controller
         $statsActivos = Alumno::where('estado', 'activo')->count();
         $statsTotal = Alumno::count();
         $statsInscritos = Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id');
+        $disenos = \App\Models\Credencial::all();
 
         return view('alumnos.index', compact(
             'alumnos', 'niveles', 'grupos', 'cicloId',
-            'statsActivos', 'statsTotal', 'statsInscritos'
+            'statsActivos', 'statsTotal', 'statsInscritos', 'disenos' 
         ));
     }
 
