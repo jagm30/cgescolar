@@ -22,6 +22,7 @@ use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\ReporteDeudoresController;
 use App\Http\Controllers\SettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -434,6 +435,11 @@ Route::prefix('credenciales')->group(function () {
     Route::post('/{id}/upload-fondo', [App\Http\Controllers\CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
     Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');    
 });
+// ── Reportes ─────────────────────────────────────────
+Route::get('/reportes/deudores', [ReporteDeudoresController::class, 'index'])
+    ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador,caja'])
+    ->name('reportes.deudores');
+
 // Configuración fiscal (datos del emisor para CFDI)
 Route::post('/fiscal', [SettingController::class, 'updateFiscal'])
     ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador'])
