@@ -75,14 +75,10 @@
             position: relative;
         }
 
-        /* LIENZO BASE (CON !IMPORTANT PARA VENCER A BOOTSTRAP EN IMPRESIÓN) */
+        /* LIENZO BASE: Se elimina el background-image para usar el blindaje de la etiqueta <img> */
         .credencial-canvas-instance,
         #credencial-canvas {
             background-color: white !important;
-            background-image: url('{{ $diseno->fondo_anverso ? asset('storage/' . $diseno->fondo_anverso) : '' }}') !important;
-            background-size: 102% 102% !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
             position: relative;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             width: {{ $diseno->orientacion == 'vertical' ? '320px' : '500px' }};
@@ -91,6 +87,20 @@
             flex-shrink: 0;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+        }
+
+        /* BLINDAJE CONTRA CHROME: Etiqueta física para el fondo */
+        .fondo-credencial {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 1 !important;
+            /* Siempre al fondo */
+            object-fit: cover !important;
+            pointer-events: none !important;
+            /* Permite clickear los textos a través de la imagen */
         }
 
         /* ELEMENTOS DRAGGABLE (Textos y Fotos) */
@@ -103,7 +113,6 @@
             user-select: none;
             pointer-events: auto;
             padding: 4px 8px;
-            /* ESPACIO PARA TEXTOS */
             border: 1px dashed #ccc;
             white-space: normal;
             word-wrap: break-word;
@@ -223,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                               MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                               ========================================================================== */
+               MODO VISUALIZACIÓN Y CERO MÁRGENES
+               ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -287,19 +296,18 @@
         }
 
         /* ==========================================================================
-                                               REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (MARGEN CERO ABSOLUTO)
-                                               ========================================================================== */
+               REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (VUELTA AL ZOOM ESTABLE)
+               ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
+                size: {{ $diseno->orientacion == 'vertical' ? '54mm 85.6mm' : '85.6mm 54mm' }};
             }
 
             html,
             body {
                 margin: 0 !important;
                 padding: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
                 background-color: white !important;
             }
 
@@ -313,7 +321,7 @@
             #canvas-container {
                 margin: 0 !important;
                 padding: 0 !important;
-                width: 100% !important;
+                display: block !important;
             }
 
             .modo-visualizacion .credencial-canvas-instance {
@@ -322,10 +330,10 @@
                 border: none !important;
                 border-radius: 0 !important;
                 position: relative !important;
-                top: 0 !important;
-                left: 0 !important;
-                page-break-after: always;
-                page-break-inside: avoid;
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                /* El zoom que sí funciona sin romper el renderizado de Chrome */
+                zoom: 0.635 !important;
             }
 
             * {
@@ -340,8 +348,17 @@
 
         @if (isset($alumnos) && count($alumnos) > 0)
             <div class="header-impresion no-print">
-                <h2 style="margin:0"><i class="fa fa-users"></i> Lote de Impresión: {{ count($alumnos) }} alumnos</h2>
-                <p style="color: #bbb; margin-top:5px;">Diseño: {{ $diseno->nombre }}</p>
+                @if (count($alumnos) == 1)
+                    <h2 style="margin:0"><i class="fa fa-id-badge"></i> Impresión Individual</h2>
+                    <p style="color: #bbb; margin-top:5px;">
+                        Alumno: <b>{{ $alumnos->first()->nombre }} {{ $alumnos->first()->ap_paterno }}</b> | Diseño:
+                        {{ $diseno->nombre }}
+                    </p>
+                @else
+                    <h2 style="margin:0"><i class="fa fa-users"></i> Lote de Impresión: {{ count($alumnos) }} alumnos</h2>
+                    <p style="color: #bbb; margin-top:5px;">Diseño: {{ $diseno->nombre }}</p>
+                @endif
+
                 <button onclick="window.print()" class="btn btn-success btn-lg"
                     style="margin-top:15px; font-weight:bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                     <i class="fa fa-print"></i> MANDAR A IMPRESORA EVOLIS
@@ -401,7 +418,6 @@
                         </div>
                         <div class="row" style="margin-top: 5px;">
                             <div class="col-xs-6" style="padding-right: 5px;">
-                                {{-- USO DE CICLO DESDE COMPOSER --}}
                                 <button class="btn btn-default btn-block btn-sm text-left"
                                     onclick="addElement('ciclo', '{{ $cicloActual->nombre ?? 'Sin ciclo' }}')"><i
                                         class="fa fa-calendar"></i> Ciclo Escolar</button>
@@ -473,8 +489,8 @@
                                 <span class="badge-alumno">Alumno {{ $loop->iteration }} de {{ $loop->count }}:
                                     {{ $alumno->nombre }} {{ $alumno->ap_paterno }}</span>
                             </div>
+
                             <div id="credencial-canvas-{{ $alumno->id }}" class="credencial-canvas-instance"
-                                {{-- SE CORRIGEN LAS RUTAS DE DATOS USANDO EL PLURAL Y OPERADORES NULLSAFE --}}
                                 data-nombre="{{ $alumno->nombre }} {{ $alumno->ap_paterno ?? '' }} {{ $alumno->ap_materno ?? '' }}"
                                 data-matricula="{{ $alumno->matricula ?? 'S/N' }}"
                                 data-nivel="{{ $alumno->inscripciones->first()?->grupo?->grado?->nivel?->nombre ?? 'SIN NIVEL' }}"
@@ -483,6 +499,13 @@
                                 data-sangre="{{ $alumno->tipo_sangre ?? 'O+' }}"
                                 data-foto="{{ $alumno->foto_url ? Storage::url($alumno->foto_url) : '' }}"
                                 onclick="deselect(event)">
+
+                                @if ($diseno->fondo_anverso)
+                                    <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial">
+                                @else
+                                    <img src="" class="fondo-credencial" style="display:none;">
+                                @endif
+
                                 <div id="group-outline-{{ $alumno->id }}" class="group-outline"></div>
                                 <div id="guide-v-{{ $alumno->id }}" class="guide-line guide-v"></div>
                                 <div id="guide-h-{{ $alumno->id }}" class="guide-line guide-h"></div>
@@ -490,6 +513,15 @@
                         @endforeach
                     @else
                         <div id="credencial-canvas" class="credencial-canvas-instance" onclick="deselect(event)">
+
+                            @if ($diseno->fondo_anverso)
+                                <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial"
+                                    id="img-fondo-editor">
+                            @else
+                                <img src="" class="fondo-credencial" id="img-fondo-editor"
+                                    style="display:none;">
+                            @endif
+
                             <div id="group-outline" class="group-outline"></div>
                             <div id="guide-v" class="guide-line guide-v"></div>
                             <div id="guide-h" class="guide-line guide-h"></div>
@@ -686,12 +718,15 @@
             if (data.type === 'foto') {
                 el.style.padding = '0';
                 el.style.border = isModeVisual ? 'none' : '1px dashed #ccc';
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+                el.style.justifyContent = 'center';
+                el.style.overflow = 'hidden';
 
                 if (isModeVisual) {
-                    // AQUÍ ESTÁ EL TRUCO: object-fit: cover hace que la foto se recorte 
-                    // automáticamente para llenar el recuadro sin deformarse.
+                    // BLINDAJE DE FOTOS: Cover para evitar huecos blancos (bordes cortados)
                     span.innerHTML = fotoUrl ?
-                        `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; display:block;">` :
+                        `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; display:block; margin:0; padding:0;">` :
                         `<div style="width:100%; height:100%; background:transparent;"></div>`;
                 } else {
                     span.innerHTML =
@@ -1077,7 +1112,16 @@
         function saveAll() {
             if (isModeVisual) return;
             const elementos = [];
+
             document.querySelectorAll('#credencial-canvas .draggable-item').forEach(el => {
+                const span = el.querySelector('.content-span');
+                let textoParaGuardar = '';
+                if (el.classList.contains('is-label')) {
+                    textoParaGuardar = span.innerText;
+                } else {
+                    textoParaGuardar = el.dataset.type.toUpperCase();
+                }
+
                 elementos.push({
                     id: el.id,
                     parentId: el.dataset.parentId || null,
@@ -1087,8 +1131,8 @@
                     width: el.style.width,
                     height: el.style.height,
                     fontSize: el.style.fontSize,
-                    color: el.style.color,
-                    text: el.dataset.type === 'foto' ? 'FOTO' : el.querySelector('.content-span').innerText,
+                    color: span.style.color,
+                    text: textoParaGuardar,
                     isLabel: el.classList.contains('is-label'),
                     textAlign: el.style.textAlign || 'left',
                     fontWeight: el.style.fontWeight || 'normal',
@@ -1096,10 +1140,12 @@
                     fontFamily: el.style.fontFamily || 'Roboto, sans-serif'
                 });
             });
+
             const fData = new FormData();
             fData.append('configuracion', JSON.stringify(elementos));
             fData.append('_token', "{{ csrf_token() }}");
             if (imagenTemporal) fData.append('fondo', imagenTemporal);
+
             fetch("{{ route('credenciales.updateConfig', $diseno->id) }}", {
                     method: "POST",
                     body: fData,
@@ -1109,7 +1155,7 @@
                 })
                 .then(r => r.json()).then(data => {
                     if (data.status === 'success') {
-                        alert("¡Guardado con éxito! Tu lote está listo para imprimir.");
+                        alert("¡Guardado con éxito! Tu lote está listo para imprimir sin perder datos.");
                         markAsSaved();
                     }
                 });
@@ -1126,8 +1172,13 @@
             const file = e.target.files[0];
             if (file) {
                 imagenTemporal = file;
-                reader.onload = (ev) => document.getElementById('credencial-canvas').style.backgroundImage =
-                    `url(${ev.target.result})`;
+                reader.onload = (ev) => {
+                    const imgEditor = document.getElementById('img-fondo-editor');
+                    if (imgEditor) {
+                        imgEditor.src = ev.target.result;
+                        imgEditor.style.display = 'block';
+                    }
+                };
                 reader.readAsDataURL(file);
                 markAsUnsaved();
             }

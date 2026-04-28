@@ -128,4 +128,23 @@ $alumnos = Alumno::whereHas('inscripciones', function ($query) use ($grupo_id) {
         'impresionLote' => true // <-- Esta bandera activa el Modo Visualización que creamos
     ]);
 }
+public function imprimirIndividual($credencial_id, $alumno_id)
+{
+    // 1. Buscamos el diseño de la credencial
+    $diseno = Credencial::findOrFail($credencial_id); 
+
+    // 2. Buscamos a un solo alumno pero trayendo TODAS sus relaciones en cadena
+    // (Inscripción -> Grupo -> Grado -> Nivel) para que no falle la vista
+    $alumno = Alumno::with(['inscripciones.grupo.grado.nivel'])->findOrFail($alumno_id);
+
+    // 3. TRUCO DE INGENIERO: Envolvemos a ese único alumno en una "Colección"
+    // Así la vista Blade cree que es un lote (de 1 solo elemento) y el @foreach funciona perfecto
+    $alumnos = collect([$alumno]); 
+
+    return view('credenciales.edit', [
+        'diseno' => $diseno,
+        'alumnos' => $alumnos,
+        'impresionLote' => true 
+    ]);
+}
 }

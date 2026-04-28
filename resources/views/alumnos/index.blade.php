@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-       ESTADÍSTICAS
-    ══════════════════════════════════════════ */
+                       ESTADÍSTICAS
+                    ══════════════════════════════════════════ */
         .alm-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-       TOOLBAR
-    ══════════════════════════════════════════ */
+                       TOOLBAR
+                    ══════════════════════════════════════════ */
         .alm-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-       TABLA
-    ══════════════════════════════════════════ */
+                       TABLA
+                    ══════════════════════════════════════════ */
         .alm-table {
             margin: 0;
             border-collapse: separate;
@@ -356,8 +356,8 @@
         }
 
         /* ══════════════════════════════════════════
-       EMPTY STATE
-    ══════════════════════════════════════════ */
+                       EMPTY STATE
+                    ══════════════════════════════════════════ */
         .alm-empty {
             text-align: center;
             padding: 60px 20px;
@@ -383,8 +383,8 @@
         }
 
         /* ══════════════════════════════════════════
-       FOOTER / PAGINACIÓN
-    ══════════════════════════════════════════ */
+                       FOOTER / PAGINACIÓN
+                    ══════════════════════════════════════════ */
         .alm-footer {
             display: flex;
             align-items: center;
@@ -674,6 +674,11 @@
                             {{-- ACCIONES --}}
                             <td>
                                 <div class="alm-acciones">
+                                    <a href="{{ route('credenciales.imprimirIndividual', ['credencial' => 1, 'alumno' => $alumno->id]) }}"
+                                        target="_blank" class="btn btn-info btn-xs btn-flat" style="border-radius:4px;"
+                                        title="Imprimir Credencial">
+                                        <i class="fa fa-id-card"></i>
+                                    </a>
                                     <a href="{{ route('alumnos.show', $alumno->id) }}"
                                         class="btn btn-default btn-xs btn-flat" style="border-radius:4px;"
                                         title="Ver ficha">

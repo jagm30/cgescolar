@@ -423,6 +423,9 @@ Route::prefix('credenciales')->group(function () {
     
     // RUTAS ESTÁTICAS Y DE MÚLTIPLES PARÁMETROS (Siempre van arriba)
     Route::get('/imprimir-lote/{credencial_id}/{grupo_id}', [App\Http\Controllers\CredencialController::class, 'imprimirLote'])->name('credenciales.imprimirLote');
+    // Ruta para imprimir a un solo alumno
+    Route::get('/individual/{credencial}/{alumno}', [App\Http\Controllers\CredencialController::class, 'imprimirIndividual'])
+    ->name('credenciales.imprimirIndividual');
     Route::get('/preview/{credencial_id}/{alumno_id}', [App\Http\Controllers\CredencialController::class, 'preview'])->name('credenciales.preview');
     
     // RUTAS BÁSICAS
