@@ -244,7 +244,7 @@
                     </thead>
                     <tbody>
                         @forelse($grupos as $g)
-                            <tr>
+                            <tr data-href="{{ route('grupos.show', $g['id']) }}" style="cursor: pointer;">
                                 <td>
                                     <span class="text-blue"
                                         style="font-weight: bold;">{{ $g['grado']['nivel']['nombre'] }}</span><br>
@@ -693,6 +693,15 @@
                 $('body').append(toastHTML);
                 $('#toast-dinamico-js').fadeIn('fast').delay(5000).fadeOut('slow');
             }
+            // ── HACER FILAS CLICKEABLES ──
+            $('#tabla-grupos tbody').on('click', 'tr[data-href]', function(e) {
+                // Si el clic fue en un botón, en un enlace, o dentro del form de eliminar, lo ignoramos
+                if ($(e.target).closest('button, a, input, form, .btn-group').length > 0) {
+                    return;
+                }
+                // Si hizo clic en texto o espacio vacío de la fila, lo redirigimos
+                window.location.href = $(this).data('href');
+            });
         });
     </script>
 @endpush
