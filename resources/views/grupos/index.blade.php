@@ -274,10 +274,10 @@
                                 </td>
                                 <td class="text-center" style="vertical-align: middle;">
                                     <div class="btn-group">
-                                        <a href="{{ route('credenciales.imprimirLote', ['credencial_id' => 1, 'grupo_id' => $g['id']]) }}"
-                                            target="_blank" class="btn btn-default btn-xs" title="Imprimir Credenciales">
-                                            <i class="fa fa-id-card"></i>
-                                        </a>
+                                        <button type="button" class="btn btn-default btn-xs btn-abrir-modal-credencial"
+                                            data-id="{{ $g['id'] }}" data-tipo="lote" title="Imprimir Lote">
+                                            <i class="fa fa-id-card text-yellow"></i>
+                                        </button>
                                         {{-- BOTÓN VER --}}
                                         <a href="{{ route('grupos.show', $g['id']) }}" class="btn btn-default btn-xs"
                                             title="Ver alumnos">
@@ -512,6 +512,34 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalElegirDiseno" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title"><i class="fa fa-id-badge text-primary"></i> Elegir Diseño</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Selecciona el diseño a utilizar:</label>
+                        <select id="select-diseno-credencial" class="form-control">
+                            <option value="">-- Seleccione un diseño --</option>
+                            @foreach ($disenos as $diseno)
+                                <option value="{{ $diseno->id }}">{{ $diseno->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btn-procesar-impresion">
+                        <i class="fa fa-print"></i> Generar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('scripts')
@@ -537,7 +565,7 @@
                 table.search(this.value).draw();
             });
 
-            // ── LÓGICA DE ELIMINACIÓN CON MODAL (SOLUCIÓN DEFINITIVA) ──
+            // ── LÓGICA DE ELIMINACIÓN CON MODAL ──
             let formularioAEliminar = null;
 
             $(document).on('click', '.btn-trigger-eliminar', function() {
@@ -548,15 +576,13 @@
             $('#btn-confirmar-eliminar-ok').on('click', function() {
                 if (formularioAEliminar) {
                     let btn = $(this);
-
-                    // Obtenemos el token CSRF del formulario
                     let token = formularioAEliminar.find('input[name="_token"]').val();
 
                     $.ajax({
                         url: formularioAEliminar.attr('action'),
-                        type: 'DELETE', // <── CAMBIO CLAVE: Usamos DELETE directamente
+                        type: 'DELETE',
                         data: {
-                            _token: token // Enviamos solo el token
+                            _token: token
                         },
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -578,7 +604,8 @@
                     });
                 }
             });
-            // ── LÓGICA DE CREACIÓN (JSON Puro) ──
+
+            // ── LÓGICA DE CREACIÓN ──
             $('#form-nuevo-grupo').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -613,6 +640,45 @@
                 });
             });
 
+            // ── LÓGICA DE IMPRESIÓN DE CREDENCIALES (NUEVO) ──
+            let printId = null;
+            let printTipo = null;
+
+            // 1. Al hacer clic en el botón de la tabla
+            $(document).on('click', '.btn-abrir-modal-credencial', function() {
+                printId = $(this).data('id');
+                printTipo = $(this).data('tipo');
+
+                // Reseteamos el select por si acaso
+                $('#select-diseno-credencial').val('');
+
+                // Abrimos el modal
+                $('#modalElegirDiseno').modal('show');
+            });
+
+            // 2. Al procesar dentro del modal
+            $('#btn-procesar-impresion').click(function() {
+                let disenoId = $('#select-diseno-credencial').val();
+
+                if (!disenoId) {
+                    alert("Por favor, selecciona un diseño válido.");
+                    return;
+                }
+
+                // Plantillas de rutas
+                let urlLote =
+                    "{{ route('credenciales.imprimirLote', ['credencial_id' => 'DISENO_ID', 'grupo_id' => 'TARGET_ID']) }}";
+                let urlIndividual =
+                    "{{ route('credenciales.imprimirIndividual', ['credencial' => 'DISENO_ID', 'alumno' => 'TARGET_ID']) }}";
+                let urlFinal = (printTipo === 'lote') ? urlLote : urlIndividual;
+                urlFinal = urlFinal.replace('DISENO_ID', disenoId).replace('TARGET_ID', printId);
+
+                // Abrimos la pestaña y cerramos el modal
+                window.open(urlFinal, '_blank');
+                $('#modalElegirDiseno').modal('hide');
+            });
+
+            // ── FUNCIONES GLOBALES ──
             function mostrarToastError(xhr) {
                 let msg = 'Ocurrió un error inesperado.';
                 if (xhr.responseJSON && xhr.responseJSON.mensaje) msg = xhr.responseJSON.mensaje;

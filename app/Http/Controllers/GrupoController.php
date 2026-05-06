@@ -76,7 +76,9 @@ public function index(Request $request)
     // Traemos todos los ciclos para que el Modal de Migración pueda mostrarlos
     $ciclosDisponibles = CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
 
-    return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo', 'ciclosDisponibles'));
+    $disenos = \App\Models\Credencial::all();
+
+    return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo', 'ciclosDisponibles', 'disenos'));
 }
     /** GET /grupos/{id} */
 public function show(int $id)

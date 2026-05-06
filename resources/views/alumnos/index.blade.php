@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                       ESTADÍSTICAS
-                    ══════════════════════════════════════════ */
+                                           ESTADÍSTICAS
+                                        ══════════════════════════════════════════ */
         .alm-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       TOOLBAR
-                    ══════════════════════════════════════════ */
+                                           TOOLBAR
+                                        ══════════════════════════════════════════ */
         .alm-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       TABLA
-                    ══════════════════════════════════════════ */
+                                           TABLA
+                                        ══════════════════════════════════════════ */
         .alm-table {
             margin: 0;
             border-collapse: separate;
@@ -356,8 +356,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       EMPTY STATE
-                    ══════════════════════════════════════════ */
+                                           EMPTY STATE
+                                        ══════════════════════════════════════════ */
         .alm-empty {
             text-align: center;
             padding: 60px 20px;
@@ -383,8 +383,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       FOOTER / PAGINACIÓN
-                    ══════════════════════════════════════════ */
+                                           FOOTER / PAGINACIÓN
+                                        ══════════════════════════════════════════ */
         .alm-footer {
             display: flex;
             align-items: center;
@@ -674,11 +674,11 @@
                             {{-- ACCIONES --}}
                             <td>
                                 <div class="alm-acciones">
-                                    <a href="{{ route('credenciales.imprimirIndividual', ['credencial' => 1, 'alumno' => $alumno->id]) }}"
-                                        target="_blank" class="btn btn-info btn-xs btn-flat" style="border-radius:4px;"
+                                    <button type="button" class="btn btn-info btn-xs btn-flat btn-abrir-modal-credencial"
+                                        data-id="{{ $alumno->id }}" data-tipo="individual" style="border-radius:4px;"
                                         title="Imprimir Credencial">
                                         <i class="fa fa-id-card"></i>
-                                    </a>
+                                    </button>
                                     <a href="{{ route('alumnos.show', $alumno->id) }}"
                                         class="btn btn-default btn-xs btn-flat" style="border-radius:4px;"
                                         title="Ver ficha">
@@ -748,13 +748,85 @@
             @endif
 
         </div>
+        <div class="modal fade" id="modalElegirDiseno" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title"><i class="fa fa-id-badge text-primary"></i> Elegir Diseño</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Selecciona el diseño a utilizar:</label>
+                            <select id="select-diseno-credencial" class="form-control">
+                                <option value="">-- Seleccione un diseño --</option>
+                                @foreach ($disenos as $diseno)
+                                    <option value="{{ $diseno->id }}">{{ $diseno->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="btn-procesar-impresion">
+                            <i class="fa fa-print"></i> Generar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         @push('scripts')
             <script>
+                // ── 1. TU LÓGICA EXISTENTE PARA FILAS CLICKEABLES (Vanilla JS) ──
                 document.querySelectorAll('.alm-table tbody tr[data-href]').forEach(function(row) {
                     row.addEventListener('click', function(e) {
+                        // Si hace clic en un botón o enlace, ignoramos para que no interfiera
                         if (e.target.closest('a, button, input, select')) return;
                         window.location.href = row.dataset.href;
+                    });
+                });
+
+                // ── 2. LÓGICA PARA EL MODAL DE CREDENCIALES (jQuery) ──
+                $(document).ready(function() {
+                    let printId = null;
+                    let printTipo = null;
+
+                    // Al hacer clic en el botón de la tabla
+                    $(document).on('click', '.btn-abrir-modal-credencial', function() {
+                        printId = $(this).data('id');
+                        printTipo = $(this).data('tipo'); // Aquí llegará como "individual"
+
+                        // Reseteamos el select por si acaso
+                        $('#select-diseno-credencial').val('');
+
+                        // Abrimos el modal
+                        $('#modalElegirDiseno').modal('show');
+                    });
+
+                    // Al darle al botón verde de Generar dentro del modal
+                    $('#btn-procesar-impresion').click(function() {
+                        let disenoId = $('#select-diseno-credencial').val();
+
+                        if (!disenoId) {
+                            alert("Por favor, selecciona un diseño válido.");
+                            return;
+                        }
+                        // Plantillas de rutas (Corregidas definitivamente)
+                        let urlLote =
+                            "{{ route('credenciales.imprimirLote', ['credencial_id' => 'DISENO_ID', 'grupo_id' => 'TARGET_ID']) }}";
+                        let urlIndividual =
+                            "{{ route('credenciales.imprimirIndividual', ['credencial' => 'DISENO_ID', 'alumno' => 'TARGET_ID']) }}";
+
+                        // Construimos la ruta final dependiendo de si es lote o individual
+                        let urlFinal = (printTipo === 'lote') ? urlLote : urlIndividual;
+                        urlFinal = urlFinal.replace('DISENO_ID', disenoId).replace('TARGET_ID', printId);
+
+                        // Abrimos la credencial en pestaña nueva
+                        window.open(urlFinal, '_blank');
+
+                        // Escondemos el modal
+                        $('#modalElegirDiseno').modal('hide');
                     });
                 });
             </script>
