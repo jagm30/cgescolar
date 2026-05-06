@@ -67,15 +67,22 @@
 
                         <div class="form-group">
                             <label>Tipo de beca</label>
-                            <select name="catalogo_beca_id" class="form-control" required>
+                            <select name="catalogo_beca_id" id="catalogo-beca-select" class="form-control" required>
                                 <option value="">Selecciona una beca</option>
                                 @foreach ($catalogo as $beca)
                                     <option value="{{ $beca->id }}"
+                                        data-tipo="{{ $beca->tipo }}"
+                                        data-valor="{{ $beca->valor }}"
                                         {{ old('catalogo_beca_id') == $beca->id ? 'selected' : '' }}>
                                         {{ $beca->nombre }}
                                     </option>
                                 @endforeach
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Descuento</label>
+                            <input type="text" id="descuento-display" class="form-control" readonly placeholder="Selecciona una beca">
                         </div>
 
                         <div class="form-group">
@@ -149,7 +156,28 @@
         <script>
             const becasAlumnoUrlTemplate = "{{ url('/becas/alumno') }}/:id/becas-activas";
             const alumnoSelect = document.getElementById('alumno-select');
+            const catalogoBecaSelect = document.getElementById('catalogo-beca-select');
+            const descuentoDisplay = document.getElementById('descuento-display');
             const infoPanel = document.getElementById('info-becas-alumno');
+
+            function actualizarDescuentoDisplay() {
+                const selectedOption = catalogoBecaSelect.options[catalogoBecaSelect.selectedIndex];
+                if (!selectedOption.value) {
+                    descuentoDisplay.value = '';
+                    return;
+                }
+
+                const tipo = selectedOption.getAttribute('data-tipo');
+                const valor = parseFloat(selectedOption.getAttribute('data-valor'));
+
+                if (tipo === 'porcentaje') {
+                    descuentoDisplay.value = valor + '%';
+                } else {
+                    descuentoDisplay.value = '$' + valor.toFixed(2);
+                }
+            }
+
+            catalogoBecaSelect.addEventListener('change', actualizarDescuentoDisplay);
 
             function mostrarBecas(becas) {
                 if (!becas.length) {
@@ -201,6 +229,7 @@
                 if (selectedValue) {
                     cargarBecasAlumno(selectedValue);
                 }
+                actualizarDescuentoDisplay();
             });
         </script>
     </form>

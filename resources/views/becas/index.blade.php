@@ -50,6 +50,7 @@
                             <th>Beca</th>
                             <th>Plan</th>
                             <th>Ciclo</th>
+                            <th>Descuento</th>
                             <th>Vigencia</th>
                             <th>Estado</th>
                             <th>Creado por</th>
@@ -63,6 +64,13 @@
                                 <td>{{ $beca->catalogoBeca->nombre }}</td>
                                 <td>{{ $beca->destino_beca }}</td>
                                 <td>{{ $beca->ciclo->nombre ?? $beca->ciclo->fecha_inicio?->format('Y') }}</td>
+                                <td>
+                                    @if ($beca->catalogoBeca->tipo === 'porcentaje')
+                                        <span class="label label-info">{{ $beca->catalogoBeca->valor }}%</span>
+                                    @else
+                                        <span class="label label-info">${{ number_format($beca->catalogoBeca->valor, 2) }}</span>
+                                    @endif
+                                </td>
                                 <td>
                                     {{ $beca->vigencia_inicio?->format('d/m/Y') }}
                                     @if ($beca->vigencia_fin)
