@@ -68,10 +68,10 @@ class CfdiController extends Controller
 
         $receptor = $razonSocialId
             ? $this->receptorDesdeRazonSocial(
-                RazonSocialContacto::findOrFail($razonSocialId),
-                $request->uso_cfdi
+                RazonSocialContacto::with('contacto')->findOrFail($razonSocialId),
+                $factura
               )
-            : $this->receptorPublicoGeneral();
+            : $this->receptorPublicoGeneral($config, $factura);
 
         DB::beginTransaction();
         try {
@@ -194,25 +194,56 @@ class CfdiController extends Controller
     // Helpers privados
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function receptorDesdeRazonSocial(RazonSocialContacto $rs, string $usoCfdi): array
+    private function receptorDesdeRazonSocial(RazonSocialContacto $rs, FacturaComService $factura): array
     {
+        if (! $rs->factura_uid) {
+            $email = $rs->contacto?->email
+                ?? config('factura.email_contacto')
+                ?: throw new \RuntimeException(
+                    'El contacto no tiene email y FACTURA_EMAIL_CONTACTO no está configurado en .env.'
+                );
+
+            $uid = $factura->crearCliente(
+                $rs->rfc,
+                $rs->razon_social,
+                $rs->domicilio_fiscal,
+                $rs->regimen_fiscal,
+                $email,
+            );
+
+            $rs->update(['factura_uid' => $uid]);
+            $rs->factura_uid = $uid;
+        }
+
         return [
-            'RFC'            => strtoupper($rs->rfc),
-            'Nombre'         => strtoupper($rs->razon_social),
-            'RegimenFiscal'  => $rs->regimen_fiscal,
-            'UsoCFDI'        => $usoCfdi,
-            'CodigoPostal'   => $rs->domicilio_fiscal,   // ya son 5 dígitos
+            'UID'            => $rs->factura_uid,
+            'RegimenFiscalR' => $rs->regimen_fiscal,
         ];
     }
 
-    private function receptorPublicoGeneral(): array
+    private function receptorPublicoGeneral(ConfigFiscal $config, FacturaComService $factura): array
     {
+        if (! $config->publico_general_uid) {
+            $email = config('factura.email_contacto')
+                ?: throw new \RuntimeException(
+                    'Configure FACTURA_EMAIL_CONTACTO en .env para emitir a Público en General.'
+                );
+
+            $uid = $factura->crearCliente(
+                'XAXX010101000',
+                'PUBLICO EN GENERAL',
+                config('factura.cp_expedicion'),
+                '616',
+                $email,
+            );
+
+            $config->update(['publico_general_uid' => $uid]);
+            $config->publico_general_uid = $uid;
+        }
+
         return [
-            'RFC'           => 'XAXX010101000',
-            'Nombre'        => 'PUBLICO EN GENERAL',
-            'RegimenFiscal' => '616',
-            'UsoCFDI'       => 'S01',
-            'CodigoPostal'  => config('factura.cp_expedicion'),
+            'UID'            => $config->publico_general_uid,
+            'RegimenFiscalR' => '616',
         ];
     }
 
@@ -253,17 +284,18 @@ class CfdiController extends Controller
         })->values()->toArray();
 
         return [
-            'TipoDocumento' => 'ingreso',
-            'Serie'         => $config->serie,
-            'Folio'         => (string) $config->folio_actual,
-            'FormaPago'     => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
-            'MetodoPago'    => 'PUE',
-            'Moneda'        => 'MXN',
+            'TipoDocumento'   => 'factura',
+            'Serie'           => $config->serie_id ?? $config->serie,
+            'Folio'           => (string) $config->folio_actual,
+            'UsoCFDI'         => $usoCfdi,
+            'FormaPago'       => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
+            'MetodoPago'      => 'PUE',
+            'Moneda'          => 'MXN',
             'LugarExpedicion' => config('factura.cp_expedicion'),
-            'Receptor'      => $receptor,
-            'Conceptos'     => $conceptos,
-            'EnviarCorreo'  => false,
-            'Draft'         => false,
+            'Receptor'        => $receptor,
+            'Conceptos'       => $conceptos,
+            'EnviarCorreo'    => false,
+            'Draft'           => false,
         ];
     }
 }

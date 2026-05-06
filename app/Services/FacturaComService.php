@@ -28,6 +28,68 @@ class FacturaComService
         return rtrim(config('factura.url'), '/') . '/' . ltrim($path, '/');
     }
 
+    // ── Helpers ──────────────────────────────────────────
+
+    /**
+     * Determina si la respuesta de factura.com es un error.
+     *
+     * La API usa 'status' o 'response' con valor 'error' para indicar falla.
+     * Si el HTTP es 2xx y ninguno de esos campos dice 'error', se considera éxito.
+     */
+    private function esError(\Illuminate\Http\Client\Response $response, ?array $json): bool
+    {
+        if ($response->failed()) {
+            return true;
+        }
+
+        $status = strtolower($json['status'] ?? $json['response'] ?? '');
+
+        return $status === 'error';
+    }
+
+    // ── Clientes ─────────────────────────────────────────
+
+    /**
+     * Registra un receptor en factura.com y devuelve su UID.
+     *
+     * El UID es requerido en el nodo Receptor de cada CFDI 4.0.
+     *
+     * @throws \RuntimeException Si la API devuelve error o no devuelve UID
+     */
+    public function crearCliente(
+        string $rfc,
+        string $razonSocial,
+        string $codigoPostal,
+        string $regimenFiscal,
+        string $email
+    ): string {
+        $response = Http::withHeaders($this->headers())
+            ->post($this->url('/api/v1/clients/create'), [
+                'rfc'    => strtoupper($rfc),
+                'razons' => strtoupper($razonSocial),
+                'codpos' => $codigoPostal,
+                'regimen' => $regimenFiscal,
+                'email'  => $email,
+                'pais'   => 'MEX',
+            ]);
+
+        $json = $response->json();
+
+        if ($this->esError($response, $json)) {
+            $raw = $json['message'] ?? $json['error'] ?? $response->body();
+            $mensaje = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
+            throw new \RuntimeException("Error al registrar cliente en factura.com: {$mensaje}");
+        }
+
+        $uid = $json['Data']['UID'] ?? $json['data']['UID'] ?? null;
+
+        if (! $uid) {
+            throw new \RuntimeException('factura.com no devolvió el UID del cliente.');
+        }
+
+        return $uid;
+    }
+
     // ── Operaciones CFDI ─────────────────────────────────
 
     /**
@@ -45,16 +107,17 @@ class FacturaComService
 
         $json = $response->json();
 
-        if ($response->failed() || ($json['status'] ?? '') !== 'success') {
-            $mensaje = $json['message']
-                ?? $json['error']
-                ?? $json['response']
-                ?? $response->body();
+        if ($this->esError($response, $json)) {
+            $raw = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
+            $mensaje = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
 
             throw new \RuntimeException("factura.com: {$mensaje}", $response->status());
         }
 
-        return $json['data'] ?? $json;
+        // El create endpoint puede devolver UID/UUID en el root y datos extras en 'data'.
+        // Mezclamos ambos para que el controlador siempre encuentre todos los campos.
+        $data = $json['data'] ?? [];
+        return is_array($data) ? array_merge($json, $data) : $json;
     }
 
     /**
@@ -77,8 +140,9 @@ class FacturaComService
 
         $json = $response->json();
 
-        if ($response->failed() || ($json['status'] ?? '') !== 'success') {
-            $mensaje = $json['message'] ?? $json['error'] ?? $response->body();
+        if ($this->esError($response, $json)) {
+            $raw = $json['message'] ?? $json['error'] ?? $response->body();
+            $mensaje = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
             throw new \RuntimeException("Error al cancelar CFDI: {$mensaje}", $response->status());
         }
     }
