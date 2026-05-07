@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                                           ESTADÍSTICAS
-                                        ══════════════════════════════════════════ */
+                                                                                       ESTADÍSTICAS
+                                                                                    ══════════════════════════════════════════ */
         .alm-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                           TOOLBAR
-                                        ══════════════════════════════════════════ */
+                                                                                       TOOLBAR
+                                                                                    ══════════════════════════════════════════ */
         .alm-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                           TABLA
-                                        ══════════════════════════════════════════ */
+                                                                                       TABLA
+                                                                                    ══════════════════════════════════════════ */
         .alm-table {
             margin: 0;
             border-collapse: separate;
@@ -356,8 +356,50 @@
         }
 
         /* ══════════════════════════════════════════
-                                           EMPTY STATE
-                                        ══════════════════════════════════════════ */
+                       DROPDOWN ESTILO SAAS (Igual al de Grupos)
+                    ══════════════════════════════════════════ */
+        .btn-action-flat {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: #f8f9fa;
+            color: #7f8c8d;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-action-flat:hover {
+            background: #eef2f5;
+            color: #34495e;
+        }
+
+        .dropdown.open .dropdown-menu {
+            display: block !important;
+            z-index: 9999 !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eee;
+            margin-top: 5px;
+            border-radius: 8px;
+        }
+
+        .dropdown-menu>li>a {
+            padding: 10px 15px;
+            font-size: 13px;
+            color: #444;
+            transition: background 0.1s;
+        }
+
+        .dropdown-menu>li>a:hover {
+            background-color: #f0f7ff !important;
+            color: #3c8dbc !important;
+        }
+
+        /* ══════════════════════════════════════════
+                                                                                       EMPTY STATE
+                                                                                    ══════════════════════════════════════════ */
         .alm-empty {
             text-align: center;
             padding: 60px 20px;
@@ -383,8 +425,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                           FOOTER / PAGINACIÓN
-                                        ══════════════════════════════════════════ */
+                                                                                       FOOTER / PAGINACIÓN
+                                                                                    ══════════════════════════════════════════ */
         .alm-footer {
             display: flex;
             align-items: center;
@@ -672,32 +714,72 @@
                             </td>
 
                             {{-- ACCIONES --}}
-                            <td>
-                                <div class="alm-acciones">
-                                    <button type="button" class="btn btn-info btn-xs btn-flat btn-abrir-modal-credencial"
-                                        data-id="{{ $alumno->id }}" data-tipo="individual" style="border-radius:4px;"
-                                        title="Imprimir Credencial">
-                                        <i class="fa fa-id-card"></i>
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn-action-flat btn-dropdown-manual" type="button"
+                                        data-toggle="dropdown">
+                                        <i class="fa fa-ellipsis-v"></i>
                                     </button>
-                                    <a href="{{ route('alumnos.show', $alumno->id) }}"
-                                        class="btn btn-default btn-xs btn-flat" style="border-radius:4px;"
-                                        title="Ver ficha">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
-                                        <a href="{{ route('alumnos.edit', $alumno->id) }}"
-                                            class="btn btn-primary btn-xs btn-flat" style="border-radius:4px;"
-                                            title="Editar">
-                                            <i class="fa fa-pencil"></i>
-                                        </a>
-                                    @endif
-                                    @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
-                                        <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                                            class="btn btn-warning btn-xs btn-flat" style="border-radius:4px;"
-                                            title="Estado de cuenta">
-                                            <i class="fa fa-dollar"></i>
-                                        </a>
-                                    @endif
+                                    <ul class="dropdown-menu dropdown-menu-right"
+                                        style="min-width: 200px; padding: 8px 0; border-radius: 8px;">
+                                        <li class="dropdown-header">Opciones</li>
+
+                                        {{-- 1. VER PERFIL --}}
+                                        <li>
+                                            <a href="{{ route('alumnos.show', $alumno->id) }}"
+                                                style="padding: 8px 20px;">
+                                                <i class="fa fa-eye"
+                                                    style="color: #3498db; width:24px; text-align:center;"></i> Ver perfil
+                                            </a>
+                                        </li>
+
+                                        {{-- 2. EDITAR (Condicionado a Admin o Recepción) --}}
+                                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                                            <li>
+                                                <a href="{{ route('alumnos.edit', $alumno->id) }}"
+                                                    style="padding: 8px 20px;">
+                                                    <i class="fa fa-pencil"
+                                                        style="color: #f39c12; width:24px; text-align:center;"></i> Editar
+                                                    alumno
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        {{-- 3. ESTADO DE CUENTA (Condicionado a Admin o Cajero) --}}
+                                        @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                                            <li>
+                                                <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                                                    style="padding: 8px 20px;">
+                                                    <i class="fa fa-money"
+                                                        style="color: #2ecc71; width:24px; text-align:center;"></i> Estado
+                                                    de cuenta
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        <li role="separator" class="divider"></li>
+
+                                        {{-- 4. DESCARGAR FICHA PDF --}}
+                                        <li>
+                                            <a href="{{ route('alumnos.reporte', $alumno->id) }}" target="_blank"
+                                                style="padding: 8px 20px;">
+                                                <i class="fa fa-file-pdf-o"
+                                                    style="color: #e74c3c; width:24px; text-align:center;"></i> Ficha del
+                                                alumno
+                                            </a>
+                                        </li>
+
+                                        {{-- 5. IMPRIMIR CREDENCIAL (Abre el Modal) --}}
+                                        <li>
+                                            <a href="javascript:void(0)" class="btn-abrir-modal-credencial"
+                                                data-id="{{ $alumno->id }}" data-tipo="individual"
+                                                style="padding: 8px 20px;">
+                                                <i class="fa fa-id-card"
+                                                    style="color: #17a2b8; width:24px; text-align:center;"></i> Imprimir
+                                                credencial
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
