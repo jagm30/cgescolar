@@ -100,7 +100,7 @@ class PlanPagoController extends Controller
             'conceptos'
         ));
     }
-    
+
     public function show(int $id)
     {
         $plan = PlanPago::with([
@@ -357,6 +357,7 @@ class PlanPagoController extends Controller
 
         $asignaciones = AsignacionPlan::with([
             'conceptosSeleccionados.concepto',
+            'plan.nivel',
             'plan.politicasDescuentoActivas',
             'plan.politicaRecargoActiva',
         ])
@@ -376,67 +377,72 @@ class PlanPagoController extends Controller
         return response()->json(['asignaciones' => $asignaciones]);
     }
 
-public function clonarMasivo(Request $request)
-{
-    $request->validate([
-        'plan_ids' => 'required|array',
-        'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
-        // El sufijo es opcional, pero le damos un valor por defecto si es el mismo ciclo
-    ]);
+    public function clonarMasivo(Request $request)
+    {
+        $request->validate([
+            'plan_ids' => 'required|array',
+            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
+            // El sufijo es opcional, pero le damos un valor por defecto si es el mismo ciclo
+        ]);
 
-    DB::beginTransaction();
-    try {
-        foreach ($request->plan_ids as $id) {
-            $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
-            if (!$original) continue;
+        DB::beginTransaction();
+        try {
+            foreach ($request->plan_ids as $id) {
+                $original = PlanPago::with(['planPagoConceptos', 'politicasDescuento', 'politicaRecargo'])->find($id);
+                if (! $original) {
+                    continue;
+                }
 
-            // 1. Replicamos el Plan
-            $nuevo = $original->replicate();
-            $nuevo->ciclo_id = $request->ciclo_destino_id;
+                // 1. Replicamos el Plan
+                $nuevo = $original->replicate();
+                $nuevo->ciclo_id = $request->ciclo_destino_id;
 
-            // ── LÓGICA INTELIGENTE DE NOMBRE ──
-            if ($request->ciclo_destino_id == $original->ciclo_id) {
-                // Si es el mismo ciclo, forzamos un distintivo para evitar nombres idénticos
-                $sufijo = $request->filled('sufijo') ? $request->sufijo : '(COPIA)';
-                $nuevo->nombre = $original->nombre . ' ' . $sufijo;
-            } else {
-                // Si es ciclo diferente, usamos el sufijo del usuario o el nombre original limpio
-                $nuevo->nombre = trim($original->nombre . ' ' . $request->sufijo);
+                // ── LÓGICA INTELIGENTE DE NOMBRE ──
+                if ($request->ciclo_destino_id == $original->ciclo_id) {
+                    // Si es el mismo ciclo, forzamos un distintivo para evitar nombres idénticos
+                    $sufijo = $request->filled('sufijo') ? $request->sufijo : '(COPIA)';
+                    $nuevo->nombre = $original->nombre.' '.$sufijo;
+                } else {
+                    // Si es ciclo diferente, usamos el sufijo del usuario o el nombre original limpio
+                    $nuevo->nombre = trim($original->nombre.' '.$request->sufijo);
+                }
+
+                $nuevo->save();
+
+                // 2. Clona Relaciones (Conceptos, Descuentos y Recargos)
+                foreach ($original->planPagoConceptos as $item) {
+                    $c = $item->replicate();
+                    $c->plan_id = $nuevo->id;
+                    $c->save();
+                }
+
+                foreach ($original->politicasDescuento as $desc) {
+                    $d = $desc->replicate();
+                    $d->plan_id = $nuevo->id;
+                    $d->save();
+                }
+
+                if ($original->politicaRecargo) {
+                    $r = $original->politicaRecargo->replicate();
+                    $r->plan_id = $nuevo->id;
+                    $r->save();
+                }
+
+                // Opcional: Registrar en auditoría la clonación
+                Auditoria::registrar('plan_pago', $nuevo->id, 'insert', null, ['nota' => "Clonado desde el ID: {$original->id}"]);
             }
 
-            $nuevo->save();
+            DB::commit();
 
-            // 2. Clona Relaciones (Conceptos, Descuentos y Recargos)
-            foreach ($original->planPagoConceptos as $item) {
-                $c = $item->replicate();
-                $c->plan_id = $nuevo->id;
-                $c->save();
-            }
+            return back()->with('success', '¡Proceso de clonación completado con éxito!');
 
-            foreach ($original->politicasDescuento as $desc) {
-                $d = $desc->replicate();
-                $d->plan_id = $nuevo->id;
-                $d->save();
-            }
+        } catch (\Exception $e) {
+            DB::rollBack();
 
-            if ($original->politicaRecargo) {
-                $r = $original->politicaRecargo->replicate();
-                $r->plan_id = $nuevo->id;
-                $r->save();
-            }
-
-            // Opcional: Registrar en auditoría la clonación
-            Auditoria::registrar('plan_pago', $nuevo->id, 'insert', null, ['nota' => "Clonado desde el ID: {$original->id}"]);
+            return back()->with('error', 'Error en la clonación: '.$e->getMessage());
         }
-
-        DB::commit();
-        return back()->with('success', '¡Proceso de clonación completado con éxito!');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->with('error', 'Error en la clonación: ' . $e->getMessage());
     }
-}
+
     public function createAsignacion()
     {
         $cicloId = auth()->user()->ciclo_seleccionado_id
