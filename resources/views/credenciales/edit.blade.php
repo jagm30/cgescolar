@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-               MODO VISUALIZACIÓN Y CERO MÁRGENES
-               ========================================================================== */
+                                            MODO VISUALIZACIÓN Y CERO MÁRGENES
+                           ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -242,14 +242,25 @@
             margin: 0 !important;
         }
 
+        /* 1. Reglas generales de posición y fondo */
         .modo-visualizacion #canvas-container {
             background: transparent !important;
-            display: block !important;
             padding: 0 !important;
             min-height: auto !important;
             position: relative !important;
             top: 0 !important;
             left: 0 !important;
+        }
+
+        /* 2. MAGIA: Ocultar SOLO en el monitor (Debe ir DESPUÉS de la regla general) */
+        @media screen {
+            .modo-visualizacion #canvas-container {
+                display: none !important;
+            }
+
+            .modo-visualizacion .badge-alumno {
+                display: none !important;
+            }
         }
 
         .modo-visualizacion .credencial-canvas-instance {
@@ -296,8 +307,8 @@
         }
 
         /* ==========================================================================
-               REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (VUELTA AL ZOOM ESTABLE)
-               ========================================================================== */
+                                                       REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS (VUELTA AL ZOOM ESTABLE)
+                                                       ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -361,7 +372,7 @@
 
                 <button onclick="window.print()" class="btn btn-success btn-lg"
                     style="margin-top:15px; font-weight:bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    <i class="fa fa-print"></i> MANDAR A IMPRESORA EVOLIS
+                    <i class="fa fa-print"></i> VER VISTA PREVIA DE IMPRESIÓN
                 </button>
             </div>
         @endif
@@ -379,11 +390,7 @@
                     <div class="box-body">
                         <a href="{{ route('credenciales.imprimirLote', [$diseno->id, $loteActual->id ?? 1]) }}"
                             target="_blank" class="btn btn-success btn-block text-bold" style="margin-bottom: 10px;">
-                            <i class="fa fa-users"></i> IMPRIMIR LOTE COMPLETO
-                        </a>
-                        <a href="{{ url()->current() }}?preview=1" target="_blank"
-                            class="btn btn-warning btn-block text-bold" style="margin-bottom: 15px;">
-                            <i class="fa fa-eye"></i> VISTA PREVIA
+                            <i class="fa fa-users"></i> VISTA PREVIA CON DATOS REALES
                         </a>
 
                         <button class="btn btn-primary btn-block text-left" onclick="addElement('label', 'Etiqueta Fija:')">
