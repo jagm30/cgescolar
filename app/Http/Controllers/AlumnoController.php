@@ -34,22 +34,24 @@ class AlumnoController extends Controller
 
         $query = Alumno::with([
             'familia',
-            'inscripciones' => fn ($q) => $q
+            'inscripciones' => fn($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->with('grupo.grado.nivel'),
         ])
-            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
-                'inscripciones', fn ($q) => $q
+            ->when($request->filled('estado'), fn($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
+                'inscripciones',
+                fn($q) => $q
                     ->where('ciclo_id', $cicloId)
-                    ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
+                    ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id))
             ))
-            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas(
-                'inscripciones', fn ($q) => $q
+            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas(
+                'inscripciones',
+                fn($q) => $q
                     ->where('ciclo_id', $cicloId)
                     ->where('grupo_id', $request->grupo_id)
             ))
-            ->when($request->filled('buscar'), fn ($q) => $q->where(function ($q) use ($request) {
+            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
                     ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
                     ->orWhere('matricula', 'like', "%{$request->buscar}%")
@@ -73,8 +75,14 @@ class AlumnoController extends Controller
         $disenos = \App\Models\Credencial::all();
 
         return view('alumnos.index', compact(
-            'alumnos', 'niveles', 'grupos', 'cicloId',
-            'statsActivos', 'statsTotal', 'statsInscritos', 'disenos' 
+            'alumnos',
+            'niveles',
+            'grupos',
+            'cicloId',
+            'statsActivos',
+            'statsTotal',
+            'statsInscritos',
+            'disenos'
         ));
     }
 
@@ -245,11 +253,10 @@ class AlumnoController extends Controller
             return redirect()
                 ->route('alumnos.show', $alumno->id)
                 ->with('success', $mensaje);
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return $this->respuestaError('Error al registrar el alumno: '.$e->getMessage());
+            return $this->respuestaError('Error al registrar el alumno: ' . $e->getMessage());
         }
     }
 
@@ -350,7 +357,7 @@ class AlumnoController extends Controller
 
         $hermanos = Alumno::where('familia_id', $alumno->familia_id)
             ->where('id', '!=', $alumno->id)
-            ->with(['inscripciones' => fn ($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
+            ->with(['inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
             ->get();
 
         return response()->json($hermanos);
@@ -373,7 +380,9 @@ class AlumnoController extends Controller
             ->first();
 
         // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
-        $ciclos = CicloEscolar::whereHas('inscripciones', fn ($q) => $q->where('alumno_id', $alumno->id)
+        $ciclos = CicloEscolar::whereHas(
+            'inscripciones',
+            fn($q) => $q->where('alumno_id', $alumno->id)
         )->orderByDesc('fecha_inicio')->get();
 
         // Cargos con detalles de pagos vigentes y políticas del plan
@@ -383,11 +392,13 @@ class AlumnoController extends Controller
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
         ])
-            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+            ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
 
         if ($request->filled('ciclo_id')) {
-            $cargosQuery->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $request->ciclo_id)
+            $cargosQuery->whereHas(
+                'inscripcion',
+                fn($q) => $q->where('ciclo_id', $request->ciclo_id)
             );
         }
 
@@ -396,11 +407,14 @@ class AlumnoController extends Controller
         $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
             ->where('alumno_id', $alumno->id)
             ->where('activo', true)
-            ->when($inscripcionActual, fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
+            ->when(
+                $inscripcionActual,
+                fn($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
             )
-            ->where(fn ($q) => $q
-                ->whereNull('vigencia_fin')
-                ->orWhere('vigencia_fin', '>=', now())
+            ->where(
+                fn($q) => $q
+                    ->whereNull('vigencia_fin')
+                    ->orWhere('vigencia_fin', '>=', now())
             )
             ->get();
         $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
@@ -464,7 +478,7 @@ class AlumnoController extends Controller
                     $mesesRetraso = 0;
 
                     // Cargo vigente → aplicar descuento si existe política que aplique hoy
-                    $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
+                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
                     if ($pd) {
                         $descuento = $pd->calcular($saldoBase);
                     }
@@ -521,7 +535,12 @@ class AlumnoController extends Controller
         ];
 
         return view('alumnos.estado-cuenta', compact(
-            'alumno', 'inscripcionActual', 'ciclos', 'cargos', 'resumen', 'becas'
+            'alumno',
+            'inscripcionActual',
+            'ciclos',
+            'cargos',
+            'resumen',
+            'becas'
         ));
     }
 
@@ -536,7 +555,7 @@ class AlumnoController extends Controller
             ->value('matricula');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $año.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $año . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 
     private function documentosPorGrupo(int $grupoId): array
@@ -579,7 +598,7 @@ class AlumnoController extends Controller
                 'nivel_id' => $prospecto->nivel_interes_id,
                 'prospecto_id' => $prospecto->id,
             ],
-            'apellido_familia' => $apellidoFamilia ? 'Familia '.$apellidoFamilia : '',
+            'apellido_familia' => $apellidoFamilia ? 'Familia ' . $apellidoFamilia : '',
             'contactos' => [[
                 'nombre' => $contactoNombre,
                 'ap_paterno' => $contactoApPaterno,
@@ -652,12 +671,12 @@ class AlumnoController extends Controller
         $alumno = Alumno::findOrFail($id);
 
         // Obtenemos la observación actual por si ya tenía algo escrito antes
-        $obsAnterior = $alumno->observaciones ? $alumno->observaciones.' | ' : '';
+        $obsAnterior = $alumno->observaciones ? $alumno->observaciones . ' | ' : '';
 
         $alumno->update([
             'estado' => $request->tipo_baja,
             'fecha_baja' => now(),
-            'observaciones' => $obsAnterior.$request->observaciones, // Concatenamos la razón
+            'observaciones' => $obsAnterior . $request->observaciones, // Concatenamos la razón
         ]);
 
         $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
@@ -665,55 +684,54 @@ class AlumnoController extends Controller
         return back()->with('success', 'Se registró la baja correctamente en el expediente.');
     }
     public function promocionarMasivo(Request $request)
-{
-    $request->validate([
-        'inscripciones_ids' => 'required|array',
-        'ciclo_destino_id'  => 'required|exists:ciclo_escolar,id',
-        'grado_destino_id'  => 'required|exists:grados,id',
-        'grupo_origen_id'   => 'required'
-    ]);
+    {
+        $request->validate([
+            'inscripciones_ids' => 'required|array',
+            'ciclo_destino_id'  => 'required|exists:ciclo_escolar,id',
+            'grado_destino_id'  => 'required|exists:grados,id',
+            'grupo_origen_id'   => 'required'
+        ]);
 
-    $contador = 0;
+        $contador = 0;
 
-    try {
-        \DB::transaction(function () use ($request, &$contador) {
-            foreach ($request->inscripciones_ids as $inscripcionId) {
-                // 1. Obtener la inscripción actual
-                $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
-                $alumno = $inscripcionActual->alumno;
+        try {
+            \DB::transaction(function () use ($request, &$contador) {
+                foreach ($request->inscripciones_ids as $inscripcionId) {
+                    // 1. Obtener la inscripción actual
+                    $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
+                    $alumno = $inscripcionActual->alumno;
 
-                // 2. Cerrar la inscripción actual (Historial)
-                $inscripcionActual->update([
-                    'activo' => false,
-                    'observaciones' => ($inscripcionActual->observaciones ?? '') . " | Promocionado al ciclo ID: {$request->ciclo_destino_id}"
-                ]);
+                    // 2. Cerrar la inscripción actual (Historial)
+                    $inscripcionActual->update([
+                        'activo' => false,
+                        'observaciones' => ($inscripcionActual->observaciones ?? '') . " | Promocionado al ciclo ID: {$request->ciclo_destino_id}"
+                    ]);
 
-                // 3. Crear la nueva inscripción en el ciclo/grado destino
-                // Nota: Aquí se crea sin grupo asignado (para que luego los repartas)
-                // o puedes asignar un grupo_id si lo añades al modal.
-                \App\Models\Inscripcion::create([
-                    'alumno_id' => $alumno->id,
-                    'ciclo_id'  => $request->ciclo_destino_id,
-                    'grado_id'  => $request->grado_destino_id,
-                    'fecha_inscripcion' => now(),
-                    'activo'    => true,
-                    'estado'    => 'inscrito'
-                ]);
+                    // 3. Crear la nueva inscripción en el ciclo/grado destino
+                    // Nota: Aquí se crea sin grupo asignado (para que luego los repartas)
+                    // o puedes asignar un grupo_id si lo añades al modal.
+                    \App\Models\Inscripcion::create([
+                        'alumno_id' => $alumno->id,
+                        'ciclo_id'  => $request->ciclo_destino_id,
+                        'grado_id'  => $request->grado_destino_id,
+                        'fecha_inscripcion' => now(),
+                        'activo'    => true,
+                        'estado'    => 'inscrito'
+                    ]);
 
-                // 4. Asegurarnos que el alumno siga como activo en su ficha general
-                $alumno->update(['estado' => 'activo']);
+                    // 4. Asegurarnos que el alumno siga como activo en su ficha general
+                    $alumno->update(['estado' => 'activo']);
 
-                $contador++;
-            }
-        });
+                    $contador++;
+                }
+            });
 
-        return redirect()->route('grupos.show', $request->grupo_origen_id)
-            ->with('success', "¡Éxito! Se han promocionado $contador alumnos correctamente.");
-
-    } catch (\Exception $e) {
-        return back()->with('error', "Hubo un error al promocionar: " . $e->getMessage());
+            return redirect()->route('grupos.show', $request->grupo_origen_id)
+                ->with('success', "¡Éxito! Se han promocionado $contador alumnos correctamente.");
+        } catch (\Exception $e) {
+            return back()->with('error', "Hubo un error al promocionar: " . $e->getMessage());
+        }
     }
-}
 
     /**
      * POST /grupos/{id}/egresar-todo
@@ -751,12 +769,32 @@ class AlumnoController extends Controller
 
             DB::commit();
 
-            return back()->with('success', '¡Proceso completado! Se actualizaron '.count($ids).' alumnos.');
-
+            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
         } catch (\Exception $e) {
             DB::rollback();
 
-            return back()->with('error', 'Error al procesar: '.$e->getMessage());
+            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
         }
+    }
+    public function reporteAlumno(Request $request, int $id)
+    {
+        // Agregamos 'inscripciones.ciclo' y las relaciones de la familia
+        $alumno = Alumno::with([
+            'familia.alumnos',
+            'familia.contactos',
+            'inscripciones.grupo.grado.nivel',
+            'inscripciones.ciclo',
+            'contactos'
+        ])->findOrFail($id);
+
+        if (ob_get_length()) ob_end_clean();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('alumnos.reportes.perfil_pdf', compact('alumno'));
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
     }
 }

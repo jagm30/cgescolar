@@ -340,6 +340,11 @@
                                                                 style="padding: 8px 20px;"><i class="fa fa-eye"
                                                                     style="color: #3498db; width:24px"></i> Ver perfil</a>
                                                         </li>
+                                                        <li><a href="{{ route('alumnos.reporte', $inscripcion->alumno->id) }}"
+                                                                style="padding: 8px 20px;"><i class="fa fa-file-pdf-o"
+                                                                    style="color: #db3434; width:24px"></i> Ver ficha de
+                                                                alumno</a>
+                                                        </li>
                                                         <li><a href="{{ route('alumnos.estado-cuenta', $inscripcion->alumno->id) }}"
                                                                 style="padding: 8px 20px;"><i class="fa fa-money"
                                                                     style="color: #2ecc71; width:24px"></i> Estado de

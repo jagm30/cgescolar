@@ -103,8 +103,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
     Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
     // Ruta para procesar la promoción/reinscripción masiva
-    Route::post('grupos/promocionar-masivo', [GrupoController::class, 'promocionarMasivo'])
+    Route::post('grupos/promocionar-masivo', [App\Http\Controllers\GrupoController::class, 'promocionarMasivo'])
         ->name('grupos.promocionar-masivo');
+
 
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
@@ -121,6 +122,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
+    Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
 
     // conceptos de cobro
     // Planes de pago
@@ -285,11 +287,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador')
         ->name('admin.dashboard');
 
-    Route::get('/caja', fn () => view('dashboards.caja'))
+    Route::get('/caja', fn() => view('dashboards.caja'))
         ->middleware('rol:administrador,caja')
         ->name('caja.dashboard');
 
-    Route::get('/recepcion', fn () => view('dashboards.recepcion'))
+    Route::get('/recepcion', fn() => view('dashboards.recepcion'))
         ->middleware('rol:administrador,recepcion')
         ->name('recepcion.dashboard');
 
@@ -405,7 +407,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
     ->name('portal.')
     ->group(function () {
 
-        Route::get('/', fn () => view('portal.dashboard'))->name('dashboard');
+        Route::get('/', fn() => view('portal.dashboard'))->name('dashboard');
         Route::get('/hijos', [PortalPadreController::class, 'hijos'])->name('hijos');
         Route::get('/hijos/{alumnoId}/estado-cuenta', [PortalPadreController::class, 'estadoCuenta'])->name('estado-cuenta');
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
@@ -426,23 +428,23 @@ Route::prefix('configuracion')->group(function () {
 // Rutas para diseño de credenciales
 // =======================================================
 Route::prefix('credenciales')->group(function () {
-    Route::get('/', [CredencialController::class, 'index'])->name('credenciales.index');
+    Route::get('/', [App\Http\Controllers\CredencialController::class, 'index'])->name('credenciales.index');
 
     // RUTAS ESTÁTICAS Y DE MÚLTIPLES PARÁMETROS (Siempre van arriba)
     Route::get('/imprimir-lote/{credencial_id}/{grupo_id}', [CredencialController::class, 'imprimirLote'])->name('credenciales.imprimirLote');
     // Ruta para imprimir a un solo alumno
-    Route::get('/individual/{credencial}/{alumno}', [CredencialController::class, 'imprimirIndividual'])
+    Route::get('/individual/{credencial}/{alumno}', [App\Http\Controllers\CredencialController::class, 'imprimirIndividual'])
         ->name('credenciales.imprimirIndividual');
-    Route::get('/preview/{credencial_id}/{alumno_id}', [CredencialController::class, 'preview'])->name('credenciales.preview');
+    Route::get('/preview/{credencial_id}/{alumno_id}', [App\Http\Controllers\CredencialController::class, 'preview'])->name('credenciales.preview');
 
     // RUTAS BÁSICAS
-    Route::post('/store', [CredencialController::class, 'store'])->name('credenciales.store');
+    Route::post('/store', [App\Http\Controllers\CredencialController::class, 'store'])->name('credenciales.store');
 
     // RUTAS QUE PIDEN UN {id} (Siempre van abajo para que no choquen)
-    Route::get('/{id}/edit', [CredencialController::class, 'edit'])->name('credenciales.edit');
-    Route::post('/{id}/config', [CredencialController::class, 'updateConfig'])->name('credenciales.updateConfig');
-    Route::post('/{id}/upload-fondo', [CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
-    Route::delete('/{id}', [CredencialController::class, 'destroy'])->name('credenciales.destroy');
+    Route::get('/{id}/edit', [App\Http\Controllers\CredencialController::class, 'edit'])->name('credenciales.edit');
+    Route::post('/{id}/config', [App\Http\Controllers\CredencialController::class, 'updateConfig'])->name('credenciales.updateConfig');
+    Route::post('/{id}/upload-fondo', [App\Http\Controllers\CredencialController::class, 'uploadFondo'])->name('credenciales.uploadFondo');
+    Route::delete('/{id}', [App\Http\Controllers\CredencialController::class, 'destroy'])->name('credenciales.destroy');
 });
 // ── Reportes ─────────────────────────────────────────
 Route::get('/reportes/deudores', [ReporteDeudoresController::class, 'index'])

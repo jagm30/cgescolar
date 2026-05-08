@@ -87,7 +87,8 @@
                                 <i class="fa fa-circle-o"></i> Conceptos de cobro
                             </a>
                         </li>
-                        <li class="{{ request()->routeIs('planes.*') && ! request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
+                        <li
+                            class="{{ request()->routeIs('planes.*') && !request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
                             <a href="{{ route('planes.index') }}">
                                 <i class="fa fa-circle-o"></i> Planes de pago
                             </a>
@@ -167,22 +168,22 @@
             @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
                 <li class="header">COBRANZA</li>
 
-            <li class="treeview {{ request()->routeIs(['cargos.*']) ? 'active menu-open' : '' }}">
-                <a href="#">
-                    <i class="fa fa-file-text-o"></i>
-                    <span>Cargos</span>
-                    <span class="pull-right-container">
-                        <i class="fa fa-angle-left pull-right"></i>
-                    </span>
-                </a>
-                <ul class="treeview-menu">
-                    <li class="{{ request()->routeIs('cargos.index') ? 'active' : '' }}">
-                        <a href="{{ route('cargos.index') }}">
-                            <i class="fa fa-circle-o"></i> Ver cargos
-                        </a>
-                    </li>
-                </ul>
-            </li>
+                <li class="treeview {{ request()->routeIs(['cargos.*']) ? 'active menu-open' : '' }}">
+                    <a href="#">
+                        <i class="fa fa-file-text-o"></i>
+                        <span>Cargos</span>
+                        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li class="{{ request()->routeIs('cargos.index') ? 'active' : '' }}">
+                            <a href="{{ route('cargos.index') }}">
+                                <i class="fa fa-circle-o"></i> Ver cargos
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
                 <li class="{{ request()->routeIs('cobros.index') ? 'active' : '' }}">
                     <a href="{{ route('cobros.index') }}">
@@ -258,6 +259,11 @@
             <li>
                 <a href="{{ route('settings.index') }}">
                     <i class="fa fa-gear"></i> <span>Configuración</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('credenciales.index') }}">
+                    <i class="fa fa-id-card"></i> <span>Editor de Credenciales</span>
                 </a>
             </li>
 

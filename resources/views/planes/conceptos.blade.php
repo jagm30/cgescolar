@@ -333,9 +333,25 @@
             let contadorFilas = 0;
             $('#btn-add-fila-concepto').on('click', function() {
                 const filaHtml = `<tr id="fila-con-${contadorFilas}">
-                    <td><select name="conceptos[${contadorFilas}][concepto_id]" class="form-control" required><option value="">-- Seleccione --</option>@foreach ($conceptosDisponibles as $cd)<option value="{{ $cd->id }}">{{ $cd->nombre }} ({{ ucfirst($cd->tipo) }})</option>@endforeach</select></td>
-                    <td><div class="input-group"><span class="input-group-addon">$</span><input type="number" step="0.01" name="conceptos[${contadorFilas}][monto]" class="form-control" required></div></td>
-                    <td class="text-center"><button type="button" class="btn btn-danger btn-sm btn-remove-fila"><i class="fa fa-times"></i></button></td>
+                    <td>
+                        <select name="conceptos[${contadorFilas}][concepto_id]" class="form-control select-concepto-magico" required>
+                            <option value="">-- Seleccione --</option>
+                            @foreach ($conceptosDisponibles as $cd)
+                                <option value="{{ $cd->id }}" data-monto="{{ $cd->monto }}">
+                                    {{ $cd->nombre }} ({{ ucfirst($cd->tipo) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </td>
+                    <td>
+                        <div class="input-group">
+                            <span class="input-group-addon">$</span>
+                            <input type="number" step="0.01" name="conceptos[${contadorFilas}][monto]" class="form-control input-monto-magico" required>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-sm btn-remove-fila"><i class="fa fa-times"></i></button>
+                    </td>
                 </tr>`;
                 $('#wrapper-conceptos').append(filaHtml);
                 contadorFilas++;
@@ -345,6 +361,18 @@
             $(document).on('click', '.btn-remove-fila', function() {
                 $(this).closest('tr').remove();
                 revisarEstadoTabla();
+            });
+
+            // ── AUTO-COMPLETAR MONTO DEL CONCEPTO ──
+            $('#tabla-conceptos-dinamica').on('change', '.select-concepto-magico', function() {
+                let monto = $(this).find(':selected').data('monto');
+                let inputMonto = $(this).closest('tr').find('.input-monto-magico');
+
+                if (monto !== undefined && monto !== '') {
+                    inputMonto.val(monto);
+                } else {
+                    inputMonto.val('');
+                }
             });
 
             function revisarEstadoTabla() {
