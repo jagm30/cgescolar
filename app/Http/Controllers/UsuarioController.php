@@ -162,4 +162,38 @@ class UsuarioController extends Controller
 
         return view('usuarios.perfil', compact('usuario'));
     }
+    public function generarUsuariosMasivos(Request $request)
+{
+    $ids = $request->input('contacto_ids'); // Array de IDs seleccionados
+    $usuariosCreados = [];
+
+    foreach ($ids as $id) {
+        $contacto = ContactoFamiliar::findOrFail($id);
+        
+        // Generar contraseña alfanumérica aleatoria de 8 caracteres
+        $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+
+        $usuario = Usuario::create([
+            'nombre'        => $contacto->nombre,
+            'email'         => $contacto->email,
+            'password_hash' => Hash::make($passwordPlana),
+            'rol'           => 'padre',
+            'activo'        => true,
+        ]);
+
+        $contacto->update(['usuario_id' => $usuario->id]);
+
+        $usuariosCreados[] = [
+            'nombre'   => $usuario->nombre,
+            'email'    => $usuario->email,
+            'password' => $passwordPlana
+        ];
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'data'   => $usuariosCreados,
+        'mensaje' => count($usuariosCreados) . ' usuarios generados.'
+    ]);
+}
 }
