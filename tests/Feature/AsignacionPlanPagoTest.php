@@ -11,6 +11,8 @@ use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\PlanPago;
 use App\Models\PlanPagoConcepto;
+use App\Models\PoliticaDescuento;
+use App\Models\PoliticaRecargo;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -137,6 +139,44 @@ test('genera cargos automaticamente al asignar un plan', function () {
         'periodo' => '2026-09',
         'monto_original' => '1500.00',
     ]);
+});
+
+test('permite crear un plan sin politicas de descuento ni recargo', function () {
+    $contexto = crearContextoPlanPago();
+
+    $response = $this->actingAs($contexto['admin'])
+        ->post(route('planes.store'), [
+            'ciclo_id' => $contexto['ciclo']->id,
+            'nivel_id' => $contexto['nivel']->id,
+            'nombre' => 'Plan sin politicas',
+            'periodicidad' => 'mensual',
+            'fecha_inicio' => '2026-08-01',
+            'fecha_fin' => '2026-09-30',
+            'conceptos' => [
+                [
+                    'concepto_id' => $contexto['concepto']->id,
+                    'monto' => 1200,
+                ],
+            ],
+            'descuentos' => [
+                [
+                    'nombre' => null,
+                    'tipo_valor' => 'porcentaje',
+                    'valor' => null,
+                    'dia_limite' => null,
+                ],
+            ],
+            'recargo' => [
+                'tipo_recargo' => 'porcentaje',
+            ],
+        ]);
+
+    $plan = PlanPago::where('nombre', 'Plan sin politicas')->firstOrFail();
+
+    $response->assertRedirect(route('planes.show', $plan->id));
+
+    expect(PoliticaDescuento::where('plan_id', $plan->id)->exists())->toBeFalse();
+    expect(PoliticaRecargo::where('plan_id', $plan->id)->exists())->toBeFalse();
 });
 
 test('no permite duplicar la asignacion del mismo alcance en el ciclo', function () {

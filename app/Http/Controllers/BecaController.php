@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CatalogoBecaRequest;
 use App\Http\Requests\StoreBecaAlumnoRequest;
 use App\Models\Alumno;
+use App\Models\AsignacionPlan;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\CatalogoBeca;
 use App\Models\CicloEscolar;
+use App\Models\Inscripcion;
 use App\Models\PlanPago;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class BecaController extends Controller
 {
@@ -46,11 +49,6 @@ class BecaController extends Controller
             ?? CicloEscolar::activo()->value('id');
 
         $catalogo = CatalogoBeca::activo()->orderBy('nombre')->get();
-        $planes = PlanPago::with('nivel')
-            ->where('ciclo_id', $cicloId)
-            ->activo()
-            ->orderBy('nombre')
-            ->get();
         $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
         $alumnos = Alumno::whereHas('inscripciones', function ($query) use ($cicloId) {
             $query->where('ciclo_id', $cicloId)->where('activo', true);
@@ -58,10 +56,12 @@ class BecaController extends Controller
         $cicloActual = CicloEscolar::find($cicloId);
         $alumnoActual = null;
         $alumnoId = $request->query('alumno_id') ?? session('_old_input.alumno_id');
+        $planes = collect();
 
         if ($alumnoId) {
             $alumnoActual = Alumno::with(['becas.catalogoBeca', 'becas.plan', 'becas.concepto'])
                 ->find($alumnoId);
+            $planes = $this->planesAsignadosAlumno((int) $alumnoId, (int) $cicloId);
         }
 
         return view('becas.create', compact('catalogo', 'planes', 'ciclos', 'alumnos', 'alumnoActual', 'cicloActual'));
@@ -140,21 +140,45 @@ class BecaController extends Controller
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $becas = BecaAlumno::with(['catalogoBeca', 'alumno', 'plan', 'concepto', 'ciclo', 'creadoPor'])
-            ->where('ciclo_id', $cicloId)
-            ->when($request->filled('alumno_id'), fn ($q) => $q->where('alumno_id', $request->alumno_id))
+        $query = BecaAlumno::with(['catalogoBeca', 'alumno', 'plan', 'concepto', 'ciclo', 'creadoPor'])
+            ->where('ciclo_id', $cicloId);
+
+        $statsTotal = (clone $query)->count();
+        $statsActivas = (clone $query)->where('activo', true)->count();
+        $statsInactivas = (clone $query)->where('activo', false)->count();
+
+        $becas = $query
+            ->when($request->filled('buscar'), function ($q) use ($request) {
+                $buscar = $request->string('buscar')->toString();
+
+                $q->where(function ($query) use ($buscar) {
+                    $query->whereHas('alumno', function ($alumnoQuery) use ($buscar) {
+                        $alumnoQuery
+                            ->where('nombre', 'like', "%{$buscar}%")
+                            ->orWhere('ap_paterno', 'like', "%{$buscar}%")
+                            ->orWhere('ap_materno', 'like', "%{$buscar}%")
+                            ->orWhere('matricula', 'like', "%{$buscar}%");
+                    })
+                        ->orWhereHas('catalogoBeca', fn ($catalogoQuery) => $catalogoQuery->where('nombre', 'like', "%{$buscar}%"))
+                        ->orWhereHas('plan', fn ($planQuery) => $planQuery->where('nombre', 'like', "%{$buscar}%"));
+                });
+            })
+            ->when($request->filled('catalogo_beca_id'), fn ($q) => $q->where('catalogo_beca_id', $request->catalogo_beca_id))
+            ->when($request->filled('plan_id'), fn ($q) => $q->where('plan_id', $request->plan_id))
             ->when($request->filled('activo'), fn ($q) => $q->where('activo', $request->boolean('activo')))
+            ->orderByDesc('activo')
             ->orderBy('alumno_id')
-            ->get();
+            ->paginate(20)
+            ->withQueryString();
 
         if ($request->ajax()) {
             return response()->json($becas);
         }
 
-        $catalogo = CatalogoBeca::activo()->get();
-        $planes = PlanPago::where('ciclo_id', $cicloId)->activo()->get();
+        $catalogo = CatalogoBeca::activo()->orderBy('nombre')->get();
+        $planes = PlanPago::where('ciclo_id', $cicloId)->activo()->orderBy('nombre')->get();
 
-        return view('becas.index', compact('becas', 'catalogo', 'planes'));
+        return view('becas.index', compact('becas', 'catalogo', 'planes', 'statsTotal', 'statsActivas', 'statsInactivas'));
     }
 
     public function store(StoreBecaAlumnoRequest $request)
@@ -206,5 +230,37 @@ class BecaController extends Controller
             redirectRoute: 'becas.index',
             mensaje: 'Beca desactivada correctamente.'
         );
+    }
+
+    private function planesAsignadosAlumno(int $alumnoId, int $cicloId): Collection
+    {
+        $inscripcion = Inscripcion::with('grupo.grado')
+            ->where('alumno_id', $alumnoId)
+            ->where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            ->first();
+
+        if (! $inscripcion) {
+            return collect();
+        }
+
+        $nivelId = $inscripcion->grupo?->grado?->nivel_id;
+
+        return AsignacionPlan::with('plan.nivel')
+            ->where(function ($query) use ($alumnoId, $inscripcion, $nivelId) {
+                $query->where(fn ($subQuery) => $subQuery->where('origen', 'individual')->where('alumno_id', $alumnoId))
+                    ->orWhere(fn ($subQuery) => $subQuery->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id));
+
+                if ($nivelId) {
+                    $query->orWhere(fn ($subQuery) => $subQuery->where('origen', 'nivel')->where('nivel_id', $nivelId));
+                }
+            })
+            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId)->where('activo', true))
+            ->get()
+            ->pluck('plan')
+            ->filter()
+            ->unique('id')
+            ->sortBy('nombre')
+            ->values();
     }
 }
