@@ -71,10 +71,11 @@
 @endif
 
 @php
-    $esAnulado   = $pago->estado === 'anulado';
-    $totalDesc   = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_otros);
-    $totalRecarg = $pago->detalles->sum(fn($d) => (float)$d->recargo_aplicado);
-    $alumnos     = $pago->detalles
+    $esAnulado    = $pago->estado === 'anulado';
+    $cfdiVigente  = $pago->cfdis->where('estado', 'vigente')->first();
+    $totalDesc    = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_otros);
+    $totalRecarg  = $pago->detalles->sum(fn($d) => (float)$d->recargo_aplicado);
+    $alumnos      = $pago->detalles
         ->map(fn($d) => $d->cargo?->inscripcion?->alumno)
         ->filter()->unique('id')->values();
 @endphp
@@ -303,11 +304,23 @@
 
     {{-- Anular (solo admin, pago vigente) --}}
     @if(auth()->user()->esAdministrador() && !$esAnulado)
-    <div class="recibo-card" style="border-color:#fca5a5;">
-        <div class="recibo-card-header" style="background:#fdecea;">
-            <i class="fa fa-ban" style="color:#b91c1c;"></i>
-            <span class="recibo-card-title" style="color:#b91c1c;">Anular pago</span>
+    <div class="recibo-card" style="border-color:{{ $cfdiVigente ? '#e0c97a' : '#fca5a5' }};">
+        <div class="recibo-card-header" style="background:{{ $cfdiVigente ? '#fefce8' : '#fdecea' }};">
+            <i class="fa fa-ban" style="color:{{ $cfdiVigente ? '#92400e' : '#b91c1c' }};"></i>
+            <span class="recibo-card-title" style="color:{{ $cfdiVigente ? '#92400e' : '#b91c1c' }};">Anular pago</span>
         </div>
+        @if($cfdiVigente)
+        <div style="padding:14px 16px;font-size:12px;color:#92400e;line-height:1.6;">
+            <i class="fa fa-lock"></i>
+            <strong>No se puede anular.</strong><br>
+            Este pago tiene una factura electrónica vigente
+            @if($cfdiVigente->folio)
+                (<strong>{{ $cfdiVigente->folio }}</strong>)
+            @endif
+            timbrada ante el SAT.<br>
+            <span style="color:#6b5a00;">Primero cancele el CFDI y luego podrá anular el pago.</span>
+        </div>
+        @else
         <div style="padding:14px 16px;">
             <form method="POST" action="{{ route('pagos.anular', $pago->id) }}"
                   id="form-anular"
@@ -330,6 +343,7 @@
                 </button>
             </form>
         </div>
+        @endif
     </div>
     @endif
 
@@ -356,8 +370,6 @@
         </div>
 
         @else
-        @php $cfdiVigente = $pago->cfdis->where('estado','vigente')->first(); @endphp
-
         @if($cfdiVigente)
         {{-- ── CFDI ya emitido ── --}}
         <div class="info-row">

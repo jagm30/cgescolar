@@ -17,7 +17,9 @@ class ConfigFiscal extends Model
         'cer_url',
         'key_url',
         'serie',
+        'serie_id',
         'folio_actual',
+        'publico_general_uid',
     ];
 
     // ── Helpers ──────────────────────────────────────────
