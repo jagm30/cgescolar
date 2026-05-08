@@ -4,8 +4,8 @@ use App\Http\Controllers\AlumnoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
-use App\Http\Controllers\CicloEscolarController;
 use App\Http\Controllers\CfdiController;
+use App\Http\Controllers\CicloEscolarController;
 use App\Http\Controllers\CobrosController;
 use App\Http\Controllers\ConceptoCobroController;
 use App\Http\Controllers\CredencialController;
@@ -21,11 +21,10 @@ use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
-use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\ReporteDeudoresController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
-
 
 Route::get('/tables', function () {
     return view('plantilla.tables');
@@ -260,6 +259,14 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion')
         ->name('prospectos.seguimiento');
 
+    Route::post('/prospectos/{id}/documentos', [ProspectoController::class, 'agregarDocumento'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('prospectos.documentos.store');
+
+    Route::get('/prospectos/{id}/documentos/{documentoId}/archivo', [ProspectoController::class, 'descargarDocumento'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('prospectos.documentos.archivo');
+
     Route::resource('prospectos', ProspectoController::class)
         ->only(['index', 'show', 'create', 'store'])
         ->middleware('rol:administrador,recepcion');
@@ -424,7 +431,7 @@ Route::prefix('credenciales')->group(function () {
     Route::get('/', [App\Http\Controllers\CredencialController::class, 'index'])->name('credenciales.index');
 
     // RUTAS ESTÁTICAS Y DE MÚLTIPLES PARÁMETROS (Siempre van arriba)
-    Route::get('/imprimir-lote/{credencial_id}/{grupo_id}', [App\Http\Controllers\CredencialController::class, 'imprimirLote'])->name('credenciales.imprimirLote');
+    Route::get('/imprimir-lote/{credencial_id}/{grupo_id}', [CredencialController::class, 'imprimirLote'])->name('credenciales.imprimirLote');
     // Ruta para imprimir a un solo alumno
     Route::get('/individual/{credencial}/{alumno}', [App\Http\Controllers\CredencialController::class, 'imprimirIndividual'])
         ->name('credenciales.imprimirIndividual');
