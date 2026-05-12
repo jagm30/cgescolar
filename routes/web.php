@@ -261,12 +261,21 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion');
 
     // ── Usuarios ─────────────────────────────────────────
-    Route::get('/usuarios/pendientes-portal', [UsuarioController::class, 'pendientesPortal'])
-        ->middleware('rol:administrador')
-        ->name('usuarios.pendientes-portal');
     Route::post('usuarios/generar-masivos', [UsuarioController::class, 'generarUsuariosMasivos'])
         ->middleware('rol:administrador')
         ->name('usuarios.generarMasivos');
+
+    Route::get('/usuarios/pendientes-portal', [UsuarioController::class, 'pendientesPortal'])
+        ->middleware('rol:administrador')
+        ->name('usuarios.pendientes-portal');
+
+    Route::get('usuarios/credenciales-pdf', [UsuarioController::class, 'descargarCredencialesPdf'])
+    ->middleware('rol:administrador')
+    ->name('usuarios.credencialesPdf');
+
+    Route::get('usuarios/credenciales-pdf', [UsuarioController::class, 'descargarCredencialesPdf'])
+    ->middleware('rol:administrador')
+    ->name('usuarios.credencialesPdf');
 
     Route::get('/perfil', [UsuarioController::class, 'perfil'])
         ->name('usuarios.perfil');
