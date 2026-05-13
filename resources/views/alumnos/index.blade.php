@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                                                                                       ESTADÍSTICAS
-                                                                                    ══════════════════════════════════════════ */
+                                                                                           ESTADÍSTICAS
+                                                                                        ══════════════════════════════════════════ */
         .alm-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       TOOLBAR
-                                                                                    ══════════════════════════════════════════ */
+                                                                                           TOOLBAR
+                                                                                        ══════════════════════════════════════════ */
         .alm-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       TABLA
-                                                                                    ══════════════════════════════════════════ */
+                                                                                           TABLA
+                                                                                        ══════════════════════════════════════════ */
         .alm-table {
             margin: 0;
             border-collapse: separate;
@@ -356,8 +356,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       DROPDOWN ESTILO SAAS (Igual al de Grupos)
-                    ══════════════════════════════════════════ */
+                           DROPDOWN ESTILO SAAS (Igual al de Grupos)
+                        ══════════════════════════════════════════ */
         .btn-action-flat {
             width: 30px;
             height: 30px;
@@ -398,8 +398,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       EMPTY STATE
-                                                                                    ══════════════════════════════════════════ */
+                                                                                           EMPTY STATE
+                                                                                        ══════════════════════════════════════════ */
         .alm-empty {
             text-align: center;
             padding: 60px 20px;
@@ -425,8 +425,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       FOOTER / PAGINACIÓN
-                                                                                    ══════════════════════════════════════════ */
+                                                                                           FOOTER / PAGINACIÓN
+                                                                                        ══════════════════════════════════════════ */
         .alm-footer {
             display: flex;
             align-items: center;
@@ -459,6 +459,22 @@
         .alm-footer .pagination>.active>span {
             background: #3c8dbc;
             border-color: #3c8dbc;
+        }
+
+        /* ── FIX: EVITAR QUE LA TABLA CORTE LOS DROPDOWNS ── */
+        .box,
+        .box-body,
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .con-table {
+            overflow: visible !important;
+        }
+
+        /* Asegurarnos que la celda de acciones tampoco esconda el menú */
+        .con-table td {
+            overflow: visible !important;
         }
     </style>
 @endpush

@@ -271,7 +271,7 @@
                                     </td>
                                     <td>
                                         <span
-                                            class="badge-rol 
+                                            class="badge-rol
                                             {{ $usuario->rol == 'administrador' ? 'rol-admin' : ($usuario->rol == 'it' ? 'rol-it' : 'rol-padre') }}">
                                             {{ $usuario->rol }}
                                         </span>
