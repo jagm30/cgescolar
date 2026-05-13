@@ -131,7 +131,9 @@ class GrupoController extends Controller
     /** POST /grupos */
     public function store(Request $request)
     {
-        $cicloId = auth()->user()->ciclo_selected_id
+        // El request ahora SÍ traerá el ciclo_id gracias al input oculto en el HTML
+        $cicloId = $request->ciclo_id
+            ?? auth()->user()->ciclo_selected_id
             ?? CicloEscolar::activo()->value('id');
 
         $data = $request->validate([
@@ -145,7 +147,7 @@ class GrupoController extends Controller
             'nombre.required'   => 'El nombre del grupo es obligatorio.',
         ]);
 
-        $data['ciclo_id'] = $data['ciclo_id'] ?? $cicloId;
+        $data['ciclo_id'] = $cicloId;
         $data['activo']   = true;
         $data['nombre']   = strtoupper($data['nombre']);
 
@@ -165,12 +167,9 @@ class GrupoController extends Controller
 
         Auditoria::registrar('grupo', $grupo->id, 'insert', null, $grupo->toArray());
 
-        // ── CONFIGURACIÓN PARA EL TOAST DE HTML ──
         $mensajeExito = "Grupo '{$grupo->nombre}' creado correctamente.";
 
         if ($request->ajax()) {
-            // MANDAMOS EL MENSAJE A LA SESIÓN MANUALMENTE
-            // Esto es lo que hará que tu @if(session()->has('success')) lo vea al recargar
             session()->flash('success', $mensajeExito);
 
             return $this->respuestaExito(

@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                                                                                   ESTADÍSTICAS
-                                                                                ══════════════════════════════════════════ */
+                                                                                       ESTADÍSTICAS
+                                                                                    ══════════════════════════════════════════ */
         .con-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                   TOOLBAR
-                                                                                ══════════════════════════════════════════ */
+                                                                                       TOOLBAR
+                                                                                    ══════════════════════════════════════════ */
         .con-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                   TABLA
-                                                                                ══════════════════════════════════════════ */
+                                                                                       TABLA
+                                                                                    ══════════════════════════════════════════ */
         .con-table {
             margin: 0;
             border-collapse: separate;
@@ -302,8 +302,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                   EMPTY STATE
-                                                                                ══════════════════════════════════════════ */
+                                                                                       EMPTY STATE
+                                                                                    ══════════════════════════════════════════ */
         .con-empty {
             text-align: center;
             padding: 60px 20px;
@@ -791,22 +791,36 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Lógica dinámica del select de tipo
-            $('.select-tipo-dinamico').on('change', function() {
+            // Lógica dinámica del select de tipo (Agregamos la 'e' de evento)
+            $('.select-tipo-dinamico').on('change', function(e) {
                 let valorSeleccionado = $(this).val();
                 let form = $(this).closest('form');
+
+                // Atrapamos todos los elementos
                 let checkboxBeca = form.find('.checkbox-beca-dinamico');
+                let checkboxRecargo = form.find('input[name="aplica_recargo"]');
+                let checkboxActivo = form.find('input[name="activo"]');
                 let divMonto = form.find('.div-monto-dinamico');
                 let inputMonto = form.find('input[name="monto"]');
 
-                // Lógica Beca
+                // ── LÓGICA DE CHECKBOXES ──
                 if (valorSeleccionado === 'colegiatura') {
+                    // 1. La beca siempre se habilita si es colegiatura
                     checkboxBeca.prop('checked', true).prop('disabled', false);
+
+                    // 2. TRUCO DE INGENIERO: Solo forzamos los otros checks si el usuario cambió el select manualmente.
+                    // Si el evento viene de un "trigger" automático al cargar la página (isTrigger), lo ignora para respetar lo guardado.
+                    if (!e.isTrigger) {
+                        checkboxRecargo.prop('checked', true);
+                        checkboxActivo.prop('checked', true);
+                    }
                 } else {
+                    // Si no es colegiatura, se apaga y bloquea la beca.
+                    // (Los checks de Mora y Activo se dejan quietos para no molestar al usuario)
                     checkboxBeca.prop('checked', false).prop('disabled', true);
                 }
 
-                // Lógica Monto
+                // ── LÓGICA DE MONTO ──
                 if (valorSeleccionado === 'cargo_unico' || valorSeleccionado === 'cargo_recurrente') {
                     divMonto.slideDown();
                 } else {
