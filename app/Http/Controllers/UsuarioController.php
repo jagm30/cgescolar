@@ -10,6 +10,8 @@ use App\Models\Usuario;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class UsuarioController extends Controller
 {
@@ -162,4 +164,59 @@ class UsuarioController extends Controller
 
         return view('usuarios.perfil', compact('usuario'));
     }
+
+    public function generarUsuariosMasivos(Request $request)
+    {
+        $ids = $request->input('contacto_ids'); 
+        $usuariosCreados = [];
+
+        foreach ($ids as $id) {
+            $contacto = ContactoFamiliar::findOrFail($id);
+            
+            // Evitar duplicados si ya tiene usuario
+            if($contacto->usuario_id) continue;
+            
+            $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+
+            $usuario = Usuario::create([
+                'nombre'        => $contacto->nombre,
+                'email'         => $contacto->email,
+                'password_hash' => Hash::make($passwordPlana),
+                'rol'           => 'padre',
+                'activo'        => true,
+            ]);
+
+            $contacto->update(['usuario_id' => $usuario->id]);
+
+            $usuariosCreados[] = [
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => $passwordPlana
+            ];
+        }
+
+        // Guardamos los datos temporalmente en la sesión (Flash) solo para generar el PDF
+        session()->flash('credenciales_nuevas', $usuariosCreados);
+
+        return response()->json([
+            'status' => 'success',
+            'mensaje' => count($usuariosCreados) . ' usuarios generados.'
+        ]);
+    }
+
+    public function descargarCredencialesPdf()
+    {
+        // Recuperamos los datos de la sesión
+        $credenciales = session('credenciales_nuevas');
+
+        if (!$credenciales) {
+            return abort(404, 'No hay credenciales recientes para imprimir o la sesión caducó.');
+        }
+
+        // Generamos el PDF usando una vista dedicada
+        $pdf = Pdf::loadView('usuarios.pdf-credenciales', compact('credenciales'));
+    
+        return $pdf->stream('Credenciales_Colegio.pdf'); // Usa ->download() si prefieres que se descargue directo
+    }
+
 }
