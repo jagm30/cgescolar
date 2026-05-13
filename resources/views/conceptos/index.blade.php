@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                                                       ESTADÍSTICAS
-                                                    ══════════════════════════════════════════ */
+                                                                                   ESTADÍSTICAS
+                                                                                ══════════════════════════════════════════ */
         .con-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                       TOOLBAR
-                                                    ══════════════════════════════════════════ */
+                                                                                   TOOLBAR
+                                                                                ══════════════════════════════════════════ */
         .con-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                       TABLA
-                                                    ══════════════════════════════════════════ */
+                                                                                   TABLA
+                                                                                ══════════════════════════════════════════ */
         .con-table {
             margin: 0;
             border-collapse: separate;
@@ -302,8 +302,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                       EMPTY STATE
-                                                    ══════════════════════════════════════════ */
+                                                                                   EMPTY STATE
+                                                                                ══════════════════════════════════════════ */
         .con-empty {
             text-align: center;
             padding: 60px 20px;
@@ -331,14 +331,6 @@
 @endpush
 
 @section('content')
-
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible" style="border-radius:6px;">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <i class="fa fa-check-circle"></i> {{ session('success') }}
-        </div>
-    @endif
-
     {{-- ══ ESTADÍSTICAS ══ --}}
     <div class="con-stats">
         <div class="con-stat-card">
@@ -548,18 +540,32 @@
                                         data-target="#modalEditarConcepto{{ $concepto->id }}" title="Editar">
                                         <i class="fa fa-pencil"></i>
                                     </button>
-
-                                    <form action="{{ route('conceptos.destroy', $concepto->id) }}" method="POST"
-                                        style="display:inline-block;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-xs btn-flat"
-                                            style="border-radius:4px;"
-                                            onclick="return confirm('¿Desactivar el concepto: {{ $concepto->nombre }}?')"
-                                            title="Desactivar">
-                                            <i class="fa fa-ban"></i>
-                                        </button>
-                                    </form>
+                                    @if ($concepto->activo)
+                                        <form action="{{ route('conceptos.destroy', $concepto->id) }}" method="POST"
+                                            style="display:inline-block;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-xs btn-flat"
+                                                style="border-radius:4px;"
+                                                onclick="return confirm('¿Desactivar el concepto: {{ $concepto->nombre }}?')"
+                                                title="Desactivar">
+                                                <i class="fa fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('conceptos.update', $concepto->id) }}" method="POST"
+                                            style="display:inline-block;">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="activo" value="1">
+                                            <button type="submit" class="btn btn-success btn-xs btn-flat"
+                                                style="border-radius:4px;"
+                                                onclick="return confirm('¿Activar el concepto: {{ $concepto->nombre }}?')"
+                                                title="Activar">
+                                                <i class="fa fa-refresh"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

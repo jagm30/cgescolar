@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-               ESTADÍSTICAS
-            ══════════════════════════════════════════ */
+                       ESTADÍSTICAS
+                    ══════════════════════════════════════════ */
         .pln-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-               TOOLBAR
-            ══════════════════════════════════════════ */
+                       TOOLBAR
+                    ══════════════════════════════════════════ */
         .pln-toolbar {
             display: flex;
             align-items: center;
@@ -133,8 +133,8 @@
         }
 
         /* ══════════════════════════════════════════
-               TABLA
-            ══════════════════════════════════════════ */
+                       TABLA
+                    ══════════════════════════════════════════ */
         .pln-table {
             margin: 0;
             border-collapse: separate;
@@ -280,8 +280,8 @@
         }
 
         /* ══════════════════════════════════════════
-               EMPTY STATE
-            ══════════════════════════════════════════ */
+                       EMPTY STATE
+                    ══════════════════════════════════════════ */
         .pln-empty {
             text-align: center;
             padding: 60px 20px;
@@ -307,8 +307,8 @@
         }
 
         /* ══════════════════════════════════════════
-               FOOTER / PAGINACIÓN
-            ══════════════════════════════════════════ */
+                       FOOTER / PAGINACIÓN
+                    ══════════════════════════════════════════ */
         .pln-footer {
             display: flex;
             align-items: center;
@@ -543,7 +543,7 @@
 
                                     @if ($plan->activo)
                                         <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
-                                            style="margin:0;">
+                                            style="margin:0; display:contents;">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-danger btn-xs btn-flat"
                                                 style="border-radius:4px;" title="Desactivar"
@@ -553,7 +553,7 @@
                                         </form>
                                     @else
                                         <form action="{{ route('planes.update', $plan->id) }}" method="POST"
-                                            style="margin:0;">
+                                            style="margin:0; display:contents;">
                                             @csrf @method('PUT')
                                             <input type="hidden" name="activo" value="1">
                                             <button type="submit" class="btn btn-success btn-xs btn-flat"
