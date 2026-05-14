@@ -155,10 +155,12 @@
         <div class="col-md-6 col-sm-12 text-right"
             style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
             {{-- Botón Migrar con estilo plano para que combine --}}
-            <button type="button" class="btn btn-primary btn-flat" data-toggle="modal" data-target="#modalMigrarGrupos">
-                <i class="fa fa-copy"></i> Migrar Estructura a Nuevo Ciclo
-            </button>
-
+            @if ($grupos->count() > 0)
+                <button type="button" class="btn btn-primary btn-flat" data-toggle="modal"
+                    data-target="#modalMigrarGrupos">
+                    <i class="fa fa-copy"></i> Migrar Estructura a Nuevo Ciclo
+                </button>
+            @endif
             {{-- Botón Nuevo Grupo --}}
             <button type="button" class="btn btn-success btn-flat" data-toggle="modal" data-target="#modalNuevoGrupo">
                 <i class="fa fa-plus"></i> Crear Nuevo Grupo
@@ -388,6 +390,8 @@
     <x-modal id="modalNuevoGrupo" title="Crear Nuevo Grupo" size="modal-md">
         <form action="{{ route('grupos.store') }}" method="POST" id="form-nuevo-grupo">
             @csrf
+            {{-- ── INYECCIÓN DEL CICLO ACTUAL ── --}}
+            <input type="hidden" name="ciclo_id" value="{{ $cicloActual->id ?? '' }}">
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
