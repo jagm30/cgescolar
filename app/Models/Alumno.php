@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TipoInscripcion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -64,11 +65,33 @@ class Alumno extends Model
                      ->get();
     }
 
-    /** Inscripción activa en el ciclo actual */
-    public function inscripcionActiva()
+    /**
+     * Inscripción regular activa (en el ciclo vigente).
+     * Prioriza el ciclo con estado='activo'; si no hay, devuelve la más reciente regular activa.
+     */
+    public function inscripcionActiva(): ?Inscripcion
     {
         return $this->inscripciones()
                     ->where('activo', true)
+                    ->where('tipo', TipoInscripcion::Regular)
+                    ->whereHas('ciclo', fn($q) => $q->where('estado', 'activo'))
+                    ->latest('id')
+                    ->first()
+            ?? $this->inscripciones()
+                    ->where('activo', true)
+                    ->where('tipo', TipoInscripcion::Regular)
+                    ->latest('id')
+                    ->first();
+    }
+
+    /**
+     * Inscripción anticipada activa (ciclo próximo, aún en configuración).
+     */
+    public function inscripcionAnticipada(): ?Inscripcion
+    {
+        return $this->inscripciones()
+                    ->where('activo', true)
+                    ->where('tipo', TipoInscripcion::Anticipada)
                     ->latest('id')
                     ->first();
     }

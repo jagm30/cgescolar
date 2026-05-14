@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TipoInscripcion;
 use App\Http\Requests\StoreAlumnoRequest;
 use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
@@ -268,7 +269,7 @@ class AlumnoController extends Controller
         if (request()->ajax()) {
             return response()->json($alumno);
         }
-        $inscripciones = $alumno->inscripciones()->with('grupo.ciclo', 'grupo.grado.nivel')->get();
+        $inscripciones = $alumno->inscripciones()->with('ciclo', 'grupo.ciclo', 'grupo.grado.nivel')->get();
         $niveles = NivelEscolar::activo()->get();
 
         return view('alumnos.edit', compact('alumno', 'inscripciones', 'niveles'));
@@ -299,30 +300,38 @@ class AlumnoController extends Controller
 
         $alumno->update($campos);
 
-        // Actualizar inscripción activa si se seleccionó grupo
-        if ($grupoId && $cicloId) {
-            $inscActiva = $alumno->inscripciones()->where('activo', true)->latest('id')->first();
+        // Actualizar inscripción si se indicó al menos un ciclo
+        if ($cicloId) {
+            $inscActiva = $alumno->inscripciones()
+                ->where('activo', true)
+                ->where('tipo', TipoInscripcion::Regular)
+                ->latest('id')
+                ->first();
 
             if ($inscActiva) {
                 if ((int) $inscActiva->ciclo_id === (int) $cicloId) {
-                    $inscActiva->update(['grupo_id' => $grupoId]);
+                    // Mismo ciclo: solo actualizar el grupo (puede ser null)
+                    $inscActiva->update(['grupo_id' => $grupoId ?: null]);
                 } else {
+                    // Ciclo diferente: cerrar la actual y crear una nueva
                     $inscActiva->update(['activo' => false]);
                     Inscripcion::create([
                         'alumno_id' => $alumno->id,
                         'ciclo_id'  => $cicloId,
-                        'grupo_id'  => $grupoId,
+                        'grupo_id'  => $grupoId ?: null,
                         'fecha'     => now()->toDateString(),
                         'activo'    => true,
+                        'tipo'      => TipoInscripcion::Regular,
                     ]);
                 }
             } else {
                 Inscripcion::create([
                     'alumno_id' => $alumno->id,
                     'ciclo_id'  => $cicloId,
-                    'grupo_id'  => $grupoId,
+                    'grupo_id'  => $grupoId ?: null,
                     'fecha'     => now()->toDateString(),
                     'activo'    => true,
+                    'tipo'      => TipoInscripcion::Regular,
                 ]);
             }
         }
@@ -544,6 +553,56 @@ class AlumnoController extends Controller
         ));
     }
 
+    /**
+     * POST /alumnos/{id}/inscripcion-anticipada
+     * Registra una inscripción anticipada al ciclo siguiente para un alumno ya inscrito.
+     */
+    public function registrarAnticipada(Request $request, int $id)
+    {
+        $request->validate([
+            'ciclo_id' => 'required|exists:ciclo_escolar,id',
+            'grupo_id' => 'nullable|exists:grupo,id',
+            'fecha'    => 'required|date',
+        ]);
+
+        $alumno = Alumno::findOrFail($id);
+
+        // Verificar que no exista ya una inscripción (regular o anticipada) en ese ciclo
+        $yaInscrito = $alumno->inscripciones()
+            ->where('ciclo_id', $request->ciclo_id)
+            ->where('activo', true)
+            ->exists();
+
+        if ($yaInscrito) {
+            return $this->respuestaError('El alumno ya tiene una inscripción activa en el ciclo seleccionado.');
+        }
+
+        // El ciclo destino debe estar en configuración (no puede ser el ciclo activo)
+        $cicloDestino = CicloEscolar::findOrFail($request->ciclo_id);
+        if ($cicloDestino->estado === 'activo') {
+            return $this->respuestaError('Para inscribir en el ciclo activo usa la inscripción regular.');
+        }
+
+        $inscripcion = Inscripcion::create([
+            'alumno_id' => $alumno->id,
+            'ciclo_id'  => $request->ciclo_id,
+            'grupo_id'  => $request->grupo_id ?: null,
+            'fecha'     => $request->fecha,
+            'activo'    => true,
+            'tipo'      => TipoInscripcion::Anticipada,
+        ]);
+
+        Auditoria::registrar('inscripcion', $inscripcion->id, 'insert', null, $inscripcion->toArray());
+
+        $mensaje = "Inscripción anticipada al ciclo '{$cicloDestino->nombre}' registrada correctamente.";
+
+        if (request()->ajax()) {
+            return response()->json(['message' => $mensaje, 'inscripcion' => $inscripcion->load('ciclo', 'grupo.grado.nivel')], 201);
+        }
+
+        return back()->with('success', $mensaje);
+    }
+
     // ── Helpers privados ─────────────────────────────────
 
     private function generarMatricula(int $cicloId): string
@@ -695,31 +754,37 @@ class AlumnoController extends Controller
         $contador = 0;
 
         try {
-            \DB::transaction(function () use ($request, &$contador) {
+            DB::transaction(function () use ($request, &$contador) {
                 foreach ($request->inscripciones_ids as $inscripcionId) {
                     // 1. Obtener la inscripción actual
-                    $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
+                    $inscripcionActual = Inscripcion::findOrFail($inscripcionId);
                     $alumno = $inscripcionActual->alumno;
 
-                    // 2. Cerrar la inscripción actual (Historial)
-                    $inscripcionActual->update([
-                        'activo' => false,
-                        'observaciones' => ($inscripcionActual->observaciones ?? '') . " | Promocionado al ciclo ID: {$request->ciclo_destino_id}"
-                    ]);
+                    // 2. Cerrar la inscripción actual
+                    $inscripcionActual->update(['activo' => false]);
 
-                    // 3. Crear la nueva inscripción en el ciclo/grado destino
-                    // Nota: Aquí se crea sin grupo asignado (para que luego los repartas)
-                    // o puedes asignar un grupo_id si lo añades al modal.
-                    \App\Models\Inscripcion::create([
-                        'alumno_id' => $alumno->id,
-                        'ciclo_id'  => $request->ciclo_destino_id,
-                        'grado_id'  => $request->grado_destino_id,
-                        'fecha_inscripcion' => now(),
-                        'activo'    => true,
-                        'estado'    => 'inscrito'
-                    ]);
+                    // 3. Si ya tiene inscripción anticipada en el ciclo destino, convertirla a regular
+                    $anticipada = $alumno->inscripciones()
+                        ->where('ciclo_id', $request->ciclo_destino_id)
+                        ->where('tipo', TipoInscripcion::Anticipada)
+                        ->where('activo', true)
+                        ->first();
 
-                    // 4. Asegurarnos que el alumno siga como activo en su ficha general
+                    if ($anticipada) {
+                        $anticipada->update(['tipo' => TipoInscripcion::Regular]);
+                    } else {
+                        // No tenía anticipada: crear inscripción regular nueva
+                        Inscripcion::create([
+                            'alumno_id' => $alumno->id,
+                            'ciclo_id'  => $request->ciclo_destino_id,
+                            'grupo_id'  => null,
+                            'fecha'     => now()->toDateString(),
+                            'activo'    => true,
+                            'tipo'      => TipoInscripcion::Regular,
+                        ]);
+                    }
+
+                    // 4. El alumno sigue activo
                     $alumno->update(['estado' => 'activo']);
 
                     $contador++;
