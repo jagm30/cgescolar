@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-       ESTADÍSTICAS
-    ══════════════════════════════════════════ */
+                       ESTADÍSTICAS
+                    ══════════════════════════════════════════ */
         .pln-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-       TOOLBAR
-    ══════════════════════════════════════════ */
+                       TOOLBAR
+                    ══════════════════════════════════════════ */
         .pln-toolbar {
             display: flex;
             align-items: center;
@@ -133,8 +133,8 @@
         }
 
         /* ══════════════════════════════════════════
-       TABLA
-    ══════════════════════════════════════════ */
+                       TABLA
+                    ══════════════════════════════════════════ */
         .pln-table {
             margin: 0;
             border-collapse: separate;
@@ -280,8 +280,8 @@
         }
 
         /* ══════════════════════════════════════════
-       EMPTY STATE
-    ══════════════════════════════════════════ */
+                       EMPTY STATE
+                    ══════════════════════════════════════════ */
         .pln-empty {
             text-align: center;
             padding: 60px 20px;
@@ -307,8 +307,8 @@
         }
 
         /* ══════════════════════════════════════════
-       FOOTER / PAGINACIÓN
-    ══════════════════════════════════════════ */
+                       FOOTER / PAGINACIÓN
+                    ══════════════════════════════════════════ */
         .pln-footer {
             display: flex;
             align-items: center;
@@ -543,7 +543,7 @@
 
                                     @if ($plan->activo)
                                         <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
-                                            style="margin:0;">
+                                            style="margin:0; display:contents;">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-danger btn-xs btn-flat"
                                                 style="border-radius:4px;" title="Desactivar"
@@ -553,7 +553,7 @@
                                         </form>
                                     @else
                                         <form action="{{ route('planes.update', $plan->id) }}" method="POST"
-                                            style="margin:0;">
+                                            style="margin:0; display:contents;">
                                             @csrf @method('PUT')
                                             <input type="hidden" name="activo" value="1">
                                             <button type="submit" class="btn btn-success btn-xs btn-flat"
@@ -718,10 +718,10 @@
                                     <tr id="fila-concepto-{{ $index }}">
                                         <td>
                                             <select name="conceptos[{{ $index }}][concepto_id]"
-                                                class="form-control input-sm" required>
+                                                class="form-control input-sm select-concepto-magico" required>
                                                 <option value="">Seleccione...</option>
                                                 @foreach ($conceptos as $c)
-                                                    <option value="{{ $c->id }}"
+                                                    <option value="{{ $c->id }}" data-monto="{{ $c->monto }}"
                                                         {{ isset($concepto['concepto_id']) && $concepto['concepto_id'] == $c->id ? 'selected' : '' }}>
                                                         {{ $c->nombre }}</option>
                                                 @endforeach
@@ -729,8 +729,8 @@
                                         </td>
                                         <td><input type="number" step="0.01" min="0"
                                                 name="conceptos[{{ $index }}][monto]"
-                                                class="form-control input-sm" value="{{ $concepto['monto'] ?? '' }}"
-                                                required></td>
+                                                class="form-control input-sm input-monto-magico"
+                                                value="{{ $concepto['monto'] ?? '' }}" required></td>
                                         <td class="text-center"><button type="button"
                                                 class="btn btn-danger btn-xs btn-eliminar-fila"
                                                 data-id="{{ $index }}"><i class="fa fa-trash"></i></button></td>
@@ -929,16 +929,17 @@
         $(document).ready(function() {
 
             // ── Conceptos en modal ───────────────────────────────
+            // ── Conceptos en modal ───────────────────────────────
             let indiceConcepto = Date.now();
 
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
                 let fila = `<tr id="fila-concepto-${indiceConcepto}">
-            <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm" required>
+            <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm select-concepto-magico" required>
                 <option value="">Seleccione...</option>
-                @foreach ($conceptos as $c)<option value="{{ $c->id }}">{{ $c->nombre }}</option>@endforeach
+                @foreach ($conceptos as $c)<option value="{{ $c->id }}" data-monto="{{ $c->monto }}">{{ $c->nombre }}</option>@endforeach
             </select></td>
-            <td><input type="number" step="0.01" min="0" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm" required></td>
+            <td><input type="number" step="0.01" min="0" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm input-monto-magico" required></td>
             <td class="text-center"><button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}"><i class="fa fa-trash"></i></button></td>
         </tr>`;
                 $('#tabla-conceptos-modal tbody').append(fila);
@@ -950,6 +951,17 @@
                 if ($('#tabla-conceptos-modal tbody tr').length === 0) $('#mensaje-vacio-modal').show();
             });
 
+            // ── AUTO-COMPLETAR MONTO DEL CONCEPTO ──
+            $('#tabla-conceptos-modal').on('change', '.select-concepto-magico', function() {
+                let monto = $(this).find(':selected').data('monto');
+                let inputMonto = $(this).closest('tr').find('.input-monto-magico');
+
+                if (monto !== undefined && monto !== '') {
+                    inputMonto.val(monto);
+                } else {
+                    inputMonto.val('');
+                }
+            });
             // ── Descuentos en modal ──────────────────────────────
             let indiceDesc = Date.now();
 

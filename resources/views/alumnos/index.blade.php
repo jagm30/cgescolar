@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-       ESTADÍSTICAS
-    ══════════════════════════════════════════ */
+                                                                                           ESTADÍSTICAS
+                                                                                        ══════════════════════════════════════════ */
         .alm-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-       TOOLBAR
-    ══════════════════════════════════════════ */
+                                                                                           TOOLBAR
+                                                                                        ══════════════════════════════════════════ */
         .alm-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-       TABLA
-    ══════════════════════════════════════════ */
+                                                                                           TABLA
+                                                                                        ══════════════════════════════════════════ */
         .alm-table {
             margin: 0;
             border-collapse: separate;
@@ -356,8 +356,50 @@
         }
 
         /* ══════════════════════════════════════════
-       EMPTY STATE
-    ══════════════════════════════════════════ */
+                           DROPDOWN ESTILO SAAS (Igual al de Grupos)
+                        ══════════════════════════════════════════ */
+        .btn-action-flat {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: #f8f9fa;
+            color: #7f8c8d;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-action-flat:hover {
+            background: #eef2f5;
+            color: #34495e;
+        }
+
+        .dropdown.open .dropdown-menu {
+            display: block !important;
+            z-index: 9999 !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid #eee;
+            margin-top: 5px;
+            border-radius: 8px;
+        }
+
+        .dropdown-menu>li>a {
+            padding: 10px 15px;
+            font-size: 13px;
+            color: #444;
+            transition: background 0.1s;
+        }
+
+        .dropdown-menu>li>a:hover {
+            background-color: #f0f7ff !important;
+            color: #3c8dbc !important;
+        }
+
+        /* ══════════════════════════════════════════
+                                                                                           EMPTY STATE
+                                                                                        ══════════════════════════════════════════ */
         .alm-empty {
             text-align: center;
             padding: 60px 20px;
@@ -383,8 +425,8 @@
         }
 
         /* ══════════════════════════════════════════
-       FOOTER / PAGINACIÓN
-    ══════════════════════════════════════════ */
+                                                                                           FOOTER / PAGINACIÓN
+                                                                                        ══════════════════════════════════════════ */
         .alm-footer {
             display: flex;
             align-items: center;
@@ -417,6 +459,22 @@
         .alm-footer .pagination>.active>span {
             background: #3c8dbc;
             border-color: #3c8dbc;
+        }
+
+        /* ── FIX: EVITAR QUE LA TABLA CORTE LOS DROPDOWNS ── */
+        .box,
+        .box-body,
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .con-table {
+            overflow: visible !important;
+        }
+
+        /* Asegurarnos que la celda de acciones tampoco esconda el menú */
+        .con-table td {
+            overflow: visible !important;
         }
     </style>
 @endpush
@@ -672,27 +730,72 @@
                             </td>
 
                             {{-- ACCIONES --}}
-                            <td>
-                                <div class="alm-acciones">
-                                    <a href="{{ route('alumnos.show', $alumno->id) }}"
-                                        class="btn btn-default btn-xs btn-flat" style="border-radius:4px;"
-                                        title="Ver ficha">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
-                                        <a href="{{ route('alumnos.edit', $alumno->id) }}"
-                                            class="btn btn-primary btn-xs btn-flat" style="border-radius:4px;"
-                                            title="Editar">
-                                            <i class="fa fa-pencil"></i>
-                                        </a>
-                                    @endif
-                                    @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
-                                        <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                                            class="btn btn-warning btn-xs btn-flat" style="border-radius:4px;"
-                                            title="Estado de cuenta">
-                                            <i class="fa fa-dollar"></i>
-                                        </a>
-                                    @endif
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn-action-flat btn-dropdown-manual" type="button"
+                                        data-toggle="dropdown">
+                                        <i class="fa fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-right"
+                                        style="min-width: 200px; padding: 8px 0; border-radius: 8px;">
+                                        <li class="dropdown-header">Opciones</li>
+
+                                        {{-- 1. VER PERFIL --}}
+                                        <li>
+                                            <a href="{{ route('alumnos.show', $alumno->id) }}"
+                                                style="padding: 8px 20px;">
+                                                <i class="fa fa-eye"
+                                                    style="color: #3498db; width:24px; text-align:center;"></i> Ver perfil
+                                            </a>
+                                        </li>
+
+                                        {{-- 2. EDITAR (Condicionado a Admin o Recepción) --}}
+                                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                                            <li>
+                                                <a href="{{ route('alumnos.edit', $alumno->id) }}"
+                                                    style="padding: 8px 20px;">
+                                                    <i class="fa fa-pencil"
+                                                        style="color: #f39c12; width:24px; text-align:center;"></i> Editar
+                                                    alumno
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        {{-- 3. ESTADO DE CUENTA (Condicionado a Admin o Cajero) --}}
+                                        @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                                            <li>
+                                                <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
+                                                    style="padding: 8px 20px;">
+                                                    <i class="fa fa-money"
+                                                        style="color: #2ecc71; width:24px; text-align:center;"></i> Estado
+                                                    de cuenta
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        <li role="separator" class="divider"></li>
+
+                                        {{-- 4. DESCARGAR FICHA PDF --}}
+                                        <li>
+                                            <a href="{{ route('alumnos.reporte', $alumno->id) }}" target="_blank"
+                                                style="padding: 8px 20px;">
+                                                <i class="fa fa-file-pdf-o"
+                                                    style="color: #e74c3c; width:24px; text-align:center;"></i> Ficha del
+                                                alumno
+                                            </a>
+                                        </li>
+
+                                        {{-- 5. IMPRIMIR CREDENCIAL (Abre el Modal) --}}
+                                        <li>
+                                            <a href="javascript:void(0)" class="btn-abrir-modal-credencial"
+                                                data-id="{{ $alumno->id }}" data-tipo="individual"
+                                                style="padding: 8px 20px;">
+                                                <i class="fa fa-id-card"
+                                                    style="color: #17a2b8; width:24px; text-align:center;"></i> Imprimir
+                                                credencial
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
@@ -743,13 +846,85 @@
             @endif
 
         </div>
+        <div class="modal fade" id="modalElegirDiseno" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title"><i class="fa fa-id-badge text-primary"></i> Elegir Diseño</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Selecciona el diseño a utilizar:</label>
+                            <select id="select-diseno-credencial" class="form-control">
+                                <option value="">-- Seleccione un diseño --</option>
+                                @foreach ($disenos as $diseno)
+                                    <option value="{{ $diseno->id }}">{{ $diseno->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default pull-left" data-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="btn-procesar-impresion">
+                            <i class="fa fa-print"></i> Generar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         @push('scripts')
             <script>
+                // ── 1. TU LÓGICA EXISTENTE PARA FILAS CLICKEABLES (Vanilla JS) ──
                 document.querySelectorAll('.alm-table tbody tr[data-href]').forEach(function(row) {
                     row.addEventListener('click', function(e) {
+                        // Si hace clic en un botón o enlace, ignoramos para que no interfiera
                         if (e.target.closest('a, button, input, select')) return;
                         window.location.href = row.dataset.href;
+                    });
+                });
+
+                // ── 2. LÓGICA PARA EL MODAL DE CREDENCIALES (jQuery) ──
+                $(document).ready(function() {
+                    let printId = null;
+                    let printTipo = null;
+
+                    // Al hacer clic en el botón de la tabla
+                    $(document).on('click', '.btn-abrir-modal-credencial', function() {
+                        printId = $(this).data('id');
+                        printTipo = $(this).data('tipo'); // Aquí llegará como "individual"
+
+                        // Reseteamos el select por si acaso
+                        $('#select-diseno-credencial').val('');
+
+                        // Abrimos el modal
+                        $('#modalElegirDiseno').modal('show');
+                    });
+
+                    // Al darle al botón verde de Generar dentro del modal
+                    $('#btn-procesar-impresion').click(function() {
+                        let disenoId = $('#select-diseno-credencial').val();
+
+                        if (!disenoId) {
+                            alert("Por favor, selecciona un diseño válido.");
+                            return;
+                        }
+                        // Plantillas de rutas (Corregidas definitivamente)
+                        let urlLote =
+                            "{{ route('credenciales.imprimirLote', ['credencial_id' => 'DISENO_ID', 'grupo_id' => 'TARGET_ID']) }}";
+                        let urlIndividual =
+                            "{{ route('credenciales.imprimirIndividual', ['credencial' => 'DISENO_ID', 'alumno' => 'TARGET_ID']) }}";
+
+                        // Construimos la ruta final dependiendo de si es lote o individual
+                        let urlFinal = (printTipo === 'lote') ? urlLote : urlIndividual;
+                        urlFinal = urlFinal.replace('DISENO_ID', disenoId).replace('TARGET_ID', printId);
+
+                        // Abrimos la credencial en pestaña nueva
+                        window.open(urlFinal, '_blank');
+
+                        // Escondemos el modal
+                        $('#modalElegirDiseno').modal('hide');
                     });
                 });
             </script>

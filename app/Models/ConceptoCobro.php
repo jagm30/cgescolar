@@ -19,12 +19,14 @@ class ConceptoCobro extends Model
         'aplica_recargo',
         'clave_sat',
         'activo',
+        'monto',
     ];
 
     protected $casts = [
         'aplica_beca'    => 'boolean',
         'aplica_recargo' => 'boolean',
         'activo'         => 'boolean',
+        'monto'          => 'decimal:2',
     ];
 
     // ── Scopes ──────────────────────────────────────────

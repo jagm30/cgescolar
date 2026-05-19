@@ -80,12 +80,16 @@
         4 => ['titulo' => 'Contactos',         'descripcion' => 'Responsables y autorizados'],
     ];
 
-    // Inscripción activa actual
-    $inscActual = $inscripciones->where('estado', 'activo')->first()
-                  ?? $inscripciones->sortByDesc('id')->first();
+    // Inscripción regular activa actual (tipo=regular, activo=true, prioriza ciclo activo)
+    $inscActual = $inscripciones
+        ->where('activo', true)
+        ->filter(fn($i) => $i->tipo?->value === 'regular')
+        ->sortByDesc('id')
+        ->first()
+        ?? $inscripciones->where('activo', true)->sortByDesc('id')->first();
 
     // Valores precargados para el paso 3 (old() tiene prioridad)
-    $cicloIdActual = old('ciclo_id', $inscActual?->grupo?->ciclo_id           ?? '');
+    $cicloIdActual = old('ciclo_id', $inscActual?->ciclo_id ?? $inscActual?->grupo?->ciclo_id ?? '');
     $nivelActual   = old('nivel_id', $inscActual?->grupo?->grado?->nivel_id   ?? '');
     $grupoActual   = old('grupo_id', $inscActual?->grupo_id                   ?? '');
 @endphp
@@ -370,29 +374,43 @@
 
                 {{-- Tarjeta inscripción activa (informativa) --}}
                 @if($inscActual)
-                    <div class="ins-actual-card">
-                        <div class="ins-actual-badge">
-                            <i class="fa fa-graduation-cap" style="color:#fff;font-size:20px;"></i>
+                    @php
+                        $esAnticActual = $inscActual->tipo?->value === 'anticipada';
+                        $cicloNombreActual = $inscActual->ciclo?->nombre ?? $inscActual->grupo?->ciclo?->nombre ?? '—';
+                    @endphp
+                    <div class="ins-actual-card"
+                         style="{{ $esAnticActual ? 'background:#fffbf0;border-color:#fcd97d;border-left-color:#f39c12;' : '' }}">
+                        <div class="ins-actual-badge"
+                             style="{{ $esAnticActual ? 'background:#f39c12;' : '' }}">
+                            <i class="fa {{ $esAnticActual ? 'fa-calendar-plus-o' : 'fa-graduation-cap' }}"
+                               style="color:#fff;font-size:20px;"></i>
                         </div>
                         <div style="flex:1;">
-                            <div class="ins-actual-titulo">Inscripción actual</div>
+                            <div class="ins-actual-titulo"
+                                 style="{{ $esAnticActual ? 'color:#b45309;' : '' }}">
+                                {{ $esAnticActual ? 'Inscripción anticipada activa' : 'Inscripción actual' }}
+                            </div>
                             <div class="ins-actual-sub">
-                                {{ $inscActual->grupo?->ciclo?->nombre ?? '—' }}
+                                {{ $cicloNombreActual }}
                                 &nbsp;·&nbsp;
                                 {{ $inscActual->grupo?->grado?->nivel?->nombre ?? '—' }}
-                                &nbsp;·&nbsp;
-                                {{ $inscActual->grupo?->grado?->nombre ?? '' }}
-                                {{ $inscActual->grupo?->nombre ?? '—' }}
+                                @if($inscActual->grupo)
+                                    &nbsp;·&nbsp;
+                                    {{ $inscActual->grupo->grado?->nombre ?? '' }}°
+                                    Grupo {{ $inscActual->grupo->nombre }}
+                                @else
+                                    &nbsp;·&nbsp; <em style="color:#b0bec5;">Sin grupo asignado</em>
+                                @endif
                             </div>
                         </div>
-                        <span style="background:#3c8dbc;color:#fff;font-size:10px;padding:2px 10px;border-radius:10px;font-weight:600;">
-                            {{ strtoupper($inscActual->estado ?? 'activo') }}
+                        <span style="background:{{ $esAnticActual ? '#f39c12' : '#3c8dbc' }};color:#fff;font-size:10px;padding:2px 10px;border-radius:10px;font-weight:600;">
+                            {{ $esAnticActual ? 'ANTICIPADA' : 'ACTIVA' }}
                         </span>
                     </div>
                 @else
                     <div class="alert alert-info" style="font-size:12px;">
                         <i class="fa fa-info-circle"></i>
-                        Este alumno no tiene inscripción activa. Selecciona un ciclo, nivel y grupo para inscribirlo.
+                        Este alumno no tiene inscripción activa. Selecciona un ciclo para inscribirlo (el grupo es opcional).
                     </div>
                 @endif
 
@@ -400,9 +418,9 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group {{ $errors->has('ciclo_id') ? 'has-error' : '' }}">
-                            <label for="ciclo_id">Ciclo escolar <span class="text-red">*</span></label>
+                            <label for="ciclo_id">Ciclo escolar</label>
                             <select name="ciclo_id" id="ciclo_id" class="form-control">
-                                <option value="">-- Seleccionar ciclo --</option>
+                                <option value="">-- Sin cambio de ciclo --</option>
                                 @foreach($ciclosDisponibles as $ciclo)
                                     <option value="{{ $ciclo->id }}"
                                         {{ $cicloIdActual == $ciclo->id ? 'selected' : '' }}>
@@ -420,7 +438,7 @@
 
                     <div class="col-md-4">
                         <div class="form-group {{ $errors->has('nivel_id') ? 'has-error' : '' }}">
-                            <label for="nivel_id">Nivel educativo <span class="text-red">*</span></label>
+                            <label for="nivel_id">Nivel educativo</label>
                             <select name="nivel_id" id="nivel_id" class="form-control">
                                 <option value="">-- Seleccionar nivel --</option>
                                 @foreach($niveles as $nivel)
@@ -439,9 +457,12 @@
 
                     <div class="col-md-4">
                         <div class="form-group {{ $errors->has('grupo_id') ? 'has-error' : '' }}">
-                            <label for="grupo_id">Grado y grupo <span class="text-red">*</span></label>
+                            <label for="grupo_id">
+                                Grado y grupo
+                                <small class="text-muted" style="font-weight:400;">(opcional)</small>
+                            </label>
                             <select name="grupo_id" id="grupo_id" class="form-control">
-                                <option value="">-- Primero selecciona ciclo y nivel --</option>
+                                <option value="">-- Sin grupo asignado --</option>
                             </select>
                             @error('grupo_id')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i>
@@ -454,6 +475,88 @@
                 <div id="grupos-cargando" style="display:none;color:#999;font-size:12px;margin-top:-10px;">
                     <i class="fa fa-spinner fa-spin"></i> Cargando grupos disponibles...
                 </div>
+
+                {{-- ── HISTORIAL DE INSCRIPCIONES ── --}}
+                @if($inscripciones->count())
+                <div style="margin-top:28px;">
+                    <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                               color:#6b7a8d;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                        <i class="fa fa-history" style="color:#3c8dbc;"></i>
+                        Historial de inscripciones
+                        <span style="background:#e8f0fb;color:#3c8dbc;font-size:11px;font-weight:700;
+                                     padding:2px 8px;border-radius:10px;">{{ $inscripciones->count() }}</span>
+                    </p>
+                    <div style="border:1px solid #e4eaf0;border-radius:8px;overflow:hidden;">
+                        <table class="table" style="margin:0;font-size:12px;">
+                            <thead style="background:#f8fafc;">
+                                <tr>
+                                    <th style="color:#6b7a8d;font-weight:600;padding:9px 14px;border-bottom:1px solid #e8ecf0;">Ciclo</th>
+                                    <th style="color:#6b7a8d;font-weight:600;padding:9px 14px;border-bottom:1px solid #e8ecf0;">Nivel</th>
+                                    <th style="color:#6b7a8d;font-weight:600;padding:9px 14px;border-bottom:1px solid #e8ecf0;">Grupo</th>
+                                    <th style="color:#6b7a8d;font-weight:600;padding:9px 14px;border-bottom:1px solid #e8ecf0;">Fecha</th>
+                                    <th style="color:#6b7a8d;font-weight:600;padding:9px 14px;border-bottom:1px solid #e8ecf0;">Tipo</th>
+                                    <th style="color:#6b7a8d;font-weight:600;padding:9px 14px;border-bottom:1px solid #e8ecf0;">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($inscripciones->sortByDesc('id') as $insc)
+                                    @php
+                                        $esActiva  = $insc->activo;
+                                        $esAntic   = $insc->tipo?->value === 'anticipada';
+                                        $cicloNom  = $insc->ciclo?->nombre ?? $insc->grupo?->ciclo?->nombre ?? '—';
+                                        $nivelNom  = $insc->grupo?->grado?->nivel?->nombre ?? '—';
+                                        $grupoNom  = $insc->grupo
+                                                     ? ($insc->grupo->grado?->nombre . '° ' . $insc->grupo->nombre)
+                                                     : null;
+                                    @endphp
+                                    <tr style="{{ $esActiva ? 'background:#f7fbff;' : '' }}">
+                                        <td style="padding:9px 14px;font-weight:{{ $esActiva ? '700' : '400' }};color:#1a2634;">
+                                            {{ $cicloNom }}
+                                        </td>
+                                        <td style="padding:9px 14px;color:#4a5568;">{{ $nivelNom }}</td>
+                                        <td style="padding:9px 14px;color:#4a5568;">
+                                            @if($grupoNom)
+                                                {{ $grupoNom }}
+                                            @else
+                                                <em style="color:#b0bec5;">Sin grupo</em>
+                                            @endif
+                                        </td>
+                                        <td style="padding:9px 14px;color:#8a9ab0;">
+                                            {{ $insc->fecha?->format('d/m/Y') ?? '—' }}
+                                        </td>
+                                        <td style="padding:9px 14px;">
+                                            @if($esAntic)
+                                                <span style="background:#fff3cd;color:#856404;font-size:10px;
+                                                             font-weight:700;padding:2px 8px;border-radius:8px;">
+                                                    Anticipada
+                                                </span>
+                                            @else
+                                                <span style="background:#f0f3f7;color:#6b7a8d;font-size:10px;
+                                                             font-weight:600;padding:2px 8px;border-radius:8px;">
+                                                    Regular
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td style="padding:9px 14px;">
+                                            @if($esActiva)
+                                                <span style="background:#e8f8f0;color:#00875a;font-size:10px;
+                                                             font-weight:700;padding:2px 8px;border-radius:8px;">
+                                                    Activa
+                                                </span>
+                                            @else
+                                                <span style="background:#f0f3f7;color:#b0bec5;font-size:10px;
+                                                             font-weight:600;padding:2px 8px;border-radius:8px;">
+                                                    Inactiva
+                                                </span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
 
             </div>{{-- /.box-body --}}
         </div>{{-- /paso 3 --}}
@@ -844,11 +947,6 @@
                 if (validar && paso > pasoActual && !validarPaso(pasoActual)) {
                     alert('Corrige los campos requeridos del paso ' + pasoActual + ' antes de continuar.');
                     return;
-            window.wizardIr = function(paso, validar) {
-                if (typeof validar === 'undefined') validar = true;
-                if (validar && paso > pasoActual && !validarPaso(pasoActual)) {
-                    alert('Corrige los campos requeridos del paso ' + pasoActual + ' antes de continuar.');
-                    return;
                 }
 
                 pasoActual = Math.min(Math.max(paso, 1), TOTAL_PASOS);
@@ -951,20 +1049,7 @@
                     } else marcarOk('#estado');
                 }
 
-                if (paso === 3) {
-                    if (!$('#ciclo_id').val()) {
-                        marcarError('#ciclo_id', 'Selecciona el ciclo escolar.');
-                        ok = false;
-                    } else marcarOk('#ciclo_id');
-                    if (!$('#nivel_id').val()) {
-                        marcarError('#nivel_id', 'Selecciona el nivel.');
-                        ok = false;
-                    } else marcarOk('#nivel_id');
-                    if (!$('#grupo_id').val()) {
-                        marcarError('#grupo_id', 'Selecciona el grupo.');
-                        ok = false;
-                    } else marcarOk('#grupo_id');
-                }
+                // Paso 3: ningún campo de inscripción es obligatorio (grupo puede quedar sin asignar)
 
                 return ok;
             }
@@ -1081,11 +1166,47 @@
             });
 
             // ══════════════════════════════════════════════════
-            // SUBMIT — deshabilitar botón
+            // SUBMIT — guardar contactos vía AJAX y luego enviar el formulario
             // ══════════════════════════════════════════════════
-            $('#form-editar-alumno').on('submit', function() {
+            $('#form-editar-alumno').on('submit', function(e) {
+                var $form = $(this);
+                var $paneles = $('.ctc-panel');
+
                 $('#btn-guardar').prop('disabled', true)
                     .html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
+
+                if ($paneles.length === 0) return; // sin contactos, enviar directo
+
+                e.preventDefault();
+
+                var peticiones = $paneles.map(function() {
+                    var $panel = $(this);
+                    var id = $panel.data('id');
+                    return $.ajax({
+                        url: '/familias/contactos/' + id,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            nombre:              $panel.find('.ctc-nombre').val().trim(),
+                            ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
+                            ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
+                            telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
+                            email:               $panel.find('.ctc-email').val().trim(),
+                            parentesco:          $panel.find('.ctc-parentesco').val(),
+                            tipo:                $panel.find('.ctc-tipo').val(),
+                            orden:               parseInt($panel.find('.ctc-orden').val()),
+                            autorizado_recoger:  $panel.find('.ctc-recoger').is(':checked'),
+                            es_responsable_pago: $panel.find('.ctc-pago').is(':checked'),
+                            tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
+                        }),
+                    });
+                }).get();
+
+                // Cuando terminen todos (éxito o error), enviar el formulario principal.
+                // Se usa el submit nativo (DOM) para no disparar este handler de nuevo.
+                $.when.apply($, peticiones).always(function() {
+                    $form[0].submit();
+                });
             });
 
             // ══════════════════════════════════════════════════

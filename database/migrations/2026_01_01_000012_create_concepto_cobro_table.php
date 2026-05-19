@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('aplica_recargo')->default(false);
             $table->string('clave_sat')->nullable()->comment('Clave producto/servicio SAT para CFDI');
             $table->boolean('activo')->default(true);
+            $table->decimal('monto', 10, 2)->nullable()->comment('Monto para cargos únicos o recurrentes sin plan de pagos');
         });
     }
 

@@ -276,6 +276,8 @@ class FamiliaController extends Controller
             'telefono_celular'    => ['required', 'string', 'max:20'],
             'email'               => ['nullable', 'email', 'max:200'],
             'parentesco'          => ['nullable', 'string', 'in:padre,madre,abuelo,tio,otro'],
+            'tipo'                => ['nullable', 'string', 'in:padre,tutor,tercero_autorizado'],
+            'orden'               => ['nullable', 'integer', 'min:1', 'max:3'],
             'autorizado_recoger'  => ['boolean'],
             'es_responsable_pago' => ['boolean'],
             'tiene_acceso_portal' => ['boolean'],
@@ -297,15 +299,15 @@ class FamiliaController extends Controller
             'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
         ]);
 
-        // Actualizar pivot alumno_contacto (parentesco, permisos)
-        if (isset($data['parentesco'])) {
-            \App\Models\AlumnoContacto::where('contacto_id', $contacto->id)
-                ->update([
-                    'parentesco'          => $data['parentesco'],
-                    'autorizado_recoger'  => $data['autorizado_recoger']  ?? false,
-                    'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
-                ]);
-        }
+        // Actualizar pivot alumno_contacto
+        \App\Models\AlumnoContacto::where('contacto_id', $contacto->id)
+            ->update([
+                'parentesco'          => $data['parentesco'] ?? null,
+                'tipo'                => $data['tipo'] ?? null,
+                'orden'               => $data['orden'] ?? null,
+                'autorizado_recoger'  => $data['autorizado_recoger']  ?? false,
+                'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
+            ]);
 
         \App\Models\Auditoria::registrar(
             'contacto_familiar',

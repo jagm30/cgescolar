@@ -52,8 +52,8 @@ class ConceptoCobroController extends Controller
         return view('conceptos.create');
     }
 
-    /** POST /conceptos */
-public function store(Request $request)
+ /** POST /conceptos */
+    public function store(Request $request)
     {
         $request->merge([
             'aplica_beca'    => $request->has('aplica_beca') ? 1 : 0,
@@ -68,16 +68,24 @@ public function store(Request $request)
             'aplica_beca'   => ['boolean'],
             'aplica_recargo'=> ['boolean'],
             'clave_sat'     => ['nullable', 'string', 'max:20'],
-            'activo'        => ['boolean'], 
+            'activo'        => ['boolean'],
+            'monto'         => ['nullable', 'numeric', 'min:0'], // <--- NUEVO
         ], [
             'nombre.required' => 'El nombre del concepto es obligatorio.',
             'nombre.unique'   => 'Ya existe un concepto con este nombre.',
             'tipo.required'   => 'Debe seleccionar el tipo de concepto.',
             'tipo.in'         => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
+            'monto.numeric'   => 'El monto debe ser un valor numérico.',
         ]);
 
+        // Reglas de negocio
         if ($data['tipo'] !== 'colegiatura') {
             $data['aplica_beca'] = false;
+        }
+
+        // Si no es cargo recurrente o único, limpiamos el monto
+        if (!in_array($data['tipo'], ['cargo_unico', 'cargo_recurrente'])) {
+            $data['monto'] = null;
         }
 
         $concepto = ConceptoCobro::create($data);
@@ -90,18 +98,6 @@ public function store(Request $request)
             mensaje: "Concepto '{$concepto->nombre}' creado correctamente.",
             jsonStatus: 201
         );
-    }
-
-    /** GET /conceptos/{id}/edit */
-    public function edit(int $id)
-    {
-        $concepto = ConceptoCobro::findOrFail($id);
-
-        if (request()->ajax()) {
-            return response()->json($concepto);
-        }
-
-        return view('conceptos.edit', compact('concepto'));
     }
 
     /** PUT /conceptos/{id} */
@@ -125,13 +121,12 @@ public function store(Request $request)
             'aplica_recargo'=> ['boolean'],
             'clave_sat'     => ['nullable', 'string', 'max:20'],
             'activo'        => ['boolean'],
+            'monto'         => ['nullable', 'numeric', 'min:0'], // <--- NUEVO
         ], [
             'nombre.unique' => 'Ya existe otro concepto con este nombre.',
             'tipo.in'       => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
         ]);
 
-        // Validar que no se quite aplica_beca a un concepto con becas activas
-        // Como ya forzamos el 0 o 1 arriba, podemos simplemente checar si es false (0)
         if (!$data['aplica_beca']) {
             $tieneBecas = $concepto->becasAlumno()->where('activo', true)->exists();
             if ($tieneBecas) {
@@ -141,10 +136,14 @@ public function store(Request $request)
             }
         }
 
-        // Si cambia el tipo a algo distinto de colegiatura, quitar aplica_beca
         $tipoFinal = $data['tipo'] ?? $concepto->tipo;
         if ($tipoFinal !== 'colegiatura') {
             $data['aplica_beca'] = false;
+        }
+
+        // Si cambia de tipo, procesamos el monto
+        if (!in_array($tipoFinal, ['cargo_unico', 'cargo_recurrente'])) {
+            $data['monto'] = null;
         }
 
         $concepto->update($data);
@@ -157,7 +156,6 @@ public function store(Request $request)
             mensaje: "Concepto '{$concepto->nombre}' actualizado correctamente."
         );
     }
-
     /** DELETE /conceptos/{id} — desactiva, no elimina */
     public function destroy(int $id)
     {

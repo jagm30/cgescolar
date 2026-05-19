@@ -21,6 +21,8 @@ class Cfdi extends Model
         'pdf_url',
         'fecha_timbrado',
         'estado',
+        'factura_uid',
+        'folio',
     ];
 
     protected $casts = [

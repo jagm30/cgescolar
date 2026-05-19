@@ -176,7 +176,11 @@
         <div
             style="background: #fff; padding: 10px 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
             <i class="fa fa-calendar" style="color: #3498db;"></i>
-            <span style="font-weight: 800;">{{ $ciclos->total() }}</span> {{-- Usamos total() por la paginación de Laravel --}}
+            <div>
+                <span
+                    style="display: block; font-size: 18px; font-weight: 800; line-height: 1;">{{ $ciclos->total() }}</span>
+                <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Ciclos</span> {{-- Usamos total() por la paginación de Laravel --}}
+            </div>
         </div>
 
         <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modal-nuevo" style="border-radius: 6px;">
@@ -308,31 +312,59 @@
 
         {{-- AYUDA DEL MÓDULO --}}
         <div class="col-md-3">
-            <div class="box-ayuda">
-                <div class="ayuda-header"><i class="fa fa-info-circle text-blue"></i> Ayuda del Módulo</div>
-                <div class="ayuda-body">
-                    <div class="ayuda-item">
-                        <i class="fa fa-check-circle text-blue"></i>
-                        <span><b>Seleccionar:</b> Establece el ciclo como el predeterminado del sistema.</span>
+            <div class="box-ayuda"
+                style="background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+                <div class="ayuda-header"
+                    style="padding: 12px 15px; border-bottom: 1px solid #f0f2f5; font-weight: 700; color: #2c3e50;">
+                    <i class="fa fa-info-circle text-blue"></i> Ayuda del Módulo
+                </div>
+                <div class="ayuda-body" style="padding: 15px;">
+                    <div
+                        style="font-weight: 700; font-size: 12px; color: #94a3b8; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Estados del Ciclo:</div>
+
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-circle text-success" style="margin-top: 3px;"></i>
+                        <span><b>Activo:</b> El ciclo está vigente. Permite inscripciones y movimientos académicos
+                            actuales.</span>
                     </div>
-                    <div class="ayuda-item">
-                        <i class="fa fa-refresh text-aqua"></i>
-                        <span><b>Activo:</b> El ciclo está operando actualmente.</span>
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-circle text-danger" style="margin-top: 3px;"></i>
+                        <span><b>Cerrado:</b> Periodo finalizado. La información es de solo lectura para historial.</span>
                     </div>
-                    <div class="ayuda-item">
-                        <i class="fa fa-lock text-red"></i>
-                        <span><b>Cerrado:</b> Ciclo finalizado, solo lectura.</span>
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-circle text-info" style="margin-top: 3px;"></i>
+                        <span><b>Configuración:</b> Ciclo en preparación. No es visible para padres ni alumnos aún.</span>
                     </div>
-                    <div class="ayuda-item">
-                        <i class="fa fa-cog text-muted"></i>
-                        <span><b>Configuración:</b> Ciclo en preparación, no visible.</span>
-                    </div>
+
                     <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
-                    <div style="background: #f0f7ff; border: 1px solid #cfe2ff; padding: 10px; border-radius: 6px;">
-                        <span style="color: #084298; font-size: 12px; font-weight: 700;"><i class="fa fa-lightbulb-o"></i>
-                            Tip:</span>
-                        <p style="font-size: 11px; color: #084298; margin-top: 5px;">Recuerda que solo puede haber un ciclo
-                            <b>Activo</b> seleccionado a la vez para evitar conflictos en inscripciones.
+                    <div
+                        style="font-weight: 700; font-size: 12px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase;">
+                        Acciones:</div>
+
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-check-circle text-blue"></i>
+                        <span><b>Seleccionar:</b> Marca el ciclo como el espacio de trabajo global.</span>
+                    </div>
+                    <div class="ayuda-item"
+                        style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; color: #475569;">
+                        <i class="fa fa-trash text-red"></i>
+                        <span><b>Eliminar:</b> Borrado físico definitivo de la base de datos.</span>
+                    </div>
+
+                    <div
+                        style="margin-top: 15px; background: #fff8f1; border: 1px solid #ffe7d3; padding: 12px; border-radius: 6px;">
+                        <span
+                            style="color: #c2410c; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                            <i class="fa fa-warning"></i> Seguridad:
+                        </span>
+                        <p style="font-size: 11px; color: #9a3412; margin: 5px 0 0; line-height: 1.4;">
+                            Un ciclo <b>no puede eliminarse</b> si ya tiene grupos creados. Esto protege la integridad de
+                            las calificaciones y asistencias.
                         </p>
                     </div>
                 </div>

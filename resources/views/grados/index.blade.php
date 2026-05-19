@@ -5,27 +5,29 @@
 
 @push('styles')
     <style>
+        /* Estructura Global */
+        .content-wrapper {
+            background-color: #f4f7f6 !important;
+        }
+
         .con-stats {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
             margin-bottom: 20px;
-            width: 100%;
         }
 
         .con-stat-card {
-            flex: 0 0 auto;
-            min-width: 200px;
             background: #fff;
-            border: 1px solid #e4eaf0;
+            border: 1px solid #e2e8f0;
             border-top: 3px solid #3c8dbc;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 10px 15px;
             display: flex;
             align-items: center;
             gap: 14px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+            min-width: 200px;
         }
 
         .con-stat-icon {
@@ -36,7 +38,6 @@
             align-items: center;
             justify-content: center;
             background: #eaf3fb;
-            flex-shrink: 0;
             color: #3c8dbc;
             font-size: 18px;
         }
@@ -44,83 +45,66 @@
         .con-stat-num {
             font-size: 20px;
             font-weight: 800;
-            line-height: 1;
             color: #222;
         }
 
         .con-stat-lbl {
             font-size: 11px;
-            color: #999;
+            color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: .04em;
         }
 
-
-        .btn-registrar-simple {
-            margin-left: auto;
-            background-color: #00a65a;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 25px;
-            font-weight: 600;
+        /* Toolbar y Filtros */
+        .con-filter-toolbar {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 40px;
-            white-space: nowrap;
-        }
-
-        .btn-registrar-simple:hover {
-            background-color: #008d4c;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
-
-        .con-toolbar {
-            display: flex;
-            align-items: center;
             gap: 10px;
-            padding: 14px 18px;
-            border-bottom: 1px solid #e8ecf0;
-            background: #f9fafb;
-            border-radius: 4px 4px 0 0;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+            align-items: center;
         }
 
         .con-select {
-            height: 34px !important;
-            border-radius: 6px !important;
-            border: 1px solid #d0dbe6 !important;
-            font-size: 12px !important;
-            background: #fff !important;
+            height: 35px;
+            border-radius: 6px;
+            border: 1px solid #d2d6de;
+            padding: 0 10px;
+            color: #475569;
+            font-size: 13px;
+            min-width: 150px;
         }
 
+        .filter-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-right: 5px;
+        }
+
+        /* Tabla SaaS */
         .con-table {
-            margin: 0;
+            width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            width: 100%;
+            background: #fff;
         }
 
-        .con-table thead tr th {
-            background: #f4f6f8;
-            color: #6b7a8d;
+        .con-table thead th {
+            background: #fcfcfc;
+            color: #94a3b8;
             font-size: 11px;
-            font-weight: 700;
             text-transform: uppercase;
-            padding: 12px 14px;
-            border-bottom: 2px solid #e0e6ed;
+            padding: 15px;
+            border-bottom: 2px solid #f0f2f5;
         }
 
         .con-table td {
-            padding: 12px 14px;
-            vertical-align: middle;
-            font-size: 13px;
+            padding: 15px;
             border-bottom: 1px solid #f0f3f7;
+            vertical-align: middle;
         }
 
         .con-nombre {
@@ -133,19 +117,68 @@
             background: #e8f3ff;
             color: #2c6fad;
             border: 1px solid #b3d4f5;
-            padding: 3px 10px;
-            border-radius: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
             font-size: 11px;
             font-weight: 700;
         }
 
         .con-clave {
             font-family: monospace;
-            background: #f0f3f7;
+            background: #f8fafc;
             padding: 2px 7px;
             border-radius: 4px;
             color: #4a5568;
             border: 1px solid #e2e8f0;
+            font-size: 12px;
+        }
+
+        /* Botones de acción */
+        .btn-action-flat {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-action-flat:hover {
+            transform: translateY(-2px);
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Panel de Ayuda */
+        .box-ayuda {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        }
+
+        .ayuda-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f2f5;
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .ayuda-body {
+            padding: 15px;
+        }
+
+        .ayuda-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #475569;
         }
     </style>
 @endpush
@@ -161,77 +194,124 @@
             </div>
         </div>
 
-        <button class="btn-registrar-simple" data-toggle="modal" data-target="#modal-nuevo">
-            <i class="fa fa-plus"></i>
-            <span>Registrar Nuevo Grado</span>
+        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modal-nuevo"
+            style="border-radius: 6px; font-weight: 600;">
+            <i class="fa fa-plus"></i> Nuevo Grado
         </button>
     </div>
 
-    <div class="box box-solid" style="border-radius: 6px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.05);">
-        {{-- Toolbar de Filtros --}}
-        <div class="con-toolbar">
-            <form method="GET" action="{{ route('grados.index') }}" id="form-filtros"
-                style="display: flex; gap: 10px; width: 100%;">
-                <select name="mostrar" class="con-select" style="width: 110px;" onchange="this.form.submit()">
-                    <option value="10" {{ request('mostrar') == '10' ? 'selected' : '' }}>10 filas</option>
-                    <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25 filas</option>
-                    <option value="50" {{ request('mostrar') == '50' ? 'selected' : '' }}>50 filas</option>
-                </select>
+    <div class="row">
+        <div class="col-md-9">
+            {{-- Toolbar de Filtros --}}
+            <div class="con-filter-toolbar">
+                <form method="GET" action="{{ route('grados.index') }}" id="form-filtros"
+                    style="display: flex; gap: 15px; width: 100%; align-items: center;">
+                    <div>
+                        <span class="filter-label">Mostrar:</span>
+                        <select name="mostrar" class="con-select" style="min-width: 80px;" onchange="this.form.submit()">
+                            <option value="10" {{ request('mostrar') == '10' ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ request('mostrar') == '50' ? 'selected' : '' }}>50</option>
+                        </select>
+                    </div>
 
-                <select name="nivel_id" class="con-select" onchange="this.form.submit()">
-                    <option value="">Todos los niveles</option>
-                    @foreach ($niveles as $nivel)
-                        <option value="{{ $nivel->id }}" {{ request('nivel_id') == $nivel->id ? 'selected' : '' }}>
-                            {{ $nivel->nombre }}</option>
-                    @endforeach
-                </select>
+                    <div>
+                        <span class="filter-label">Nivel:</span>
+                        <select name="nivel_id" class="con-select" onchange="this.form.submit()">
+                            <option value="">Todos los niveles</option>
+                            @foreach ($niveles as $nivel)
+                                <option value="{{ $nivel->id }}"
+                                    {{ request('nivel_id') == $nivel->id ? 'selected' : '' }}>
+                                    {{ $nivel->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <div style="margin-left: auto;">
-                    <a href="{{ route('grados.index') }}" class="btn btn-default btn-sm"><i class="fa fa-eraser"></i>
-                        Limpiar</a>
+                    <div style="margin-left: auto;">
+                        <a href="{{ route('grados.index') }}" class="btn btn-default btn-sm" title="Limpiar Filtros">
+                            <i class="fa fa-eraser"></i> Limpiar
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="box"
+                style="border: none; border-radius: 0 0 8px 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);">
+                <div class="box-body no-padding">
+                    <table class="con-table">
+                        <thead>
+                            <tr>
+                                <th>Nivel</th>
+                                <th>Ordinal</th>
+                                <th>Nombre del Grado</th>
+                                <th width="150" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($grados as $grado)
+                                <tr>
+                                    <td><span class="con-badge-nivel">{{ $grado->nivel->nombre }}</span></td>
+                                    <td><span class="con-clave">{{ $grado->numero }}° Año</span></td>
+                                    <td>
+                                        <div class="con-nombre">{{ $grado->nombre }}</div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div style="display: flex; gap: 8px; justify-content: center;">
+                                            <button class="btn-action-flat" data-toggle="modal" data-target="#modal-editar"
+                                                data-id="{{ $grado->id }}" data-nombre="{{ $grado->nombre }}"
+                                                data-numero="{{ $grado->numero }}" data-nivel="{{ $grado->nivel_id }}"
+                                                title="Editar">
+                                                <i class="fa fa-pencil text-blue"></i>
+                                            </button>
+
+                                            <form action="{{ route('grados.destroy', $grado->id) }}" method="POST"
+                                                style="display:inline;">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn-action-flat" title="Eliminar"
+                                                    onclick="return confirm('¿Seguro que deseas eliminar este grado?')">
+                                                    <i class="fa fa-trash text-red"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-            </form>
+            </div>
         </div>
 
-        <div class="box-body no-padding">
-            <table class="con-table">
-                <thead>
-                    <tr>
-                        <th width="20%">Nivel</th>
-                        <th width="15%">Ordinal</th>
-                        <th>Nombre del Grado</th>
-                        <th width="150px" class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($grados as $grado)
-                        <tr>
-                            <td><span class="con-badge-nivel">{{ $grado->nivel->nombre }}</span></td>
-                            <td><span class="con-clave">{{ $grado->numero }}° Año</span></td>
-                            <td>
-                                <div class="con-nombre">{{ $grado->nombre }}</div>
-                            </td>
-                            <td class="text-center">
-                                <div style="display: flex; gap: 5px; justify-content: center;">
-                                    <button class="btn btn-default btn-xs" data-toggle="modal" data-target="#modal-editar"
-                                        data-id="{{ $grado->id }}" data-nombre="{{ $grado->nombre }}"
-                                        data-numero="{{ $grado->numero }}" data-nivel="{{ $grado->nivel_id }}">
-                                        <i class="fa fa-pencil text-blue"></i>
-                                    </button>
-                                    <form action="{{ route('grados.destroy', $grado->id) }}" method="POST"
-                                        style="display:inline;">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-default btn-xs"
-                                            onclick="return confirm('¿Eliminar?')">
-                                            <i class="fa fa-trash text-red"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        {{-- Columna de Ayuda --}}
+        <div class="col-md-3">
+            <div class="box-ayuda">
+                <div class="ayuda-header"><i class="fa fa-info-circle text-blue"></i> Ayuda del Módulo</div>
+                <div class="ayuda-body">
+                    <div
+                        style="font-weight: 700; font-size: 12px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase;">
+                        Definiciones:</div>
+
+                    <div class="ayuda-item">
+                        <i class="fa fa-tag text-blue"></i>
+                        <span><b>Nivel:</b> Categoría superior (ej. Primaria, Bachillerato).</span>
+                    </div>
+                    <div class="ayuda-item">
+                        <i class="fa fa-list-ol text-muted"></i>
+                        <span><b>Ordinal:</b> Número de año dentro del nivel.</span>
+                    </div>
+
+                    <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
+
+                    <div style="background: #fff8f1; border: 1px solid #ffe7d3; padding: 10px; border-radius: 6px;">
+                        <span style="color: #c2410c; font-size: 12px; font-weight: 700;">
+                            <i class="fa fa-warning"></i> Seguridad:
+                        </span>
+                        <p style="font-size: 11px; color: #9a3412; margin: 5px 0 0;">
+                            No se puede eliminar un grado si tiene grupos asociados en ciclos actuales o pasados.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     {{-- MODAL NUEVO --}}
