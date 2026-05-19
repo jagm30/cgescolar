@@ -392,27 +392,49 @@
             @csrf
             {{-- ── INYECCIÓN DEL CICLO ACTUAL ── --}}
             <input type="hidden" name="ciclo_id" value="{{ $cicloActual->id ?? '' }}">
+
             <div class="row">
+                {{-- Selector de Nivel --}}
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label>Grado Escolar <span class="text-red">*</span></label>
-                        <select name="grado_id" class="form-control" required>
-                            <option value="">-- Seleccione --</option>
+                        <label>Nivel <span class="text-red">*</span></label>
+                        <select id="filtro_nivel" class="form-control" required>
+                            <option value="">-- Seleccione Nivel --</option>
+                            {{-- Extraemos los niveles únicos de la colección de grados --}}
+                            @foreach ($grados->pluck('nivel')->unique('id') as $nivel)
+                                <option value="{{ $nivel->id }}">{{ $nivel->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Selector de Grado (Inicia deshabilitado) --}}
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Grado <span class="text-red">*</span></label>
+                        <select name="grado_id" id="filtro_grado" class="form-control" required disabled>
+                            <option value="">-- Seleccione primero un nivel --</option>
                             @foreach ($grados as $g)
-                                <option value="{{ $g->id }}">{{ $g->nombre }} ({{ $g->nivel->nombre }})
+                                {{-- Guardamos el id del nivel en un atributo data para leerlo con JS --}}
+                                <option value="{{ $g->id }}" data-nivel="{{ $g->nivel->id }}" hidden>
+                                    {{ $g->nombre }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
                 </div>
-                <div class="col-md-6">
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
                     <div class="form-group">
-                        <label>Nombre/Sección <span class="text-red">*</span></label>
+                        <label>Nombre <span class="text-red">*</span></label>
                         <input type="text" name="nombre" class="form-control" maxlength="10"
                             placeholder="Ej: A, B, UNICO" required>
                     </div>
                 </div>
             </div>
+
             <div class="form-group">
                 <label>Docente Asignado <small class="text-muted">(Opcional)</small></label>
                 <div class="input-group">
@@ -420,11 +442,13 @@
                     <input type="text" name="docente" class="form-control" placeholder="Nombre completo del maestro">
                 </div>
             </div>
+
             <div class="form-group">
                 <label>Cupo Máximo <small class="text-muted">(Opcional)</small></label>
                 <input type="number" name="cupo_maximo" class="form-control" min="1" max="100"
                     placeholder="Ej: 35">
             </div>
+
             <div class="text-right">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
                 <button type="submit" class="btn btn-success" id="btn-guardar-grupo"><i class="fa fa-save"></i> Guardar
@@ -554,6 +578,38 @@
 
     <script>
         $(document).ready(function() {
+
+            // ── 1. LÓGICA DE SELECTS EN CASCADA (NIVEL -> GRADO) ──
+            // La ponemos hasta arriba para que no dependa de si DataTables choca o no
+            const $selectNivel = $('#filtro_nivel');
+            const $selectGrado = $('#filtro_grado');
+            const $opcionesGrado = $selectGrado.find('option[data-nivel]');
+
+            $selectNivel.on('change', function() {
+                const nivelSeleccionado = $(this).val();
+
+                // Reiniciamos el selector de grado
+                $selectGrado.val('');
+
+                if (!nivelSeleccionado) {
+                    $selectGrado.prop('disabled', true);
+                    $selectGrado.find('option:first').text('-- Seleccione primero un nivel --');
+                } else {
+                    $selectGrado.prop('disabled', false);
+                    $selectGrado.find('option:first').text('-- Seleccione Grado --');
+                }
+
+                // Filtramos las opciones
+                $opcionesGrado.each(function() {
+                    if ($(this).data('nivel') == nivelSeleccionado) {
+                        $(this).removeAttr('hidden').prop('disabled', false);
+                    } else {
+                        $(this).attr('hidden', true).prop('disabled', true);
+                    }
+                });
+            });
+
+            // ── 2. INICIALIZACIÓN DE DATATABLES ──
             var table = $('#tabla-grupos').DataTable({
                 "paging": false,
                 "info": false,
@@ -569,7 +625,7 @@
                 table.search(this.value).draw();
             });
 
-            // ── LÓGICA DE ELIMINACIÓN CON MODAL ──
+            // ── 3. LÓGICA DE ELIMINACIÓN CON MODAL ──
             let formularioAEliminar = null;
 
             $(document).on('click', '.btn-trigger-eliminar', function() {
@@ -609,7 +665,7 @@
                 }
             });
 
-            // ── LÓGICA DE CREACIÓN ──
+            // ── 4. LÓGICA DE CREACIÓN (AJAX) ──
             $('#form-nuevo-grupo').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
@@ -644,23 +700,17 @@
                 });
             });
 
-            // ── LÓGICA DE IMPRESIÓN DE CREDENCIALES (NUEVO) ──
+            // ── 5. LÓGICA DE IMPRESIÓN DE CREDENCIALES ──
             let printId = null;
             let printTipo = null;
 
-            // 1. Al hacer clic en el botón de la tabla
             $(document).on('click', '.btn-abrir-modal-credencial', function() {
                 printId = $(this).data('id');
                 printTipo = $(this).data('tipo');
-
-                // Reseteamos el select por si acaso
                 $('#select-diseno-credencial').val('');
-
-                // Abrimos el modal
                 $('#modalElegirDiseno').modal('show');
             });
 
-            // 2. Al procesar dentro del modal
             $('#btn-procesar-impresion').click(function() {
                 let disenoId = $('#select-diseno-credencial').val();
 
@@ -669,7 +719,6 @@
                     return;
                 }
 
-                // Plantillas de rutas
                 let urlLote =
                     "{{ route('credenciales.imprimirLote', ['credencial_id' => 'DISENO_ID', 'grupo_id' => 'TARGET_ID']) }}";
                 let urlIndividual =
@@ -677,12 +726,11 @@
                 let urlFinal = (printTipo === 'lote') ? urlLote : urlIndividual;
                 urlFinal = urlFinal.replace('DISENO_ID', disenoId).replace('TARGET_ID', printId);
 
-                // Abrimos la pestaña y cerramos el modal
                 window.open(urlFinal, '_blank');
                 $('#modalElegirDiseno').modal('hide');
             });
 
-            // ── FUNCIONES GLOBALES ──
+            // ── 6. FUNCIONES GLOBALES DE ERROR ──
             function mostrarToastError(xhr) {
                 let msg = 'Ocurrió un error inesperado.';
                 if (xhr.responseJSON && xhr.responseJSON.mensaje) msg = xhr.responseJSON.mensaje;
@@ -697,13 +745,12 @@
                 $('body').append(toastHTML);
                 $('#toast-dinamico-js').fadeIn('fast').delay(5000).fadeOut('slow');
             }
-            // ── HACER FILAS CLICKEABLES ──
+
+            // ── 7. HACER FILAS CLICKEABLES ──
             $('#tabla-grupos tbody').on('click', 'tr[data-href]', function(e) {
-                // Si el clic fue en un botón, en un enlace, o dentro del form de eliminar, lo ignoramos
                 if ($(e.target).closest('button, a, input, form, .btn-group').length > 0) {
                     return;
                 }
-                // Si hizo clic en texto o espacio vacío de la fila, lo redirigimos
                 window.location.href = $(this).data('href');
             });
         });
