@@ -13,42 +13,42 @@ class GradoController extends Controller
     use RespondsWithJson;
 
     /** GET /grados */
-    public function index(Request $request)
-{
-    // 1. Iniciamos la consulta con la relación
-    $query = Grado::with(['nivel'])
-        // Filtro por Nivel Escolar
-        ->when($request->filled('nivel_id'), function ($q) use ($request) {
-            return $q->where('nivel_id', $request->nivel_id);
-        })
-        // Filtro por Número de Grado (EL QUE TE FALTABA)
-        ->when($request->filled('numero'), function ($q) use ($request) {
-            return $q->where('numero', $request->numero);
-        })
-        // Orden lógico
-        ->orderBy('nivel_id')
-        ->orderBy('numero');
+   public function index(Request $request)
+    {
+        // PASO 1: Movemos esto HASTA ARRIBA para que la variable exista antes de usarla
+        $mostrar = $request->get('mostrar', 10);
 
-    // 2. Manejo de la cantidad de registros a mostrar
-    $mostrar = $request->get('mostrar', 10);
-    
-    if ($mostrar == -1) {
-        $grados = $query->get(); // Traer todos
-    } else {
-        // Usamos paginate para que Laravel maneje el límite, 
-        // pero para DataTables simple con get() basta si no usas links de paginación de Laravel
-        $grados = $query->take($mostrar)->get(); 
+        // PASO 2: Iniciamos la consulta (SIN poner el paginate o get aquí todavía)
+        $query = Grado::with(['nivel'])
+            // Filtro por Nivel Escolar
+            ->when($request->filled('nivel_id'), function ($q) use ($request) {
+                return $q->where('nivel_id', $request->nivel_id);
+            })
+            // Filtro por Número de Grado
+            ->when($request->filled('numero'), function ($q) use ($request) {
+                return $q->where('numero', $request->numero);
+            })
+            // Orden lógico
+            ->orderBy('nivel_id')
+            ->orderBy('numero');
+
+        // PASO 3: Aquí aplicamos tu lógica de "mostrar", pero SIEMPRE usando paginate() 
+        // para que tu vista no marque el error de "total() does not exist".
+        if ($mostrar == -1) {
+            $grados = $query->paginate(1000); // Equivale a "Traer todos" sin romper la vista
+        } else {
+            $grados = $query->paginate($mostrar); // Trae los 10, 25 o 50
+        }
+
+        // 4. Respuesta AJAX (DataTables)
+        if ($request->ajax()) {
+            return response()->json($grados);
+        }
+
+        $niveles = NivelEscolar::activo()->get();
+
+        return view('grados.index', compact('grados', 'niveles'));
     }
-
-    // 3. Respuesta AJAX (DataTables)
-    if ($request->ajax()) {
-        return response()->json($grados);
-    }
-
-    $niveles = NivelEscolar::activo()->get();
-
-    return view('grados.index', compact('grados', 'niveles'));
-}
 
     /** GET /grados/{id} — AJAX */
     public function show(int $id)
@@ -71,12 +71,10 @@ class GradoController extends Controller
     {
         $data = $request->validate([
             'nivel_id' => ['required', 'exists:nivel_escolar,id'],
-            'nombre'   => ['required', 'string', 'max:20'],
             'numero'   => ['required', 'integer', 'min:1'],
         ], [
             'nivel_id.required' => 'Debe seleccionar el nivel educativo.',
             'nivel_id.exists'   => 'El nivel seleccionado no existe.',
-            'nombre.required'   => 'El nombre del grado es obligatorio.',
             'numero.required'   => 'El número del grado es obligatorio.',
         ]);
 
@@ -97,7 +95,7 @@ class GradoController extends Controller
         return $this->respuestaExito(
             redirectRoute: 'grados.index',
             jsonData: ['grado' => $grado->load('nivel')],
-            mensaje: "Grado '{$grado->nombre}' creado correctamente.",
+            mensaje: "Grado {$grado->numero}° creado correctamente.",
             jsonStatus: 201
         );
     }
@@ -123,7 +121,6 @@ class GradoController extends Controller
 
         $data = $request->validate([
             'nivel_id' => ['sometimes', 'required', 'exists:nivel_escolar,id'],
-            'nombre'   => ['sometimes', 'required', 'string', 'max:20'],
             'numero'   => ['sometimes', 'required', 'integer', 'min:1'],
         ]);
 
@@ -146,7 +143,7 @@ class GradoController extends Controller
         return $this->respuestaExito(
             redirectRoute: 'grados.index',
             jsonData: ['grado' => $grado->fresh()->load('nivel')],
-            mensaje: "Grado '{$grado->nombre}' actualizado correctamente."
+            mensaje: "Grado {$grado->numero}° actualizado correctamente."
         );
     }
 
@@ -157,7 +154,7 @@ class GradoController extends Controller
 
         if ($grado->grupos()->exists()) {
             return $this->respuestaError(
-                "No se puede eliminar '{$grado->nombre}' porque tiene grupos asociados."
+                "No se puede eliminar el grado {$grado->numero}° porque tiene grupos asociados."
             );
         }
 
@@ -167,7 +164,7 @@ class GradoController extends Controller
 
         return $this->respuestaExito(
             redirectRoute: 'grados.index',
-            mensaje: "Grado '{$grado->nombre}' eliminado correctamente."
+            mensaje: "Grado {$grado->numero}° eliminado correctamente."
         );
     }
 }

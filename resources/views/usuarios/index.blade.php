@@ -1,16 +1,7 @@
 @extends('layouts.master')
 
-<<<<<<< HEAD
 @section('page_title', 'Usuarios')
 @section('page_subtitle', 'Gestión de usuarios')
-=======
-@section('page_title', 'Conceptos')
-@section('page_subtitle', 'Conceptos de cobro')
-
-@section('breadcrumb')
-    <li class="active">Conceptos</li>
-@endsection
->>>>>>> e8cb10069839bbb63ba00825bd1c403ac604e546
 
 @push('styles')
     <style>
@@ -276,11 +267,7 @@
                                     </td>
                                     <td>
                                         <span
-<<<<<<< HEAD
                                             class="badge-rol 
-=======
-                                            class="badge-rol
->>>>>>> e8cb10069839bbb63ba00825bd1c403ac604e546
                                             {{ $usuario->rol == 'administrador' ? 'rol-admin' : ($usuario->rol == 'it' ? 'rol-it' : 'rol-padre') }}">
                                             {{ $usuario->rol }}
                                         </span>
@@ -351,8 +338,4 @@
             </div>
         </div>
     </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> e8cb10069839bbb63ba00825bd1c403ac604e546
 @endsection

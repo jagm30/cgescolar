@@ -11,8 +11,7 @@ return new class extends Migration
         Schema::create('grado', function (Blueprint $table) {
             $table->id();
             $table->foreignId('nivel_id')->constrained('nivel_escolar')->restrictOnDelete();
-            $table->string('nombre')->comment('Ej: 1°, 2°, 3°');
-            $table->unsignedTinyInteger('numero');
+            $table->unsignedTinyInteger('numero')->comment('Ej: 1°, 2°, 3°');
         });
     }
 
