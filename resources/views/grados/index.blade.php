@@ -201,11 +201,12 @@
     </div>
 
     <div class="row">
+        {{-- COLUMNA PRINCIPAL (TABLA) --}}
         <div class="col-md-9">
-            {{-- Toolbar de Filtros --}}
             <div class="con-filter-toolbar">
                 <form method="GET" action="{{ route('grados.index') }}" id="form-filtros"
                     style="display: flex; gap: 15px; width: 100%; align-items: center;">
+
                     <div>
                         <span class="filter-label">Mostrar:</span>
                         <select name="mostrar" class="con-select" style="min-width: 80px;" onchange="this.form.submit()">
@@ -222,7 +223,8 @@
                             @foreach ($niveles as $nivel)
                                 <option value="{{ $nivel->id }}"
                                     {{ request('nivel_id') == $nivel->id ? 'selected' : '' }}>
-                                    {{ $nivel->nombre }}</option>
+                                    {{ $nivel->nombre }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -242,25 +244,20 @@
                         <thead>
                             <tr>
                                 <th>Nivel</th>
-                                <th>Ordinal</th>
-                                <th>Nombre del Grado</th>
+                                <th>Grado</th>
                                 <th width="150" class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($grados as $grado)
+                            @forelse ($grados as $grado)
                                 <tr>
                                     <td><span class="con-badge-nivel">{{ $grado->nivel->nombre }}</span></td>
-                                    <td><span class="con-clave">{{ $grado->numero }}° Año</span></td>
-                                    <td>
-                                        <div class="con-nombre">{{ $grado->nombre }}</div>
-                                    </td>
+                                    <td><span class="con-clave">{{ $grado->numero }}° Grado</span></td>
                                     <td class="text-center">
                                         <div style="display: flex; gap: 8px; justify-content: center;">
                                             <button class="btn-action-flat" data-toggle="modal" data-target="#modal-editar"
-                                                data-id="{{ $grado->id }}" data-nombre="{{ $grado->nombre }}"
-                                                data-numero="{{ $grado->numero }}" data-nivel="{{ $grado->nivel_id }}"
-                                                title="Editar">
+                                                data-id="{{ $grado->id }}" data-numero="{{ $grado->numero }}"
+                                                data-nivel="{{ $grado->nivel_id }}" title="Editar">
                                                 <i class="fa fa-pencil text-blue"></i>
                                             </button>
 
@@ -275,21 +272,41 @@
                                         </div>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center" style="padding: 20px; color: #94a3b8;">No se
+                                        encontraron registros.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
 
-        {{-- Columna de Ayuda --}}
+                {{-- Paginación Nativa --}}
+                @if ($grados->total() > 0)
+                    <div class="box-footer clearfix"
+                        style="background: #fff; border-radius: 0 0 8px 8px; padding: 15px; border-top: 1px solid #f0f3f7;">
+                        <div class="pull-left" style="color: #64748b; font-size: 12px; margin-top: 8px;">
+                            Mostrando {{ $grados->firstItem() }} a {{ $grados->lastItem() }} de {{ $grados->total() }}
+                            registros
+                        </div>
+                        <div class="pull-right" style="margin: 0;">
+                            {{ $grados->appends(request()->query())->links('pagination::bootstrap-4') }}
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div> {{-- FIN COLUMNA PRINCIPAL --}}
+
+        {{-- COLUMNA LATERAL (AYUDA) --}}
         <div class="col-md-3">
             <div class="box-ayuda">
                 <div class="ayuda-header"><i class="fa fa-info-circle text-blue"></i> Ayuda del Módulo</div>
                 <div class="ayuda-body">
                     <div
                         style="font-weight: 700; font-size: 12px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase;">
-                        Definiciones:</div>
+                        Definiciones:
+                    </div>
 
                     <div class="ayuda-item">
                         <i class="fa fa-tag text-blue"></i>
@@ -297,7 +314,7 @@
                     </div>
                     <div class="ayuda-item">
                         <i class="fa fa-list-ol text-muted"></i>
-                        <span><b>Ordinal:</b> Número de año dentro del nivel.</span>
+                        <span><b>Grado:</b> Número de año dentro del nivel.</span>
                     </div>
 
                     <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
@@ -312,8 +329,8 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </div> {{-- FIN COLUMNA LATERAL --}}
+    </div> {{-- FIN DEL ROW --}}
     {{-- MODAL NUEVO --}}
     <x-modal id="modal-nuevo" title="Registrar Nuevo Grado">
         <form action="{{ route('grados.store') }}" method="POST">
@@ -334,13 +351,6 @@
                     <div class="form-group">
                         <label>Grado <span class="text-danger">*</span></label>
                         <input type="number" name="numero" class="form-control" min="1" placeholder="Ej: 1"
-                            required>
-                    </div>
-                </div>
-                <div class="col-md-8">
-                    <div class="form-group">
-                        <label>Nombre<span class="text-danger">*</span></label>
-                        <input type="text" name="nombre" class="form-control" placeholder="Ej: Primero de Primaria"
                             required>
                     </div>
                 </div>
@@ -379,10 +389,6 @@
                     </div>
                 </div>
                 <div class="col-md-8">
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" name="nombre" id="edit-nombre" class="form-control" required>
-                    </div>
                 </div>
             </div>
 
