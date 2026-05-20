@@ -273,7 +273,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <div class="form-group" style="margin-bottom:20px;">
                                 <label>Régimen fiscal <span style="color:#e74c3c;">*</span></label>
                                 <select name="regimen_fiscal" class="form-control-flat">
@@ -301,9 +301,9 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div class="form-group" style="margin-bottom:20px;">
-                                <label>Serie de facturas <span style="color:#e74c3c;">*</span></label>
+                                <label>Serie <span style="color:#e74c3c;">*</span></label>
                                 <input type="text" name="serie"
                                        class="form-control-flat"
                                        value="{{ old('serie', $configFiscal->serie ?? 'A') }}"
@@ -311,7 +311,21 @@
                                        maxlength="5"
                                        style="text-transform:uppercase;text-align:center;letter-spacing:.1em;">
                                 <p class="text-muted" style="font-size:11px;margin-top:5px;">
-                                    Letra(s) para el folio. Ej: A, FA, EDU.
+                                    Ej: A, FA, EDU.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group" style="margin-bottom:20px;">
+                                <label>ID Serie factura.com <span style="color:#e74c3c;">*</span></label>
+                                <input type="number" name="serie_id"
+                                       class="form-control-flat"
+                                       value="{{ old('serie_id', $configFiscal->serie_id) }}"
+                                       placeholder="12345"
+                                       min="1"
+                                       style="text-align:center;">
+                                <p class="text-muted" style="font-size:11px;margin-top:5px;">
+                                    ID numérico de la serie en tu panel de factura.com (Catálogos → Series).
                                 </p>
                             </div>
                         </div>

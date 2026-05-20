@@ -114,10 +114,20 @@ class FacturaComService
             throw new \RuntimeException("factura.com: {$mensaje}", $response->status());
         }
 
-        // El create endpoint puede devolver UID/UUID en el root y datos extras en 'data'.
-        // Mezclamos ambos para que el controlador siempre encuentre todos los campos.
-        $data = $json['data'] ?? [];
-        return is_array($data) ? array_merge($json, $data) : $json;
+        // factura.com puede devolver UID/UUID en el root o dentro de 'data'/'Data'.
+        // Normalizamos todo al root para que el controlador siempre encuentre los campos.
+        $data = $json['data'] ?? $json['Data'] ?? [];
+        $merged = is_array($data) ? array_merge($json, $data) : $json;
+
+        // Normalizar UID y UUID a claves canónicas en caso de variación de mayúsculas.
+        if (! isset($merged['UID']) && isset($merged['uid'])) {
+            $merged['UID'] = $merged['uid'];
+        }
+        if (! isset($merged['UUID']) && isset($merged['uuid'])) {
+            $merged['UUID'] = $merged['uuid'];
+        }
+
+        return $merged;
     }
 
     /**
