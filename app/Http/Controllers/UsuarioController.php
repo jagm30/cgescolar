@@ -21,11 +21,11 @@ class UsuarioController extends Controller
     public function index(Request $request)
     {
         $usuarios = Usuario::with('cicloSeleccionado')
-            ->when($request->filled('rol'),    fn($q) => $q->where('rol', $request->rol))
-            ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->boolean('activo')))
-            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
+            ->when($request->filled('rol'), fn ($q) => $q->where('rol', $request->rol))
+            ->when($request->filled('activo'), fn ($q) => $q->where('activo', $request->boolean('activo')))
+            ->when($request->filled('buscar'), fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
-                  ->orWhere('email', 'like', "%{$request->buscar}%");
+                    ->orWhere('email', 'like', "%{$request->buscar}%");
             }))
             ->orderBy('rol')->orderBy('nombre')
             ->get();
@@ -71,24 +71,24 @@ class UsuarioController extends Controller
     /** POST /usuarios */
     public function store(StoreUsuarioRequest $request)
     {
-        $data    = $request->validated();
+        $data = $request->validated();
         $usuario = Usuario::create([
-            'nombre'        => $data['nombre'],
-            'email'         => $data['email'],
+            'nombre' => $data['nombre'],
+            'email' => $data['email'],
             'password_hash' => Hash::make($data['password']),
-            'rol'           => $data['rol'],
-            'activo'        => $data['activo'] ?? true,
+            'rol' => $data['rol'],
+            'activo' => $data['activo'] ?? true,
         ]);
 
-        if ($data['rol'] === 'padre' && !empty($data['contacto_id'])) {
+        if ($data['rol'] === 'padre' && ! empty($data['contacto_id'])) {
             ContactoFamiliar::where('id', $data['contacto_id'])
                 ->update(['usuario_id' => $usuario->id]);
         }
 
         Auditoria::registrar('usuario', $usuario->id, 'insert', null, [
             'nombre' => $usuario->nombre,
-            'email'  => $usuario->email,
-            'rol'    => $usuario->rol,
+            'email' => $usuario->email,
+            'rol' => $usuario->rol,
         ]);
 
         return $this->respuestaExito(
@@ -114,11 +114,11 @@ class UsuarioController extends Controller
     /** PUT /usuarios/{id} */
     public function update(UpdateUsuarioRequest $request, int $id)
     {
-        $usuario  = Usuario::findOrFail($id);
+        $usuario = Usuario::findOrFail($id);
         $anterior = $usuario->toArray();
-        $data     = $request->validated();
+        $data = $request->validated();
 
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $data['password_hash'] = Hash::make($data['password']);
         }
         unset($data['password'], $data['password_confirmation']);
@@ -167,31 +167,33 @@ class UsuarioController extends Controller
 
     public function generarUsuariosMasivos(Request $request)
     {
-        $ids = $request->input('contacto_ids'); 
+        $ids = $request->input('contacto_ids');
         $usuariosCreados = [];
 
         foreach ($ids as $id) {
             $contacto = ContactoFamiliar::findOrFail($id);
-            
+
             // Evitar duplicados si ya tiene usuario
-            if($contacto->usuario_id) continue;
-            
+            if ($contacto->usuario_id) {
+                continue;
+            }
+
             $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
 
             $usuario = Usuario::create([
-                'nombre'        => $contacto->nombre,
-                'email'         => $contacto->email,
+                'nombre' => $contacto->nombre,
+                'email' => $contacto->email,
                 'password_hash' => Hash::make($passwordPlana),
-                'rol'           => 'padre',
-                'activo'        => true,
+                'rol' => 'padre',
+                'activo' => true,
             ]);
 
             $contacto->update(['usuario_id' => $usuario->id]);
 
             $usuariosCreados[] = [
-                'nombre'   => $usuario->nombre,
-                'email'    => $usuario->email,
-                'password' => $passwordPlana
+                'nombre' => $usuario->nombre,
+                'email' => $usuario->email,
+                'password' => $passwordPlana,
             ];
         }
 
@@ -200,7 +202,7 @@ class UsuarioController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'mensaje' => count($usuariosCreados) . ' usuarios generados.'
+            'mensaje' => count($usuariosCreados).' usuarios generados.',
         ]);
     }
 
@@ -209,14 +211,16 @@ class UsuarioController extends Controller
         // Recuperamos los datos de la sesión
         $credenciales = session('credenciales_nuevas');
 
-        if (!$credenciales) {
+        if (! $credenciales) {
             return abort(404, 'No hay credenciales recientes para imprimir o la sesión caducó.');
         }
 
-        // Generamos el PDF usando una vista dedicada
-        $pdf = Pdf::loadView('usuarios.pdf-credenciales', compact('credenciales'));
-    
-        return $pdf->stream('Credenciales_Colegio.pdf'); // Usa ->download() si prefieres que se descargue directo
-    }
+        if (class_exists(Pdf::class)) {
+            $pdf = Pdf::loadView('usuarios.pdf-credenciales', compact('credenciales'));
 
+            return $pdf->stream('Credenciales_Colegio.pdf');
+        }
+
+        return view('usuarios.pdf-credenciales', compact('credenciales'));
+    }
 }
