@@ -532,7 +532,8 @@
                             <select name="ciclo_destino_id" class="form-control" required style="border-radius: 8px;">
                                 <option value="">-- Seleccionar Ciclo --</option>
                                 @foreach ($ciclosDisponibles ?? [] as $cicloD)
-                                    @if ($cicloD->id != $grupo->ciclo_id)
+                                    {{-- ¡Aquí está el truco! Agregamos: && $cicloD->id > $grupo->ciclo_id --}}
+                                    @if ($cicloD->id > $grupo->ciclo_id && in_array($cicloD->estado, ['activo', 'configuracion']))
                                         <option value="{{ $cicloD->id }}">{{ $cicloD->nombre }}</option>
                                     @endif
                                 @endforeach

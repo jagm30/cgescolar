@@ -102,16 +102,19 @@ class GrupoController extends Controller
             return $grado->nivel->id . '-' . $grado->numero;
         });
 
-        // 2. OBTENEMOS LOS CICLOS ESCOLARES
-        $ciclosDisponibles = \App\Models\CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
-
-        // 3. Grupos disponibles para cambios (tu lógica original)
+        // 2. Grupos disponibles para cambios (tu lógica original)
         $gruposDisponibles = Grupo::where('ciclo_id', $grupo->ciclo_id)
             ->where('grado_id', $grupo->grado_id)
             ->with('grado')
             ->withCount(['inscripciones as inscripciones_count' => function ($query) {
                 $query->where('activo', true);
             }])
+            ->get();
+        // 3. OBTENEMOS LOS CICLOS ESCOLARES
+        $ciclosDisponibles = \App\Models\CicloEscolar::where('id', '!=', $grupo->ciclo_id) // Excluye el actual
+            ->where('id', '>', $grupo->ciclo_id) // Solo IDs mayores (ciclos creados después)
+            ->whereIn('estado', ['activo', 'configuracion'])
+            ->orderBy('id', 'asc')
             ->get();
 
         return view('grupos.show', compact('grupo', 'gruposDisponibles', 'grados', 'ciclosDisponibles'));
