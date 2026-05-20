@@ -278,6 +278,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('usuarios/generar-masivos', [UsuarioController::class, 'generarUsuariosMasivos'])
         ->middleware('rol:administrador')
         ->name('usuarios.generarMasivos');
+        
+    Route::post('usuarios/{id}/reactivar', [UsuarioController::class, 'reactivar'])
+    ->middleware('rol:administrador')
+    ->name('usuarios.reactivar');
 
     Route::get('/usuarios/pendientes-portal', [UsuarioController::class, 'pendientesPortal'])
         ->middleware('rol:administrador')
@@ -290,6 +294,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('usuarios/credenciales-pdf', [UsuarioController::class, 'descargarCredencialesPdf'])
     ->middleware('rol:administrador')
     ->name('usuarios.credencialesPdf');
+
+    Route::delete('usuarios/{id}/forzar-eliminar', [UsuarioController::class, 'forzarEliminar'])
+    ->middleware('rol:administrador')
+    ->name('usuarios.forzarEliminar');
 
     Route::get('/perfil', [UsuarioController::class, 'perfil'])
         ->name('usuarios.perfil');

@@ -102,11 +102,7 @@
                     <h4 style="margin:0; font-weight:800; color:#2c3e50;">
                         <i class="fa fa-user-plus text-orange"></i> Pendientes de Acceso
                     </h4>
-                    <select id="filtro-rol-pendientes" class="filter-select">
-                        <option value="">Todos los Roles</option>
-                        <option value="padre">Padre de Familia</option>
-                        <option value="alumno">Alumno</option>
-                    </select>
+
                 </div>
                 <div style="margin-left:auto;">
                     <button id="btn-generar-masivo" class="btn" disabled
@@ -133,8 +129,10 @@
                                 <tr data-id="{{ $p->id }}">
                                     <td class="text-center"><input type="checkbox" class="check-user"
                                             value="{{ $p->id }}"></td>
-                                    <td><b style="color: #2c3e50;">{{ $p->nombre }}</b></td>
-                                    <td><span class="con-badge-familia">{{ $p->familia->apellidos ?? 'Sin Familia' }}</span>
+                                    <td><b style="color: #2c3e50;">{{ $p->nombre }} {{ $p->ap_paterno }}
+                                            {{ $p->ap_materno }}</b></td>
+                                    <td><span
+                                            class="con-badge-familia">{{ $p->familia->apellido_familia ?? 'Sin Familia' }}</span>
                                     </td>
                                     <td style="font-family:monospace; color: #64748b;">{{ $p->email }}</td>
                                     <td class="text-center">

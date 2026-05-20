@@ -17,18 +17,20 @@ class UsuarioController extends Controller
 {
     use RespondsWithJson;
 
-    /** GET /usuarios */
+/** GET /usuarios - Modificado con Paginación Dinámica */
     public function index(Request $request)
     {
+        $mostrar = $request->input('mostrar', 10);
+
         $usuarios = Usuario::with('cicloSeleccionado')
             ->when($request->filled('rol'),    fn($q) => $q->where('rol', $request->rol))
-            ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->boolean('activo')))
+            ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->activo))
             ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
                   ->orWhere('email', 'like', "%{$request->buscar}%");
             }))
             ->orderBy('rol')->orderBy('nombre')
-            ->get();
+            ->paginate($mostrar); // Paginación nativa de Laravel
 
         if ($request->ajax()) {
             return response()->json($usuarios);
@@ -68,35 +70,64 @@ class UsuarioController extends Controller
         return view('usuarios.create', compact('contactosPendientes'));
     }
 
-    /** POST /usuarios */
-    public function store(StoreUsuarioRequest $request)
+    /** POST /usuarios - Modificado para recibir peticiones AJAX desde el Modal */
+
+    public function store(Request $request)
     {
-        $data    = $request->validated();
-        $usuario = Usuario::create([
-            'nombre'        => $data['nombre'],
-            'email'         => $data['email'],
-            'password_hash' => Hash::make($data['password']),
-            'rol'           => $data['rol'],
-            'activo'        => $data['activo'] ?? true,
-        ]);
+        try {
+            // 1. Validamos los datos
+            $request->validate([
+                'nombre'   => 'required|string|max:255',
+                'email'    => 'required|email|unique:usuario,email',
+                'rol'      => 'required|string',
+                'password' => 'required|string|min:6'
+            ]);
 
-        if ($data['rol'] === 'padre' && !empty($data['contacto_id'])) {
-            ContactoFamiliar::where('id', $data['contacto_id'])
-                ->update(['usuario_id' => $usuario->id]);
+            // 2. Creamos al usuario
+            $usuario = Usuario::create([
+                'nombre'        => $request->nombre,
+                'email'         => $request->email,
+                'password_hash' => Hash::make($request->password),
+                'rol'           => $request->rol,
+                'activo'        => true,
+            ]);
+
+            // 3. Preparamos los datos para el PDF en la sesión temporal
+            $credenciales = [[
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => $request->password,
+                'rol'      => $usuario->rol
+            ]];
+            session()->flash('credenciales_nuevas', $credenciales);
+
+            // 4. Registramos en la Auditoría
+            Auditoria::registrar('usuario', $usuario->id, 'insert', null, [
+                'nombre' => $usuario->nombre,
+                'email'  => $usuario->email,
+                'rol'    => $usuario->rol,
+            ]);
+
+            // 5. Devolvemos éxito
+            return response()->json([
+                'status' => 'success',
+                'mensaje' => "Usuario creado correctamente."
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Error de validación (ej. el correo ya existe)
+            return response()->json([
+                'status' => 'error', 
+                'mensaje' => $e->validator->errors()->first()
+            ], 422);
+
+        } catch (\Exception $e) {
+            // Error fatal de PHP o Base de Datos
+            return response()->json([
+                'status' => 'error', 
+                'mensaje' => 'Fallo en el servidor: ' . $e->getMessage()
+            ], 500);
         }
-
-        Auditoria::registrar('usuario', $usuario->id, 'insert', null, [
-            'nombre' => $usuario->nombre,
-            'email'  => $usuario->email,
-            'rol'    => $usuario->rol,
-        ]);
-
-        return $this->respuestaExito(
-            redirectRoute: 'usuarios.index',
-            jsonData: ['usuario' => $usuario],
-            mensaje: "Usuario '{$usuario->nombre}' creado correctamente.",
-            jsonStatus: 201
-        );
     }
 
     /** GET /usuarios/{id}/edit */
@@ -111,27 +142,52 @@ class UsuarioController extends Controller
         return view('usuarios.edit', compact('usuario'));
     }
 
-    /** PUT /usuarios/{id} */
-    public function update(UpdateUsuarioRequest $request, int $id)
+   /** PUT /usuarios/{id} - Editar */
+    public function update(Request $request, int $id)
     {
-        $usuario  = Usuario::findOrFail($id);
+        $usuario = Usuario::findOrFail($id);
         $anterior = $usuario->toArray();
-        $data     = $request->validated();
 
-        if (!empty($data['password'])) {
-            $data['password_hash'] = Hash::make($data['password']);
+        // --- NUEVO CANDADO DE SEGURIDAD ---
+        // Si el usuario intenta editar su propia cuenta y cambiar su rol, lo bloqueamos
+        if ($usuario->id === auth()->id() && $request->rol !== $usuario->rol) {
+            return response()->json([
+                'status' => 'error',
+                'mensaje' => 'Medida de seguridad: No puedes cambiar tu propio rol para evitar la pérdida de acceso.'
+            ], 403);
         }
-        unset($data['password'], $data['password_confirmation']);
+        // ----------------------------------
 
-        $usuario->update($data);
+        $request->validate([
+            'rol' => ['required', 'string'],
+            'password' => ['nullable', 'string', 'min:6']
+        ]);
+
+        $usuario->rol = $request->rol;
+        
+        $passwordPlana = $request->password;
+        if (!empty($passwordPlana)) {
+            $usuario->password_hash = Hash::make($passwordPlana);
+        }
+        $usuario->save();
 
         Auditoria::registrar('usuario', $usuario->id, 'update', $anterior, $usuario->fresh()->toArray());
 
-        return $this->respuestaExito(
-            redirectRoute: 'usuarios.index',
-            jsonData: ['usuario' => $usuario->fresh()],
-            mensaje: "Usuario '{$usuario->nombre}' actualizado correctamente."
-        );
+        if ($request->boolean('generar_pdf')) {
+            $credenciales = [[
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => !empty($passwordPlana) ? $passwordPlana : '*(Se mantuvo la contraseña anterior)*',
+                'rol'      => $usuario->rol
+            ]];
+            session()->flash('credenciales_nuevas', $credenciales);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'mensaje' => "Usuario actualizado correctamente.",
+            'pdf_generado' => $request->boolean('generar_pdf')
+        ]);
     }
 
     /** DELETE /usuarios/{id} — desactiva */
@@ -165,21 +221,26 @@ class UsuarioController extends Controller
         return view('usuarios.perfil', compact('usuario'));
     }
 
+    
     public function generarUsuariosMasivos(Request $request)
     {
         $ids = $request->input('contacto_ids'); 
         $usuariosCreados = [];
 
         foreach ($ids as $id) {
-            $contacto = ContactoFamiliar::findOrFail($id);
+            $contacto = ContactoFamiliar::with('familia')->findOrFail($id);
             
             // Evitar duplicados si ya tiene usuario
             if($contacto->usuario_id) continue;
             
             $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
 
+            // 1. ARMAMOS EL NOMBRE COMPLETO USANDO TUS COLUMNAS REALES
+            $nombreCompleto = trim($contacto->nombre . ' ' . $contacto->ap_paterno . ' ' . $contacto->ap_materno);
+
+            // 2. CREAMOS EL USUARIO
             $usuario = Usuario::create([
-                'nombre'        => $contacto->nombre,
+                'nombre'        => $nombreCompleto,
                 'email'         => $contacto->email,
                 'password_hash' => Hash::make($passwordPlana),
                 'rol'           => 'padre',
@@ -189,13 +250,13 @@ class UsuarioController extends Controller
             $contacto->update(['usuario_id' => $usuario->id]);
 
             $usuariosCreados[] = [
-                'nombre'   => $usuario->nombre,
+                'nombre'   => $nombreCompleto, 
                 'email'    => $usuario->email,
                 'password' => $passwordPlana
             ];
         }
 
-        // Guardamos los datos temporalmente en la sesión (Flash) solo para generar el PDF
+        // Guardamos los datos temporalmente en la sesión (Flash)
         session()->flash('credenciales_nuevas', $usuariosCreados);
 
         return response()->json([
@@ -218,5 +279,62 @@ class UsuarioController extends Controller
     
         return $pdf->stream('Credenciales_Colegio.pdf'); // Usa ->download() si prefieres que se descargue directo
     }
+    /** POST /usuarios/{id}/reactivar - Nuevo método */
+    public function reactivar(int $id)
+    {
+        $usuario = Usuario::findOrFail($id);
+        $anterior = $usuario->toArray();
+
+        $usuario->update(['activo' => true]);
+        Auditoria::registrar('usuario', $usuario->id, 'update', $anterior, $usuario->fresh()->toArray());
+
+        return redirect()->route('usuarios.index')->with('mensaje', "Usuario reactivado con éxito.");
+    }
+
+   /** DELETE /usuarios/{id}/forzar-eliminar */
+    public function forzarEliminar(int $id)
+    {
+        try {
+            $usuario = Usuario::findOrFail($id);
+
+            if ($usuario->id === auth()->id()) {
+                return response()->json([
+                    'status' => 'error', 
+                    'mensaje' => 'No puedes eliminar tu propia cuenta.'
+                ], 403);
+            }
+
+            // 1. Desvincular al Contacto Familiar
+            ContactoFamiliar::where('usuario_id', $usuario->id)
+                ->update([
+                    'usuario_id' => null,
+                    'tiene_acceso_portal' => 0 
+                ]);
+
+            // 2. Registrar en auditoría antes de destruirlo
+            Auditoria::registrar('usuario', $id, 'delete', $usuario->toArray(), null);
+
+            // 3. Borrar de la BD
+            $usuario->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'mensaje' => 'Usuario eliminado de manera definitiva del sistema.'
+            ]);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Atrapa errores de SQL (Casi seguro es por relaciones en otras tablas)
+            return response()->json([
+                'status' => 'error',
+                'mensaje' => 'Conflicto en Base de Datos: No se puede borrar porque el usuario tiene historial en otras tablas (Auditorías, etc). ' . $e->getMessage()
+            ], 500);
+        } catch (\Exception $e) {
+            // Atrapa cualquier otro error de PHP
+            return response()->json([
+                'status' => 'error',
+                'mensaje' => 'Fallo en el servidor: ' . $e->getMessage()
+            ], 500);
+        }
+    }   
 
 }
