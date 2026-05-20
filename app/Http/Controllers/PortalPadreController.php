@@ -2,25 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alumno;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
+use App\Models\Inscripcion;
 use App\Models\Pago;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 
 class PortalPadreController extends Controller
 {
-    /**
-     * GET /portal/hijos
-     * Lista todos los hijos del padre autenticado.
-     */
-    public function hijos()
+    public function dashboard(): View
     {
-        $contacto = auth()->user()
-            ->contactoFamiliar()
-            ->with('familia.alumnos.inscripciones.grupo.grado.nivel')
-            ->first();
+        $alumnos = $this->alumnosDelPadre();
+        $resumen = $this->resumenFamilia($alumnos);
 
-        $alumnos = $contacto?->familia?->alumnos ?? collect();
+        return view('portal.dashboard', compact('alumnos', 'resumen'));
+    }
+
+    public function hijos(): View|JsonResponse
+    {
+        $alumnos = $this->alumnosDelPadre();
 
         if (request()->ajax()) {
             return response()->json($alumnos);
@@ -29,83 +33,80 @@ class PortalPadreController extends Controller
         return view('portal.hijos', compact('alumnos'));
     }
 
-    /**
-     * GET /portal/hijos/{alumnoId}/estado-cuenta
-     * Estado de cuenta del alumno en el ciclo activo.
-     */
-    public function estadoCuenta(int $alumnoId)
+    public function estadoCuenta(int $alumnoId): View|JsonResponse|RedirectResponse
     {
         $this->verificarAccesoAlumno($alumnoId);
 
-        $cicloId     = CicloEscolar::activo()->value('id');
-        $inscripcion = \App\Models\Inscripcion::where('alumno_id', $alumnoId)
-            ->where('ciclo_id', $cicloId)
+        $cicloId = CicloEscolar::activo()->value('id');
+        $inscripcion = Inscripcion::query()
+            ->with(['alumno', 'grupo.grado.nivel', 'ciclo'])
+            ->where('alumno_id', $alumnoId)
+            ->when($cicloId, fn ($query) => $query->where('ciclo_id', $cicloId))
             ->where('activo', true)
             ->first();
 
-        if (!$inscripcion) {
+        if (! $inscripcion) {
             if (request()->ajax()) {
-                return response()->json(['message' => 'Sin inscripción activa.'], 404);
+                return response()->json(['message' => 'Sin inscripcion activa.'], 404);
             }
-            return back()->with('error', 'No tiene inscripción activa en el ciclo vigente.');
+
+            return back()->with('error', 'No tiene inscripcion activa en el ciclo vigente.');
         }
 
         $cargos = Cargo::with(['concepto', 'detallesPagosVigentes'])
             ->where('inscripcion_id', $inscripcion->id)
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(fn($cargo) => [
-                'id'                => $cargo->id,
-                'concepto'          => $cargo->concepto->nombre,
-                'periodo'           => $cargo->periodo,
-                'monto_original'    => $cargo->monto_original,
-                'saldo_abonado'     => $cargo->saldo_abonado,
-                'saldo_pendiente'   => $cargo->saldo_pendiente_base,
-                'estado'            => $cargo->estado_real,
+            ->map(fn (Cargo $cargo) => [
+                'id' => $cargo->id,
+                'concepto' => $cargo->concepto->nombre,
+                'periodo' => $cargo->periodo,
+                'monto_original' => $cargo->monto_original,
+                'saldo_abonado' => $cargo->saldo_abonado,
+                'saldo_pendiente' => max(0, $cargo->saldo_pendiente_base),
+                'estado' => $cargo->estado_real,
                 'fecha_vencimiento' => $cargo->fecha_vencimiento,
-                'puede_facturar'    => $cargo->estado === 'pagado',
+                'puede_facturar' => $cargo->estado === 'pagado',
             ]);
 
         $resumen = [
+            'total_cargado' => $cargos->sum('monto_original'),
             'total_pendiente' => $cargos->sum('saldo_pendiente'),
-            'total_pagado'    => $cargos->sum('saldo_abonado'),
-            'cargos_vencidos' => $cargos->filter(fn($c) => str_contains($c['estado'], 'vencido'))->count(),
+            'total_pagado' => $cargos->sum('saldo_abonado'),
+            'total_cargos' => $cargos->count(),
+            'cargos_vencidos' => $cargos->filter(fn (array $cargo) => str_contains($cargo['estado'], 'vencido'))->count(),
         ];
 
-        $alumno = \App\Models\Alumno::find($alumnoId);
+        $alumno = $inscripcion->alumno;
 
         if (request()->ajax()) {
             return response()->json(['resumen' => $resumen, 'cargos' => $cargos]);
         }
 
-        return view('portal.estado-cuenta', compact('alumno', 'cargos', 'resumen'));
+        return view('portal.estado-cuenta', compact('alumno', 'cargos', 'inscripcion', 'resumen'));
     }
 
-    /**
-     * GET /portal/hijos/{alumnoId}/pagos
-     * Historial de pagos del alumno.
-     */
-    public function historialPagos(int $alumnoId)
+    public function historialPagos(int $alumnoId): View|JsonResponse
     {
         $this->verificarAccesoAlumno($alumnoId);
 
         $pagos = Pago::with(['detalles.cargo.concepto', 'cfdis'])
-            ->whereHas('detalles.cargo.inscripcion', fn($q) => $q->where('alumno_id', $alumnoId))
+            ->whereHas('detalles.cargo.inscripcion', fn ($query) => $query->where('alumno_id', $alumnoId))
             ->where('estado', 'vigente')
             ->orderByDesc('fecha_pago')
             ->get()
-            ->map(fn($pago) => [
-                'id'            => $pago->id,
-                'folio_recibo'  => $pago->folio_recibo,
-                'conceptos'     => $pago->detalles->map(fn($d) => $d->cargo->concepto->nombre)->join(', '),
-                'monto_total'   => $pago->monto_total,
-                'fecha_pago'    => $pago->fecha_pago,
-                'forma_pago'    => $pago->forma_pago,
+            ->map(fn (Pago $pago) => [
+                'id' => $pago->id,
+                'folio_recibo' => $pago->folio_recibo,
+                'conceptos' => $pago->detalles->map(fn ($detalle) => $detalle->cargo->concepto->nombre)->join(', '),
+                'monto_total' => $pago->monto_total,
+                'fecha_pago' => $pago->fecha_pago,
+                'forma_pago' => $pago->forma_pago,
                 'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
-                'cfdi_uuid'     => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
+                'cfdi_uuid' => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
             ]);
 
-        $alumno = \App\Models\Alumno::find($alumnoId);
+        $alumno = Alumno::findOrFail($alumnoId);
 
         if (request()->ajax()) {
             return response()->json($pagos);
@@ -114,11 +115,7 @@ class PortalPadreController extends Controller
         return view('portal.historial-pagos', compact('alumno', 'pagos'));
     }
 
-    /**
-     * GET /portal/razones-sociales
-     * RFCs registrados del contacto autenticado.
-     */
-    public function razonesSociales()
+    public function razonesSociales(): View|JsonResponse
     {
         $contacto = auth()->user()->contactoFamiliar()
             ->with('razonesSociales')
@@ -133,22 +130,53 @@ class PortalPadreController extends Controller
         return view('portal.razones-sociales', compact('razonesSociales'));
     }
 
-    // ── Helper ───────────────────────────────────────────
-
     private function verificarAccesoAlumno(int $alumnoId): void
     {
         $contacto = auth()->user()->contactoFamiliar;
 
-        if (!$contacto?->familia_id) {
+        if (! $contacto?->familia_id) {
             abort(403, 'No tiene acceso a este alumno.');
         }
 
-        $perteneceAFamilia = \App\Models\Alumno::where('id', $alumnoId)
+        $perteneceAFamilia = Alumno::where('id', $alumnoId)
             ->where('familia_id', $contacto->familia_id)
             ->exists();
 
-        if (!$perteneceAFamilia) {
-            abort(403, 'No tiene acceso a la información de este alumno.');
+        if (! $perteneceAFamilia) {
+            abort(403, 'No tiene acceso a la informacion de este alumno.');
         }
+    }
+
+    private function alumnosDelPadre(): Collection
+    {
+        $contacto = auth()->user()
+            ->contactoFamiliar()
+            ->with([
+                'familia.alumnos.inscripciones' => fn ($query) => $query->latest('id'),
+                'familia.alumnos.inscripciones.ciclo',
+                'familia.alumnos.inscripciones.grupo.grado.nivel',
+            ])
+            ->first();
+
+        return $contacto?->familia?->alumnos ?? collect();
+    }
+
+    private function resumenFamilia(Collection $alumnos): array
+    {
+        $alumnoIds = $alumnos->pluck('id');
+
+        $cargos = Cargo::query()
+            ->with('detallesPagosVigentes')
+            ->whereHas('inscripcion', fn ($query) => $query->whereIn('alumno_id', $alumnoIds))
+            ->get();
+
+        return [
+            'hijos' => $alumnos->count(),
+            'inscritos' => $alumnos->filter(fn (Alumno $alumno) => $alumno->inscripciones->where('activo', true)->isNotEmpty())->count(),
+            'total_cargado' => $cargos->sum('monto_original'),
+            'total_pagado' => $cargos->sum(fn (Cargo $cargo) => $cargo->saldo_abonado),
+            'total_pendiente' => $cargos->sum(fn (Cargo $cargo) => max(0, $cargo->saldo_pendiente_base)),
+            'cargos_vencidos' => $cargos->filter(fn (Cargo $cargo) => str_contains($cargo->estado_real, 'vencido'))->count(),
+        ];
     }
 }

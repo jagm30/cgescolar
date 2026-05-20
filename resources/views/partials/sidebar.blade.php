@@ -33,6 +33,28 @@
                         <i class="fa fa-dashboard"></i> <span>Dashboard</span>
                     </a>
                 </li>
+            @elseif(auth()->user()->esPadre())
+                <li class="{{ request()->routeIs('portal.dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('portal.dashboard') }}">
+                        <i class="fa fa-dashboard"></i> <span>Portal</span>
+                    </a>
+                </li>
+            @endif
+
+            @if (auth()->user()->esPadre())
+                <li class="header">FAMILIA</li>
+
+                <li class="{{ request()->routeIs('portal.hijos', 'portal.estado-cuenta', 'portal.historial-pagos') ? 'active' : '' }}">
+                    <a href="{{ route('portal.hijos') }}">
+                        <i class="fa fa-users"></i> <span>Mis hijos</span>
+                    </a>
+                </li>
+
+                <li class="{{ request()->routeIs('portal.razones-sociales') ? 'active' : '' }}">
+                    <a href="{{ route('portal.razones-sociales') }}">
+                        <i class="fa fa-building-o"></i> <span>Datos fiscales</span>
+                    </a>
+                </li>
             @endif
 
             {{-- ── SECCIÓN: Configuración ───────────────── --}}
@@ -256,16 +278,18 @@
                     </ul>
                 </li>
             @endif
-            <li>
-                <a href="{{ route('settings.index') }}">
-                    <i class="fa fa-gear"></i> <span>Configuración</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('credenciales.index') }}">
-                    <i class="fa fa-id-card"></i> <span>Editor de Credenciales</span>
-                </a>
-            </li>
+            @if (! auth()->user()->esPadre())
+                <li>
+                    <a href="{{ route('settings.index') }}">
+                        <i class="fa fa-gear"></i> <span>Configuración</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('credenciales.index') }}">
+                        <i class="fa fa-id-card"></i> <span>Editor de Credenciales</span>
+                    </a>
+                </li>
+            @endif
 
         </ul>
     </section>
