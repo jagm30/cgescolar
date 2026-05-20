@@ -123,6 +123,20 @@ test('padre consulta dashboard e informacion de sus hijos', function () {
         ->assertSee('$1,500.00');
 });
 
+test('portal padre no marca cargos como pagado sin pago real', function () {
+    $contexto = crearPortalPadreContexto();
+    $cargo = Cargo::first();
+    $cargo->update(['estado' => 'pagado']);
+
+    $response = $this->actingAs($contexto['padre'])
+        ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+        ->get(route('portal.estado-cuenta', $contexto['alumno']->id));
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('resumen.total_pagado', 0);
+    $response->assertJsonPath('cargos.0.estado', 'pendiente');
+});
+
 test('padre no puede consultar alumnos de otra familia', function () {
     $contexto = crearPortalPadreContexto();
 

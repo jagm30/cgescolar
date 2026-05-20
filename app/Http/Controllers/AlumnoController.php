@@ -12,6 +12,7 @@ use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
 use App\Models\ContactoFamiliar;
+use App\Models\Credencial;
 use App\Models\DocumentoAlumno;
 use App\Models\Familia;
 use App\Models\Grupo;
@@ -19,6 +20,7 @@ use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
 use App\Traits\RespondsWithJson;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,24 +37,24 @@ class AlumnoController extends Controller
 
         $query = Alumno::with([
             'familia',
-            'inscripciones' => fn($q) => $q
+            'inscripciones' => fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->with('grupo.grado.nivel'),
         ])
-            ->when($request->filled('estado'), fn($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
                 'inscripciones',
-                fn($q) => $q
+                fn ($q) => $q
                     ->where('ciclo_id', $cicloId)
-                    ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id))
+                    ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
             ))
-            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas(
+            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas(
                 'inscripciones',
-                fn($q) => $q
+                fn ($q) => $q
                     ->where('ciclo_id', $cicloId)
                     ->where('grupo_id', $request->grupo_id)
             ))
-            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
+            ->when($request->filled('buscar'), fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
                     ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
                     ->orWhere('matricula', 'like', "%{$request->buscar}%")
@@ -73,7 +75,7 @@ class AlumnoController extends Controller
         $statsActivos = Alumno::where('estado', 'activo')->count();
         $statsTotal = Alumno::count();
         $statsInscritos = Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id');
-        $disenos = \App\Models\Credencial::all();
+        $disenos = Credencial::all();
 
         return view('alumnos.index', compact(
             'alumnos',
@@ -257,7 +259,7 @@ class AlumnoController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return $this->respuestaError('Error al registrar el alumno: ' . $e->getMessage());
+            return $this->respuestaError('Error al registrar el alumno: '.$e->getMessage());
         }
     }
 
@@ -317,21 +319,21 @@ class AlumnoController extends Controller
                     $inscActiva->update(['activo' => false]);
                     Inscripcion::create([
                         'alumno_id' => $alumno->id,
-                        'ciclo_id'  => $cicloId,
-                        'grupo_id'  => $grupoId ?: null,
-                        'fecha'     => now()->toDateString(),
-                        'activo'    => true,
-                        'tipo'      => TipoInscripcion::Regular,
+                        'ciclo_id' => $cicloId,
+                        'grupo_id' => $grupoId ?: null,
+                        'fecha' => now()->toDateString(),
+                        'activo' => true,
+                        'tipo' => TipoInscripcion::Regular,
                     ]);
                 }
             } else {
                 Inscripcion::create([
                     'alumno_id' => $alumno->id,
-                    'ciclo_id'  => $cicloId,
-                    'grupo_id'  => $grupoId ?: null,
-                    'fecha'     => now()->toDateString(),
-                    'activo'    => true,
-                    'tipo'      => TipoInscripcion::Regular,
+                    'ciclo_id' => $cicloId,
+                    'grupo_id' => $grupoId ?: null,
+                    'fecha' => now()->toDateString(),
+                    'activo' => true,
+                    'tipo' => TipoInscripcion::Regular,
                 ]);
             }
         }
@@ -366,7 +368,7 @@ class AlumnoController extends Controller
 
         $hermanos = Alumno::where('familia_id', $alumno->familia_id)
             ->where('id', '!=', $alumno->id)
-            ->with(['inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
+            ->with(['inscripciones' => fn ($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
             ->get();
 
         return response()->json($hermanos);
@@ -391,7 +393,7 @@ class AlumnoController extends Controller
         // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
         $ciclos = CicloEscolar::whereHas(
             'inscripciones',
-            fn($q) => $q->where('alumno_id', $alumno->id)
+            fn ($q) => $q->where('alumno_id', $alumno->id)
         )->orderByDesc('fecha_inicio')->get();
 
         // Cargos con detalles de pagos vigentes y políticas del plan
@@ -401,13 +403,13 @@ class AlumnoController extends Controller
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
         ])
-            ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
+            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
 
         if ($request->filled('ciclo_id')) {
             $cargosQuery->whereHas(
                 'inscripcion',
-                fn($q) => $q->where('ciclo_id', $request->ciclo_id)
+                fn ($q) => $q->where('ciclo_id', $request->ciclo_id)
             );
         }
 
@@ -418,10 +420,10 @@ class AlumnoController extends Controller
             ->where('activo', true)
             ->when(
                 $inscripcionActual,
-                fn($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
+                fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
             )
             ->where(
-                fn($q) => $q
+                fn ($q) => $q
                     ->whereNull('vigencia_fin')
                     ->orWhere('vigencia_fin', '>=', now())
             )
@@ -443,9 +445,10 @@ class AlumnoController extends Controller
 
         foreach ($cargos as $cargo) {
             $abonado = (float) ($cargo->total_abonado ?? 0);
-            $saldoBase = max(0, (float) $cargo->monto_original - $abonado);
+            $montoCubierto = (float) $cargo->monto_cubierto;
+            $saldoBase = max(0, (float) $cargo->monto_original - $montoCubierto);
             $vencido = $hoy->gt($cargo->fecha_vencimiento);
-            $esPendiente = ! in_array($cargo->estado, ['pagado', 'condonado']) && $saldoBase > 0;
+            $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
 
             // ── Descuento de beca para este concepto ──
             $becaDescuento = 0.0;
@@ -487,7 +490,7 @@ class AlumnoController extends Controller
                     $mesesRetraso = 0;
 
                     // Cargo vigente → aplicar descuento si existe política que aplique hoy
-                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
+                    $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
                     if ($pd) {
                         $descuento = $pd->calcular($saldoBase);
                     }
@@ -526,7 +529,8 @@ class AlumnoController extends Controller
             }
         }
 
-        $saldoPendienteBase = max(0, $totalCargado - $totalPagado - $totalCondonado);
+        $totalCubierto = $cargos->sum(fn (Cargo $cargo) => min((float) $cargo->monto_original, (float) $cargo->monto_cubierto));
+        $saldoPendienteBase = max(0, $totalCargado - $totalCubierto - $totalCondonado);
 
         $resumen = [
             'total_cargado' => $totalCargado,
@@ -562,7 +566,7 @@ class AlumnoController extends Controller
         $request->validate([
             'ciclo_id' => 'required|exists:ciclo_escolar,id',
             'grupo_id' => 'nullable|exists:grupo,id',
-            'fecha'    => 'required|date',
+            'fecha' => 'required|date',
         ]);
 
         $alumno = Alumno::findOrFail($id);
@@ -585,11 +589,11 @@ class AlumnoController extends Controller
 
         $inscripcion = Inscripcion::create([
             'alumno_id' => $alumno->id,
-            'ciclo_id'  => $request->ciclo_id,
-            'grupo_id'  => $request->grupo_id ?: null,
-            'fecha'     => $request->fecha,
-            'activo'    => true,
-            'tipo'      => TipoInscripcion::Anticipada,
+            'ciclo_id' => $request->ciclo_id,
+            'grupo_id' => $request->grupo_id ?: null,
+            'fecha' => $request->fecha,
+            'activo' => true,
+            'tipo' => TipoInscripcion::Anticipada,
         ]);
 
         Auditoria::registrar('inscripcion', $inscripcion->id, 'insert', null, $inscripcion->toArray());
@@ -614,7 +618,7 @@ class AlumnoController extends Controller
             ->value('matricula');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $año . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $año.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 
     private function documentosPorGrupo(int $grupoId): array
@@ -641,7 +645,14 @@ class AlumnoController extends Controller
             ];
         }
 
-        [$nombre, $apPaterno, $apMaterno] = $this->separarNombreCompleto($prospecto->nombre);
+        $nombre = $prospecto->nombre;
+        $apPaterno = $prospecto->ap_paterno;
+        $apMaterno = $prospecto->ap_materno;
+
+        if (! $apPaterno) {
+            [$nombre, $apPaterno, $apMaterno] = $this->separarNombreCompleto($prospecto->nombre);
+        }
+
         [$contactoNombre, $contactoApPaterno, $contactoApMaterno] = $this->separarNombreCompleto($prospecto->contacto_nombre);
 
         $apellidoFamilia = trim(collect([$apPaterno, $apMaterno])->filter()->implode(' '));
@@ -657,7 +668,7 @@ class AlumnoController extends Controller
                 'nivel_id' => $prospecto->nivel_interes_id,
                 'prospecto_id' => $prospecto->id,
             ],
-            'apellido_familia' => $apellidoFamilia ? 'Familia ' . $apellidoFamilia : '',
+            'apellido_familia' => $apellidoFamilia ? 'Familia '.$apellidoFamilia : '',
             'contactos' => [[
                 'nombre' => $contactoNombre,
                 'ap_paterno' => $contactoApPaterno,
@@ -730,25 +741,26 @@ class AlumnoController extends Controller
         $alumno = Alumno::findOrFail($id);
 
         // Obtenemos la observación actual por si ya tenía algo escrito antes
-        $obsAnterior = $alumno->observaciones ? $alumno->observaciones . ' | ' : '';
+        $obsAnterior = $alumno->observaciones ? $alumno->observaciones.' | ' : '';
 
         $alumno->update([
             'estado' => $request->tipo_baja,
             'fecha_baja' => now(),
-            'observaciones' => $obsAnterior . $request->observaciones, // Concatenamos la razón
+            'observaciones' => $obsAnterior.$request->observaciones, // Concatenamos la razón
         ]);
 
         $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
 
         return back()->with('success', 'Se registró la baja correctamente en el expediente.');
     }
+
     public function promocionarMasivo(Request $request)
     {
         $request->validate([
             'inscripciones_ids' => 'required|array',
-            'ciclo_destino_id'  => 'required|exists:ciclo_escolar,id',
-            'grado_destino_id'  => 'required|exists:grados,id',
-            'grupo_origen_id'   => 'required'
+            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
+            'grado_destino_id' => 'required|exists:grados,id',
+            'grupo_origen_id' => 'required',
         ]);
 
         $contador = 0;
@@ -776,11 +788,11 @@ class AlumnoController extends Controller
                         // No tenía anticipada: crear inscripción regular nueva
                         Inscripcion::create([
                             'alumno_id' => $alumno->id,
-                            'ciclo_id'  => $request->ciclo_destino_id,
-                            'grupo_id'  => null,
-                            'fecha'     => now()->toDateString(),
-                            'activo'    => true,
-                            'tipo'      => TipoInscripcion::Regular,
+                            'ciclo_id' => $request->ciclo_destino_id,
+                            'grupo_id' => null,
+                            'fecha' => now()->toDateString(),
+                            'activo' => true,
+                            'tipo' => TipoInscripcion::Regular,
                         ]);
                     }
 
@@ -794,7 +806,7 @@ class AlumnoController extends Controller
             return redirect()->route('grupos.show', $request->grupo_origen_id)
                 ->with('success', "¡Éxito! Se han promocionado $contador alumnos correctamente.");
         } catch (\Exception $e) {
-            return back()->with('error', "Hubo un error al promocionar: " . $e->getMessage());
+            return back()->with('error', 'Hubo un error al promocionar: '.$e->getMessage());
         }
     }
 
@@ -802,7 +814,6 @@ class AlumnoController extends Controller
      * POST /grupos/{id}/egresar-todo
      * Procesa a múltiples alumnos de un grupo (egreso o cierre de ciclo).
      */
-
     public function egresarTodo(Request $request, int $grupo_id)
     {
         // Recibimos los IDs de los checkboxes marcados
@@ -834,13 +845,14 @@ class AlumnoController extends Controller
 
             DB::commit();
 
-            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
+            return back()->with('success', '¡Proceso completado! Se actualizaron '.count($ids).' alumnos.');
         } catch (\Exception $e) {
             DB::rollback();
 
-            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
+            return back()->with('error', 'Error al procesar: '.$e->getMessage());
         }
     }
+
     public function reporteAlumno(Request $request, int $id)
     {
         // Agregamos 'inscripciones.ciclo' y las relaciones de la familia
@@ -849,12 +861,14 @@ class AlumnoController extends Controller
             'familia.contactos',
             'inscripciones.grupo.grado.nivel',
             'inscripciones.ciclo',
-            'contactos'
+            'contactos',
         ])->findOrFail($id);
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('alumnos.reportes.perfil_pdf', compact('alumno'));
+        $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', compact('alumno'));
 
         $pdf->setOption('isPhpEnabled', true);
         $pdf->setOption('isHtml5ParserEnabled', true);

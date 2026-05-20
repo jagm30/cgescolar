@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Cargo;
-use App\Models\CicloEscolar;
 use App\Models\Inscripcion;
 use App\Models\Pago;
 use Illuminate\Contracts\View\View;
@@ -37,12 +36,11 @@ class PortalPadreController extends Controller
     {
         $this->verificarAccesoAlumno($alumnoId);
 
-        $cicloId = CicloEscolar::activo()->value('id');
         $inscripcion = Inscripcion::query()
             ->with(['alumno', 'grupo.grado.nivel', 'ciclo'])
             ->where('alumno_id', $alumnoId)
-            ->when($cicloId, fn ($query) => $query->where('ciclo_id', $cicloId))
             ->where('activo', true)
+            ->latest('id')
             ->first();
 
         if (! $inscripcion) {
@@ -50,7 +48,7 @@ class PortalPadreController extends Controller
                 return response()->json(['message' => 'Sin inscripcion activa.'], 404);
             }
 
-            return back()->with('error', 'No tiene inscripcion activa en el ciclo vigente.');
+            return back()->with('error', 'No tiene inscripcion activa.');
         }
 
         $cargos = Cargo::with(['concepto', 'detallesPagosVigentes'])
@@ -64,9 +62,11 @@ class PortalPadreController extends Controller
                 'monto_original' => $cargo->monto_original,
                 'saldo_abonado' => $cargo->saldo_abonado,
                 'saldo_pendiente' => max(0, $cargo->saldo_pendiente_base),
-                'estado' => $cargo->estado_real,
+                'estado' => $cargo->detallesPagosVigentes->isNotEmpty() || $cargo->estado === 'condonado'
+                    ? $cargo->estado_real
+                    : 'pendiente',
                 'fecha_vencimiento' => $cargo->fecha_vencimiento,
-                'puede_facturar' => $cargo->estado === 'pagado',
+                'puede_facturar' => $cargo->detallesPagosVigentes->isNotEmpty(),
             ]);
 
         $resumen = [
@@ -149,16 +149,22 @@ class PortalPadreController extends Controller
 
     private function alumnosDelPadre(): Collection
     {
-        $contacto = auth()->user()
-            ->contactoFamiliar()
-            ->with([
-                'familia.alumnos.inscripciones' => fn ($query) => $query->latest('id'),
-                'familia.alumnos.inscripciones.ciclo',
-                'familia.alumnos.inscripciones.grupo.grado.nivel',
-            ])
-            ->first();
+        $contacto = auth()->user()->contactoFamiliar()->first();
 
-        return $contacto?->familia?->alumnos ?? collect();
+        if (! $contacto?->familia_id) {
+            return collect();
+        }
+
+        return Alumno::query()
+            ->where('familia_id', $contacto->familia_id)
+            ->where('estado', 'activo')
+            ->whereHas('inscripciones', fn ($query) => $query->where('activo', true))
+            ->with([
+                'inscripciones' => fn ($query) => $query->where('activo', true)->latest('id'),
+                'inscripciones.ciclo',
+                'inscripciones.grupo.grado.nivel',
+            ])
+            ->get();
     }
 
     private function resumenFamilia(Collection $alumnos): array

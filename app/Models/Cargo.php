@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Cargo extends Model
 {
     protected $table = 'cargo';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -23,9 +25,9 @@ class Cargo extends Model
     ];
 
     protected $casts = [
-        'monto_original'    => 'decimal:2',
+        'monto_original' => 'decimal:2',
         'fecha_vencimiento' => 'date',
-        'generado_at'       => 'datetime',
+        'generado_at' => 'datetime',
     ];
 
     // ── Scopes ──────────────────────────────────────────
@@ -63,15 +65,19 @@ class Cargo extends Model
      */
     public function getEstadoRealAttribute(): string
     {
-        if (in_array($this->estado, ['pagado', 'condonado'])) {
+        if ($this->estado === 'condonado') {
             return $this->estado;
+        }
+
+        if ($this->estado === 'pagado' || $this->monto_cubierto >= (float) $this->monto_original) {
+            return 'pagado';
         }
 
         $vencido = now()->isAfter($this->fecha_vencimiento);
 
         return match ($this->estado) {
             'parcial' => $vencido ? 'parcial_vencido' : 'parcial',
-            default   => $vencido ? 'vencido' : 'pendiente',
+            default => $vencido ? 'vencido' : 'pendiente',
         };
     }
 
@@ -82,8 +88,26 @@ class Cargo extends Model
     public function getSaldoAbonadoAttribute(): float
     {
         return (float) $this->detallesPagos()
-            ->whereHas('pago', fn($q) => $q->where('estado', 'vigente'))
+            ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
             ->sum('monto_abonado');
+    }
+
+    /**
+     * Importe que cubre el cargo original: pagos + descuentos vigentes.
+     */
+    public function getMontoCubiertoAttribute(): float
+    {
+        if ($this->relationLoaded('detallesPagosVigentes')) {
+            return (float) $this->detallesPagosVigentes->sum(
+                fn (PagoDetalle $detalle) => (float) $detalle->monto_abonado
+                    + (float) $detalle->descuento_beca
+                    + (float) $detalle->descuento_otros
+            );
+        }
+
+        return (float) $this->detallesPagos()
+            ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
+            ->sum(DB::raw('monto_abonado + descuento_beca + descuento_otros'));
     }
 
     /**
@@ -126,8 +150,9 @@ class Cargo extends Model
     public function detallesPagosVigentes(): HasMany
     {
         return $this->hasMany(PagoDetalle::class, 'cargo_id')
-                    ->whereHas('pago', fn($q) => $q->where('estado', 'vigente'));
+            ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'));
     }
+
     public function pagosVigentes(): HasMany
     {
         return $this->hasMany(Pago::class, 'cargo_id')->where('estado', 'vigente');
