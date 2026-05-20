@@ -280,6 +280,7 @@
                                             data-id="{{ $g['id'] }}" data-tipo="lote" title="Imprimir Lote">
                                             <i class="fa fa-id-card text-yellow"></i>
                                         </button>
+
                                         {{-- BOTÓN VER --}}
                                         <a href="{{ route('grupos.show', $g['id']) }}" class="btn btn-default btn-xs"
                                             title="Ver alumnos">
