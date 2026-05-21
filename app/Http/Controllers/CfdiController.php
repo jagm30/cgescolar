@@ -61,6 +61,10 @@ class CfdiController extends Controller
             return $this->respuestaError('No hay configuración fiscal registrada. Configure el emisor primero.');
         }
 
+        if (! $config->serie_id) {
+            return $this->respuestaError('Falta el ID de serie de factura.com. Ve a Configuración → Datos del Emisor e ingresa el ID numérico de la serie (Catálogos → Series en tu panel de factura.com).');
+        }
+
         // Determinar datos del receptor
         $razonSocialId = $request->filled('razon_social_id')
             ? (int) $request->razon_social_id
@@ -76,7 +80,7 @@ class CfdiController extends Controller
         DB::beginTransaction();
         try {
             $folio   = $config->siguienteFolio();
-            $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi);
+            $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi, $razonSocialId === null);
 
             $respuesta = $factura->emitir($payload);
 
@@ -255,7 +259,8 @@ class CfdiController extends Controller
         ConfigFiscal $config,
         array $receptor,
         string $folio,
-        string $usoCfdi
+        string $usoCfdi,
+        bool $esPublicoGeneral = false
     ): array {
         $conceptos = $pago->detalles->map(function ($detalle) {
             $concepto = $detalle->cargo?->concepto;
@@ -283,7 +288,7 @@ class CfdiController extends Controller
             ];
         })->values()->toArray();
 
-        return [
+        $payload = [
             'TipoDocumento'   => 'factura',
             'Serie'           => $config->serie_id ?? $config->serie,
             'Folio'           => (string) $config->folio_actual,
@@ -297,5 +302,15 @@ class CfdiController extends Controller
             'EnviarCorreo'    => false,
             'Draft'           => false,
         ];
+
+        if ($esPublicoGeneral) {
+            $payload['InformacionGlobal'] = [
+                'Periodicidad' => '04',                          // Mensual
+                'Meses'        => now()->format('m'),            // Mes actual (01–12)
+                'Año'          => (string) now()->year,
+            ];
+        }
+
+        return $payload;
     }
 }
