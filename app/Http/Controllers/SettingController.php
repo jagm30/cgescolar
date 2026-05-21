@@ -24,6 +24,7 @@ class SettingController extends Controller
             'razon_social'   => ['required', 'string', 'max:300'],
             'regimen_fiscal' => ['required', 'string', 'max:10'],
             'serie'          => ['required', 'string', 'max:5'],
+            'serie_id'       => ['nullable', 'integer', 'min:1'],
         ]);
 
         $data['rfc']   = strtoupper($data['rfc']);

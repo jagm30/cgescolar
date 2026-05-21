@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Prospecto extends Model
 {
     protected $table = 'prospecto';
+
     public $timestamps = false;
+
+    protected $appends = [
+        'nombre_completo',
+    ];
 
     protected $fillable = [
         'ciclo_id',
         'nombre',
+        'ap_paterno',
+        'ap_materno',
         'fecha_nacimiento',
         'nivel_interes_id',
         'contacto_nombre',
@@ -28,9 +35,9 @@ class Prospecto extends Model
     ];
 
     protected $casts = [
-        'fecha_nacimiento'      => 'date',
+        'fecha_nacimiento' => 'date',
         'fecha_primer_contacto' => 'date',
-        'creado_at'             => 'datetime',
+        'creado_at' => 'datetime',
     ];
 
     // ── Scopes ──────────────────────────────────────────
@@ -49,7 +56,12 @@ class Prospecto extends Model
 
     public function estaInscrito(): bool
     {
-        return $this->etapa === 'inscrito' && !is_null($this->alumno_id);
+        return $this->etapa === 'inscrito' && ! is_null($this->alumno_id);
+    }
+
+    public function getNombreCompletoAttribute(): string
+    {
+        return trim(preg_replace('/\s+/', ' ', "{$this->nombre} {$this->ap_paterno} {$this->ap_materno}"));
     }
 
     /**
@@ -59,7 +71,7 @@ class Prospecto extends Model
     public function convertirAAlumno(Alumno $alumno): void
     {
         $this->alumno_id = $alumno->id;
-        $this->etapa     = 'inscrito';
+        $this->etapa = 'inscrito';
         $this->save();
     }
 
@@ -88,7 +100,7 @@ class Prospecto extends Model
     public function seguimientos(): HasMany
     {
         return $this->hasMany(SeguimientoAdmision::class, 'prospecto_id')
-                    ->orderBy('fecha', 'asc');
+            ->orderBy('fecha', 'asc');
     }
 
     public function documentos(): HasMany
@@ -99,6 +111,6 @@ class Prospecto extends Model
     public function documentosPendientes(): HasMany
     {
         return $this->hasMany(DocAdmision::class, 'prospecto_id')
-                    ->where('estado', 'pendiente');
+            ->where('estado', 'pendiente');
     }
 }
