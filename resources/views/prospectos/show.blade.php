@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Detalle del prospecto')
-@section('page_subtitle', $prospecto->nombre)
+@section('page_subtitle', $prospecto->nombre_completo)
 
 @section('content')
     @php
@@ -67,7 +67,7 @@
         <div class="col-md-8">
             <div class="box box-primary">
                 <div class="box-header with-border">
-                    <h3 class="box-title">{{ $prospecto->nombre }}</h3>
+                    <h3 class="box-title">{{ $prospecto->nombre_completo }}</h3>
                     <div class="box-tools pull-right">
                         <span class="label {{ $badgeEtapa[$prospecto->etapa] ?? 'bg-gray' }}">
                             {{ $etapas[$prospecto->etapa] ?? $prospecto->etapa }}

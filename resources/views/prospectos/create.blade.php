@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Nuevo prospecto')
-@section('page_subtitle', 'Registro de admisión')
+@section('page_subtitle', 'Registro de admision')
 
 @section('content')
     @php
@@ -39,7 +39,7 @@
                     </div>
                     <div class="box-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="nombre">Nombre(s) del prospecto</label>
                                     <input type="text" class="form-control" id="nombre" name="nombre"
@@ -47,11 +47,20 @@
                                         pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ'\-\s]+" placeholder="Solo letras y espacios">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="fecha_nacimiento">Fecha de nacimiento</label>
-                                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
-                                        value="{{ old('fecha_nacimiento') }}">
+                                    <label for="ap_paterno">Apellido paterno</label>
+                                    <input type="text" class="form-control" id="ap_paterno" name="ap_paterno"
+                                        value="{{ old('ap_paterno') }}" required maxlength="100"
+                                        pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ'\-\s]+" placeholder="Solo letras y espacios">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="ap_materno">Apellido materno</label>
+                                    <input type="text" class="form-control" id="ap_materno" name="ap_materno"
+                                        value="{{ old('ap_materno') }}" maxlength="100"
+                                        pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ'\-\s]+" placeholder="Solo letras y espacios">
                                 </div>
                             </div>
                         </div>
@@ -59,7 +68,14 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="nivel_interes_id">Nivel de interés</label>
+                                    <label for="fecha_nacimiento">Fecha de nacimiento</label>
+                                    <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
+                                        value="{{ old('fecha_nacimiento') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="nivel_interes_id">Nivel de interes</label>
                                     <select class="form-control" id="nivel_interes_id" name="nivel_interes_id">
                                         <option value="">Selecciona un nivel</option>
                                         @foreach ($niveles as $nivel)
@@ -71,6 +87,9 @@
                                     </select>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="ciclo_id">Ciclo escolar</label>
@@ -100,10 +119,10 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="contacto_telefono">Teléfono</label>
+                                    <label for="contacto_telefono">Telefono</label>
                                     <input type="tel" class="form-control" id="contacto_telefono"
                                         name="contacto_telefono" value="{{ old('contacto_telefono') }}" required
-                                        maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 dígitos">
+                                        maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 digitos">
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -119,7 +138,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="contacto_email">Correo electrónico</label>
+                                    <label for="contacto_email">Correo electronico</label>
                                     <input type="email" class="form-control" id="contacto_email" name="contacto_email"
                                         value="{{ old('contacto_email') }}" maxlength="200">
                                 </div>
@@ -150,12 +169,12 @@
             <div class="col-md-4">
                 <div class="box box-info">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Qué se registra</h3>
+                        <h3 class="box-title">Que se registra</h3>
                     </div>
                     <div class="box-body">
-                        <p>Al guardar se crea el prospecto en etapa inicial y se agrega un seguimiento automático con la
+                        <p>Al guardar se crea el prospecto en etapa inicial y se agrega un seguimiento automatico con la
                             nota de registro.</p>
-                        <p>Desde la vista de detalle podrás agregar seguimientos, revisar documentos y cambiar la etapa del
+                        <p>Desde la vista de detalle podras agregar seguimientos, revisar documentos y cambiar la etapa del
                             proceso.</p>
                     </div>
                 </div>
@@ -170,11 +189,11 @@
             function sanitizeName(value) {
                 return value
                     .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, '') // elimina acentos
+                    .replace(/[\u0300-\u036f]/g, '')
                     .replace(/[^A-Za-zÑñ\s'-]/g, '');
             }
 
-            $('#nombre, #contacto_nombre').on('input', function() {
+            $('#nombre, #ap_paterno, #ap_materno, #contacto_nombre').on('input', function() {
                 this.value = sanitizeName(this.value);
             });
 

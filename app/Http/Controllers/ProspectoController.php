@@ -28,10 +28,12 @@ class ProspectoController extends Controller
 
         $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'responsable', 'alumno'])
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('etapa'), fn($q) => $q->where('etapa', $request->etapa))
-            ->when($request->filled('en_proceso'), fn($q) => $q->enProceso())
-            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
+            ->when($request->filled('etapa'), fn ($q) => $q->where('etapa', $request->etapa))
+            ->when($request->filled('en_proceso'), fn ($q) => $q->enProceso())
+            ->when($request->filled('buscar'), fn ($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
+                    ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                    ->orWhere('ap_materno', 'like', "%{$request->buscar}%")
                     ->orWhere('contacto_nombre', 'like', "%{$request->buscar}%")
                     ->orWhere('contacto_telefono', 'like', "%{$request->buscar}%");
             }))
@@ -93,7 +95,7 @@ class ProspectoController extends Controller
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
             jsonData: ['prospecto' => $prospecto->load(['nivelInteres', 'responsable'])],
-            mensaje: "Prospecto '{$prospecto->nombre}' registrado correctamente.",
+            mensaje: "Prospecto '{$prospecto->nombre_completo}' registrado correctamente.",
             jsonStatus: 201,
             routeParams: ['prospecto' => $prospecto->id]
         );
@@ -157,7 +159,7 @@ class ProspectoController extends Controller
         $data = $request->validated();
         $archivo = $request->file('archivo');
 
-        $nombreArchivo = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $archivo->getClientOriginalName());
+        $nombreArchivo = time().'_'.preg_replace('/[^A-Za-z0-9._-]/', '_', $archivo->getClientOriginalName());
         $rutaArchivo = $archivo->storeAs("prospectos/{$prospecto->id}/documentos", $nombreArchivo, 'public');
 
         $tipoDocumento = $data['tipo_documento'] === 'Otro'
@@ -165,7 +167,7 @@ class ProspectoController extends Controller
             : $data['tipo_documento'];
 
         $documentoExistente = $prospecto->documentos
-            ->first(fn($documento) => $this->normalizarTipoDocumento($documento->tipo_documento) === $this->normalizarTipoDocumento($tipoDocumento));
+            ->first(fn ($documento) => $this->normalizarTipoDocumento($documento->tipo_documento) === $this->normalizarTipoDocumento($tipoDocumento));
 
         $documento = $documentoExistente ?: new DocAdmision([
             'prospecto_id' => $prospecto->id,
@@ -234,7 +236,7 @@ class ProspectoController extends Controller
             'por_canal' => $porCanal,
             'total_prospectos' => $totalProspectos,
             'total_inscritos' => $totalInscritos,
-            'tasa_conversion' => $tasaConversion . '%',
+            'tasa_conversion' => $tasaConversion.'%',
         ];
 
         if ($request->ajax()) {
@@ -268,8 +270,8 @@ class ProspectoController extends Controller
             ->where('tipo_documento', '<>', 'Otro')
             ->orderBy('tipo_documento')
             ->pluck('tipo_documento')
-            ->map(fn($tipo) => Str::squish($tipo))
-            ->unique(fn($tipo) => $this->normalizarTipoDocumento($tipo))
+            ->map(fn ($tipo) => Str::squish($tipo))
+            ->unique(fn ($tipo) => $this->normalizarTipoDocumento($tipo))
             ->values()
             ->all();
 

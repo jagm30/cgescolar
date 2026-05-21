@@ -181,7 +181,7 @@
                     @forelse ($prospectos as $prospecto)
                         <tr>
                             <td>
-                                <strong>{{ $prospecto->nombre }}</strong><br>
+                                <strong>{{ $prospecto->nombre_completo }}</strong><br>
                                 <small class="text-muted">{{ optional($prospecto->fecha_nacimiento)->format('d/m/Y') ?: 'Sin fecha de nacimiento' }}</small>
                             </td>
                             <td>
@@ -207,7 +207,7 @@
                                     data-toggle="modal"
                                     data-target="#modalEtapa"
                                     data-id="{{ $prospecto->id }}"
-                                    data-nombre="{{ $prospecto->nombre }}"
+                                    data-nombre="{{ $prospecto->nombre_completo }}"
                                     data-etapa="{{ $prospecto->etapa }}"
                                     data-motivo="{{ $prospecto->motivo_no_concrecion }}">
                                     Cambiar etapa
