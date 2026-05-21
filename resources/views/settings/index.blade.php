@@ -345,14 +345,133 @@
                         @endif
                     </div>
 
-                    <div style="margin-top:10px;">
+                    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                         <button type="submit" class="btn-flat-info"
                                 style="background:#7b2d8b;">
                             <i class="fa fa-save"></i>
                             {{ $configFiscal->exists ? 'Actualizar datos fiscales' : 'Guardar datos fiscales' }}
                         </button>
+
+                        @if($configFiscal->exists)
+                        <button type="button" id="btn-verificar-series"
+                                onclick="verificarSeries()"
+                                style="background:#fff;color:#7b2d8b;border:1px solid #7b2d8b;
+                                       padding:12px 20px;border-radius:8px;font-weight:600;font-size:14px;
+                                       cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
+                            <i class="fa fa-plug"></i> Verificar cuenta factura.com
+                        </button>
+                        @endif
                     </div>
                 </form>
+
+                {{-- Resultado de verificación de series --}}
+                <div id="resultado-verificacion" style="display:none;margin-top:20px;"></div>
+
+                <script>
+                function verificarSeries() {
+                    var btn = document.getElementById('btn-verificar-series');
+                    var res = document.getElementById('resultado-verificacion');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Consultando…';
+                    res.style.display = 'none';
+
+                    fetch('{{ route('settings.verificarSeries') }}', {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-plug"></i> Verificar cuenta factura.com';
+
+                        if (!data.ok) {
+                            res.style.display = 'block';
+                            res.innerHTML = `<div style="background:#fdecea;color:#a94442;border-left:4px solid #e74c3c;
+                                                         border-radius:8px;padding:14px 18px;font-size:13px;">
+                                <strong><i class="fa fa-times-circle"></i> Error de conexión</strong><br>
+                                ${data.mensaje}<br>
+                                <span style="font-size:11px;color:#777;margin-top:6px;display:block;">
+                                    URL configurada: <code>${data.url}</code>
+                                </span>
+                            </div>`;
+                            return;
+                        }
+
+                        var serieIdConfig = {{ $configFiscal->serie_id ?? 'null' }};
+                        var filas = '';
+                        if (data.series.length === 0) {
+                            filas = '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:12px;">No hay series configuradas en esta cuenta.</td></tr>';
+                        } else {
+                            data.series.forEach(function(s) {
+                                var match = (s.id == serieIdConfig);
+                                // Intentar extraer nombre del objeto crudo si la normalización no lo encontró
+                                var raw = s._raw || {};
+                                var nombre = s.nombre || Object.entries(raw)
+                                    .filter(([k]) => !['SerieID','serieID','serie_id','id','Id','Folio','folio','FolioActual'].includes(k))
+                                    .map(([k, v]) => `<span style="color:#94a3b8;font-size:10px;">${k}:</span> ${v}`)
+                                    .join(' &nbsp; ') || '—';
+                                var folio = s.folio || '—';
+                                filas += `<tr style="background:${match ? '#e8f5ee' : ''}">
+                                    <td style="padding:8px 12px;font-weight:700;${match ? 'color:#00875a;' : ''}">${s.id}</td>
+                                    <td style="padding:8px 12px;font-size:12px;">${nombre}</td>
+                                    <td style="padding:8px 12px;font-size:12px;color:#6b7a8d;">${folio}</td>
+                                    <td style="padding:8px 12px;">
+                                        ${match
+                                            ? '<span style="background:#e8f5ee;color:#00875a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;"><i class="fa fa-check"></i> Coincide</span>'
+                                            : ''}
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+
+                        var hayCoincidencia = data.series.some(s => s.id == serieIdConfig);
+                        var alertaCSD = `<div style="margin-top:12px;background:#fff3cd;color:#856404;border-left:4px solid #ffc107;
+                                              border-radius:8px;padding:12px 16px;font-size:12px;line-height:1.7;">
+                            <strong><i class="fa fa-exclamation-triangle"></i> Si la serie aparece pero no puedes facturar:</strong><br>
+                            Debes cargar los archivos <strong>CSD</strong> (.cer y .key) en tu panel de factura.com:<br>
+                            <a href="${data.url.replace('api.', 'www.')}/panel/configuracion/emisores"
+                               target="_blank" style="color:#856404;font-weight:700;">
+                                Ir a Configuración → Emisores en factura.com
+                            </a>
+                        </div>`;
+
+                        res.style.display = 'block';
+                        res.innerHTML = `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+                            <div style="font-size:12px;font-weight:700;color:#6b7a8d;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;">
+                                <i class="fa fa-check-circle" style="color:#00875a;"></i> Conexión exitosa — Series en factura.com
+                                <span style="font-size:11px;font-weight:400;margin-left:8px;color:#aaa;">
+                                    (${data.url})
+                                </span>
+                            </div>
+                            <div style="overflow-x:auto;">
+                            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                                <thead>
+                                    <tr style="border-bottom:2px solid #e2e8f0;">
+                                        <th style="padding:6px 12px;text-align:left;color:#8a9ab0;font-size:11px;text-transform:uppercase;">ID</th>
+                                        <th style="padding:6px 12px;text-align:left;color:#8a9ab0;font-size:11px;text-transform:uppercase;">Nombre/Serie</th>
+                                        <th style="padding:6px 12px;text-align:left;color:#8a9ab0;font-size:11px;text-transform:uppercase;">Folio actual</th>
+                                        <th style="padding:6px 12px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>${filas}</tbody>
+                            </table>
+                            </div>
+                            ${!hayCoincidencia && serieIdConfig
+                                ? `<div style="margin-top:10px;background:#fdecea;color:#a94442;border-radius:6px;padding:10px 14px;font-size:12px;">
+                                    <i class="fa fa-exclamation-circle"></i>
+                                    <strong>El ID de serie configurado (${serieIdConfig}) no existe en esta cuenta.</strong>
+                                    Revisa el campo "ID Serie factura.com" y asegúrate de que coincida con uno de los IDs de arriba.
+                                   </div>`
+                                : alertaCSD}
+                        </div>`;
+                    })
+                    .catch(err => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa fa-plug"></i> Verificar cuenta factura.com';
+                        res.style.display = 'block';
+                        res.innerHTML = '<div style="background:#fdecea;color:#a94442;border-radius:8px;padding:12px 16px;font-size:13px;">Error inesperado al consultar la API.</div>';
+                    });
+                }
+                </script>
             </div>
         </div>
     </div>

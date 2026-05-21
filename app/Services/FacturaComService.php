@@ -47,6 +47,14 @@ class FacturaComService
         return $status === 'error';
     }
 
+    /** Convierte el campo de error de factura.com a texto limpio (sin HTML). */
+    private function extraerMensaje(mixed $raw): string
+    {
+        $texto = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
+
+        return trim(strip_tags($texto));
+    }
+
     // ── Clientes ─────────────────────────────────────────
 
     /**
@@ -76,8 +84,8 @@ class FacturaComService
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw = $json['message'] ?? $json['error'] ?? $response->body();
-            $mensaje = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
+            $raw     = $json['message'] ?? $json['error'] ?? $response->body();
+            $mensaje = $this->extraerMensaje($raw);
             throw new \RuntimeException("Error al registrar cliente en factura.com: {$mensaje}");
         }
 
@@ -108,8 +116,8 @@ class FacturaComService
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
-            $mensaje = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
+            $raw     = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
+            $mensaje = $this->extraerMensaje($raw);
 
             throw new \RuntimeException("factura.com: {$mensaje}", $response->status());
         }
@@ -151,10 +159,50 @@ class FacturaComService
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw = $json['message'] ?? $json['error'] ?? $response->body();
-            $mensaje = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
+            $raw     = $json['message'] ?? $json['error'] ?? $response->body();
+            $mensaje = $this->extraerMensaje($raw);
             throw new \RuntimeException("Error al cancelar CFDI: {$mensaje}", $response->status());
         }
+    }
+
+    /**
+     * Verifica la conexión con factura.com y devuelve las series disponibles.
+     *
+     * Llama a GET /api/v1/series para listar las series configuradas en la cuenta.
+     * Útil para confirmar que las credenciales son válidas y que la serie configurada existe.
+     *
+     * @return array  Arreglo de series: [['id' => int, 'nombre' => string], ...]
+     *
+     * @throws \RuntimeException Si las credenciales son inválidas o la API falla
+     */
+    public function listarSeries(): array
+    {
+        $response = Http::withHeaders($this->headers())
+            ->get($this->url('/api/v1/series'));
+
+        $json = $response->json();
+
+        if ($this->esError($response, $json)) {
+            $raw     = $json['message'] ?? $json['error'] ?? $response->body();
+            $mensaje = $this->extraerMensaje($raw);
+            throw new \RuntimeException("No se pudo conectar con factura.com: {$mensaje}");
+        }
+
+        // La API devuelve un arreglo de series u objeto con clave 'data'
+        $lista = $json['data'] ?? $json['Data'] ?? $json;
+
+        if (! is_array($lista)) {
+            return [];
+        }
+
+        // Normalizar a [['id' => ..., 'nombre' => ...], ...]
+        // Los campos varían entre versiones de la API de factura.com — se prueban todas las variantes conocidas.
+        return collect($lista)->map(fn ($s) => [
+            'id'     => $s['SerieID']   ?? $s['serieID']   ?? $s['serie_id'] ?? $s['id'] ?? $s['Id'] ?? null,
+            'nombre' => $s['Serie']     ?? $s['serie']      ?? $s['Name']    ?? $s['name'] ?? $s['Nombre'] ?? $s['nombre'] ?? null,
+            'folio'  => $s['Folio']     ?? $s['folio']      ?? $s['FolioActual'] ?? null,
+            '_raw'   => $s,  // campo de diagnóstico: se pasa al frontend para mostrar claves reales
+        ])->filter(fn ($s) => $s['id'] !== null)->values()->toArray();
     }
 
     /**
