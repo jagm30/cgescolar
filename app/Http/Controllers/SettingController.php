@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ConfigFiscal;
 use App\Models\Setting;
+use App\Services\FacturaComService;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
@@ -40,6 +41,34 @@ class SettingController extends Controller
         }
 
         return back()->with('success', 'Configuración fiscal guardada correctamente.');
+    }
+
+    /**
+     * GET /fiscal/verificar-series
+     *
+     * Consulta factura.com y devuelve las series configuradas en la cuenta.
+     * Útil para confirmar que el serie_id en config_fiscal corresponde a una serie válida.
+     */
+    public function verificarSeries(FacturaComService $factura)
+    {
+        $config = ConfigFiscal::first();
+
+        try {
+            $series = $factura->listarSeries();
+
+            return response()->json([
+                'ok'       => true,
+                'series'   => $series,
+                'serie_id' => $config?->serie_id,
+                'url'      => config('factura.url'),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'      => false,
+                'mensaje' => $e->getMessage(),
+                'url'     => config('factura.url'),
+            ], 422);
+        }
     }
 
     public function update(Request $request)

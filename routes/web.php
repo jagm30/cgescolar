@@ -477,3 +477,8 @@ Route::get('/reportes/deudores', [ReporteDeudoresController::class, 'index'])
 Route::post('/fiscal', [SettingController::class, 'updateFiscal'])
     ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador'])
     ->name('settings.fiscal');
+
+// Verificar conexión con factura.com (diagnóstico de series)
+Route::get('/fiscal/verificar-series', [SettingController::class, 'verificarSeries'])
+    ->middleware(['auth', 'rol:administrador'])
+    ->name('settings.verificarSeries');
