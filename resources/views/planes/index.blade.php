@@ -8,10 +8,44 @@
 @endsection
 
 @push('styles')
+    {{-- ── LIBRERÍA SELECT2 ── --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
+        /* ── DISEÑO IDÉNTICO A TU IMAGEN DE EJEMPLO ── */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 34px !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 4px 12px;
+            background-color: #fff;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 32px !important;
+        }
+
+        .select2-dropdown {
+            border: 1px solid #ccc !important;
+            border-radius: 0 0 4px 4px !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 99999 !important;
+            /* Inmortalidad sobre el modal */
+        }
+
+        .select2-search__field {
+            border: 1px solid #aaa !important;
+            /* Borde al escribir */
+            border-radius: 3px;
+        }
+
         /* ══════════════════════════════════════════
-                       ESTADÍSTICAS
-                    ══════════════════════════════════════════ */
+                               ESTADÍSTICAS Y TABLAS (Tu CSS original)
+                            ══════════════════════════════════════════ */
         .pln-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +118,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       TOOLBAR
-                    ══════════════════════════════════════════ */
+                                                                               TOOLBAR
+                                                                            ══════════════════════════════════════════ */
         .pln-toolbar {
             display: flex;
             align-items: center;
@@ -133,8 +167,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       TABLA
-                    ══════════════════════════════════════════ */
+                                                                               TABLA
+                                                                            ══════════════════════════════════════════ */
         .pln-table {
             margin: 0;
             border-collapse: separate;
@@ -280,8 +314,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       EMPTY STATE
-                    ══════════════════════════════════════════ */
+                                                                               EMPTY STATE
+                                                                            ══════════════════════════════════════════ */
         .pln-empty {
             text-align: center;
             padding: 60px 20px;
@@ -307,8 +341,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       FOOTER / PAGINACIÓN
-                    ══════════════════════════════════════════ */
+                                                                               FOOTER / PAGINACIÓN
+                                                                            ══════════════════════════════════════════ */
         .pln-footer {
             display: flex;
             align-items: center;
@@ -717,10 +751,12 @@
                                 @foreach (old('conceptos') as $index => $concepto)
                                     <tr id="fila-concepto-{{ $index }}">
                                         <td>
+                                            {{-- Select configurado con la clase y el ancho correcto --}}
                                             <select name="conceptos[{{ $index }}][concepto_id]"
-                                                class="form-control input-sm select-concepto-magico" required>
+                                                class="form-control input-sm select-concepto-magico select2-busqueda"
+                                                style="width: 100%;" required>
                                                 <option value="">Seleccione...</option>
-                                                @foreach ($conceptos as $c)
+                                                @foreach ($conceptos->sortBy('nombre') as $c)
                                                     <option value="{{ $c->id }}" data-monto="{{ $c->monto }}"
                                                         {{ isset($concepto['concepto_id']) && $concepto['concepto_id'] == $c->id ? 'selected' : '' }}>
                                                         {{ $c->nombre }}</option>
@@ -925,27 +961,56 @@
 @endsection
 
 @push('scripts')
+    {{-- Solo traemos el MOTOR de Select2, sin los estilos, para respetar tu AdminLTE --}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         $(document).ready(function() {
 
             // ── Conceptos en modal ───────────────────────────────
-            // ── Conceptos en modal ───────────────────────────────
             let indiceConcepto = Date.now();
 
+            // Función maestra BLINDADA para inicializar Select2
+            function activarSelect2(selector) {
+                // EL ESCUDO: Solo se ejecuta si la librería cargó con éxito
+                if ($.fn.select2) {
+                    $(selector).select2({
+                        placeholder: "Seleccione un concepto...",
+                        allowClear: true,
+                        width: '100%',
+                        dropdownParent: $('#modalNuevoPlan')
+                    });
+                } else {
+                    console.warn("Select2 no detectado. Usando select nativo para evitar caída del sistema.");
+                }
+            }
+
+            // 1. Inicializar los selects que ya existen al cargar la página
+            activarSelect2('.select2-busqueda');
+
+            // Botón Añadir Concepto
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
+
+                // 2. Inyectamos la fila
                 let fila = `<tr id="fila-concepto-${indiceConcepto}">
-            <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm select-concepto-magico" required>
+            <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm select-concepto-magico select2-busqueda" style="width: 100%;" required>
                 <option value="">Seleccione...</option>
-                @foreach ($conceptos as $c)<option value="{{ $c->id }}" data-monto="{{ $c->monto }}">{{ $c->nombre }}</option>@endforeach
+                @foreach ($conceptos->sortBy('nombre') as $c)<option value="{{ $c->id }}" data-monto="{{ $c->monto }}">{{ $c->nombre }}</option>@endforeach
             </select></td>
             <td><input type="number" step="0.01" min="0" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm input-monto-magico" required></td>
             <td class="text-center"><button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}"><i class="fa fa-trash"></i></button></td>
         </tr>`;
+
                 $('#tabla-conceptos-modal tbody').append(fila);
+
+                // 3. Inicializamos Select2 para el elemento nuevo
+                activarSelect2(`#fila-concepto-${indiceConcepto} .select2-busqueda`);
+
                 indiceConcepto++;
             });
 
+            // Eliminar fila de concepto
             $('#tabla-conceptos-modal').on('click', '.btn-eliminar-fila', function() {
                 $('#fila-concepto-' + $(this).data('id')).remove();
                 if ($('#tabla-conceptos-modal tbody tr').length === 0) $('#mensaje-vacio-modal').show();
@@ -962,6 +1027,7 @@
                     inputMonto.val('');
                 }
             });
+
             // ── Descuentos en modal ──────────────────────────────
             let indiceDesc = Date.now();
 
@@ -982,7 +1048,7 @@
                 $('#fila-desc-' + $(this).data('id')).remove();
             });
 
-            // ── Selección masiva ─────────────────────────────────
+            // ── Selección masiva y Clonación ─────────────────────
             $('#select-all-planes').click(function() {
                 $('.plan-checkbox').prop('checked', this.checked);
                 actualizarBotonClonar();
@@ -1014,7 +1080,7 @@
                 });
             });
 
-            // ── Auto-abrir modal si hay errores ─────────────────
+            // ── Auto-abrir modal si hay errores de validación ──
             @if ($errors->any())
                 setTimeout(function() {
                     $('#modalNuevoPlan').modal('show');
