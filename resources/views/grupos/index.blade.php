@@ -250,7 +250,7 @@
                                 <td>
                                     <span class="text-blue"
                                         style="font-weight: bold;">{{ $g['grado']['nivel']['nombre'] }}</span><br>
-                                    <small class="text-muted">{{ $g['grado']['nombre'] }}</small>
+                                    <small class="text-muted">{{ $g['grado']['numero'] }}°</small>
                                 </td>
                                 <td style="vertical-align: middle;">
                                     <span class="label label-info label-grupo">{{ $g['nombre'] }}</span>
