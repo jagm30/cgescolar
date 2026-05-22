@@ -710,7 +710,7 @@
                         <span title="Grupo">
                             <i class="fa fa-graduation-cap"></i>
                             {{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}
-                            · {{ $inscripcion->grupo->grado->nombre }}°
+                            · {{ $inscripcion->grupo->grado->numero }}°
                             {{ $inscripcion->grupo->nombre }}
                         </span>
                         @else

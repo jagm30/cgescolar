@@ -617,7 +617,7 @@
                 <div class="alm-hero-stat alm-hero-sep">
                     <div class="alm-hero-stat-num">
                         @if ($inscActiva->grupo_id)
-                            {{ ($inscActiva->grupo?->grado?->nombre ?? '') . '° ' . ($inscActiva->grupo?->nombre ?? '') }}
+                            {{ ($inscActiva->grupo?->grado?->numero ?? '') . '° ' . ($inscActiva->grupo?->nombre ?? '') }}
                         @else
                             Sin grupo
                         @endif
@@ -640,7 +640,7 @@
                     <a href="{{ route('grupos.show', $inscActiva->grupo_id) }}" class="btn btn-sm btn-flat"
                         style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:20px; padding: 5px 12px;">
                         <i class="fa fa-users"></i> Ver grupo
-                        {{ $inscActiva->grupo->grado->nombre }} {{ $inscActiva->grupo->nombre }}
+                        {{ $inscActiva->grupo->grado->numero }} {{ $inscActiva->grupo->nombre }}
                     </a>
                 @endif
                 @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
@@ -681,7 +681,7 @@
                         $activa      = $inscripcion->activo;
                         $esAntic     = $inscripcion->tipo?->value === 'anticipada';
                         $nivel       = $inscripcion->grupo?->grado?->nivel?->nombre ?? '—';
-                        $grado       = $inscripcion->grupo?->grado?->nombre ?? '—';
+                        $grado       = $inscripcion->grupo?->grado?->numero ?? '—';
                         $grupo       = $inscripcion->grupo?->nombre ?? null;
                         $ciclo       = $inscripcion->ciclo?->nombre ?? '—';
 
@@ -1160,7 +1160,7 @@
                         <i class="fa fa-check-circle" style="color:#f39c12;"></i>
                         Ya inscrito al ciclo <strong>{{ $inscAnticipada->ciclo->nombre ?? '—' }}</strong>
                         @if ($inscAnticipada->grupo)
-                            · Grupo {{ $inscAnticipada->grupo->grado->nombre }}{{ $inscAnticipada->grupo->nombre }}
+                            · Grupo {{ $inscAnticipada->grupo->grado->numero }}{{ $inscAnticipada->grupo->nombre }}
                         @else
                             <br><small style="color:#b0bec5;">Grupo pendiente de asignar</small>
                         @endif
