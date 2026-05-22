@@ -158,6 +158,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador')
         ->name('planes.asignar.form');
 
+    Route::get('/planes/asignar/disponibles', [PlanPagoController::class, 'planesDisponibles'])
+        ->middleware('rol:administrador')
+        ->name('planes.asignar.disponibles');
+
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')
         ->name('planes.asignar');
