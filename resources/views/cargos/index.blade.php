@@ -174,7 +174,7 @@
                             </td>
 
                             <td>
-                                {{ optional($cargo->inscripcion?->grupo?->grado)->nombre }}
+                                {{ optional($cargo->inscripcion?->grupo?->grado)->numero }}°
                                 {{ optional($cargo->inscripcion?->grupo)->nombre }}
                             </td>
 

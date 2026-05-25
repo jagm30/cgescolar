@@ -188,7 +188,7 @@
             <span>
                 <i class="fa fa-graduation-cap"></i>
                 {{ $inscripcionActual->grupo->grado->nivel->nombre ?? '' }}
-                · {{ $inscripcionActual->grupo->grado->nombre }}°
+                · {{ $inscripcionActual->grupo->grado->numero }}°
                 {{ $inscripcionActual->grupo->nombre }}
             </span>
             <span>

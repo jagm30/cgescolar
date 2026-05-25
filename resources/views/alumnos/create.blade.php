@@ -808,7 +808,7 @@
                                 .cupo_maximo ?
                                 ' [LLENO]' : '';
                             opciones += '<option value="' + grupo.id + '" ' + sel + '>' + grupo.grado
-                                .nombre + ' ' + grupo.nombre + ' (' + disponibles + ')' + lleno +
+                                .numero + '° ' + grupo.nombre + ' (' + disponibles + ')' + lleno +
                                 '</option>';
                         });
                     }
@@ -1031,6 +1031,17 @@
             if (!$(this).val().trim()) {
                 marcarError('#apellido_familia', 'El nombre de la familia es obligatorio.');
             } else {
+                marcarOk('#apellido_familia');
+            }
+        });
+
+        $(document).on('input', '#ap_paterno, #ap_materno', function() {
+            if ($('input[name="tipo_familia"]:checked').val() !== 'nueva') return;
+            var paterno = $('#ap_paterno').val().trim();
+            var materno = $('#ap_materno').val().trim();
+            var sugerido = (paterno + (materno ? ' ' + materno : '')).trim();
+            $('#apellido_familia').val(sugerido);
+            if (sugerido) {
                 marcarOk('#apellido_familia');
             }
         });
