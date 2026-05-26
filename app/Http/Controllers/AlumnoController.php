@@ -853,27 +853,44 @@ class AlumnoController extends Controller
         }
     }
 
-    public function reporteAlumno(Request $request, int $id)
-    {
-        // Agregamos 'inscripciones.ciclo' y las relaciones de la familia
-        $alumno = Alumno::with([
-            'familia.alumnos',
-            'familia.contactos',
-            'inscripciones.grupo.grado.nivel',
-            'inscripciones.ciclo',
-            'contactos',
-        ])->findOrFail($id);
+public function reporteAlumno(Request $request, int $id)
+{
+    // 1. Obtener datos del alumno
+    $alumno = Alumno::with([
+        'familia.alumnos',
+        'familia.contactos',
+        'inscripciones.grupo.grado.nivel',
+        'inscripciones.ciclo',
+        'contactos',
+    ])->findOrFail($id);
 
-        if (ob_get_length()) {
-            ob_end_clean();
-        }
+    // 2. Preparar el logo en Base64 (usando el nombre correcto de tu archivo)
+    $path = public_path('imgs_escuela/reportes/logo-escuela.png');
 
-        $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', compact('alumno'));
-
-        $pdf->setOption('isPhpEnabled', true);
-        $pdf->setOption('isHtml5ParserEnabled', true);
-        $pdf->setPaper('letter', 'portrait');
-
-        return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
+    // Validamos que el archivo exista para no romper el sistema
+    $base64 = '';
+    if (file_exists($path)) {
+        $type = pathinfo($path, PATHINFO_EXTENSION);
+        $data = file_get_contents($path);
+        $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
     }
+
+    // 3. Limpiar buffer para DomPDF
+    if (ob_get_length()) {
+        ob_end_clean();
+    }
+
+    // 4. Cargar la vista y pasar ambas variables
+    $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
+        'alumno' => $alumno,
+        'base64' => $base64
+    ]);
+
+    // 5. Configuración del PDF
+    $pdf->setOption('isPhpEnabled', true);
+    $pdf->setOption('isHtml5ParserEnabled', true);
+    $pdf->setPaper('letter', 'portrait');
+
+    return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
+}
 }

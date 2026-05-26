@@ -125,11 +125,9 @@
 
     <table class="header">
         <tr>
-            <td style="width: 20%; text-align: left;">
-                <div
-                    style="width: 90px; height: 90px; background: #e0e0e0; text-align:center; line-height:90px; color:#666;">
-                    LOGO</div>
-            </td>
+<td style="width: 20%; text-align: left;">
+    <img src="{{ $base64 }}" alt="Logo Escuela" style="height: 50px;">
+</td>
             <td style="width: 60%; text-align: center;">
                 <div class="title">Ficha de Identificación</div>
                 <div class="subtitle">Perfil Académico y Datos de Contacto</div>
