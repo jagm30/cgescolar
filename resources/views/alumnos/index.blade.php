@@ -678,8 +678,8 @@
                                 @if ($inscripcion)
                                     <div class="alm-nivel-tag">{{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}</div>
                                     <div class="alm-grupo-txt">
-                                        {{ $inscripcion->grupo->grado->numero }}°
-                                        <strong>{{ $inscripcion->grupo->nombre }}</strong>
+                                        {{ $inscripcion->grupo->grado->numero ?? ''}}°
+                                        <strong>{{ $inscripcion->grupo->nombre ?? '' }}</strong>
                                     </div>
                                 @else
                                     <span class="alm-badge"
