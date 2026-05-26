@@ -1059,15 +1059,6 @@
                 </div>
             @endif
 
-            @if (auth()->user()->esAdministrador())
-                <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn">
-                    <div class="accion-icon" style="background:#fff8e1;">
-                        <i class="fa fa-star" style="color:#f39c12;font-size:14px;"></i>
-                    </div>
-                    Asignar beca
-                    <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                </a>
-            @endif
 
             @if (auth()->user()->esAdministrador())
                 <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn"

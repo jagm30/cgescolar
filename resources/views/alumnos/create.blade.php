@@ -647,6 +647,7 @@
         var numContactos = 0;
         var pasoActual = 1;
         var contactosIniciales = @json($contactosPrecargados);
+        var contactosInicializados = false;
 
         $(document).ready(function() {
             if (contactosIniciales.length) {
@@ -656,6 +657,8 @@
             } else {
                 agregarContacto();
             }
+
+            contactosInicializados = true;
 
             $('#curp').trigger('input');
 
@@ -753,6 +756,53 @@
             $('#curp-chars').text($(this).val().length);
         });
 
+        function limpiarContactos() {
+            $('#contenedor-contactos').empty();
+            numContactos = 0;
+            actualizarBtnAgregar();
+        }
+
+        function cargarContactosFamilia(familiaId) {
+            limpiarContactos();
+
+            if (!familiaId) {
+                agregarContacto();
+                return;
+            }
+
+            $('#contenedor-contactos').html(
+                '<p class="text-muted" style="padding:12px 0;">' +
+                '<i class="fa fa-spinner fa-spin"></i> Cargando contactos de la familia...</p>'
+            );
+
+            $.ajax({
+                url: '/familias/' + familiaId + '/contactos-enlace',
+                method: 'GET',
+                success: function(contactos) {
+                    limpiarContactos();
+
+                    if (!contactos.length) {
+                        agregarContacto();
+                        return;
+                    }
+
+                    contactos.slice(0, MAX_CONTACTOS).forEach(function(contacto) {
+                        agregarContacto(contacto);
+                    });
+
+                    $('#contenedor-contactos').prepend(
+                        '<div class="alert alert-info alert-sm" id="aviso-contactos-familia" style="padding:8px 12px;font-size:12px;">' +
+                        '<i class="fa fa-info-circle"></i> Se cargaron los contactos de la familia seleccionada. ' +
+                        'Puedes editar la información y configurar los permisos para este alumno.</div>'
+                    );
+                },
+                error: function() {
+                    limpiarContactos();
+                    agregarContacto();
+                }
+            });
+        }
+
         $('input[name="tipo_familia"]').on('change', function() {
             var tipoSeleccionado = $('input[name="tipo_familia"]:checked').val();
 
@@ -761,11 +811,24 @@
                 $('#bloque-familia-existente').show();
                 $('#apellido_familia').prop('disabled', true).val('');
                 $('#familia_id').prop('disabled', false);
+                if (contactosInicializados) {
+                    var familiaId = $('#familia_id').val();
+                    if (familiaId) {
+                        cargarContactosFamilia(familiaId);
+                    } else {
+                        limpiarContactos();
+                        agregarContacto();
+                    }
+                }
             } else {
                 $('#bloque-familia-nueva').show();
                 $('#bloque-familia-existente').hide();
                 $('#apellido_familia').prop('disabled', false);
                 $('#familia_id').prop('disabled', true).val('');
+                if (contactosInicializados) {
+                    limpiarContactos();
+                    agregarContacto();
+                }
             }
         });
 
@@ -1051,10 +1114,15 @@
                 return;
             }
 
-            if (!$(this).val()) {
+            var familiaId = $(this).val();
+
+            if (!familiaId) {
                 marcarError('#familia_id', 'Debe seleccionar la familia.');
+                limpiarContactos();
+                agregarContacto();
             } else {
                 marcarOk('#familia_id');
+                cargarContactosFamilia(familiaId);
             }
         });
 

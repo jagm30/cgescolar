@@ -344,6 +344,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::get('{id}/contactos', [FamiliaController::class, 'contactos'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos');
+        // Datos de contactos para pre-llenar formulario de creación de alumno (AJAX)
+        Route::get('{id}/contactos-enlace', [FamiliaController::class, 'contactosParaEnlace'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.enlace');
         // Actualizar datos de un contacto (AJAX desde edit de alumno)
         Route::put('contactos/{contactoId}', [FamiliaController::class, 'actualizarContacto'])
             ->middleware('rol:administrador,recepcion')
