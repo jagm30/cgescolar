@@ -1,0 +1,11 @@
+datos a configurar el .env 
+
+
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=465
+MAIL_USERNAME=auxsystem@lasalletuxtla.edu.mx
+MAIL_PASSWORD="**** **** **** ****"
+MAIL_ENCRYPTION=ssl
+MAIL_FROM_ADDRESS="auxsystem@lasalletuxtla.edu.mx"
+MAIL_FROM_NAME="Colegio La Salle Tuxtla"
