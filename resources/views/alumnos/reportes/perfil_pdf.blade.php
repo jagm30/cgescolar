@@ -126,12 +126,13 @@
     <table class="header">
         <tr>
             <td style="width: 20%; text-align: left;">
-                <div
-                    style="width: 90px; height: 90px; background: #e0e0e0; text-align:center; line-height:90px; color:#666;">
-                    LOGO</div>
+                <img src="{{ $base64 }}" alt="Logo Escuela" style="height: 50px;">
             </td>
             <td style="width: 60%; text-align: center;">
-                <div class="title">Ficha de Identificación</div>
+                <div class="title">
+                    {{ $setting->nombre_escuela ?? 'CGESCOLAR' }}
+                </div>
+                <div class="subtitle" style="font-size: 20px; color: #1e4d7b; font-weight: bold;">Ficha de Alumno</div>
                 <div class="subtitle">Perfil Académico y Datos de Contacto</div>
             </td>
             <td style="width: 20%; text-align: right; color: #666; font-size: 10px;">

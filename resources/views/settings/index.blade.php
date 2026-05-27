@@ -186,8 +186,8 @@
                                     style="border: none; padding: 5px 0; margin-bottom: 10px;">
 
                                 <div class="logo-preview-container">
-                                    @if ($setting->logo_ruta && file_exists(public_path('imgs_escuela/' . $setting->logo_ruta)))
-                                        <img src="{{ asset('imgs_escuela/' . $setting->logo_ruta) }}"
+                                    @if ($setting->logo_ruta && file_exists(public_path('imgs_escuela/reportes/' . $setting->logo_ruta)))
+                                        <img src="{{ asset('imgs_escuela/reportes/' . $setting->logo_ruta) }}"
                                             class="logo-preview-img" alt="Logo actual">
                                         <p style="margin-top: 10px; font-size: 11px; color: #64748b;">Logo cargado:
                                             <strong>{{ $setting->logo_ruta }}</strong></p>

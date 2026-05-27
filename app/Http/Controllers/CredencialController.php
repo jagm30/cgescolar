@@ -115,14 +115,19 @@ class CredencialController extends Controller
         ]);
     }
 
-    public function preview($credencial_id, $alumno_id)
-    {
-        $credencial = Credencial::findOrFail($credencial_id);
-        // Solo cargamos el alumno para que la vista tenga el objeto, pero no usaremos sus datos
-        $alumno = Alumno::find($alumno_id) ?? new Alumno();
+public function previewEnEditor($credencial_id, $alumno_id)
+{
+    $diseno = Credencial::findOrFail($credencial_id);
+    $alumno = Alumno::with(['inscripciones.grupo.grado.nivel', 'familia.contactos'])
+                    ->findOrFail($alumno_id);
 
-        return view('credenciales.preview', compact('credencial', 'alumno'));
-    }
+    return view('credenciales.edit', [
+        'diseno'       => $diseno,
+        'alumnos'      => collect([$alumno]),
+        'impresionLote'=> true,
+        'previewRapido'=> true,   // ← bandera extra para distinguirlo del lote real
+    ]);
+}
     public function imprimirLote($credencial_id, $grupo_id)
     {
         // 1. Buscamos el diseño de credencial
