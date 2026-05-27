@@ -80,7 +80,7 @@ class SettingController extends Controller
 
         // Buscamos el registro 1 o creamos uno nuevo
         $setting = Setting::findOrNew(1);
-        
+
         if (!$setting->exists) {
             $setting->id = 1;
         }
@@ -90,7 +90,7 @@ class SettingController extends Controller
         if ($request->hasFile('escuela_logo')) {
             $file = $request->file('escuela_logo');
             $fileName = 'logo_reportes.png';
-            $file->move(public_path('imgs_escuela'), $fileName);
+            $file->move(public_path('imgs_escuela/reportes/'), $fileName);
             $setting->logo_ruta = $fileName;
         }
 

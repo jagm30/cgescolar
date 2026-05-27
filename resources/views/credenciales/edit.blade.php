@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                MODO VISUALIZACIÓN Y CERO MÁRGENES
-            ========================================================================== */
+                                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                                ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -242,10 +242,14 @@
             margin: 0 !important;
         }
 
+        /* ESTO OCULTA LA CREDENCIAL EN PANTALLA MIENTRAS ESTÁS EN EL NAVEGADOR */
         @media screen {
+            .modo-visualizacion #canvas-container {
+                display: none !important;
+                /* Ocultamos el contenedor de credenciales */
+            }
 
-            .modo-visualizacion #canvas-container,
-            .modo-visualizacion .badge-alumno {
+            .badge-alumno {
                 display: none !important;
             }
         }
@@ -307,8 +311,8 @@
         }
 
         /* ==========================================================================
-                REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS
-            ========================================================================== */
+                                                    REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS
+                                                ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -351,23 +355,58 @@
                 print-color-adjust: exact !important;
             }
         }
+
+        /* PANEL DE PROPIEDADES FLOTANTE */
+        #panel-edicion {
+            position: fixed;
+            z-index: 9999;
+            width: 260px;
+            border-top: 3px solid #f39c12 !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+            border-radius: 6px;
+            display: none;
+            /* top y left se setean dinámicamente por JS */
+        }
+
+        #panel-edicion .box-header {
+            cursor: move;
+            border-radius: 3px 3px 0 0;
+            background: #fdf3e0;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #panel-edicion .box-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #8a6d3b;
+        }
+
+        #panel-edicion-close {
+            cursor: pointer;
+            color: #8a6d3b;
+            font-size: 16px;
+            line-height: 1;
+            background: none;
+            border: none;
+            padding: 0 4px;
+        }
+
+        #panel-edicion .box-body {
+            padding: 10px 12px;
+            background: white;
+            border-radius: 0 0 6px 6px;
+        }
     </style>
 
     {{-- ENVOLTORIO MAESTRO --}}
     <div id="wrapper-principal" class="{{ request()->has('preview') || isset($alumnos) ? 'modo-visualizacion' : '' }}">
 
-        @if (isset($alumnos) && count($alumnos) > 0)
+        @if (isset($alumnos))
             <div class="header-impresion no-print">
-                @if (count($alumnos) == 1)
-                    <h2 style="margin:0"><i class="fa fa-id-badge"></i> Impresión Individual</h2>
-                    <p style="color: #bbb; margin-top:5px;">
-                        Alumno: <b>{{ $alumnos->first()->nombre }} {{ $alumnos->first()->ap_paterno }}</b> | Diseño:
-                        {{ $diseno->nombre }}
-                    </p>
-                @else
-                    <h2 style="margin:0"><i class="fa fa-users"></i> Lote de Impresión: {{ count($alumnos) }} alumnos</h2>
-                    <p style="color: #bbb; margin-top:5px;">Diseño: {{ $diseno->nombre }}</p>
-                @endif
+                <h2 style="margin:0"><i class="fa fa-print"></i> Panel de Impresión</h2>
                 <button onclick="window.print()" class="btn btn-success btn-lg"
                     style="margin-top:15px; font-weight:bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
                     <i class="fa fa-print"></i> VER VISTA PREVIA DE IMPRESIÓN
@@ -529,46 +568,6 @@
                     </div>
                 </div>
 
-                <div id="panel-edicion" class="box box-warning" style="display: none; border-top: 3px solid #f39c12;">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Propiedades</h3>
-                    </div>
-                    <div class="box-body">
-                        <label>Texto Contenido:</label>
-                        <input type="text" id="prop-text" class="form-control" oninput="updateLive()"><br>
-                        <label>Tipografía:</label>
-                        <select id="prop-font" class="form-control" onchange="updateLive()">
-                            <option value="'Roboto', sans-serif">Roboto</option>
-                            <option value="'Montserrat', sans-serif">Montserrat</option>
-                            <option value="'Oswald', sans-serif">Oswald</option>
-                        </select><br>
-                        <label>Estilo y Alineación:</label>
-                        <div class="btn-group btn-group-justified" style="margin-bottom: 10px;">
-                            <a class="btn btn-default btn-sm" id="btn-bold" onclick="toggleBold()"><i
-                                    class="fa fa-bold"></i></a>
-                            <a class="btn btn-default btn-sm" id="btn-italic" onclick="toggleItalic()"><i
-                                    class="fa fa-italic"></i></a>
-                            <a class="btn btn-default btn-sm" id="align-left" onclick="setAlign('left')"><i
-                                    class="fa fa-align-left"></i></a>
-                            <a class="btn btn-default btn-sm" id="align-center" onclick="setAlign('center')"><i
-                                    class="fa fa-align-center"></i></a>
-                            <a class="btn btn-default btn-sm" id="align-right" onclick="setAlign('right')"><i
-                                    class="fa fa-align-right"></i></a>
-                        </div>
-                        <div class="row">
-                            <div class="col-xs-8">
-                                <label>Tamaño: <span id="txt-size">14</span>px</label>
-                                <input type="range" id="prop-size" min="6" max="100"
-                                    oninput="updateLive()">
-                            </div>
-                            <div class="col-xs-4">
-                                <label>Color:</label>
-                                <input type="color" id="prop-color" class="form-control" onchange="updateLive()">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <button id="btn-save-design" class="btn btn-success btn-block btn-lg btn-flat" onclick="saveAll()">
                     <i class="fa fa-save"></i> GUARDAR DISEÑO
                 </button>
@@ -595,7 +594,6 @@
                         {{-- MODO IMPRESIÓN (Genera Anverso y Reverso) --}}
                         @foreach ($alumnos as $alumno)
                             @php
-                                // Extraemos variables limpias para inyectar en el JS
                                 $insc = $alumno->inscripciones->first();
                                 $nivelStr = $insc?->grupo?->grado?->nivel?->nombre ?? '';
                                 $gradoStr = $insc?->grupo?->grado?->nombre ?? '';
@@ -603,15 +601,17 @@
 
                                 $contactos = $alumno->familia?->contactos ?? collect();
                                 $tutorObj = $contactos->where('es_principal', true)->first() ?? $contactos->first();
-                                $tutorStr = $tutorObj ? $tutorObj->nombre . ' ' . $tutorObj->ap_paterno : '';
 
-                                $emergenciaStr = $tutorObj->telefono_celular ?? '';
+                                // BLINDAJE APLICADO AQUÍ:
+                                $tutorStr = $tutorObj ? $tutorObj->nombre . ' ' . $tutorObj->ap_paterno : '';
+                                $emergenciaStr = $tutorObj?->telefono_celular ?? ''; // <-- El ? evita el crash
 
                                 $autorizados = $contactos
                                     ->filter(function ($c) {
                                         return $c->puede_recoger ?? true;
                                     })
                                     ->values();
+
                                 $aut1 = isset($autorizados[0])
                                     ? $autorizados[0]->nombre . ' ' . $autorizados[0]->ap_paterno
                                     : '';
@@ -642,7 +642,7 @@
                                 data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
                                 data-ciclo="{{ $cicloActual->nombre ?? '' }}"
                                 data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
-                                data-foto="{{ $alumno->foto_url ? Storage::url($alumno->foto_url) : '' }}"
+                                data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
                                 data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
                                 data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
                                 data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
@@ -662,7 +662,7 @@
                                 data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
                                 data-ciclo="{{ $cicloActual->nombre ?? '' }}"
                                 data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
-                                data-foto="{{ $alumno->foto_url ? Storage::url($alumno->foto_url) : '' }}"
+                                data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
                                 data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
                                 data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
                                 data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
@@ -677,7 +677,29 @@
                         @endforeach
                     @else
                         {{-- MODO EDITOR --}}
+                        @php
+                            // Alumno de muestra para el editor (el primero del sistema, o uno fijo)
+                            $alumnoMuestra = \App\Models\Alumno::with([
+                                'inscripciones.grupo.grado.nivel',
+                                'familia.contactos',
+                            ])->first();
+                            $inscM = $alumnoMuestra?->inscripciones->first();
+                            $contactosM = $alumnoMuestra?->familia?->contactos ?? collect();
+                            $tutorM = $contactosM->where('es_principal', true)->first() ?? $contactosM->first();
+                        @endphp
+
                         <div id="credencial-canvas" class="credencial-canvas-instance face-anverso"
+                            data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
+                            data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
+                            data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
+                            data-grado="{{ $inscM?->grupo?->grado?->nombre ?? '1°' }}"
+                            data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
+                            data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
+                            data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
+                            data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
+                            data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
+                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}" data-autorizado1=""
+                            data-autorizado2="" data-autorizado3="" data-director="" data-puesto_director=""
                             onclick="deselect(event)">
                             @if ($diseno->fondo_anverso)
                                 <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial"
@@ -692,6 +714,17 @@
                         </div>
 
                         <div id="credencial-canvas-reverso" class="credencial-canvas-instance face-reverso"
+                            data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
+                            data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
+                            data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
+                            data-grado="{{ $inscM?->grupo?->grado?->nombre ?? '1°' }}"
+                            data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
+                            data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
+                            data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
+                            data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
+                            data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
+                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}" data-autorizado1=""
+                            data-autorizado2="" data-autorizado3="" data-director="" data-puesto_director=""
                             onclick="deselect(event)" style="display:none;">
                             @if ($diseno->fondo_reverso)
                                 <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial"
@@ -705,6 +738,46 @@
                             <div id="guide-h-reverso" class="guide-line guide-h"></div>
                         </div>
                     @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- PANEL DE PROPIEDADES FLOTANTE --}}
+    <div id="panel-edicion" class="box box-warning">
+        <div class="box-header with-border" id="panel-edicion-header">
+            <h3 class="box-title"><i class="fa fa-sliders"></i> Propiedades</h3>
+            <button id="panel-edicion-close" onclick="deselect()" title="Cerrar">×</button>
+        </div>
+        <div class="box-body">
+            <label>Texto Contenido:</label>
+            <input type="text" id="prop-text" class="form-control" oninput="updateLive()"><br>
+            <label>Tipografía:</label>
+            <select id="prop-font" class="form-control" onchange="updateLive()">
+                <option value="'Roboto', sans-serif">Roboto</option>
+                <option value="'Montserrat', sans-serif">Montserrat</option>
+                <option value="'Oswald', sans-serif">Oswald</option>
+            </select><br>
+            <label>Estilo y Alineación:</label>
+            <div class="btn-group btn-group-justified" style="margin-bottom: 10px;">
+                <a class="btn btn-default btn-sm" id="btn-bold" onclick="toggleBold()"><i class="fa fa-bold"></i></a>
+                <a class="btn btn-default btn-sm" id="btn-italic" onclick="toggleItalic()"><i
+                        class="fa fa-italic"></i></a>
+                <a class="btn btn-default btn-sm" id="align-left" onclick="setAlign('left')"><i
+                        class="fa fa-align-left"></i></a>
+                <a class="btn btn-default btn-sm" id="align-center" onclick="setAlign('center')"><i
+                        class="fa fa-align-center"></i></a>
+                <a class="btn btn-default btn-sm" id="align-right" onclick="setAlign('right')"><i
+                        class="fa fa-align-right"></i></a>
+            </div>
+            <div class="row">
+                <div class="col-xs-8">
+                    <label>Tamaño: <span id="txt-size">14</span>px</label>
+                    <input type="range" id="prop-size" min="6" max="100" oninput="updateLive()">
+                </div>
+                <div class="col-xs-4">
+                    <label>Color:</label>
+                    <input type="color" id="prop-color" class="form-control" onchange="updateLive()">
                 </div>
             </div>
         </div>
@@ -950,7 +1023,8 @@
             let textoFinal = data.text;
             let fotoUrl = null;
 
-            if (isModeVisual && canvas.id !== 'credencial-canvas' && canvas.id !== 'credencial-canvas-reverso') {
+            const canvasConDatos = canvas.dataset.nombre && canvas.dataset.nombre.trim() !== '';
+            if (canvasConDatos) {
                 const mapData = {
                     'nombre': 'nombre',
                     'matricula': 'matricula',
@@ -981,7 +1055,7 @@
                 }
 
                 if (data.type === 'foto') {
-                    fotoUrl = canvas.dataset.foto;
+                    fotoUrl = canvas.dataset.foto; // ya estaba bien
                     if (!fotoUrl || fotoUrl.trim() === '') isEmpty = true;
                 }
 
@@ -1204,7 +1278,27 @@
             deselect();
             selected = el;
             el.classList.add('selected');
-            document.getElementById('panel-edicion').style.display = 'block';
+
+            const panel = document.getElementById('panel-edicion');
+
+            // Posicionar junto al elemento seleccionado
+            const rect = el.getBoundingClientRect();
+            const panelW = 260;
+            const margin = 12;
+            let left = rect.right + margin;
+            let top = rect.top + window.scrollY;
+
+            // Si se sale por la derecha, aparece a la izquierda del elemento
+            if (left + panelW > window.innerWidth - 10) {
+                left = rect.left - panelW - margin;
+            }
+            // Si se va muy arriba o muy abajo, lo ancla al viewport
+            top = Math.max(60, Math.min(top, window.innerHeight + window.scrollY - 320));
+
+            panel.style.left = left + 'px';
+            panel.style.top = top + 'px';
+            panel.style.display = 'block';
+
             const isMedia = (el.dataset.type === 'foto' || el.dataset.type === 'logo');
             const propText = document.getElementById('prop-text');
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
@@ -1562,5 +1656,29 @@
                 markAsUnsaved();
             }
         };
+        // DRAG del panel de propiedades por su header
+        (function() {
+            const panel = document.getElementById('panel-edicion');
+            const header = document.getElementById('panel-edicion-header');
+            if (!panel || !header) return;
+            let dragging = false,
+                ox = 0,
+                oy = 0;
+            header.addEventListener('mousedown', function(e) {
+                if (e.target.id === 'panel-edicion-close') return;
+                dragging = true;
+                ox = e.clientX - panel.getBoundingClientRect().left;
+                oy = e.clientY - panel.getBoundingClientRect().top;
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', function(e) {
+                if (!dragging) return;
+                panel.style.left = (e.clientX - ox) + 'px';
+                panel.style.top = (e.clientY - oy) + 'px';
+            });
+            document.addEventListener('mouseup', function() {
+                dragging = false;
+            });
+        })();
     </script>
 @endsection

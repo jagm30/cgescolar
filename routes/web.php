@@ -277,7 +277,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('usuarios/generar-masivos', [UsuarioController::class, 'generarUsuariosMasivos'])
         ->middleware('rol:administrador')
         ->name('usuarios.generarMasivos');
-        
+
     Route::post('usuarios/{id}/reactivar', [UsuarioController::class, 'reactivar'])
     ->middleware('rol:administrador')
     ->name('usuarios.reactivar');
@@ -457,6 +457,8 @@ Route::prefix('credenciales')->group(function () {
     // Ruta para imprimir a un solo alumno
     Route::get('/individual/{credencial}/{alumno}', [CredencialController::class, 'imprimirIndividual'])
         ->name('credenciales.imprimirIndividual');
+    Route::get('/credenciales/{credencial}/preview/{alumno}', [CredencialController::class, 'previewEnEditor'])
+     ->name('credenciales.previewEnEditor');
     Route::get('/preview/{credencial_id}/{alumno_id}', [CredencialController::class, 'preview'])->name('credenciales.preview');
 
     // RUTAS BÁSICAS

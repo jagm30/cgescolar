@@ -19,6 +19,7 @@ use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
+use App\Models\Setting;
 use App\Traits\RespondsWithJson;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -37,24 +38,24 @@ class AlumnoController extends Controller
 
         $query = Alumno::with([
             'familia',
-            'inscripciones' => fn ($q) => $q
+            'inscripciones' => fn($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->with('grupo.grado.nivel'),
         ])
-            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
+            ->when($request->filled('estado'), fn($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
                 'inscripciones',
-                fn ($q) => $q
+                fn($q) => $q
                     ->where('ciclo_id', $cicloId)
-                    ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
+                    ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id))
             ))
-            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas(
+            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas(
                 'inscripciones',
-                fn ($q) => $q
+                fn($q) => $q
                     ->where('ciclo_id', $cicloId)
                     ->where('grupo_id', $request->grupo_id)
             ))
-            ->when($request->filled('buscar'), fn ($q) => $q->where(function ($q) use ($request) {
+            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
                     ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
                     ->orWhere('matricula', 'like', "%{$request->buscar}%")
@@ -259,7 +260,7 @@ class AlumnoController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return $this->respuestaError('Error al registrar el alumno: '.$e->getMessage());
+            return $this->respuestaError('Error al registrar el alumno: ' . $e->getMessage());
         }
     }
 
@@ -368,7 +369,7 @@ class AlumnoController extends Controller
 
         $hermanos = Alumno::where('familia_id', $alumno->familia_id)
             ->where('id', '!=', $alumno->id)
-            ->with(['inscripciones' => fn ($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
+            ->with(['inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
             ->get();
 
         return response()->json($hermanos);
@@ -393,7 +394,7 @@ class AlumnoController extends Controller
         // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
         $ciclos = CicloEscolar::whereHas(
             'inscripciones',
-            fn ($q) => $q->where('alumno_id', $alumno->id)
+            fn($q) => $q->where('alumno_id', $alumno->id)
         )->orderByDesc('fecha_inicio')->get();
 
         // Cargos con detalles de pagos vigentes y políticas del plan
@@ -403,13 +404,13 @@ class AlumnoController extends Controller
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
         ])
-            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+            ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
 
         if ($request->filled('ciclo_id')) {
             $cargosQuery->whereHas(
                 'inscripcion',
-                fn ($q) => $q->where('ciclo_id', $request->ciclo_id)
+                fn($q) => $q->where('ciclo_id', $request->ciclo_id)
             );
         }
 
@@ -420,10 +421,10 @@ class AlumnoController extends Controller
             ->where('activo', true)
             ->when(
                 $inscripcionActual,
-                fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
+                fn($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
             )
             ->where(
-                fn ($q) => $q
+                fn($q) => $q
                     ->whereNull('vigencia_fin')
                     ->orWhere('vigencia_fin', '>=', now())
             )
@@ -490,7 +491,7 @@ class AlumnoController extends Controller
                     $mesesRetraso = 0;
 
                     // Cargo vigente → aplicar descuento si existe política que aplique hoy
-                    $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
+                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
                     if ($pd) {
                         $descuento = $pd->calcular($saldoBase);
                     }
@@ -529,7 +530,7 @@ class AlumnoController extends Controller
             }
         }
 
-        $totalCubierto = $cargos->sum(fn (Cargo $cargo) => min((float) $cargo->monto_original, (float) $cargo->monto_cubierto));
+        $totalCubierto = $cargos->sum(fn(Cargo $cargo) => min((float) $cargo->monto_original, (float) $cargo->monto_cubierto));
         $saldoPendienteBase = max(0, $totalCargado - $totalCubierto - $totalCondonado);
 
         $resumen = [
@@ -618,7 +619,7 @@ class AlumnoController extends Controller
             ->value('matricula');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $año.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $año . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 
     private function documentosPorGrupo(int $grupoId): array
@@ -668,7 +669,7 @@ class AlumnoController extends Controller
                 'nivel_id' => $prospecto->nivel_interes_id,
                 'prospecto_id' => $prospecto->id,
             ],
-            'apellido_familia' => $apellidoFamilia ? 'Familia '.$apellidoFamilia : '',
+            'apellido_familia' => $apellidoFamilia ? 'Familia ' . $apellidoFamilia : '',
             'contactos' => [[
                 'nombre' => $contactoNombre,
                 'ap_paterno' => $contactoApPaterno,
@@ -741,12 +742,12 @@ class AlumnoController extends Controller
         $alumno = Alumno::findOrFail($id);
 
         // Obtenemos la observación actual por si ya tenía algo escrito antes
-        $obsAnterior = $alumno->observaciones ? $alumno->observaciones.' | ' : '';
+        $obsAnterior = $alumno->observaciones ? $alumno->observaciones . ' | ' : '';
 
         $alumno->update([
             'estado' => $request->tipo_baja,
             'fecha_baja' => now(),
-            'observaciones' => $obsAnterior.$request->observaciones, // Concatenamos la razón
+            'observaciones' => $obsAnterior . $request->observaciones, // Concatenamos la razón
         ]);
 
         $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
@@ -806,7 +807,7 @@ class AlumnoController extends Controller
             return redirect()->route('grupos.show', $request->grupo_origen_id)
                 ->with('success', "¡Éxito! Se han promocionado $contador alumnos correctamente.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Hubo un error al promocionar: '.$e->getMessage());
+            return back()->with('error', 'Hubo un error al promocionar: ' . $e->getMessage());
         }
     }
 
@@ -845,52 +846,56 @@ class AlumnoController extends Controller
 
             DB::commit();
 
-            return back()->with('success', '¡Proceso completado! Se actualizaron '.count($ids).' alumnos.');
+            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
         } catch (\Exception $e) {
             DB::rollback();
 
-            return back()->with('error', 'Error al procesar: '.$e->getMessage());
+            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
         }
     }
 
-public function reporteAlumno(Request $request, int $id)
-{
-    // 1. Obtener datos del alumno
-    $alumno = Alumno::with([
-        'familia.alumnos',
-        'familia.contactos',
-        'inscripciones.grupo.grado.nivel',
-        'inscripciones.ciclo',
-        'contactos',
-    ])->findOrFail($id);
+    public function reporteAlumno(Request $request, int $id)
+    {
+        //Nombre de la escuela para el encabezado del reporte
+        $setting = Setting::first();
 
-    // 2. Preparar el logo en Base64 (usando el nombre correcto de tu archivo)
-    $path = public_path('imgs_escuela/reportes/logo-escuela.png');
+        // 1. Obtener datos del alumno
+        $alumno = Alumno::with([
+            'familia.alumnos',
+            'familia.contactos',
+            'inscripciones.grupo.grado.nivel',
+            'inscripciones.ciclo',
+            'contactos',
+        ])->findOrFail($id);
 
-    // Validamos que el archivo exista para no romper el sistema
-    $base64 = '';
-    if (file_exists($path)) {
-        $type = pathinfo($path, PATHINFO_EXTENSION);
-        $data = file_get_contents($path);
-        $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+        // 2. Preparar el logo en Base64 (usando el nombre correcto de tu archivo)
+        $path = public_path('imgs_escuela/reportes/logo_reportes.png');
+
+        // Validamos que el archivo exista para no romper el sistema
+        $base64 = '';
+        if (file_exists($path)) {
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $data = file_get_contents($path);
+            $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+        }
+
+        // 3. Limpiar buffer para DomPDF
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        // 4. Cargar la vista y pasar ambas variables
+        $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
+            'alumno' => $alumno,
+            'base64' => $base64,
+            'setting' => $setting,
+        ]);
+
+        // 5. Configuración del PDF
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
     }
-
-    // 3. Limpiar buffer para DomPDF
-    if (ob_get_length()) {
-        ob_end_clean();
-    }
-
-    // 4. Cargar la vista y pasar ambas variables
-    $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
-        'alumno' => $alumno,
-        'base64' => $base64
-    ]);
-
-    // 5. Configuración del PDF
-    $pdf->setOption('isPhpEnabled', true);
-    $pdf->setOption('isHtml5ParserEnabled', true);
-    $pdf->setPaper('letter', 'portrait');
-
-    return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
-}
 }
