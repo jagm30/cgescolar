@@ -617,7 +617,7 @@
                 <div class="alm-hero-stat alm-hero-sep">
                     <div class="alm-hero-stat-num">
                         @if ($inscActiva->grupo_id)
-                            {{ ($inscActiva->grupo?->grado?->nombre ?? '') . '° ' . ($inscActiva->grupo?->nombre ?? '') }}
+                            {{ ($inscActiva->grupo?->grado?->numero ?? '') . '° ' . ($inscActiva->grupo?->nombre ?? '') }}
                         @else
                             Sin grupo
                         @endif
@@ -640,7 +640,7 @@
                     <a href="{{ route('grupos.show', $inscActiva->grupo_id) }}" class="btn btn-sm btn-flat"
                         style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:20px; padding: 5px 12px;">
                         <i class="fa fa-users"></i> Ver grupo
-                        {{ $inscActiva->grupo->grado->nombre }} {{ $inscActiva->grupo->nombre }}
+                        {{ $inscActiva->grupo->grado->numero }} {{ $inscActiva->grupo->nombre }}
                     </a>
                 @endif
                 @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
@@ -681,7 +681,7 @@
                         $activa      = $inscripcion->activo;
                         $esAntic     = $inscripcion->tipo?->value === 'anticipada';
                         $nivel       = $inscripcion->grupo?->grado?->nivel?->nombre ?? '—';
-                        $grado       = $inscripcion->grupo?->grado?->nombre ?? '—';
+                        $grado       = $inscripcion->grupo?->grado?->numero ?? '—';
                         $grupo       = $inscripcion->grupo?->nombre ?? null;
                         $ciclo       = $inscripcion->ciclo?->nombre ?? '—';
 
@@ -1059,15 +1059,6 @@
                 </div>
             @endif
 
-            @if (auth()->user()->esAdministrador())
-                <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn">
-                    <div class="accion-icon" style="background:#fff8e1;">
-                        <i class="fa fa-star" style="color:#f39c12;font-size:14px;"></i>
-                    </div>
-                    Asignar beca
-                    <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                </a>
-            @endif
 
             @if (auth()->user()->esAdministrador())
                 <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn"
@@ -1160,7 +1151,7 @@
                         <i class="fa fa-check-circle" style="color:#f39c12;"></i>
                         Ya inscrito al ciclo <strong>{{ $inscAnticipada->ciclo->nombre ?? '—' }}</strong>
                         @if ($inscAnticipada->grupo)
-                            · Grupo {{ $inscAnticipada->grupo->grado->nombre }}{{ $inscAnticipada->grupo->nombre }}
+                            · Grupo {{ $inscAnticipada->grupo->grado->numero }}{{ $inscAnticipada->grupo->nombre }}
                         @else
                             <br><small style="color:#b0bec5;">Grupo pendiente de asignar</small>
                         @endif
@@ -1213,12 +1204,123 @@
                             <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                         </a>
                     @endif
+
+                    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) && $alumno->estado === 'activo')
+                        <button type="button" class="accion-btn" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;"
+                                data-toggle="modal" data-target="#modalBaja">
+                            <div class="accion-icon" style="background:#fdecea;">
+                                <i class="fa fa-user-times" style="color:#e74c3c;font-size:13px;"></i>
+                            </div>
+                            Dar de baja
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </button>
+                    @endif
                 </div>
             </div>
+
+            {{-- Historial de bajas --}}
+            @if ($alumno->historialBajas->isNotEmpty())
+                <div class="info-card" style="border-color:#fca5a5;">
+                    <div class="info-card-header" style="background:#fff5f5;">
+                        <span class="info-card-title" style="color:#b91c1c;">
+                            <i class="fa fa-history" style="margin-right:5px;"></i>Historial de bajas
+                        </span>
+                    </div>
+                    @foreach ($alumno->historialBajas as $baja)
+                        <div style="padding:10px 16px;border-bottom:1px solid #f5f7fa;font-size:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                                <span style="font-weight:700;color:{{ $baja->tipo === 'baja_definitiva' ? '#b91c1c' : '#b45309' }};">
+                                    {{ $baja->tipoEtiqueta() }}
+                                </span>
+                                <span style="color:#9aa5b4;">{{ $baja->fecha_baja->format('d/m/Y') }}</span>
+                            </div>
+                            <div style="color:#4a5568;margin-top:2px;">
+                                <i class="fa fa-tag" style="font-size:9px;"></i>
+                                {{ $baja->motivo_categoria->etiqueta() }}
+                            </div>
+                            @if ($baja->motivo_detalle)
+                                <div style="color:#6b7a8d;margin-top:3px;font-style:italic;">
+                                    "{{ $baja->motivo_detalle }}"
+                                </div>
+                            @endif
+                            @if ($baja->registradoPor)
+                                <div style="color:#b0bec5;margin-top:2px;">
+                                    Registrado por {{ $baja->registradoPor->nombre }}
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
         </div>{{-- /col-md-4 --}}
 
     </div>{{-- /row --}}
+
+    {{-- ══ MODAL DAR DE BAJA ══ --}}
+    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) && $alumno->estado === 'activo')
+    <div class="modal fade" id="modalBaja" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#fff5f5;border-bottom:1px solid #fca5a5;">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" style="color:#b91c1c;">
+                        <i class="fa fa-user-times"></i> Dar de baja al alumno
+                    </h4>
+                </div>
+                <form method="POST" action="{{ route('alumnos.darBaja', $alumno->id) }}">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-body">
+                        <p style="font-size:13px;color:#6b7a8d;margin-bottom:16px;">
+                            Esta acción registrará la baja de
+                            <strong>{{ $alumno->nombre }} {{ $alumno->ap_paterno }}</strong>
+                            y desactivará su inscripción actual.
+                        </p>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Tipo de baja <span style="color:#e74c3c;">*</span></label>
+                            <select name="tipo_baja" class="form-control" required>
+                                <option value="">— Selecciona —</option>
+                                <option value="baja_temporal">Temporal (puede reingresar)</option>
+                                <option value="baja_definitiva">Definitiva</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Motivo de baja <span style="color:#e74c3c;">*</span></label>
+                            <select name="motivo_categoria" class="form-control" required>
+                                <option value="">— Selecciona el motivo —</option>
+                                <option value="cambio_escuela">Cambio de escuela</option>
+                                <option value="traslado">Traslado de ciudad/estado</option>
+                                <option value="economico">Motivos económicos</option>
+                                <option value="familiar">Situación familiar</option>
+                                <option value="salud">Problemas de salud</option>
+                                <option value="conducta">Problemas de conducta</option>
+                                <option value="rendimiento">Bajo rendimiento académico</option>
+                                <option value="otro">Otro motivo</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Observaciones adicionales</label>
+                            <textarea name="motivo_detalle" class="form-control" rows="3"
+                                      placeholder="Detalles adicionales sobre la baja (opcional)"
+                                      maxlength="1000"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #f0f3f7;">
+                        <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger btn-flat"
+                                onclick="return confirm('¿Confirmas la baja de este alumno?');">
+                            <i class="fa fa-user-times"></i> Confirmar baja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- ══ MODAL INSCRIPCIÓN ANTICIPADA ══ --}}
     @if (

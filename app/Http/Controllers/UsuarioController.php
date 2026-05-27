@@ -11,6 +11,8 @@ use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\CredencialesAccesoMail;
 
 
 class UsuarioController extends Controller
@@ -27,7 +29,7 @@ class UsuarioController extends Controller
             ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->activo))
             ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
-                    ->orWhere('email', 'like', "%{$request->buscar}%");
+                  ->orWhere('email', 'like', "%{$request->buscar}%");
             }))
             ->orderBy('rol')->orderBy('nombre')
             ->paginate($mostrar); // Paginación nativa de Laravel
@@ -91,6 +93,14 @@ class UsuarioController extends Controller
                 'rol'           => $request->rol,
                 'activo'        => true,
             ]);
+
+            // === NUEVA LÍNEA PARA ENVIAR CORREO ===
+            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => $request->password,
+                'rol'      => $usuario->rol
+            ]));
 
             // 3. Preparamos los datos para el PDF en la sesión temporal
             $credenciales = [[
@@ -168,6 +178,13 @@ class UsuarioController extends Controller
         $passwordPlana = $request->password;
         if (!empty($passwordPlana)) {
             $usuario->password_hash = Hash::make($passwordPlana);
+            // === NUEVA LÍNEA PARA ENVIAR CORREO DE ACTUALIZACIÓN ===
+            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => $passwordPlana,
+                'rol'      => $request->rol
+            ]));
         }
         $usuario->save();
 
@@ -224,17 +241,15 @@ class UsuarioController extends Controller
     
     public function generarUsuariosMasivos(Request $request)
     {
-        $ids = $request->input('contacto_ids');
+        $ids = $request->input('contacto_ids'); 
         $usuariosCreados = [];
 
         foreach ($ids as $id) {
             $contacto = ContactoFamiliar::with('familia')->findOrFail($id);
             
             // Evitar duplicados si ya tiene usuario
-            if ($contacto->usuario_id) {
-                continue;
-            }
-
+            if($contacto->usuario_id) continue;
+            
             $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
 
             // 1. ARMAMOS EL NOMBRE COMPLETO USANDO TUS COLUMNAS REALES
@@ -245,11 +260,19 @@ class UsuarioController extends Controller
                 'nombre'        => $nombreCompleto,
                 'email'         => $contacto->email,
                 'password_hash' => Hash::make($passwordPlana),
-                'rol' => 'padre',
-                'activo' => true,
+                'rol'           => 'padre',
+                'activo'        => true,
             ]);
 
             $contacto->update(['usuario_id' => $usuario->id]);
+
+            // === NUEVA LÍNEA PARA ENVIAR CORREO ===
+            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                'nombre'   => $nombreCompleto,
+                'email'    => $usuario->email,
+                'password' => $passwordPlana,
+                'rol'      => 'padre'
+            ]));
 
             $usuariosCreados[] = [
                 'nombre'   => $nombreCompleto, 
@@ -263,7 +286,7 @@ class UsuarioController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'mensaje' => count($usuariosCreados).' usuarios generados.',
+            'mensaje' => count($usuariosCreados) . ' usuarios generados.'
         ]);
     }
 
@@ -272,7 +295,7 @@ class UsuarioController extends Controller
         // Recuperamos los datos de la sesión
         $credenciales = session('credenciales_nuevas');
 
-        if (! $credenciales) {
+        if (!$credenciales) {
             return abort(404, 'No hay credenciales recientes para imprimir o la sesión caducó.');
         }
 
@@ -339,9 +362,4 @@ class UsuarioController extends Controller
         }
     }   
 
-            return $pdf->stream('Credenciales_Colegio.pdf');
-        }
-
-        return view('usuarios.pdf-credenciales', compact('credenciales'));
-    }
 }

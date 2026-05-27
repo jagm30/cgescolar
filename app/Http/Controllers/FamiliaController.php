@@ -261,6 +261,30 @@ class FamiliaController extends Controller
         return response()->json($contactos);
     }
     /**
+     * GET /familias/{id}/contactos-enlace
+     * Retorna datos completos de los contactos de una familia para pre-llenar
+     * el formulario de creación de alumno al vincular a familia existente.
+     */
+    public function contactosParaEnlace(int $id)
+    {
+        $familia = Familia::findOrFail($id);
+
+        $contactos = $familia->contactos()
+            ->get()
+            ->map(fn($c) => [
+                'nombre'              => $c->nombre,
+                'ap_paterno'          => $c->ap_paterno ?? '',
+                'ap_materno'          => $c->ap_materno ?? '',
+                'telefono_celular'    => $c->telefono_celular,
+                'email'               => $c->email ?? '',
+                'curp'                => $c->curp ?? '',
+                'tiene_acceso_portal' => $c->tiene_acceso_portal ? '1' : '0',
+            ]);
+
+        return response()->json($contactos);
+    }
+
+    /**
      * PUT /familias/contactos/{contactoId}
      * Actualiza los datos de un contacto familiar y su pivot con el alumno.
      * Solo AJAX — llamado desde la vista edit de alumno.

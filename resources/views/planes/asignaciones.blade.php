@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('page_title', 'Asignaciones de planes')
-@section('page_subtitle', 'Listado de asignaciones')
+@section('page_subtitle', 'Listado de planes asignados')
 
 @section('breadcrumb')
     <li><a href="{{ route('planes.index') }}">Planes de pago</a></li>
@@ -102,7 +102,7 @@
 
         <div class="box-header with-border" style="padding:16px;">
             <h3 class="box-title" style="font-weight:700; color:#1e4d7b;">
-                <i class="fa fa-list"></i> Lista de Asignaciones
+                <i class="fa fa-list"></i> Lista de planes disponibles
             </h3>
         </div>
 
@@ -113,7 +113,7 @@
                 <div class="text-center" style="padding: 40px">
                     <i class="fa fa-spinner fa-spin fa-2x"></i>
                     <div class="text-muted" style="margin-top: 12px;">
-                        Cargando asignaciones...
+                        Cargando planes asignados...
                     </div>
                 </div>
             </div>
@@ -137,7 +137,7 @@
             <div class="row">
                 <div class="col-sm-6 text-muted">
                     Mostrando ${response.pagination.from || 0} - ${response.pagination.to || 0}
-                    de ${response.pagination.total} asignaciones
+                    de ${response.pagination.total} planes asignados
                 </div>
                 <div class="col-sm-6 text-right">
                     <ul class="pagination pagination-sm no-margin">
@@ -172,8 +172,8 @@
                 <thead style="background:#f4f6f9;">
                     <tr>
                         <th>Plan</th>
-                        <th>Asignado a</th>
-                        <th>Tipo</th>
+                        <th>Nivel</th>
+                        <th>Asignaciones</th>
                         <th>Fecha inicio</th>
                         <th>Fecha fin</th>
                     </tr>
@@ -186,27 +186,16 @@
                 <tr>
                     <td colspan="5" class="text-center text-muted" style="padding:40px;">
                         <i class="fa fa-random fa-3x" style="color:#e0e0e0; display:block; margin-bottom:10px;"></i>
-                        No hay asignaciones registradas.
+                        No hay planes asignados.
                     </td>
                 </tr>`;
         } else {
             response.data.forEach(function(item) {
-
-                let tipoClass = 'badge-tipo';
-
-                if(item.origen === 'Grupo') tipoClass += ' badge-grupo';
-                if(item.origen === 'Individual') tipoClass += ' badge-individual';
-                if(item.origen === 'Nivel') tipoClass += ' badge-nivel';
-
                 html += `
                     <tr>
                         <td><strong>${item.plan}</strong></td>
-                        <td>${item.asignado_a}</td>
-                        <td>
-                            <span class="${tipoClass}">
-                                ${item.origen}
-                            </span>
-                        </td>
+                        <td>${item.nivel}</td>
+                        <td>${item.asignaciones}</td>
                         <td>${item.fecha_inicio}</td>
                         <td>${item.fecha_fin}</td>
                     </tr>
@@ -225,7 +214,7 @@
             <div class="text-center" style="padding: 40px">
                 <i class="fa fa-spinner fa-spin fa-2x"></i>
                 <div class="text-muted" style="margin-top: 12px;">
-                    Cargando asignaciones...
+                    Cargando planes asignados...
                 </div>
             </div>
         `);
@@ -239,7 +228,7 @@
             error: function() {
                 $('#asignaciones-content').html(`
                     <div class="alert alert-danger" style="border-radius:6px;">
-                        Error al cargar las asignaciones.
+                        Error al cargar los planes asignados.
                     </div>
                 `);
             }

@@ -292,7 +292,7 @@
                     @if($ins)
                         &nbsp;·&nbsp;
                         {{ $ins->grupo->grado->nivel->nombre ?? '' }}
-                        {{ $ins->grupo->grado->nombre }}°
+                        {{ $ins->grupo->grado->numero }}°
                         {{ $ins->grupo->nombre }}
                     @endif
                 </div>

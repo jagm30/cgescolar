@@ -176,6 +176,11 @@
                                 <i class="fa fa-circle-o"></i> Registrar alumno
                             </a>
                         </li>
+                        <li class="{{ request()->routeIs('alumnos.bajas') ? 'active' : '' }}">
+                            <a href="{{ route('alumnos.bajas') }}">
+                                <i class="fa fa-circle-o"></i> Reporte de bajas
+                            </a>
+                        </li>
                     </ul>
                 </li>
 

@@ -308,33 +308,118 @@ class PlanPagoController extends Controller
     /** GET /planes/asignaciones */
     public function indexAsignaciones(Request $request)
     {
-        $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel', 'conceptosSeleccionados'])
-            ->orderBy('id', 'desc')
-            ->paginate(10);
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+
+        $planesAsignados = PlanPago::with('nivel')
+            ->withCount('asignaciones')
+            ->where('ciclo_id', $cicloId)
+            ->whereHas('asignaciones')
+            ->orderBy('nombre')
+            ->paginate(10, ['*'], 'asignaciones_page');
 
         if ($request->ajax()) {
             return response()->json([
-                'data' => $asignaciones->map(function ($a) {
+                'data' => $planesAsignados->map(function ($plan) {
                     return [
-                        'plan' => $a->plan->nombre,
-                        'asignado_a' => $a->alumno?->nombre_completo ?? $a->grupo?->nombre ?? $a->nivel?->nombre ?? '-',
-                        'origen' => ucfirst($a->origen),
-                        'conceptos' => $a->conceptosSeleccionados->count(),
-                        'fecha_inicio' => $a->fecha_inicio?->format('d/m/Y') ?? '-',
-                        'fecha_fin' => $a->fecha_fin?->format('d/m/Y') ?? '-',
+                        'plan' => $plan->nombre,
+                        'nivel' => $plan->nivel?->nombre ?? '-',
+                        'asignaciones' => $plan->asignaciones_count,
+                        'fecha_inicio' => $plan->fecha_inicio?->format('d/m/Y') ?? '-',
+                        'fecha_fin' => $plan->fecha_fin?->format('d/m/Y') ?? '-',
                     ];
                 })->all(),
                 'pagination' => [
-                    'current_page' => $asignaciones->currentPage(),
-                    'last_page' => $asignaciones->lastPage(),
-                    'total' => $asignaciones->total(),
-                    'from' => $asignaciones->firstItem(),
-                    'to' => $asignaciones->lastItem(),
+                    'current_page' => $planesAsignados->currentPage(),
+                    'last_page' => $planesAsignados->lastPage(),
+                    'total' => $planesAsignados->total(),
+                    'from' => $planesAsignados->firstItem(),
+                    'to' => $planesAsignados->lastItem(),
                 ],
             ]);
         }
 
-        return view('planes.asignaciones', compact('asignaciones'));
+        return view('planes.asignaciones', compact('planesAsignados'));
+    }
+
+    public function planesDisponibles(Request $request)
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        $origen = $request->get('origen');
+        $alumnoId = $request->integer('alumno_id');
+        $grupoId = $request->integer('grupo_id');
+        $nivelId = $request->integer('nivel_id');
+
+        if (! in_array($origen, ['individual', 'grupo', 'nivel'], true)) {
+            return response()->json([]);
+        }
+
+        if (($origen === 'individual' && ! $alumnoId)
+            || ($origen === 'grupo' && ! $grupoId)
+            || ($origen === 'nivel' && ! $nivelId)) {
+            return response()->json([]);
+        }
+
+        $planIds = collect();
+        $asignacionesQuery = AsignacionPlan::query()
+            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId)->where('activo', true));
+
+        if ($origen === 'individual' && $alumnoId) {
+            $inscripcion = Inscripcion::with('grupo.grado')
+                ->where('alumno_id', $alumnoId)
+                ->where('ciclo_id', $cicloId)
+                ->where('activo', true)
+                ->first();
+
+            if (! $inscripcion) {
+                return response()->json([]);
+            }
+
+            $nivelIdAlumno = $inscripcion->grupo?->grado?->nivel_id;
+
+            $planIds = $asignacionesQuery->where(function ($query) use ($alumnoId, $inscripcion, $nivelIdAlumno) {
+                $query->where(fn ($query) => $query->where('origen', 'individual')->where('alumno_id', $alumnoId))
+                    ->orWhere(fn ($query) => $query->where('origen', 'grupo')->where('grupo_id', $inscripcion->grupo_id));
+
+                if ($nivelIdAlumno) {
+                    $query->orWhere(fn ($query) => $query->where('origen', 'nivel')->where('nivel_id', $nivelIdAlumno));
+                }
+            })->pluck('plan_id');
+        } elseif ($origen === 'grupo' && $grupoId) {
+            $grupo = Grupo::with('grado')->find($grupoId);
+            $nivelIdGrupo = $grupo?->grado?->nivel_id;
+
+            $planIds = $asignacionesQuery->where(function ($query) use ($grupoId, $nivelIdGrupo) {
+                $query->where(fn ($query) => $query->where('origen', 'grupo')->where('grupo_id', $grupoId));
+
+                if ($nivelIdGrupo) {
+                    $query->orWhere(fn ($query) => $query->where('origen', 'nivel')->where('nivel_id', $nivelIdGrupo));
+                }
+            })->pluck('plan_id');
+        } elseif ($origen === 'nivel' && $nivelId) {
+            $planIds = $asignacionesQuery
+                ->where('origen', 'nivel')
+                ->where('nivel_id', $nivelId)
+                ->pluck('plan_id');
+        }
+
+        $planIds = $planIds->unique()->values()->all();
+
+        $planesDisponibles = PlanPago::where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            ->when(! empty($planIds), fn ($query) => $query->whereNotIn('id', $planIds))
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'fecha_inicio', 'fecha_fin']);
+
+        return response()->json($planesDisponibles->map(function ($plan) {
+            return [
+                'id' => $plan->id,
+                'nombre' => $plan->nombre,
+                'fecha_inicio' => $plan->fecha_inicio?->format('Y-m-d'),
+                'fecha_fin' => $plan->fecha_fin?->format('Y-m-d'),
+            ];
+        }));
     }
 
     /** GET /planes/asignacion/{alumnoId} — solo AJAX */

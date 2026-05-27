@@ -122,6 +122,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
     Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
+    Route::get('/alumnos-bajas', [AlumnoController::class, 'reporteBajas'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('alumnos.bajas');
     Route::post('/alumnos/{id}/inscripcion-anticipada', [AlumnoController::class, 'registrarAnticipada'])
         ->middleware('rol:administrador,recepcion')
         ->name('alumnos.inscripcion-anticipada');
@@ -157,6 +160,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/planes/asignar/nuevo', [PlanPagoController::class, 'createAsignacion'])
         ->middleware('rol:administrador')
         ->name('planes.asignar.form');
+
+    Route::get('/planes/asignar/disponibles', [PlanPagoController::class, 'planesDisponibles'])
+        ->middleware('rol:administrador')
+        ->name('planes.asignar.disponibles');
 
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
         ->middleware('rol:administrador')
@@ -340,6 +347,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::get('{id}/contactos', [FamiliaController::class, 'contactos'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos');
+        // Datos de contactos para pre-llenar formulario de creación de alumno (AJAX)
+        Route::get('{id}/contactos-enlace', [FamiliaController::class, 'contactosParaEnlace'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.enlace');
         // Actualizar datos de un contacto (AJAX desde edit de alumno)
         Route::put('contactos/{contactoId}', [FamiliaController::class, 'actualizarContacto'])
             ->middleware('rol:administrador,recepcion')
