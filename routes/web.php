@@ -122,6 +122,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
     Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
+    Route::get('/alumnos-bajas', [AlumnoController::class, 'reporteBajas'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('alumnos.bajas');
     Route::post('/alumnos/{id}/inscripcion-anticipada', [AlumnoController::class, 'registrarAnticipada'])
         ->middleware('rol:administrador,recepcion')
         ->name('alumnos.inscripcion-anticipada');
