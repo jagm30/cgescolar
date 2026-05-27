@@ -11,6 +11,8 @@ use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\CredencialesAccesoMail;
 
 
 class UsuarioController extends Controller
@@ -92,6 +94,14 @@ class UsuarioController extends Controller
                 'activo'        => true,
             ]);
 
+            // === NUEVA LÍNEA PARA ENVIAR CORREO ===
+            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => $request->password,
+                'rol'      => $usuario->rol
+            ]));
+
             // 3. Preparamos los datos para el PDF en la sesión temporal
             $credenciales = [[
                 'nombre'   => $usuario->nombre,
@@ -168,6 +178,13 @@ class UsuarioController extends Controller
         $passwordPlana = $request->password;
         if (!empty($passwordPlana)) {
             $usuario->password_hash = Hash::make($passwordPlana);
+            // === NUEVA LÍNEA PARA ENVIAR CORREO DE ACTUALIZACIÓN ===
+            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                'nombre'   => $usuario->nombre,
+                'email'    => $usuario->email,
+                'password' => $passwordPlana,
+                'rol'      => $request->rol
+            ]));
         }
         $usuario->save();
 
@@ -248,6 +265,14 @@ class UsuarioController extends Controller
             ]);
 
             $contacto->update(['usuario_id' => $usuario->id]);
+
+            // === NUEVA LÍNEA PARA ENVIAR CORREO ===
+            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                'nombre'   => $nombreCompleto,
+                'email'    => $usuario->email,
+                'password' => $passwordPlana,
+                'rol'      => 'padre'
+            ]));
 
             $usuariosCreados[] = [
                 'nombre'   => $nombreCompleto, 
