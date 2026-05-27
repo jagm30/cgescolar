@@ -123,6 +123,11 @@ class Alumno extends Model
         return $this->hasMany(AsignacionPlan::class, 'alumno_id');
     }
 
+    public function historialBajas(): HasMany
+    {
+        return $this->hasMany(HistorialBaja::class, 'alumno_id')->orderByDesc('fecha_baja');
+    }
+
     /** Contactos vinculados al alumno (vía alumno_contacto) */
     public function contactos(): BelongsToMany
     {
