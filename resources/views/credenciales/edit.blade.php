@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                                ========================================================================== */
+                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
+                        ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -311,8 +311,8 @@
         }
 
         /* ==========================================================================
-                                                    REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS
-                                                ========================================================================== */
+                                            REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS
+                           ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -356,48 +356,111 @@
             }
         }
 
-        /* PANEL DE PROPIEDADES FLOTANTE */
-        #panel-edicion {
+        /* Menú contextual flotante */
+        #ctx-menu {
             position: fixed;
             z-index: 9999;
-            width: 260px;
-            border-top: 3px solid #f39c12 !important;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-            border-radius: 6px;
             display: none;
-            /* top y left se setean dinámicamente por JS */
+            flex-direction: column;
+            background: white;
+            border: 0.5px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+            overflow: hidden;
+            min-width: 155px;
         }
 
-        #panel-edicion .box-header {
-            cursor: move;
-            border-radius: 3px 3px 0 0;
-            background: #fdf3e0;
-            padding: 8px 12px;
+        .ctx-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-        }
-
-        #panel-edicion .box-title {
+            gap: 8px;
+            padding: 8px 13px;
             font-size: 13px;
-            font-weight: bold;
-            color: #8a6d3b;
-        }
-
-        #panel-edicion-close {
             cursor: pointer;
-            color: #8a6d3b;
-            font-size: 16px;
-            line-height: 1;
-            background: none;
-            border: none;
-            padding: 0 4px;
+            border-bottom: 0.5px solid #eee;
+            color: #333;
+            background: white;
+            transition: background 0.1s;
         }
 
-        #panel-edicion .box-body {
+        .ctx-row:last-child {
+            border-bottom: none;
+        }
+
+        .ctx-row:hover {
+            background: #f5f5f5;
+        }
+
+        .ctx-row.danger {
+            color: #a32d2d;
+        }
+
+        .ctx-row.props-btn {
+            color: #185fa5;
+            font-weight: 600;
+        }
+
+        #ctx-props-panel {
+            display: none;
+            flex-direction: column;
             padding: 10px 12px;
+            gap: 8px;
+            border-top: 0.5px solid #eee;
+            background: #fafafa;
+        }
+
+        #ctx-props-panel.open {
+            display: flex;
+        }
+
+        .ctx-prop-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .ctx-prop-row label {
+            min-width: 52px;
+        }
+
+        .ctx-prop-row input[type=range] {
+            flex: 1;
+        }
+
+        .ctx-prop-row input[type=color] {
+            width: 30px;
+            height: 24px;
+            padding: 1px;
+            border-radius: 3px;
+            border: 0.5px solid #ccc;
+            cursor: pointer;
+        }
+
+        .ctx-style-btn {
+            padding: 2px 7px;
+            font-size: 12px;
+            border: 0.5px solid #ccc;
+            border-radius: 4px;
             background: white;
-            border-radius: 0 0 6px 6px;
+            cursor: pointer;
+        }
+
+        .ctx-style-btn.active {
+            background: #185fa5;
+            color: white;
+            border-color: #185fa5;
+        }
+
+        .ctx-chevron {
+            margin-left: auto;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .ctx-chevron.open {
+            transform: rotate(180deg);
         }
     </style>
 
@@ -743,43 +806,52 @@
         </div>
     </div>
 
-    {{-- PANEL DE PROPIEDADES FLOTANTE --}}
-    <div id="panel-edicion" class="box box-warning">
-        <div class="box-header with-border" id="panel-edicion-header">
-            <h3 class="box-title"><i class="fa fa-sliders"></i> Propiedades</h3>
-            <button id="panel-edicion-close" onclick="deselect()" title="Cerrar">×</button>
+    {{-- MENÚ CONTEXTUAL FLOTANTE --}}
+    <div id="ctx-menu">
+        <div class="ctx-row" onclick="ctxDuplicar()">
+            <i class="fa fa-clone"></i> Duplicar
         </div>
-        <div class="box-body">
-            <label>Texto Contenido:</label>
-            <input type="text" id="prop-text" class="form-control" oninput="updateLive()"><br>
-            <label>Tipografía:</label>
-            <select id="prop-font" class="form-control" onchange="updateLive()">
-                <option value="'Roboto', sans-serif">Roboto</option>
-                <option value="'Montserrat', sans-serif">Montserrat</option>
-                <option value="'Oswald', sans-serif">Oswald</option>
-            </select><br>
-            <label>Estilo y Alineación:</label>
-            <div class="btn-group btn-group-justified" style="margin-bottom: 10px;">
-                <a class="btn btn-default btn-sm" id="btn-bold" onclick="toggleBold()"><i class="fa fa-bold"></i></a>
-                <a class="btn btn-default btn-sm" id="btn-italic" onclick="toggleItalic()"><i
-                        class="fa fa-italic"></i></a>
-                <a class="btn btn-default btn-sm" id="align-left" onclick="setAlign('left')"><i
-                        class="fa fa-align-left"></i></a>
-                <a class="btn btn-default btn-sm" id="align-center" onclick="setAlign('center')"><i
-                        class="fa fa-align-center"></i></a>
-                <a class="btn btn-default btn-sm" id="align-right" onclick="setAlign('right')"><i
-                        class="fa fa-align-right"></i></a>
+        <div class="ctx-row props-btn" id="ctx-props-toggle" onclick="ctxToggleProps()">
+            <i class="fa fa-sliders"></i> Propiedades
+            <i class="fa fa-chevron-down ctx-chevron" id="ctx-chevron"></i>
+        </div>
+        <div id="ctx-props-panel">
+            <div class="ctx-prop-row">
+                <label>Texto:</label>
+                <input type="text" id="prop-text" class="form-control input-sm" oninput="updateLive()">
             </div>
-            <div class="row">
-                <div class="col-xs-8">
-                    <label>Tamaño: <span id="txt-size">14</span>px</label>
-                    <input type="range" id="prop-size" min="6" max="100" oninput="updateLive()">
-                </div>
-                <div class="col-xs-4">
-                    <label>Color:</label>
-                    <input type="color" id="prop-color" class="form-control" onchange="updateLive()">
+            <div class="ctx-prop-row">
+                <label>Fuente:</label>
+                <select id="prop-font" class="form-control input-sm" onchange="updateLive()" style="font-size:12px;">
+                    <option value="'Roboto', sans-serif">Roboto</option>
+                    <option value="'Montserrat', sans-serif">Montserrat</option>
+                    <option value="'Oswald', sans-serif">Oswald</option>
+                </select>
+            </div>
+            <div class="ctx-prop-row">
+                <label>Estilo:</label>
+                <div style="display:flex;gap:4px;">
+                    <button class="ctx-style-btn" id="btn-bold" onclick="toggleBold()"><b>N</b></button>
+                    <button class="ctx-style-btn" id="btn-italic" onclick="toggleItalic()"><i>K</i></button>
+                    <button class="ctx-style-btn" id="align-left" onclick="setAlign('left')"><i
+                            class="fa fa-align-left"></i></button>
+                    <button class="ctx-style-btn" id="align-center" onclick="setAlign('center')"><i
+                            class="fa fa-align-center"></i></button>
+                    <button class="ctx-style-btn" id="align-right" onclick="setAlign('right')"><i
+                            class="fa fa-align-right"></i></button>
                 </div>
             </div>
+            <div class="ctx-prop-row">
+                <label>Tamaño: <span id="txt-size">14</span>px</label>
+                <input type="range" id="prop-size" min="6" max="100" oninput="updateLive()">
+            </div>
+            <div class="ctx-prop-row">
+                <label>Color:</label>
+                <input type="color" id="prop-color" onchange="updateLive()">
+            </div>
+        </div>
+        <div class="ctx-row danger" onclick="ctxEliminar()">
+            <i class="fa fa-trash"></i> Eliminar
         </div>
     </div>
 
@@ -1279,26 +1351,29 @@
             selected = el;
             el.classList.add('selected');
 
-            const panel = document.getElementById('panel-edicion');
-
-            // Posicionar junto al elemento seleccionado
+            // Posicionar el menú junto al elemento
             const rect = el.getBoundingClientRect();
-            const panelW = 260;
-            const margin = 12;
+            const menu = document.getElementById('ctx-menu');
+            const menuW = 160;
+            const margin = 8;
+
             let left = rect.right + margin;
             let top = rect.top + window.scrollY;
 
-            // Si se sale por la derecha, aparece a la izquierda del elemento
-            if (left + panelW > window.innerWidth - 10) {
-                left = rect.left - panelW - margin;
+            if (left + menuW > window.innerWidth - 10) {
+                left = rect.left - menuW - margin;
             }
-            // Si se va muy arriba o muy abajo, lo ancla al viewport
-            top = Math.max(60, Math.min(top, window.innerHeight + window.scrollY - 320));
+            top = Math.max(60, top);
 
-            panel.style.left = left + 'px';
-            panel.style.top = top + 'px';
-            panel.style.display = 'block';
+            menu.style.left = left + 'px';
+            menu.style.top = top + 'px';
+            menu.style.display = 'flex';
 
+            // Cerrar propiedades al cambiar de elemento
+            document.getElementById('ctx-props-panel').classList.remove('open');
+            document.getElementById('ctx-chevron').classList.remove('open');
+
+            // Poblar valores actuales
             const isMedia = (el.dataset.type === 'foto' || el.dataset.type === 'logo');
             const propText = document.getElementById('prop-text');
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
@@ -1314,8 +1389,8 @@
             if (e && (!e.target.closest || !e.target.closest('.credencial-canvas-instance'))) return;
             document.querySelectorAll('.draggable-item').forEach(i => i.classList.remove('selected'));
             selected = null;
-            document.getElementById('panel-edicion').style.display = 'none';
             document.querySelectorAll('.group-outline').forEach(o => o.style.display = 'none');
+            document.getElementById('ctx-menu').style.display = 'none';
         }
 
         function updateLive() {
@@ -1339,7 +1414,8 @@
 
         function updateUIButtons() {
             if (!selected) return;
-            document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#btn-bold, #btn-italic, #align-left, #align-center, #align-right').forEach(b => b
+                .classList.remove('active'));
             if (selected.style.fontWeight === 'bold' || selected.style.fontWeight === '700') document.getElementById(
                 'btn-bold').classList.add('active');
             if (selected.style.fontStyle === 'italic') document.getElementById('btn-italic').classList.add('active');
@@ -1656,29 +1732,67 @@
                 markAsUnsaved();
             }
         };
-        // DRAG del panel de propiedades por su header
-        (function() {
-            const panel = document.getElementById('panel-edicion');
-            const header = document.getElementById('panel-edicion-header');
-            if (!panel || !header) return;
-            let dragging = false,
-                ox = 0,
-                oy = 0;
-            header.addEventListener('mousedown', function(e) {
-                if (e.target.id === 'panel-edicion-close') return;
-                dragging = true;
-                ox = e.clientX - panel.getBoundingClientRect().left;
-                oy = e.clientY - panel.getBoundingClientRect().top;
-                e.preventDefault();
-            });
-            document.addEventListener('mousemove', function(e) {
-                if (!dragging) return;
-                panel.style.left = (e.clientX - ox) + 'px';
-                panel.style.top = (e.clientY - oy) + 'px';
-            });
-            document.addEventListener('mouseup', function() {
-                dragging = false;
-            });
-        })();
+
+        function ctxToggleProps() {
+            const panel = document.getElementById('ctx-props-panel');
+            const chev = document.getElementById('ctx-chevron');
+            const isOpen = panel.classList.toggle('open');
+            chev.classList.toggle('open', isOpen);
+
+            // Reajustar posición si se sale de la pantalla hacia abajo
+            const menu = document.getElementById('ctx-menu');
+            const rect = menu.getBoundingClientRect();
+            if (rect.bottom > window.innerHeight - 10) {
+                menu.style.top = (parseInt(menu.style.top) - (rect.bottom - window.innerHeight + 10)) + 'px';
+            }
+        }
+
+        function ctxDuplicar() {
+            if (!selected) return;
+            const span = selected.querySelector('.content-span');
+            const img = span ? span.querySelector('img') : null;
+            const id = 'el_' + Date.now();
+            const targetCanvasId = (currentFace === 'anverso') ? 'credencial-canvas' : 'credencial-canvas-reverso';
+            const canvas = document.getElementById(targetCanvasId);
+
+            restoreElement({
+                id: id,
+                type: selected.dataset.type,
+                x: parseFloat(selected.dataset.x) + 15,
+                y: parseFloat(selected.dataset.y) + 15,
+                text: span ? span.innerText : '',
+                fontSize: selected.style.fontSize,
+                color: selected.style.color,
+                width: selected.style.width,
+                height: selected.style.height,
+                textAlign: selected.style.textAlign,
+                fontWeight: selected.style.fontWeight,
+                fontStyle: selected.style.fontStyle,
+                fontFamily: selected.style.fontFamily,
+                isLabel: selected.classList.contains('is-label'),
+                logo_src: img ? img.src : null,
+                parentId: null,
+            }, canvas);
+
+            const newEl = document.getElementById(id);
+            if (newEl) selectEl(newEl);
+            markAsUnsaved();
+        }
+
+        function ctxEliminar() {
+            if (!selected) return;
+            selected.remove();
+            selected = null;
+            document.getElementById('ctx-menu').style.display = 'none';
+        }
+
+        // Cerrar el menú al hacer click fuera
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('ctx-menu');
+            if (!menu.contains(e.target) && !e.target.closest('.draggable-element')) {
+                menu.style.display = 'none';
+                deselect();
+            }
+        });
     </script>
 @endsection
