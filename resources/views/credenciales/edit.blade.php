@@ -356,6 +356,32 @@
             }
         }
 
+        /* ── IMPRESIÓN DESDE EL EDITOR: fuerza ambas caras visibles ── */
+        @media print {
+            #credencial-canvas,
+            #credencial-canvas-reverso {
+                display: block !important;
+                page-break-before: always;
+            }
+            #credencial-canvas {
+                page-break-before: avoid;
+            }
+            .col-md-3,
+            #btn-show-anverso,
+            #btn-show-reverso,
+            .no-print {
+                display: none !important;
+            }
+            .col-md-9 {
+                width: 100% !important;
+            }
+            #canvas-container {
+                padding: 10px !important;
+                background: white !important;
+                gap: 0 !important;
+            }
+        }
+
         /* Menú contextual flotante */
         #ctx-menu {
             position: fixed;
@@ -659,7 +685,7 @@
                             @php
                                 $insc = $alumno->inscripciones->first();
                                 $nivelStr = $insc?->grupo?->grado?->nivel?->nombre ?? '';
-                                $gradoStr = $insc?->grupo?->grado?->nombre ?? '';
+                                $gradoStr = $insc?->grupo?->grado?->numero ?? '';
                                 $grupoStr = $insc?->grupo?->nombre ?? '';
 
                                 $contactos = $alumno->familia?->contactos ?? collect();
@@ -755,14 +781,17 @@
                             data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
                             data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
                             data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
-                            data-grado="{{ $inscM?->grupo?->grado?->nombre ?? '1°' }}"
+                            data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
                             data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
                             data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
                             data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
                             data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
                             data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
-                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}" data-autorizado1=""
-                            data-autorizado2="" data-autorizado3="" data-director="" data-puesto_director=""
+                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
+                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
+                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
+                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
+                            data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                             onclick="deselect(event)">
                             @if ($diseno->fondo_anverso)
                                 <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial"
@@ -780,14 +809,17 @@
                             data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
                             data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
                             data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
-                            data-grado="{{ $inscM?->grupo?->grado?->nombre ?? '1°' }}"
+                            data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
                             data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
                             data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
                             data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
                             data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
                             data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
-                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}" data-autorizado1=""
-                            data-autorizado2="" data-autorizado3="" data-director="" data-puesto_director=""
+                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
+                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
+                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
+                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
+                            data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                             onclick="deselect(event)" style="display:none;">
                             @if ($diseno->fondo_reverso)
                                 <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial"
@@ -1131,8 +1163,8 @@
                     if (!fotoUrl || fotoUrl.trim() === '') isEmpty = true;
                 }
 
-                // ── MAGIA INGENIERIL: Ocultamiento total forzado (!important) ──
-                if (isEmpty) {
+                // ── Solo ocultar en modo impresión, nunca en el editor ──
+                if (isEmpty && isModeVisual) {
                     el.style.setProperty('display', 'none', 'important');
                     if (el.dataset.parentId) {
                         setTimeout(() => {
@@ -1495,8 +1527,69 @@
         }
 
         function addSelectedLabel() {
-            const text = document.getElementById('select-etiquetas').value;
-            addElement('label', text);
+            const labelToType = {
+                'Nombre:':        { type: 'nombre',          text: 'ALBERTO SAMAYOA'   },
+                'Matrícula:':     { type: 'matricula',       text: '2026-0001'          },
+                'Nivel:':         { type: 'nivel',           text: 'SECUNDARIA'         },
+                'Grado:':         { type: 'grado',           text: '1°'                 },
+                'Grupo:':         { type: 'grupo',           text: 'A'                  },
+                'Ciclo Escolar:': { type: 'ciclo',           text: '2025-2026'          },
+                'Tipo Sangre:':   { type: 'sangre',          text: 'O+'                 },
+                'Tutor:':         { type: 'tutor',           text: 'NOMBRE DEL TUTOR'   },
+                'Tel. Emergencia:':{ type: 'tel_emergencia', text: '961-000-0000'       },
+                'Autorizado 1:':  { type: 'autorizado1',     text: 'AUTORIZADO 1'       },
+                'Autorizado 2:':  { type: 'autorizado2',     text: 'AUTORIZADO 2'       },
+                'Autorizado 3:':  { type: 'autorizado3',     text: 'AUTORIZADO 3'       },
+                'Director:':      { type: 'director',        text: 'LIC. JUAN PÉREZ'    },
+                'Firma:':         null,
+            };
+
+            const labelText = document.getElementById('select-etiquetas').value;
+            const mapping   = labelToType[labelText];
+
+            // 1. Agregar la etiqueta (label estático)
+            addElement('label', labelText);
+            const labelEl = selected;
+
+            // 2. Si tiene dato dinámico correspondiente, anclarlo a la derecha automáticamente
+            if (mapping) {
+                const labelId = labelEl.id;
+                const pX = parseFloat(labelEl.dataset.x);
+                const pY = parseFloat(labelEl.dataset.y);
+                const pW = labelEl.offsetWidth || 80; // offsetWidth disponible tras render
+
+                const dataId = 'el_' + Date.now();
+                const targetCanvasId = (currentFace === 'anverso')
+                    ? 'credencial-canvas'
+                    : 'credencial-canvas-reverso';
+                const canvas = document.getElementById(targetCanvasId);
+
+                restoreElement({
+                    id:         dataId,
+                    type:       mapping.type,
+                    x:          pX + pW,
+                    y:          pY,
+                    text:       mapping.text,
+                    fontSize:   labelEl.style.fontSize  || '14px',
+                    color:      mapping.type === 'sangre' ? '#e74c3c' : '#033b8a',
+                    width:      'auto',
+                    height:     'auto',
+                    textAlign:  'left',
+                    fontWeight: 'bold',
+                    fontStyle:  'normal',
+                    fontFamily: "'Montserrat', sans-serif",
+                    isLabel:    false,
+                    parentId:   labelId,
+                }, canvas);
+
+                const dataEl = document.getElementById(dataId);
+                if (dataEl) {
+                    drawGroupOutline(labelEl, canvas);
+                    selectEl(dataEl);
+                }
+            }
+
+            markAsUnsaved();
         }
 
         function openAnchor(id, dir) {
@@ -1760,7 +1853,9 @@
                 type: selected.dataset.type,
                 x: parseFloat(selected.dataset.x) + 15,
                 y: parseFloat(selected.dataset.y) + 15,
-                text: span ? span.innerText : '',
+                text: selected.classList.contains('is-label')
+                    ? (span ? span.innerText : '')
+                    : selected.dataset.type.toUpperCase(),
                 fontSize: selected.style.fontSize,
                 color: selected.style.color,
                 width: selected.style.width,
