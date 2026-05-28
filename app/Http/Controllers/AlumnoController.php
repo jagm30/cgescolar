@@ -101,6 +101,8 @@ class AlumnoController extends Controller
             'becas.catalogoBeca',
             'becas.plan',
             'becas.concepto',
+            'historialBajas.ciclo',
+            'historialBajas.registradoPor',
         ])->findOrFail($id);
 
         if (request()->ajax()) {
@@ -320,22 +322,38 @@ class AlumnoController extends Controller
                     $inscActiva->update(['activo' => false]);
                     Inscripcion::create([
                         'alumno_id' => $alumno->id,
-                        'ciclo_id' => $cicloId,
-                        'grupo_id' => $grupoId ?: null,
-                        'fecha' => now()->toDateString(),
-                        'activo' => true,
-                        'tipo' => TipoInscripcion::Regular,
+                        'ciclo_id'  => $cicloId,
+                        'grupo_id'  => $grupoId ?: null,
+                        'fecha'     => now()->toDateString(),
+                        'activo'    => true,
+                        'tipo'      => TipoInscripcion::Regular,
                     ]);
                 }
             } else {
+                // Sin inscripción activa — puede ser un alumno dado de baja que se reincorpora
                 Inscripcion::create([
                     'alumno_id' => $alumno->id,
-                    'ciclo_id' => $cicloId,
-                    'grupo_id' => $grupoId ?: null,
-                    'fecha' => now()->toDateString(),
-                    'activo' => true,
-                    'tipo' => TipoInscripcion::Regular,
+                    'ciclo_id'  => $cicloId,
+                    'grupo_id'  => $grupoId ?: null,
+                    'fecha'     => now()->toDateString(),
+                    'activo'    => true,
+                    'tipo'      => TipoInscripcion::Regular,
                 ]);
+            }
+
+            // Si el alumno estaba dado de baja y se le asigna inscripción, reactivarlo
+            if (in_array($alumno->estado, ['baja_temporal', 'baja_definitiva'])) {
+                $alumno->update([
+                    'estado'     => 'activo',
+                    'fecha_baja' => null,
+                ]);
+
+                // Marcar la baja más reciente como reactivada
+                $alumno->historialBajas()
+                    ->whereNull('fecha_reactivacion')
+                    ->latest('fecha_baja')
+                    ->first()
+                    ?->update(['fecha_reactivacion' => today()]);
             }
         }
 
@@ -735,24 +753,75 @@ class AlumnoController extends Controller
     public function darBaja(Request $request, int $id)
     {
         $request->validate([
-            'tipo_baja' => 'required|in:baja_temporal,baja_definitiva',
-            'observaciones' => 'nullable|string',
+            'tipo_baja'        => 'required|in:baja_temporal,baja_definitiva',
+            'motivo_categoria' => 'required|in:cambio_escuela,traslado,economico,familiar,salud,conducta,rendimiento,otro',
+            'motivo_detalle'   => 'nullable|string|max:1000',
         ]);
 
         $alumno = Alumno::findOrFail($id);
+        $cicloActual = CicloEscolar::where('estado', 'activo')->first();
 
         // Obtenemos la observación actual por si ya tenía algo escrito antes
         $obsAnterior = $alumno->observaciones ? $alumno->observaciones . ' | ' : '';
 
-        $alumno->update([
-            'estado' => $request->tipo_baja,
-            'fecha_baja' => now(),
-            'observaciones' => $obsAnterior . $request->observaciones, // Concatenamos la razón
-        ]);
+     
+        DB::transaction(function () use ($request, $alumno, $cicloActual) {
+            $alumno->update([
+                'estado'     => $request->tipo_baja,
+                'fecha_baja' => today(),
+            ]);
 
-        $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
+            $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
+
+            \App\Models\HistorialBaja::create([
+                'alumno_id'        => $alumno->id,
+                'ciclo_id'         => $cicloActual?->id,
+                'registrado_por'   => auth()->id(),
+                'tipo'             => $request->tipo_baja,
+                'motivo_categoria' => $request->motivo_categoria,
+                'motivo_detalle'   => $request->motivo_detalle,
+                'fecha_baja'       => today(),
+            ]);
+        });
 
         return back()->with('success', 'Se registró la baja correctamente en el expediente.');
+    }
+
+    /**
+     * GET /alumnos/bajas
+     * Reporte de alumnos dados de baja con historial de motivos.
+     */
+    public function reporteBajas(Request $request)
+    {
+        $query = \App\Models\HistorialBaja::with(['alumno', 'ciclo', 'registradoPor'])
+            ->whereNull('fecha_reactivacion');
+
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+
+        if ($request->filled('motivo_categoria')) {
+            $query->where('motivo_categoria', $request->motivo_categoria);
+        }
+
+        if ($request->filled('ciclo_id')) {
+            $query->where('ciclo_id', $request->ciclo_id);
+        }
+
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->whereHas('alumno', function ($q) use ($buscar) {
+                $q->where('nombre', 'like', "%{$buscar}%")
+                  ->orWhere('ap_paterno', 'like', "%{$buscar}%")
+                  ->orWhere('matricula', 'like', "%{$buscar}%");
+            });
+        }
+
+        $bajas  = $query->orderByDesc('fecha_baja')->paginate(25)->withQueryString();
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+        $motivos = \App\Enums\MotivoBaja::cases();
+
+        return view('alumnos.bajas', compact('bajas', 'ciclos', 'motivos'));
     }
 
     public function promocionarMasivo(Request $request)

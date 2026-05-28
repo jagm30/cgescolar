@@ -396,7 +396,7 @@
                                 {{ $inscActual->grupo?->grado?->nivel?->nombre ?? '—' }}
                                 @if($inscActual->grupo)
                                     &nbsp;·&nbsp;
-                                    {{ $inscActual->grupo->grado?->nombre ?? '' }}°
+                                    {{ $inscActual->grupo->grado?->numero ?? '' }}°
                                     Grupo {{ $inscActual->grupo->nombre }}
                                 @else
                                     &nbsp;·&nbsp; <em style="color:#b0bec5;">Sin grupo asignado</em>
@@ -506,7 +506,7 @@
                                         $cicloNom  = $insc->ciclo?->nombre ?? $insc->grupo?->ciclo?->nombre ?? '—';
                                         $nivelNom  = $insc->grupo?->grado?->nivel?->nombre ?? '—';
                                         $grupoNom  = $insc->grupo
-                                                     ? ($insc->grupo->grado?->nombre . '° ' . $insc->grupo->nombre)
+                                                     ? ($insc->grupo->grado?->numero . '° ' . $insc->grupo->nombre)
                                                      : null;
                                     @endphp
                                     <tr style="{{ $esActiva ? 'background:#f7fbff;' : '' }}">
@@ -908,7 +908,7 @@
                     <tr>
                         <th style="color:#999;font-weight:400;padding:8px 14px;">Grupo actual</th>
                         <td style="padding:8px 14px;font-weight:600;">
-                            {{ $inscActual->grupo?->grado?->nombre ?? '' }}°
+                            {{ $inscActual->grupo?->grado?->numero ?? '' }}°
                             {{ $inscActual->grupo?->nombre ?? '—' }}
                         </td>
                     </tr>
@@ -1090,7 +1090,7 @@
                                     g.alumnos_inscritos + ' inscritos';
                                 var lleno = (g.cupo_maximo && g.alumnos_inscritos >= g.cupo_maximo) ? ' [LLENO]' : '';
                                 var sel = (preseleccionar && g.id == preseleccionar) ? ' selected' : '';
-                                var gradoNombre = (g.grado && g.grado.nombre) ? g.grado.nombre + '° ' : '';
+                                var gradoNombre = (g.grado && g.grado.numero) ? g.grado.numero + '° ' : '';
                                 opciones += '<option value="' + g.id + '"' + sel + '>' +
                                     gradoNombre + g.nombre +
                                     ' (' + capacidad + ')' + lleno +
