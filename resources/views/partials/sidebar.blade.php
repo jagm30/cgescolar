@@ -44,7 +44,8 @@
             @if (auth()->user()->esPadre())
                 <li class="header">FAMILIA</li>
 
-                <li class="{{ request()->routeIs('portal.hijos', 'portal.estado-cuenta', 'portal.historial-pagos') ? 'active' : '' }}">
+                <li
+                    class="{{ request()->routeIs('portal.hijos', 'portal.estado-cuenta', 'portal.historial-pagos') ? 'active' : '' }}">
                     <a href="{{ route('portal.hijos') }}">
                         <i class="fa fa-users"></i> <span>Mis hijos</span>
                     </a>
@@ -265,11 +266,7 @@
                                 <i class="fa fa-circle-o"></i> Lista de usuarios
                             </a>
                         </li>
-                        <li class="{{ request()->routeIs('usuarios.create') ? 'active' : '' }}">
-                            <a href="{{ route('usuarios.create') }}">
-                                <i class="fa fa-circle-o"></i> Nuevo usuario
-                            </a>
-                        </li>
+
                         <li class="{{ request()->routeIs('usuarios.pendientes-portal') ? 'active' : '' }}">
                             <a href="{{ route('usuarios.pendientes-portal') }}">
                                 <i class="fa fa-circle-o"></i> Pendientes portal
@@ -278,7 +275,7 @@
                     </ul>
                 </li>
             @endif
-            @if (! auth()->user()->esPadre())
+            @if (!auth()->user()->esPadre())
                 <li>
                     <a href="{{ route('settings.index') }}">
                         <i class="fa fa-gear"></i> <span>Configuración</span>
