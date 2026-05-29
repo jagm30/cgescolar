@@ -418,7 +418,7 @@
                             @foreach ($grados as $g)
                                 {{-- Guardamos el id del nivel en un atributo data para leerlo con JS --}}
                                 <option value="{{ $g->id }}" data-nivel="{{ $g->nivel->id }}" hidden>
-                                    {{ $g->nombre }}
+                                    {{ $g->numero }}°
                                 </option>
                             @endforeach
                         </select>
