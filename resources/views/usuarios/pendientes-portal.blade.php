@@ -95,6 +95,55 @@
 @endpush
 
 @section('content')
+
+    {{-- LÓGICA PARA ATRAPAR EL MENSAJE Y MANTENER VIVO EL PDF --}}
+    @php
+        $mensajeMostrar = session('mensaje') ?? session('mensaje_persistente');
+        session()->forget('mensaje_persistente');
+
+        $hayPdf = session()->has('credenciales_nuevas');
+
+        if ($hayPdf) {
+            session()->keep(['credenciales_nuevas']);
+        }
+    @endphp
+
+    {{-- TARJETA DE NOTIFICACIÓN PERSISTENTE --}}
+    @if ($mensajeMostrar)
+        <div class="alert alert-dismissible"
+            style="background: #ffffff !important; color: #2c3e50 !important; border: 1px solid #e2e8f0 !important; border-left: 5px solid #28a745 !important; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 25px; padding: 15px 20px; position: relative;">
+
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true"
+                style="color: #94a3b8; opacity: 1; font-size: 20px; top: 15px; right: 20px; background: none; border: none; cursor: pointer;">&times;</button>
+
+            <div style="display: flex; align-items: flex-start; gap: 15px;">
+                <div
+                    style="width: 38px; height: 38px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #2e7d32; font-size: 16px; flex-shrink: 0; margin-top: 2px;">
+                    <i class="fa fa-check"></i>
+                </div>
+
+                <div style="padding-right: 20px;">
+                    <span
+                        style="display: block; font-weight: 700; font-size: 14px; color: #1e293b; line-height: 1.2; margin-bottom: 3px;">Acción
+                        procesada con éxito</span>
+                    <span
+                        style="font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.4;">{{ $mensajeMostrar }}</span>
+
+                    {{-- Botón para descargar el PDF manualmente si hay uno disponible --}}
+                    @if ($hayPdf)
+                        <div style="margin-top: 12px;">
+                            <a href="{{ route('usuarios.credencialesPdf') }}" target="_blank"
+                                style="display: inline-block; background: #28a745; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; text-decoration: none;">
+                                <i class="fa fa-file-pdf-o" style="margin-right: 4px;"></i> Descargar PDF de Credenciales
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+    {{-- FIN DE LA TARJETA --}}
+
     <div class="row">
         <div class="col-md-9">
             <div class="con-filter-toolbar">
@@ -102,7 +151,6 @@
                     <h4 style="margin:0; font-weight:800; color:#2c3e50;">
                         <i class="fa fa-user-plus text-orange"></i> Pendientes de Acceso
                     </h4>
-
                 </div>
                 <div style="margin-left:auto;">
                     <button id="btn-generar-masivo" class="btn" disabled
@@ -149,11 +197,12 @@
 
         <div class="col-md-3">
             <div class="box-ayuda" style="background:#fff; border-radius:8px; border:1px solid #e2e8f0;">
-                <div style="padding:12px 15px; border-bottom:1px solid #f0f2f5; font-weight:700;"><i
-                        class="fa fa-shield text-blue"></i> Gestión de Accesos</div>
+                <div style="padding:12px 15px; border-bottom:1px solid #f0f2f5; font-weight:700;">
+                    <i class="fa fa-shield text-blue"></i> Gestión de Accesos
+                </div>
                 <div style="padding:15px; font-size:12px; color:#64748b;">
-                    <p>Al procesar los usuarios, se generará y abrirá automáticamente un <b>archivo PDF</b> con las
-                        credenciales.</p>
+                    <p>Al procesar los usuarios, se enviará un correo electrónico con sus datos de ingreso y podrás
+                        descargar un <b>archivo PDF</b> con las credenciales.</p>
                 </div>
             </div>
         </div>
@@ -195,13 +244,14 @@
 
         // Función AJAX Limpia
         function procesarPeticion(ids) {
-            if (!confirm("¿Generar cuenta para " + ids.length + " contactos? Se abrirá un PDF automáticamente.")) return;
+            if (!confirm("¿Generar cuenta para " + ids.length + " contactos?")) return;
 
             fetch("{{ route('usuarios.generarMasivos') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
                         contacto_ids: ids
@@ -210,11 +260,9 @@
                 .then(res => res.json())
                 .then(res => {
                     if (res.status === 'success') {
-                        // Abrir PDF en nueva pestaña
-                        window.open("{{ route('usuarios.credencialesPdf') }}", '_blank');
-
-                        // Recargar esta página para actualizar la tabla (1 segundo de delay)
-                        setTimeout(() => location.reload(), 1000);
+                        location.reload(); // Recarga instantánea y limpia
+                    } else {
+                        alert("Hubo un problema: " + res.mensaje);
                     }
                 })
                 .catch(err => {

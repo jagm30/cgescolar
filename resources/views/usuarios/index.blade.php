@@ -46,7 +46,6 @@
             min-width: 130px;
         }
 
-        /* Tabla de Usuarios */
         .con-table {
             width: 100%;
             border-collapse: separate;
@@ -69,7 +68,6 @@
             vertical-align: middle;
         }
 
-        /* Avatar y Nombre */
         .user-info {
             display: flex;
             align-items: center;
@@ -102,7 +100,6 @@
             color: #94a3b8;
         }
 
-        /* Badges de Rol */
         .badge-rol {
             padding: 4px 10px;
             border-radius: 6px;
@@ -142,7 +139,6 @@
             background: #ef4444;
         }
 
-        /* Botones de Acción */
         .btn-action-flat {
             width: 32px;
             height: 32px;
@@ -193,12 +189,55 @@
 @endpush
 
 @section('content')
-    @if (session('mensaje'))
-        <div class="alert alert-success alert-dismissible" style="border-radius:6px;">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-            <i class="icon fa fa-check"></i> {{ session('mensaje') }}
+
+    {{-- LÓGICA PARA ATRAPAR EL MENSAJE Y MANTENER VIVO EL PDF --}}
+    @php
+        $mensajeMostrar = session('mensaje') ?? session('mensaje_persistente');
+        session()->forget('mensaje_persistente');
+
+        $hayPdf = session()->has('credenciales_nuevas');
+
+        // ¡CRÍTICO PARA QUE EL BOTÓN FUNCIONE! Mantiene los datos vivos una petición más
+        if ($hayPdf) {
+            session()->keep(['credenciales_nuevas']);
+        }
+    @endphp
+
+    {{-- TARJETA DE NOTIFICACIÓN PERSISTENTE --}}
+    @if ($mensajeMostrar)
+        <div class="alert alert-dismissible"
+            style="background: #ffffff !important; color: #2c3e50 !important; border: 1px solid #e2e8f0 !important; border-left: 5px solid #28a745 !important; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 25px; padding: 15px 20px; position: relative;">
+
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true"
+                style="color: #94a3b8; opacity: 1; font-size: 20px; top: 15px; right: 20px; background: none; border: none; cursor: pointer;">&times;</button>
+
+            <div style="display: flex; align-items: flex-start; gap: 15px;">
+                <div
+                    style="width: 38px; height: 38px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #2e7d32; font-size: 16px; flex-shrink: 0; margin-top: 2px;">
+                    <i class="fa fa-check"></i>
+                </div>
+
+                <div style="padding-right: 20px;">
+                    <span
+                        style="display: block; font-weight: 700; font-size: 14px; color: #1e293b; line-height: 1.2; margin-bottom: 3px;">Acción
+                        procesada con éxito</span>
+                    <span
+                        style="font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.4;">{{ $mensajeMostrar }}</span>
+
+                    {{-- Botón para descargar el PDF manualmente si hay uno disponible --}}
+                    @if ($hayPdf)
+                        <div style="margin-top: 12px;">
+                            <a href="{{ route('usuarios.credencialesPdf') }}" target="_blank"
+                                style="display: inline-block; background: #28a745; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; text-decoration: none;">
+                                <i class="fa fa-file-pdf-o" style="margin-right: 4px;"></i> Descargar PDF de Credenciales
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
     @endif
+    {{-- FIN DE LA TARJETA --}}
 
     <div class="con-stats">
         <div style="display: flex; gap: 15px;">
@@ -226,11 +265,9 @@
 
     <div class="row">
         <div class="col-md-9">
-            {{-- Toolbar de Filtros --}}
             <div class="con-filter-toolbar">
                 <form method="GET" action="{{ route('usuarios.index') }}"
                     style="display: flex; gap: 10px; width: 100%; align-items: center;" id="form-filtros-usuario">
-
                     <select name="mostrar" class="filter-select" onchange="this.form.submit()" style="min-width: 75px;">
                         <option value="10" {{ request('mostrar') == '10' ? 'selected' : '' }}>10</option>
                         <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25</option>
@@ -315,7 +352,6 @@
                                     <td class="text-center">
                                         <div style="display: flex; gap: 2px; justify-content: center; align-items: center;">
 
-                                            {{-- Botón Abrir Modal Editar (Bloqueado para el usuario actual) --}}
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-modal-edit" title="Editar"
                                                     data-id="{{ $usuario->id }}" data-nombre="{{ $usuario->nombre }}"
@@ -329,8 +365,6 @@
                                                 </button>
                                             @endif
 
-
-                                            {{-- Botón Reactivar Cuenta (Solo habilitado si está inactivo) --}}
                                             @if (!$usuario->activo)
                                                 <form action="{{ route('usuarios.reactivar', $usuario->id) }}"
                                                     method="POST" style="display:inline;">
@@ -347,7 +381,6 @@
                                                 </button>
                                             @endif
 
-                                            {{-- Botón Desactivar Ordinario --}}
                                             @if ($usuario->id !== auth()->id() && $usuario->activo)
                                                 <form action="{{ route('usuarios.destroy', $usuario->id) }}"
                                                     method="POST" style="display:inline;">
@@ -359,7 +392,6 @@
                                                 </form>
                                             @endif
 
-                                            {{-- Botón Forzar Borrado Definitivo del Sistema --}}
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-delete-permanent"
                                                     title="Borrar de forma permanente" data-id="{{ $usuario->id }}"
@@ -380,7 +412,6 @@
                     </table>
                 </div>
 
-                {{-- Barra de Paginación Nativa de Laravel --}}
                 @if ($usuarios->total() > 0)
                     <div class="box-footer clearfix"
                         style="background: #fff; border-radius: 0 0 8px 8px; padding: 15px; border-top: 1px solid #f0f3f7;">
@@ -401,8 +432,6 @@
                 <div class="ayuda-header"><i class="fa fa-info-circle text-blue"></i> Guía del Módulo</div>
                 <div class="ayuda-body">
                     <div style="font-size: 13px; color: #475569;">
-
-                        {{-- Sección de Alta de Usuarios --}}
                         <div style="margin-bottom: 15px;">
                             <span
                                 style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Registro
@@ -418,47 +447,37 @@
                                 Caja, IT) o padres específicos.
                             </p>
                         </div>
-
                         <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
-
-                        {{-- Sección de Acciones Individuales --}}
                         <div style="margin-bottom: 15px;">
                             <span
                                 style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Acciones
                                 Individuales</span>
-
                             <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                                 <i class="fa fa-pencil text-blue"
                                     style="margin-top: 3px; width: 12px; text-align: center;"></i>
                                 <span style="line-height: 1.3;"><b>Editar:</b> Modifica el rol o genera una nueva
                                     contraseña (opción a PDF).</span>
                             </div>
-
                             <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                                 <i class="fa fa-ban text-red"
                                     style="margin-top: 3px; width: 12px; text-align: center;"></i>
                                 <span style="line-height: 1.3;"><b>Desactivar:</b> Suspende temporalmente el acceso del
                                     usuario al sistema.</span>
                             </div>
-
                             <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                                 <i class="fa fa-arrow-up text-green"
                                     style="margin-top: 3px; width: 12px; text-align: center;"></i>
                                 <span style="line-height: 1.3;"><b>Reactivar:</b> Devuelve el acceso a una cuenta
                                     previamente suspendida.</span>
                             </div>
-
                             <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                                 <i class="fa fa-trash text-red"
                                     style="margin-top: 3px; width: 12px; text-align: center; font-weight: 900;"></i>
                                 <span style="line-height: 1.3;"><b>Borrar:</b> Elimina la cuenta definitivamente y revoca
-                                    el acceso en la ficha del contacto.</span>
+                                    el acceso.</span>
                             </div>
                         </div>
-
                         <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
-
-                        {{-- Sección de Seguridad (Intacta) --}}
                         <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 10px; border-radius: 6px;">
                             <span style="color: #991b1b; font-size: 12px; font-weight: 700;">
                                 <i class="fa fa-shield"></i> Protección:
@@ -468,252 +487,229 @@
                                 evitar la pérdida accidental de acceso.
                             </p>
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        {{-- MODAL 1: CREAR USUARIO NUEVO --}}
-        <x-modal id="modal-crear-usuario" title="Registrar Nuevo Usuario">
-            <form id="form-crear-usuario">
-                @csrf
-                <div class="form-group">
-                    <label>Nombre Completo <span class="text-danger">*</span></label>
-                    <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan López Ramos"
-                        required>
+    {{-- MODAL 1: CREAR USUARIO NUEVO --}}
+    <x-modal id="modal-crear-usuario" title="Registrar Nuevo Usuario">
+        <form id="form-crear-usuario">
+            @csrf
+            <div class="form-group">
+                <label>Nombre Completo <span class="text-danger">*</span></label>
+                <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan López Ramos" required>
+            </div>
+            <div class="form-group">
+                <label>Correo Electrónico <span class="text-danger">*</span></label>
+                <input type="email" name="email" class="form-control" placeholder="usuario@correo.com" required>
+            </div>
+            <div class="form-group">
+                <label>Rol del Usuario <span class="text-danger">*</span></label>
+                <select name="rol" class="form-control" required>
+                    <option value="padre">Padre de Familia</option>
+                    <option value="recepcion">Recepción</option>
+                    <option value="caja">Caja</option>
+                    <option value="administrador">Administrador</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Contraseña <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input type="text" id="create-password" name="password" class="form-control" required
+                        placeholder="Mínimo 6 caracteres">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default btn-toggle-pass" type="button" data-target="#create-password"><i
+                                class="fa fa-eye-slash"></i></button>
+                    </span>
                 </div>
-                <div class="form-group">
-                    <label>Correo Electrónico <span class="text-danger">*</span></label>
-                    <input type="email" name="email" class="form-control" placeholder="usuario@correo.com" required>
+                <div style="margin-top: 8px;">
+                    <label style="font-weight: 500; cursor:pointer;">
+                        <input type="checkbox" id="chk-create-auto" checked> Generar contraseña automáticamente
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label>Rol del Usuario <span class="text-danger">*</span></label>
-                    <select name="rol" class="form-control" required>
-                        <option value="padre">Padre de Familia</option>
-                        <option value="recepcion">Recepción</option>
-                        <option value="caja">Caja</option>
-                        <option value="administrador">Administrador</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Contraseña <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <input type="text" id="create-password" name="password" class="form-control" required
-                            placeholder="Mínimo 6 caracteres">
-                        <span class="input-group-btn">
-                            <button class="btn btn-default btn-toggle-pass" type="button"
-                                data-target="#create-password"><i class="fa fa-eye-slash"></i></button>
-                        </span>
-                    </div>
-                    <div style="margin-top: 8px;">
-                        <label style="font-weight: 500; cursor:pointer;">
-                            <input type="checkbox" id="chk-create-auto" checked> Generar contraseña automáticamente
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Guardar y Generar
-                        PDF</button>
-                </div>
-            </form>
-        </x-modal>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success"><i class="fa fa-save"></i> Guardar Usuario</button>
+            </div>
+        </form>
+    </x-modal>
 
-        {{-- MODAL 2: EDITAR USUARIO --}}
-        <x-modal id="modal-editar-usuario" title="Modificar Perfil de Usuario">
-            <form id="form-editar-usuario">
-                @csrf
-                @method('PUT')
-                <input type="hidden" id="edit-id">
+    {{-- MODAL 2: EDITAR USUARIO --}}
+    <x-modal id="modal-editar-usuario" title="Modificar Perfil de Usuario">
+        <form id="form-editar-usuario">
+            @csrf
+            @method('PUT')
+            <input type="hidden" id="edit-id">
 
-                <div class="form-group">
-                    <label>Usuario Seleccionado:</label>
-                    <input type="text" id="edit-nombre-lbl" class="form-control" readonly
-                        style="background:#f8f9fa; font-weight:700;">
+            <div class="form-group">
+                <label>Usuario Seleccionado:</label>
+                <input type="text" id="edit-nombre-lbl" class="form-control" readonly
+                    style="background:#f8f9fa; font-weight:700;">
+            </div>
+
+            <div class="form-group">
+                <label>Rol / Permisos <span class="text-danger">*</span></label>
+                <select name="rol" id="edit-rol" class="form-control" required>
+                    <option value="padre">Padre de Familia</option>
+                    <option value="recepcion">Recepción</option>
+                    <option value="caja">Caja</option>
+                    <option value="administrador">Administrador</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Nueva Contraseña <small class="text-muted">(Dejar vacío si no se cambia)</small></label>
+                <div class="input-group">
+                    <input type="password" id="edit-password" name="password" class="form-control"
+                        placeholder="Escribe para cambiar la actual">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default btn-toggle-pass" type="button" data-target="#edit-password"><i
+                                class="fa fa-eye"></i></button>
+                    </span>
                 </div>
-
-                <div class="form-group">
-                    <label>Rol / Permisos <span class="text-danger">*</span></label>
-                    <select name="rol" id="edit-rol" class="form-control" required>
-                        <option value="padre">Padre de Familia</option>
-                        <option value="recepcion">Recepción</option>
-                        <option value="caja">Caja</option>
-                        <option value="administrador">Administrador</option>
-                    </select>
+                <div style="margin-top: 8px;">
+                    <label style="font-weight: 500; cursor:pointer;">
+                        <input type="checkbox" id="chk-edit-auto"> Generar contraseña automáticamente
+                    </label>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label>Nueva Contraseña <small class="text-muted">(Dejar vacío si no se cambia)</small></label>
-                    <div class="input-group">
-                        <input type="password" id="edit-password" name="password" class="form-control"
-                            placeholder="Escribe para cambiar la actual">
-                        <span class="input-group-btn">
-                            <button class="btn btn-default btn-toggle-pass" type="button"
-                                data-target="#edit-password"><i class="fa fa-eye"></i></button>
-                        </span>
-                    </div>
-                    <div style="margin-top: 8px;">
-                        <label style="font-weight: 500; cursor:pointer;">
-                            <input type="checkbox" id="chk-edit-auto"> Generar contraseña automáticamente
-                        </label>
-                    </div>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class="fa fa-refresh"></i> Guardar Cambios</button>
+            </div>
+        </form>
+    </x-modal>
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fa fa-refresh"></i> Guardar Cambios</button>
-                </div>
-            </form>
-        </x-modal>
-    @endsection
+@endsection
 
-    @push('scripts')
-        <script>
-            $(document).ready(function() {
-
-                // Función para generar contraseñas seguras
-                function generarPassword() {
-                    let caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#';
-                    let pass = '';
-                    for (let i = 0; i < 8; i++) {
-                        pass += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-                    }
-                    return pass;
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            function generarPassword() {
+                let caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#';
+                let pass = '';
+                for (let i = 0; i < 8; i++) {
+                    pass += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
                 }
+                return pass;
+            }
 
-                // ---- LÓGICA DE CONTRASEÑAS (CREAR) ----
-                if ($('#chk-create-auto').is(':checked')) {
-                    $('#create-password').val(generarPassword());
+            if ($('#chk-create-auto').is(':checked')) {
+                $('#create-password').val(generarPassword());
+            }
+
+            $('#chk-create-auto').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#create-password').val(generarPassword()).attr('type', 'text');
+                    $('[data-target="#create-password"] i').removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    $('#create-password').val('').attr('type', 'password').focus();
+                    $('[data-target="#create-password"] i').removeClass('fa-eye-slash').addClass('fa-eye');
                 }
-                $('#chk-create-auto').on('change', function() {
-                    if ($(this).is(':checked')) {
-                        $('#create-password').val(generarPassword()).attr('type', 'text');
-                        $('[data-target="#create-password"] i').removeClass('fa-eye').addClass('fa-eye-slash');
-                    } else {
-                        $('#create-password').val('').attr('type', 'password').focus();
-                        $('[data-target="#create-password"] i').removeClass('fa-eye-slash').addClass('fa-eye');
-                    }
-                });
-
-                // ---- LÓGICA DE CONTRASEÑAS (EDITAR) ----
-                $('#chk-edit-auto').on('change', function() {
-                    if ($(this).is(':checked')) {
-                        $('#edit-password').val(generarPassword()).attr('type', 'text');
-                        $('[data-target="#edit-password"] i').removeClass('fa-eye').addClass('fa-eye-slash');
-                    } else {
-                        $('#edit-password').val('').attr('type', 'password').focus();
-                        $('[data-target="#edit-password"] i').removeClass('fa-eye-slash').addClass('fa-eye');
-                    }
-                });
-
-                // ---- BOTÓN DEL OJO (VER/OCULTAR CONTRASEÑA) ----
-                $(document).on('click', '.btn-toggle-pass', function() {
-                    let targetInput = $($(this).data('target'));
-                    let icon = $(this).find('i');
-                    if (targetInput.attr('type') === 'password') {
-                        targetInput.attr('type', 'text');
-                        icon.removeClass('fa-eye').addClass('fa-eye-slash');
-                    } else {
-                        targetInput.attr('type', 'password');
-                        icon.removeClass('fa-eye-slash').addClass('fa-eye');
-                    }
-                });
-
-                // ---- ABRIR MODAL EDITAR Y LLENAR DATOS ----
-                $('.btn-modal-edit').on('click', function() {
-                    let id = $(this).data('id');
-                    let nombre = $(this).data('nombre');
-                    let rol = $(this).data('rol');
-
-                    $('#edit-id').val(id);
-                    $('#edit-nombre-lbl').val(nombre);
-
-                    // Aseguramos que seleccione el rol correcto del usuario
-                    $('#edit-rol').val(rol.toLowerCase());
-
-                    $('#edit-password').val('');
-                    $('#chk-edit-auto').prop('checked', false);
-
-                    $('#modal-editar-usuario').modal('show');
-                });
-
-
-                // ---- CREAR USUARIO Y ABRIR PDF ----
-                $('#form-crear-usuario').on('submit', function(e) {
-                    e.preventDefault();
-                    let datos = $(this).serialize();
-
-                    fetch("{{ route('usuarios.store') }}", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json' // CRÍTICO: Obliga a Laravel a no devolver HTML de error
-                            },
-                            body: datos
-                        })
-                        .then(res => res.json())
-                        .then(res => {
-                            if (res.status === 'success') {
-                                $('#modal-crear-usuario').modal('hide');
-                                window.open("{{ route('usuarios.credencialesPdf') }}", '_blank');
-                                setTimeout(() => {
-                                    location.reload();
-                                }, 1000);
-                            } else {
-                                // Si hay un error, nos mandará una alerta con el texto exacto
-                                alert("No se pudo crear el usuario: \n" + res.mensaje);
-                            }
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            alert("Ocurrió un error de red o de servidor.");
-                        });
-                });
-
-                // ---- EDITAR USUARIO CON PREGUNTA DE PDF ----
-                $('#form-editar-usuario').on('submit', function(e) {
-                    e.preventDefault();
-                    let id = $('#edit-id').val();
-
-                    // Confirmación para saber si generamos PDF o no
-                    let generarPdf = confirm(
-                        "Se actualizarán los datos de este usuario.\n\n¿Deseas generar un archivo PDF con las credenciales actualizadas?"
-                    );
-
-                    let datosForm = $(this).serializeArray();
-                    datosForm.push({
-                        name: 'generar_pdf',
-                        value: generarPdf ? 1 : 0
-                    });
-
-                    let url = "{{ route('usuarios.update', ':id') }}".replace(':id', id);
-
-                    fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            body: $.param(datosForm)
-                        })
-                        .then(res => res.json())
-                        .then(res => {
-                            if (res.status === 'success') {
-                                $('#modal-editar-usuario').modal('hide');
-                                // Si el usuario dijo que SÍ al confirm()
-                                if (res.pdf_generado) {
-                                    window.open("{{ route('usuarios.credencialesPdf') }}", '_blank');
-                                }
-                                setTimeout(() => {
-                                    location.reload();
-                                }, 1000);
-                            }
-                        });
-                });
             });
-            // Eliminación Permanente Completa
+
+            $('#chk-edit-auto').on('change', function() {
+                if ($(this).is(':checked')) {
+                    $('#edit-password').val(generarPassword()).attr('type', 'text');
+                    $('[data-target="#edit-password"] i').removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    $('#edit-password').val('').attr('type', 'password').focus();
+                    $('[data-target="#edit-password"] i').removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+
+            $(document).on('click', '.btn-toggle-pass', function() {
+                let targetInput = $($(this).data('target'));
+                let icon = $(this).find('i');
+                if (targetInput.attr('type') === 'password') {
+                    targetInput.attr('type', 'text');
+                    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    targetInput.attr('type', 'password');
+                    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+
+            $('.btn-modal-edit').on('click', function() {
+                let id = $(this).data('id');
+                let nombre = $(this).data('nombre');
+                let rol = $(this).data('rol');
+
+                $('#edit-id').val(id);
+                $('#edit-nombre-lbl').val(nombre);
+                $('#edit-rol').val(rol.toLowerCase());
+                $('#edit-password').val('');
+                $('#chk-edit-auto').prop('checked', false);
+                $('#modal-editar-usuario').modal('show');
+            });
+
+            // CREAR USUARIO
+            $('#form-crear-usuario').on('submit', function(e) {
+                e.preventDefault();
+                let datos = $(this).serialize();
+
+                fetch("{{ route('usuarios.store') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: datos
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.status === 'success') {
+                            $('#modal-crear-usuario').modal('hide');
+                            location.reload(); // Recarga limpia e instantánea
+                        } else {
+                            alert("No se pudo crear el usuario: \n" + res.mensaje);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert("Ocurrió un error de red o de servidor.");
+                    });
+            });
+
+            // EDITAR USUARIO
+            $('#form-editar-usuario').on('submit', function(e) {
+                e.preventDefault();
+                let id = $('#edit-id').val();
+                let generarPdf = confirm(
+                    "Se actualizarán los datos de este usuario.\n\n¿Deseas generar un archivo PDF con las credenciales actualizadas?"
+                );
+
+                let datosForm = $(this).serializeArray();
+                datosForm.push({
+                    name: 'generar_pdf',
+                    value: generarPdf ? 1 : 0
+                });
+
+                let url = "{{ route('usuarios.update', ':id') }}".replace(':id', id);
+
+                fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: $.param(datosForm)
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.status === 'success') {
+                            $('#modal-editar-usuario').modal('hide');
+                            location.reload(); // Recarga limpia e instantánea
+                        }
+                    });
+            });
+
+            // BORRAR USUARIO
             $('.btn-delete-permanent').on('click', function() {
                 let id = $(this).data('id');
                 let nombre = $(this).data('nombre');
@@ -729,16 +725,14 @@
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json' // CRÍTICO para ver el error
+                            'Accept': 'application/json'
                         }
                     })
                     .then(res => res.json())
                     .then(res => {
                         if (res.status === 'success') {
-                            alert(res.mensaje);
                             location.reload();
                         } else {
-                            // Aquí nos mostrará si la base de datos bloqueó la acción
                             alert("Error al borrar: \n" + res.mensaje);
                         }
                     })
@@ -747,5 +741,6 @@
                         alert("Ocurrió un error grave de red o de servidor. Revisa la consola.");
                     });
             });
-        </script>
-    @endpush
+        });
+    </script>
+@endpush
