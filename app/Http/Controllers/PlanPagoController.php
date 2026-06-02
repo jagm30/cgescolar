@@ -554,9 +554,7 @@ class PlanPagoController extends Controller
             ];
         })->all();
 
-        $alumnos = Alumno::whereHas('inscripciones', function ($q) use ($cicloId) {
-            $q->where('ciclo_id', $cicloId)->where('activo', true);
-        })->get();
+        $alumnos = Alumno::where('estado', 'activo')->orderBy('ap_paterno')->orderBy('nombre')->get();
 
         $grupos = Grupo::with(['grado.nivel'])->get();
         $niveles = NivelEscolar::activo()->get();
