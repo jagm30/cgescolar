@@ -33,9 +33,12 @@ class ConceptoCobroController extends Controller
         $totales = (clone $query)->get();
 
         // 3. A la consulta original le aplicamos el orden y la paginación para la tabla
+        $porPagina = in_array((int) $request->input('perPage', 10), [5, 10, 25, 50, 100])
+            ? (int) $request->input('perPage', 10)
+            : 10;
         $conceptos = $query->orderBy('tipo')
             ->orderBy('nombre')
-            ->paginate(5)
+            ->paginate($porPagina)
             ->withQueryString();
 
         if ($request->ajax()) {
