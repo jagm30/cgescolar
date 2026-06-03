@@ -174,9 +174,48 @@
                                                     </span>
                                                 </td>
                                                 <td style="vertical-align: middle;">
-                                                    <b class="text-success" style="font-size: 15px;">
-                                                        ${{ number_format($detalle->monto, 2) }}
-                                                    </b>
+                                                    <div class="dropdown">
+                                                        <div class="monto-view" data-toggle="dropdown" aria-haspopup="true"
+                                                            aria-expanded="false"
+                                                            style="cursor: pointer; padding: 4px 8px; border-radius: 4px; display: inline-block; transition: background 0.2s;"
+                                                            title="Clic para editar">
+                                                            <b class="text-success"
+                                                                style="font-size: 15px; border-bottom: 1px dashed #4caf50;">
+                                                                ${{ number_format($detalle->monto, 2) }}
+                                                            </b>
+                                                            <i class="fa fa-pencil text-muted"
+                                                                style="font-size: 11px; margin-left: 6px; opacity: 0;"></i>
+                                                        </div>
+
+                                                        <ul class="dropdown-menu"
+                                                            style="padding: 12px; min-width: 220px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px;">
+                                                            <li>
+                                                                <form
+                                                                    action="{{ route('planes.conceptos.update', [$plan->id, $detalle->id]) }}"
+                                                                    method="POST" style="margin: 0;">
+                                                                    @csrf @method('PUT')
+                                                                    <label
+                                                                        style="font-size: 12px; color: #555; margin-bottom: 6px;">Editar
+                                                                        monto asignado:</label>
+                                                                    <div class="input-group input-group-sm"
+                                                                        style="margin-bottom: 10px;">
+                                                                        <span class="input-group-addon">$</span>
+                                                                        <input type="number" step="0.01" min="0.01"
+                                                                            name="monto" class="form-control sin-flechas"
+                                                                            value="{{ $detalle->monto }}" required
+                                                                            style="padding-left: 8px;">
+                                                                    </div>
+                                                                    <div class="text-right">
+                                                                        <button type="submit"
+                                                                            class="btn btn-primary btn-sm btn-flat"
+                                                                            style="border-radius: 4px;">
+                                                                            <i class="fa fa-save"></i> Guardar
+                                                                        </button>
+                                                                    </div>
+                                                                </form>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
                                                 </td>
                                                 <td class="text-center" style="vertical-align: middle;">
                                                     <button class="btn btn-default btn-xs btn-flat" data-toggle="modal"
@@ -314,9 +353,23 @@
                     "info": true,
                     "autoWidth": false,
                     "responsive": true,
+                    // ── REEMPLAZA SOLO ESTA PARTE ──
                     "language": {
-                        "url": "//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json"
+                        "search": "Buscar:",
+                        "lengthMenu": "Mostrar _MENU_ registros",
+                        "info": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
+                        "infoEmpty": "Mostrando 0 registros",
+                        "infoFiltered": "(filtrado de _MAX_ registros en total)",
+                        "zeroRecords": "No se encontraron resultados",
+                        "emptyTable": "No hay conceptos asignados.",
+                        "paginate": {
+                            "first": "Primero",
+                            "last": "Último",
+                            "next": "Siguiente",
+                            "previous": "Anterior"
+                        }
                     },
+                    // ───────────────────────────────
                     "order": [
                         [0, "asc"]
                     ],
@@ -384,6 +437,15 @@
                     $('#btn-guardar-conceptos').hide();
                 }
             }
+        });
+        // 1. Evitar que el dropdown se cierre cuando el usuario hace clic dentro del input para escribir
+        $(document).on('click', '.dropdown-menu form', function(e) {
+            e.stopPropagation();
+        });
+
+        // 2. Hacer "Auto-focus" en el input automáticamente cuando el dropdown se abre
+        $('.dropdown').on('shown.bs.dropdown', function() {
+            $(this).find('input[name="monto"]').focus();
         });
     </script>
 @endpush
