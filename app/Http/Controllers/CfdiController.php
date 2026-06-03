@@ -307,14 +307,11 @@ class CfdiController extends Controller
         $conceptos = $pago->detalles->map(function ($detalle) {
             $concepto = $detalle->cargo?->concepto;
             $alumno   = $detalle->cargo?->inscripcion?->alumno;
-            $periodo  = $detalle->cargo?->periodo;
 
-            $descripcion = $concepto?->nombre ?? 'Servicio educativo';
+            // Usa la etiqueta del cargo: "Colegiatura Agosto 2026" (o solo el nombre si es pago único)
+            $descripcion = $detalle->cargo?->etiqueta ?? 'Servicio educativo';
             if ($alumno) {
                 $descripcion .= ' — '.trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
-            }
-            if ($periodo) {
-                $descripcion .= " ({$periodo})";
             }
 
             $monto = round((float) $detalle->monto_abonado, 2);

@@ -23,13 +23,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // ── Rutas protegidas ─────────────────────────────────────
-Route::middleware('auth:sanctum')->group(function () {    
-
-    //web vistas
-    Route::resource('ciclos', CicloEscolarController::class)->only(['index', 'show', 'store', 'update']);
-    Route::resource('niveles', NivelEscolarController::class)->only(['index', 'show', 'store', 'update']);
-    Route::resource('grados', GradoController::class)->only(['index', 'show', 'store', 'update']);
-    Route::resource('grupos', GrupoController::class)->only(['index', 'show', 'store', 'update']);
+Route::middleware('auth:sanctum')->name('api.')->group(function () {
 
     // ── Ciclos ───────────────────────────────────────────
     Route::get('ciclos/activo',          [CicloEscolarController::class, 'activo']);
@@ -90,6 +84,3 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('razones-sociales',                  [PortalPadreController::class, 'razonesSociales']);
     });
 });
-
-// ── Niveles escolares ────────────────────────────────────
-Route::apiResource('niveles', \App\Http\Controllers\NivelEscolarController::class);

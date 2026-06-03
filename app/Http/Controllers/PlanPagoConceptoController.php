@@ -136,11 +136,12 @@ class PlanPagoConceptoController extends Controller
 
         $registro->load('concepto');
 
-        // CORRECCIÓN 3: Validar cargos usando el ciclo del plan
+        // Bloquear solo si existen cargos generados a partir de asignaciones
+        // de ESTE plan específico. Evita falsos positivos por conceptos compartidos
+        // entre planes de distintos ciclos.
         $tieneCargos = Cargo::where('concepto_id', $registro->concepto_id)
-            ->whereHas('inscripcion', fn($q) => 
-                $q->where('ciclo_id', $plan->ciclo_id) // Ahora $plan sí existe
-            )->exists();
+            ->whereHas('asignacion', fn ($q) => $q->where('plan_id', $plan->id))
+            ->exists();
 
         if ($tieneCargos) {
             $msg = "No se puede quitar \"{$registro->concepto->nombre}\": ya se generaron cargos en este ciclo.";
