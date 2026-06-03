@@ -11,10 +11,18 @@ class ConceptoCobroSeeder extends Seeder
     {
         DB::table('concepto_cobro')->insert([
             // Colegiaturas (aplica_beca = true)
-            ['nombre' => 'Colegiatura Maternal',   'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
-            ['nombre' => 'Colegiatura Preescolar',  'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
-            ['nombre' => 'Colegiatura Primaria',    'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
-            ['nombre' => 'Colegiatura Secundaria',  'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Enero',       'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Febrero',      'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Marzo',        'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Abril',        'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Mayo',         'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Junio',        'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Julio',        'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Agosto',       'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Septiembre',   'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Octubre',      'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Noviembre',    'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Diciembre',    'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
             // Inscripciones
             ['nombre' => 'Inscripción Maternal',    'tipo' => 'inscripcion', 'aplica_beca' => false, 'aplica_recargo' => false, 'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
             ['nombre' => 'Inscripción Preescolar',  'tipo' => 'inscripcion', 'aplica_beca' => false, 'aplica_recargo' => false, 'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],

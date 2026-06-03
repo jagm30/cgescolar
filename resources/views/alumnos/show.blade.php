@@ -1328,6 +1328,25 @@
         $alumno->estado === 'activo' &&
         ! $inscAnticipada
     )
+    @php
+        $ciclosAntic = \App\Models\CicloEscolar::where('estado', 'configuracion')
+            ->orderByDesc('fecha_inicio')->get();
+        $gruposPorCicloAntic = [];
+        foreach ($ciclosAntic as $cicloAntic) {
+            $gruposPorCicloAntic[$cicloAntic->id] = \App\Models\Grupo::with('grado.nivel')
+                ->where('ciclo_id', $cicloAntic->id)
+                ->where('activo', true)
+                ->orderBy('grado_id')
+                ->orderBy('nombre')
+                ->get()
+                ->map(fn($g) => [
+                        'id'    => $g->id,
+                        'label' => trim(($g->grado->nivel->nombre ?? '') . ' ' . ($g->grado->numero ?? '') . '° - Grupo ' . $g->nombre),
+                    ])
+                ->values()
+                ->toArray();
+        }
+    @endphp
     <div class="modal fade" id="modalAnticipada" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -1350,7 +1369,7 @@
                             <label style="font-size:12px;font-weight:700;color:#555;">Ciclo escolar destino</label>
                             <select name="ciclo_id" class="form-control" required id="selectCicloAntic">
                                 <option value="">— Selecciona ciclo —</option>
-                                @foreach (\App\Models\CicloEscolar::where('estado', 'configuracion')->orderByDesc('fecha_inicio')->get() as $ciclo)
+                                @foreach ($ciclosAntic as $ciclo)
                                     <option value="{{ $ciclo->id }}">{{ $ciclo->nombre }}</option>
                                 @endforeach
                             </select>
@@ -1387,35 +1406,28 @@
     </div>
 
     <script>
-        document.getElementById('selectCicloAntic').addEventListener('change', function () {
-            const cicloId = this.value;
-            const grupoSelect = document.getElementById('selectGrupoAntic');
-            grupoSelect.innerHTML = '<option value="">Cargando...</option>';
+        (function () {
+            const gruposPorCiclo = @json($gruposPorCicloAntic);
 
-            if (!cicloId) {
+            document.getElementById('selectCicloAntic').addEventListener('change', function () {
+                const cicloId = this.value;
+                const grupoSelect = document.getElementById('selectGrupoAntic');
+
+                if (!cicloId) {
+                    grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
+                    return;
+                }
+
+                const grupos = gruposPorCiclo[cicloId] ?? [];
                 grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
-                return;
-            }
-
-            fetch(`/api/grupos?ciclo_id=${cicloId}`, {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-            })
-                .then(r => r.json())
-                .then(data => {
-                    const grupos = data.data ?? data;
-                    grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
-                    grupos.forEach(g => {
-                        const label = g.nombre_completo ?? `${g.grado?.nombre ?? ''}° ${g.nombre}`;
-                        grupoSelect.innerHTML += `<option value="${g.id}">${label}</option>`;
-                    });
-                    if (grupos.length === 0) {
-                        grupoSelect.innerHTML = '<option value="">— No hay grupos configurados aún —</option>';
-                    }
-                })
-                .catch(() => {
-                    grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
+                grupos.forEach(g => {
+                    grupoSelect.innerHTML += `<option value="${g.id}">${g.label}</option>`;
                 });
-        });
+                if (grupos.length === 0) {
+                    grupoSelect.innerHTML = '<option value="">— No hay grupos configurados aún —</option>';
+                }
+            });
+        })();
     </script>
     @endif
 
