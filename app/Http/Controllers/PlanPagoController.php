@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TipoInscripcion;
 use App\Http\Requests\StoreAsignacionPlanRequest;
 use App\Http\Requests\StorePlanPagoRequest;
 use App\Models\Alumno;
@@ -628,6 +629,30 @@ class PlanPagoController extends Controller
     private function obtenerInscripcionesParaAsignacion(AsignacionPlan $asignacion)
     {
         $cicloId = $asignacion->plan->ciclo_id;
+
+        // Para asignaciones individuales en ciclos en configuración:
+        // si el alumno aún no tiene inscripción en ese ciclo, crear una
+        // inscripción anticipada automáticamente para que el cargo quede
+        // correctamente vinculado al nuevo ciclo.
+        if ($asignacion->origen === 'individual') {
+            $asignacion->plan->loadMissing('ciclo');
+
+            $tieneInscripcion = Inscripcion::where('alumno_id', $asignacion->alumno_id)
+                ->where('ciclo_id', $cicloId)
+                ->where('activo', true)
+                ->exists();
+
+            if (! $tieneInscripcion && $asignacion->plan->ciclo?->estado === 'configuracion') {
+                Inscripcion::create([
+                    'alumno_id' => $asignacion->alumno_id,
+                    'ciclo_id'  => $cicloId,
+                    'grupo_id'  => null,
+                    'fecha'     => now()->toDateString(),
+                    'activo'    => true,
+                    'tipo'      => TipoInscripcion::Anticipada,
+                ]);
+            }
+        }
 
         return Inscripcion::query()
             ->where('ciclo_id', $cicloId)

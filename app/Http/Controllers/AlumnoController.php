@@ -404,10 +404,13 @@ class AlumnoController extends Controller
             'inscripciones.ciclo',
         ])->findOrFail($id);
 
+        // Preferir la inscripción activa más reciente que tenga grupo asignado
+        // (las anticipadas sin grupo no aportan datos útiles al hero).
         $inscripcionActual = $alumno->inscripciones
             ->where('activo', true)
             ->sortByDesc('id')
-            ->first();
+            ->first(fn ($i) => $i->grupo_id !== null)
+            ?? $alumno->inscripciones->where('activo', true)->sortByDesc('id')->first();
 
         // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
         $ciclos = CicloEscolar::whereHas(

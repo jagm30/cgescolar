@@ -185,12 +185,14 @@
         <div class="ec-hero-meta">
             <span class="ec-hero-matricula">{{ $alumno->matricula }}</span>
             @if($inscripcionActual)
+            @if($inscripcionActual->grupo)
             <span>
                 <i class="fa fa-graduation-cap"></i>
                 {{ $inscripcionActual->grupo->grado->nivel->nombre ?? '' }}
                 · {{ $inscripcionActual->grupo->grado->numero }}°
                 {{ $inscripcionActual->grupo->nombre }}
             </span>
+            @endif
             <span>
                 <i class="fa fa-calendar"></i>
                 {{ $inscripcionActual->ciclo->nombre ?? '' }}
@@ -367,7 +369,7 @@
                     </td>
 
                     <td>
-                        <div style="font-weight:700;color:#1a2634;">{{ $cargo->concepto->nombre }}</div>
+                        <div style="font-weight:700;color:#1a2634;">{{ $cargo->etiqueta }}</div>
                         <div style="font-size:11px;color:#8a9ab0;margin-top:2px;">{{ ucfirst($cargo->concepto->tipo) }}</div>
                         @if($cargo->asignacion?->plan)
                         <div style="font-size:11px;color:#6b7a8d;margin-top:3px;">
