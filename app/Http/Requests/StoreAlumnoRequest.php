@@ -68,6 +68,8 @@ class StoreAlumnoRequest extends FormRequest
             'contactos.*.autorizado_recoger' => ['boolean'],
             'contactos.*.es_responsable_pago' => ['boolean'],
             'contactos.*.tiene_acceso_portal' => ['boolean'],
+            'fotos_contacto' => ['nullable', 'array'],
+            'fotos_contacto.*' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
             'prospecto_id' => ['nullable', 'exists:prospecto,id'],
         ];
     }

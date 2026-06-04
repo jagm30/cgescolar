@@ -627,6 +627,27 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Foto del contacto</label>
+                            <div class="input-group">
+                                <span class="input-group-btn">
+                                    <label class="btn btn-default btn-flat" for="foto_contacto___INDEX__"
+                                        style="margin:0;cursor:pointer;">
+                                        <i class="fa fa-camera"></i> Seleccionar
+                                    </label>
+                                </span>
+                                <input type="text" class="form-control foto-contacto-nombre"
+                                    placeholder="Sin archivo" readonly>
+                            </div>
+                            <input type="file" name="fotos_contacto[__INDEX__]" id="foto_contacto___INDEX__"
+                                accept="image/jpeg,image/png,image/webp" style="display:none">
+                            <span class="help-block">JPG, PNG o WEBP. Máx. 2 MB.</span>
+                        </div>
+                    </div>
+                </div>
             </div>{{-- /.panel-body --}}
         </div>{{-- /.contacto-item --}}
     </div>{{-- /#template-contacto --}}
@@ -749,6 +770,26 @@
             }
 
             $('#foto-nombre').val(archivo.name);
+        });
+
+        $(document).on('change', 'input[name^="fotos_contacto"]', function() {
+            var archivo = this.files[0];
+            var $nombreInput = $(this).closest('.form-group').find('.foto-contacto-nombre');
+
+            if (!archivo) {
+                $nombreInput.val('');
+                return;
+            }
+
+            if (archivo.size > MAX_FOTO_BYTES) {
+                this.value = '';
+                $nombreInput.val('');
+                alert('El archivo pesa ' + (archivo.size / 1024 / 1024).toFixed(2) +
+                    ' MB.\nEl máximo permitido es 2 MB.');
+                return;
+            }
+
+            $nombreInput.val(archivo.name);
         });
 
         $('#curp').on('input', function() {

@@ -693,6 +693,30 @@
                                     </label>
                                 </div>
                             </div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;">
+                                <div class="ctc-foto-preview" style="width:52px;height:52px;border-radius:50%;border:2px solid #ddd;overflow:hidden;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    @if($contacto->foto_url)
+                                        <img src="{{ asset('storage/' . $contacto->foto_url) }}" style="width:100%;height:100%;object-fit:cover;" alt="">
+                                    @else
+                                        <i class="fa fa-user" style="font-size:22px;color:#ccc;"></i>
+                                    @endif
+                                </div>
+                                <div>
+                                    <label style="font-size:11px;color:#888;margin-bottom:4px;display:block;">Foto del contacto</label>
+                                    <div class="input-group" style="width:230px;">
+                                        <span class="input-group-btn">
+                                            <label class="btn btn-default btn-xs btn-flat" for="foto-ctc-{{ $contacto->id }}" style="margin:0;cursor:pointer;">
+                                                <i class="fa fa-camera"></i> {{ $contacto->foto_url ? 'Cambiar' : 'Subir foto' }}
+                                            </label>
+                                        </span>
+                                        <input type="text" class="form-control input-xs ctc-foto-nombre" placeholder="Sin foto" readonly style="font-size:11px;">
+                                    </div>
+                                    <input type="file" id="foto-ctc-{{ $contacto->id }}"
+                                        class="ctc-foto-input" data-id="{{ $contacto->id }}"
+                                        accept="image/jpeg,image/png,image/webp" style="display:none">
+                                    <small class="text-muted" style="font-size:10px;">JPG, PNG o WEBP · Máx. 2 MB.</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @empty
@@ -807,6 +831,23 @@
                                 <label class="checkbox-inline" style="margin-left:8px;">
                                     <input type="checkbox" id="nctc-portal"> Portal
                                 </label>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top:4px;">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Foto del contacto <small class="text-muted">(opcional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-btn">
+                                            <label class="btn btn-default btn-sm btn-flat" for="nctc-foto" style="margin:0;cursor:pointer;">
+                                                <i class="fa fa-camera"></i> Seleccionar
+                                            </label>
+                                        </span>
+                                        <input type="text" id="nctc-foto-nombre" class="form-control input-sm" placeholder="Sin foto" readonly>
+                                    </div>
+                                    <input type="file" id="nctc-foto" accept="image/jpeg,image/png,image/webp" style="display:none">
+                                    <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB.</span>
+                                </div>
                             </div>
                         </div>
                         <div style="text-align:right;margin-top:4px;">
@@ -1142,7 +1183,7 @@
             });
 
             // ══════════════════════════════════════════════════
-            // FOTO PREVIEW
+            // FOTO PREVIEW (alumno)
             // ══════════════════════════════════════════════════
             var MAX_FOTO = 2 * 1024 * 1024;
             $('#foto').on('change', function() {
@@ -1166,6 +1207,75 @@
             });
 
             // ══════════════════════════════════════════════════
+            // FOTO DE CONTACTOS — solo preview (se guarda al pulsar "Guardar")
+            // ══════════════════════════════════════════════════
+            $(document).on('change', '.ctc-foto-input', function() {
+                var f = this.files[0];
+                var $panel = $(this).closest('.ctc-panel');
+                var $preview = $panel.find('.ctc-foto-preview');
+                var $nombre = $panel.find('.ctc-foto-nombre');
+
+                if (!f) return;
+
+                if (f.size > MAX_FOTO) {
+                    this.value = '';
+                    $nombre.val('');
+                    alert('El archivo supera 2 MB.');
+                    return;
+                }
+
+                $nombre.val(f.name);
+                alertaCtc('Foto seleccionada. Pulsa "Guardar" en el contacto para guardarla.', 'info');
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    $preview.html('<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;">');
+                };
+                reader.readAsDataURL(f);
+            });
+
+            // Foto del nuevo contacto — solo preview y validar tamaño
+            $('#nctc-foto').on('change', function() {
+                var f = this.files[0];
+                if (!f) { $('#nctc-foto-nombre').val(''); return; }
+                if (f.size > MAX_FOTO) {
+                    this.value = '';
+                    $('#nctc-foto-nombre').val('');
+                    alert('El archivo supera 2 MB.');
+                    return;
+                }
+                $('#nctc-foto-nombre').val(f.name);
+            });
+
+            // ══════════════════════════════════════════════════
+            // HELPER — sube la foto de un contacto si fue seleccionada
+            // Devuelve una promesa jQuery (o promesa resuelta si no hay foto)
+            // ══════════════════════════════════════════════════
+            function subirFotoContactoSiHay($panel, contactoId) {
+                var fotoInput = $panel.find('.ctc-foto-input')[0];
+                if (!fotoInput || !fotoInput.files[0]) {
+                    return $.when();            // promesa ya resuelta
+                }
+                var fd = new FormData();
+                fd.append('foto', fotoInput.files[0]);
+                return $.ajax({
+                    url: '/familias/contactos/' + contactoId + '/foto',
+                    method: 'POST',
+                    data: fd,
+                    processData: false,
+                    contentType: false,
+                }).done(function(res) {
+                    if (res.foto_url) {
+                        $panel.find('.ctc-foto-preview').html(
+                            '<img src="' + res.foto_url + '" style="width:100%;height:100%;object-fit:cover;">'
+                        );
+                    }
+                    $panel.find('.ctc-foto-nombre').val('');
+                    $panel.find('.ctc-foto-input').val('');
+                });
+            }
+
+            // ══════════════════════════════════════════════════
             // SUBMIT — guardar contactos vía AJAX y luego enviar el formulario
             // ══════════════════════════════════════════════════
             $('#form-editar-alumno').on('submit', function(e) {
@@ -1182,7 +1292,9 @@
                 var peticiones = $paneles.map(function() {
                     var $panel = $(this);
                     var id = $panel.data('id');
-                    return $.ajax({
+
+                    // 1. Guardar texto (JSON PUT — igual que siempre)
+                    var jsonGuardar = $.ajax({
                         url: '/familias/contactos/' + id,
                         method: 'PUT',
                         contentType: 'application/json',
@@ -1200,10 +1312,13 @@
                             tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
                         }),
                     });
+
+                    // 2. Si hay foto, encadenarla tras el guardado de texto
+                    return jsonGuardar.then(function() {
+                        return subirFotoContactoSiHay($panel, id);
+                    });
                 }).get();
 
-                // Cuando terminen todos (éxito o error), enviar el formulario principal.
-                // Se usa el submit nativo (DOM) para no disparar este handler de nuevo.
                 $.when.apply($, peticiones).always(function() {
                     $form[0].submit();
                 });
@@ -1218,40 +1333,46 @@
                 var $btn = $(this);
                 var orig = $btn.html();
 
-                var datos = {
-                    nombre: $panel.find('.ctc-nombre').val().trim(),
-                    ap_paterno: $panel.find('.ctc-ap-paterno').val().trim(),
-                    ap_materno: $panel.find('.ctc-ap-materno').val().trim(),
-                    telefono_celular: $panel.find('.ctc-telefono').val().trim(),
-                    email: $panel.find('.ctc-email').val().trim(),
-                    parentesco: $panel.find('.ctc-parentesco').val(),
-                    tipo: $panel.find('.ctc-tipo').val(),
-                    orden: parseInt($panel.find('.ctc-orden').val()),
-                    autorizado_recoger: $panel.find('.ctc-recoger').is(':checked'),
-                    es_responsable_pago: $panel.find('.ctc-pago').is(':checked'),
-                    tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
-                };
-
-                if (!datos.nombre) { alertaCtc('El nombre es obligatorio.', 'danger'); return; }
-                if (!datos.telefono_celular) { alertaCtc('El teléfono es obligatorio.', 'danger'); return; }
+                if (!$panel.find('.ctc-nombre').val().trim()) { alertaCtc('El nombre es obligatorio.', 'danger'); return; }
+                if (!$panel.find('.ctc-telefono').val().trim()) { alertaCtc('El teléfono es obligatorio.', 'danger'); return; }
 
                 $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
 
+                // 1. Guardar datos de texto (JSON PUT)
                 $.ajax({
                     url: '/familias/contactos/' + id,
                     method: 'PUT',
                     contentType: 'application/json',
-                    data: JSON.stringify(datos),
-                    success: function(res) {
-                        $panel.find('.ctc-titulo').text(datos.nombre + ' ' + datos.ap_paterno);
-                        $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Guardado');
-                        alertaCtc(res.message || 'Contacto guardado.', 'success');
-                        setTimeout(function() { $btn.html(orig); }, 2500);
-                    },
-                    error: function(xhr) {
-                        $btn.prop('disabled', false).html(orig);
-                        alertaCtc(xhr.responseJSON?.message || 'Error al guardar.', 'danger');
-                    }
+                    data: JSON.stringify({
+                        nombre:              $panel.find('.ctc-nombre').val().trim(),
+                        ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
+                        ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
+                        telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
+                        email:               $panel.find('.ctc-email').val().trim(),
+                        parentesco:          $panel.find('.ctc-parentesco').val(),
+                        tipo:                $panel.find('.ctc-tipo').val(),
+                        orden:               parseInt($panel.find('.ctc-orden').val()),
+                        autorizado_recoger:  $panel.find('.ctc-recoger').is(':checked'),
+                        es_responsable_pago: $panel.find('.ctc-pago').is(':checked'),
+                        tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
+                    }),
+                })
+                .then(function(res) {
+                    $panel.find('.ctc-titulo').text(
+                        $panel.find('.ctc-nombre').val().trim() + ' ' +
+                        $panel.find('.ctc-ap-paterno').val().trim()
+                    );
+                    // 2. Si hay foto seleccionada, subirla ahora
+                    return subirFotoContactoSiHay($panel, id);
+                })
+                .done(function() {
+                    $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Guardado');
+                    alertaCtc('Contacto guardado correctamente.', 'success');
+                    setTimeout(function() { $btn.html(orig); }, 2500);
+                })
+                .fail(function(xhr) {
+                    $btn.prop('disabled', false).html(orig);
+                    alertaCtc(xhr.responseJSON?.message || 'Error al guardar.', 'danger');
                 });
             });
 
@@ -1325,11 +1446,18 @@
 
                 $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
 
+                var fd = new FormData();
+                fd.append('_token', $('meta[name="csrf-token"]').attr('content'));
+                Object.keys(datos).forEach(function(k) { fd.append(k, datos[k] === true ? '1' : datos[k] === false ? '0' : datos[k] ?? ''); });
+                var fotoFile = document.getElementById('nctc-foto').files[0];
+                if (fotoFile) { fd.append('foto', fotoFile); }
+
                 $.ajax({
                     url: '/familias/contactos',
                     method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(datos),
+                    data: fd,
+                    processData: false,
+                    contentType: false,
                     success: function(res) {
                         $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
 
@@ -1401,6 +1529,8 @@
                 $('#nctc-parentesco,#nctc-tipo').val('');
                 $('#nctc-orden').val('1');
                 $('#nctc-recoger,#nctc-pago,#nctc-portal').prop('checked', false);
+                $('#nctc-foto').val('');
+                $('#nctc-foto-nombre').val('');
             }
 
             function alertaCtc(msg, tipo) {
