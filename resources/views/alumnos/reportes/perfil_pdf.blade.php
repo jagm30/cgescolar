@@ -189,7 +189,7 @@
     </table>
 
     {{-- ── 2. INSCRIPCIONES ── --}}
-    <div class="section-title">2. Historial de Inscripciones</div>
+    <div class="section-title">2. Periodo actual</div>
     <table class="info-table">
         <thead>
             <tr>
@@ -201,7 +201,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($alumno->inscripciones as $inscripcion)
+            @forelse($alumno->inscripciones->where('ciclo_id', $cicloActualId) as $inscripcion)
                 <tr>
                     <td style="font-weight: bold;">{{ $inscripcion->ciclo->nombre ?? 'N/A' }}</td>
                     <td>
@@ -212,7 +212,7 @@
                         @endif
                     </td>
                     <td>{{ $inscripcion->grupo->grado->nivel->nombre ?? '' }} -
-                        {{ $inscripcion->grupo->grado->nombre ?? '' }}°</td>
+                        {{ $inscripcion->grupo->grado->numero ?? '' }}°</td>
                     <td>{{ $inscripcion->grupo->nombre ?? 'N/A' }}</td>
                     <td>{{ \Carbon\Carbon::parse($inscripcion->created_at)->format('d/m/Y') }}</td>
                 </tr>

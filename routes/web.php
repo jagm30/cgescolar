@@ -87,6 +87,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Grados ───────────────────────────────────────────
+    Route::get('grupos/grados-por-ciclo',      [GrupoController::class, 'gradosPorCiclo'])->name('grupos.gradosPorCiclo');
+    Route::get('grupos/grupos-por-ciclo-grado', [GrupoController::class, 'gruposPorCicloGrado'])->name('grupos.gruposPorCicloGrado');
+
+
     Route::resource('grados', GradoController::class)
         ->middleware('rol:administrador');
 
@@ -105,6 +109,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // Ruta para procesar la promoción/reinscripción masiva
     Route::post('grupos/promocionar-masivo', [GrupoController::class, 'promocionarMasivo'])
         ->name('grupos.promocionar-masivo');
+
 
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
@@ -286,8 +291,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('usuarios.generarMasivos');
 
     Route::post('usuarios/{id}/reactivar', [UsuarioController::class, 'reactivar'])
-    ->middleware('rol:administrador')
-    ->name('usuarios.reactivar');
+        ->middleware('rol:administrador')
+        ->name('usuarios.reactivar');
 
     Route::get('/usuarios/pendientes-portal', [UsuarioController::class, 'pendientesPortal'])
         ->middleware('rol:administrador')
@@ -302,8 +307,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('usuarios.credencialesPdf');
 
     Route::delete('usuarios/{id}/forzar-eliminar', [UsuarioController::class, 'forzarEliminar'])
-    ->middleware('rol:administrador')
-    ->name('usuarios.forzarEliminar');
+        ->middleware('rol:administrador')
+        ->name('usuarios.forzarEliminar');
 
     Route::get('/perfil', [UsuarioController::class, 'perfil'])
         ->name('usuarios.perfil');
@@ -316,11 +321,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador')
         ->name('admin.dashboard');
 
-    Route::get('/caja', fn () => view('dashboards.caja'))
+    Route::get('/caja', fn() => view('dashboards.caja'))
         ->middleware('rol:administrador,caja')
         ->name('caja.dashboard');
 
-    Route::get('/recepcion', fn () => view('dashboards.recepcion'))
+    Route::get('/recepcion', fn() => view('dashboards.recepcion'))
         ->middleware('rol:administrador,recepcion')
         ->name('recepcion.dashboard');
 
@@ -469,7 +474,7 @@ Route::prefix('credenciales')->group(function () {
     Route::get('/individual/{credencial}/{alumno}', [CredencialController::class, 'imprimirIndividual'])
         ->name('credenciales.imprimirIndividual');
     Route::get('/credenciales/{credencial}/preview/{alumno}', [CredencialController::class, 'previewEnEditor'])
-     ->name('credenciales.previewEnEditor');
+        ->name('credenciales.previewEnEditor');
     Route::get('/preview/{credencial_id}/{alumno_id}', [CredencialController::class, 'preview'])->name('credenciales.preview');
 
     // RUTAS BÁSICAS

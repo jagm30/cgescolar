@@ -764,7 +764,7 @@ class AlumnoController extends Controller
         // Obtenemos la observación actual por si ya tenía algo escrito antes
         $obsAnterior = $alumno->observaciones ? $alumno->observaciones . ' | ' : '';
 
-     
+
         DB::transaction(function () use ($request, $alumno, $cicloActual) {
             $alumno->update([
                 'estado'     => $request->tipo_baja,
@@ -940,6 +940,9 @@ class AlumnoController extends Controller
         // 2. Preparar el logo en Base64 (usando el nombre correcto de tu archivo)
         $path = public_path('imgs_escuela/reportes/logo_reportes.png');
 
+        // 3. Obtenemos el ciclo actual global
+        $cicloActualId = auth()->user()->ciclo_seleccionado_id ?? \App\Models\CicloEscolar::activo()->value('id');
+
         // Validamos que el archivo exista para no romper el sistema
         $base64 = '';
         if (file_exists($path)) {
@@ -958,6 +961,7 @@ class AlumnoController extends Controller
             'alumno' => $alumno,
             'base64' => $base64,
             'setting' => $setting,
+            'cicloActualId' => $cicloActualId
         ]);
 
         // 5. Configuración del PDF

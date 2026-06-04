@@ -388,7 +388,7 @@
     </div>
 
     {{-- ── MODAL NUEVO GRUPO ── --}}
-    <x-modal id="modalNuevoGrupo" title="Crear Nuevo Grupo" size="modal-md">
+    <x-modal id="modalNuevoGrupo" title="Crear Nuevo Grupo - {{ $cicloActual->nombre }}" size="modal-md">
         <form action="{{ route('grupos.store') }}" method="POST" id="form-nuevo-grupo">
             @csrf
             {{-- ── INYECCIÓN DEL CICLO ACTUAL ── --}}
