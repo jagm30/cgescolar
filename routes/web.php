@@ -360,6 +360,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::put('contactos/{contactoId}', [FamiliaController::class, 'actualizarContacto'])
             ->middleware('rol:administrador,recepcion')
             ->name('contactos.update');
+        // Subir/cambiar foto de un contacto existente (AJAX)
+        Route::post('contactos/{contactoId}/foto', [FamiliaController::class, 'subirFotoContacto'])
+            ->middleware('rol:administrador,recepcion')
+            ->name('contactos.foto');
         // Crear nuevo contacto para un alumno (AJAX desde edit de alumno)
         Route::post('contactos', [FamiliaController::class, 'agregarContacto'])
             ->middleware('rol:administrador,recepcion')

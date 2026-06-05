@@ -12,6 +12,7 @@ use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 
@@ -305,6 +306,7 @@ class FamiliaController extends Controller
             'autorizado_recoger'  => ['boolean'],
             'es_responsable_pago' => ['boolean'],
             'tiene_acceso_portal' => ['boolean'],
+            'foto'                => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
         ], [
             'nombre.required'           => 'El nombre del contacto es obligatorio.',
             'telefono_celular.required' => 'El teléfono es obligatorio.',
@@ -313,15 +315,24 @@ class FamiliaController extends Controller
 
         $anterior = $contacto->toArray();
 
-        // Actualizar datos del contacto
-        $contacto->update([
+        $camposContacto = [
             'nombre'              => $data['nombre'],
             'ap_paterno'          => $data['ap_paterno'] ?? null,
             'ap_materno'          => $data['ap_materno'] ?? null,
             'telefono_celular'    => $data['telefono_celular'],
             'email'               => $data['email'] ?? null,
             'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
-        ]);
+        ];
+
+        if ($request->hasFile('foto')) {
+            if ($contacto->foto_url) {
+                Storage::disk('public')->delete($contacto->foto_url);
+            }
+            $camposContacto['foto_url'] = $request->file('foto')->store('contactos/fotos', 'public');
+        }
+
+        // Actualizar datos del contacto
+        $contacto->update($camposContacto);
 
         // Actualizar pivot alumno_contacto
         \App\Models\AlumnoContacto::where('contacto_id', $contacto->id)
@@ -347,6 +358,36 @@ class FamiliaController extends Controller
         ]);
     }
     /**
+     * POST /familias/contactos/{contactoId}/foto
+     * Sube o reemplaza la foto de un contacto existente. Solo AJAX.
+     */
+    public function subirFotoContacto(Request $request, int $contactoId): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+        ], [
+            'foto.required' => 'Selecciona una imagen.',
+            'foto.image'    => 'El archivo debe ser una imagen.',
+            'foto.mimes'    => 'Solo se permiten JPG, PNG o WEBP.',
+            'foto.max'      => 'La imagen no debe superar los 2 MB.',
+        ]);
+
+        $contacto = ContactoFamiliar::findOrFail($contactoId);
+
+        if ($contacto->foto_url) {
+            Storage::disk('public')->delete($contacto->foto_url);
+        }
+
+        $ruta = $request->file('foto')->store('contactos/fotos', 'public');
+        $contacto->update(['foto_url' => $ruta]);
+
+        return response()->json([
+            'message'  => 'Foto actualizada correctamente.',
+            'foto_url' => asset('storage/' . $ruta),
+        ]);
+    }
+
+    /**
      * POST /familias/contactos
      * Crea un nuevo contacto familiar y lo vincula al alumno.
      * Solo AJAX — llamado desde la vista edit de alumno.
@@ -368,6 +409,7 @@ class FamiliaController extends Controller
             'autorizado_recoger'  => ['boolean'],
             'es_responsable_pago' => ['boolean'],
             'tiene_acceso_portal' => ['boolean'],
+            'foto'                => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
         ], [
             'alumno_id.exists'          => 'El alumno no existe.',
             'nombre.required'           => 'El nombre del contacto es obligatorio.',
@@ -376,11 +418,11 @@ class FamiliaController extends Controller
             'tipo.required'             => 'El tipo de contacto es obligatorio.',
             'curp.size'                 => 'La CURP debe tener exactamente 18 caracteres.',
         ]);
-    
+
         // Si el alumno tiene familia, usar ese familia_id
         $alumno = \App\Models\Alumno::findOrFail($data['alumno_id']);
         $familiaId = $data['familia_id'] ?? $alumno->familia_id;
-    
+
         // Crear el contacto
         $contacto = \App\Models\ContactoFamiliar::create([
             'familia_id'          => $familiaId,
@@ -392,6 +434,11 @@ class FamiliaController extends Controller
             'curp'                => $data['curp'] ?? null,
             'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
         ]);
+
+        if ($request->hasFile('foto')) {
+            $ruta = $request->file('foto')->store('contactos/fotos', 'public');
+            $contacto->update(['foto_url' => $ruta]);
+        }
     
         // Vincular al alumno en la tabla pivot alumno_contacto
         $pivot = \App\Models\AlumnoContacto::create([

@@ -186,7 +186,7 @@ class AlumnoController extends Controller
             ]);
 
             // ── 4. Contactos ──────────────────────────────
-            foreach ($data['contactos'] as $contactoData) {
+            foreach ($data['contactos'] as $index => $contactoData) {
                 $contacto = null;
 
                 if (! empty($contactoData['curp'])) {
@@ -213,6 +213,11 @@ class AlumnoController extends Controller
                         'email' => $contactoData['email'] ?? null,
                         'curp' => $contactoData['curp'] ?? null,
                     ]);
+                }
+
+                if ($request->hasFile("fotos_contacto.{$index}")) {
+                    $ruta = $request->file("fotos_contacto.{$index}")->store('contactos/fotos', 'public');
+                    $contacto->update(['foto_url' => $ruta]);
                 }
 
                 AlumnoContacto::create([
