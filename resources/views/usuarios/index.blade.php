@@ -123,20 +123,43 @@
             color: #d97706;
         }
 
-        .status-pill {
-            width: 8px;
-            height: 8px;
+        /* Nuevos Estilos para el Estado (Cápsula Ovalada) */
+        .badge-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            /* Píldora */
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .dot-active {
+            background: #16a34a;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
         }
 
-        .status-online {
-            background: #10b981;
-        }
-
-        .status-offline {
-            background: #ef4444;
+        .dot-inactive {
+            background: #dc2626;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
         }
 
         .btn-action-flat {
@@ -166,24 +189,6 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
-        }
-
-        .box-ayuda {
-            background: #fff;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
-        }
-
-        .ayuda-header {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f0f2f5;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .ayuda-body {
-            padding: 15px;
         }
     </style>
 @endpush
@@ -257,18 +262,30 @@
                     Pendientes</span>
             </a>
         </div>
-        <button class="btn btn-success btn-sm" style="border-radius: 6px; font-weight: 600;" data-toggle="modal"
-            data-target="#modal-crear-usuario">
+
+        {{-- Botón Crear Usuario: Forma de píldora (20px) --}}
+        <button class="btn btn-success btn-sm"
+            style="border-radius: 20px; font-weight: 600; padding: 6px 18px; box-shadow: 0 2px 6px rgba(0, 166, 90, 0.3);"
+            data-toggle="modal" data-target="#modal-crear-usuario">
             <i class="fa fa-plus"></i> Crear Usuario
         </button>
     </div>
 
     <div class="row">
-        <div class="col-md-9">
+        <div class="col-md-12">
             <div class="con-filter-toolbar">
                 <form method="GET" action="{{ route('usuarios.index') }}"
                     style="display: flex; gap: 10px; width: 100%; align-items: center;" id="form-filtros-usuario">
-                    <select name="mostrar" class="filter-select" onchange="this.form.submit()" style="min-width: 75px;">
+
+                    {{-- Botón Ayuda: Forma de píldora (20px) --}}
+                    <button type="button" class="btn btn-info btn-sm"
+                        style="border-radius: 20px; font-weight: 600; padding: 6px 18px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0, 192, 239, 0.3);"
+                        data-toggle="modal" data-target="#modalAyuda" title="Ayuda del Módulo">
+                        <i class="fa fa-question-circle" style="margin-right: 3px;"></i> Ayuda
+                    </button>
+
+                    <select name="mostrar" class="filter-select" onchange="this.form.submit()"
+                        style="min-width: 75px; margin-left:10px;">
                         <option value="10" {{ request('mostrar') == '10' ? 'selected' : '' }}>10</option>
                         <option value="25" {{ request('mostrar') == '25' ? 'selected' : '' }}>25</option>
                         <option value="50" {{ request('mostrar') == '50' ? 'selected' : '' }}>50</option>
@@ -343,14 +360,20 @@
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        <span
-                                            class="status-pill {{ $usuario->activo ? 'status-online' : 'status-offline' }}"></span>
-                                        <span style="font-size: 11px; font-weight: 600; color: #64748b;">
-                                            {{ $usuario->activo ? 'Activo' : 'Inactivo' }}
-                                        </span>
+                                        {{-- Nueva cápsula ovalada para el ESTADO --}}
+                                        @if ($usuario->activo)
+                                            <span class="badge-status badge-active">
+                                                <span class="dot-active"></span> Activo
+                                            </span>
+                                        @else
+                                            <span class="badge-status badge-inactive">
+                                                <span class="dot-inactive"></span> Inactivo
+                                            </span>
+                                        @endif
                                     </td>
                                     <td class="text-center">
-                                        <div style="display: flex; gap: 2px; justify-content: center; align-items: center;">
+                                        <div
+                                            style="display: flex; gap: 2px; justify-content: center; align-items: center;">
 
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-modal-edit" title="Editar"
@@ -426,74 +449,104 @@
                 @endif
             </div>
         </div>
-
-        <div class="col-md-3">
-            <div class="box-ayuda">
-                <div class="ayuda-header"><i class="fa fa-info-circle text-blue"></i> Guía del Módulo</div>
-                <div class="ayuda-body">
-                    <div style="font-size: 13px; color: #475569;">
-                        <div style="margin-bottom: 15px;">
-                            <span
-                                style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Registro
-                                y Cuentas</span>
-                            <p style="margin-bottom: 8px; line-height: 1.4;">
-                                <i class="fa fa-user-plus text-orange" style="width: 15px;"></i>
-                                <b>Pendientes:</b> Genera credenciales masivas para padres de familia que tienen acceso
-                                autorizado pero aún no tienen usuario.
-                            </p>
-                            <p style="margin-bottom: 8px; line-height: 1.4;">
-                                <i class="fa fa-plus text-green" style="width: 15px;"></i>
-                                <b>Crear Usuario:</b> Registra manualmente a personal administrativo (Admin, Recepción,
-                                Caja, IT) o padres específicos.
-                            </p>
-                        </div>
-                        <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
-                        <div style="margin-bottom: 15px;">
-                            <span
-                                style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Acciones
-                                Individuales</span>
-                            <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                                <i class="fa fa-pencil text-blue"
-                                    style="margin-top: 3px; width: 12px; text-align: center;"></i>
-                                <span style="line-height: 1.3;"><b>Editar:</b> Modifica el rol o genera una nueva
-                                    contraseña (opción a PDF).</span>
-                            </div>
-                            <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                                <i class="fa fa-ban text-red"
-                                    style="margin-top: 3px; width: 12px; text-align: center;"></i>
-                                <span style="line-height: 1.3;"><b>Desactivar:</b> Suspende temporalmente el acceso del
-                                    usuario al sistema.</span>
-                            </div>
-                            <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                                <i class="fa fa-arrow-up text-green"
-                                    style="margin-top: 3px; width: 12px; text-align: center;"></i>
-                                <span style="line-height: 1.3;"><b>Reactivar:</b> Devuelve el acceso a una cuenta
-                                    previamente suspendida.</span>
-                            </div>
-                            <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                                <i class="fa fa-trash text-red"
-                                    style="margin-top: 3px; width: 12px; text-align: center; font-weight: 900;"></i>
-                                <span style="line-height: 1.3;"><b>Borrar:</b> Elimina la cuenta definitivamente y revoca
-                                    el acceso.</span>
-                            </div>
-                        </div>
-                        <div style="border-top: 1px solid #f1f5f9; margin: 15px 0;"></div>
-                        <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 10px; border-radius: 6px;">
-                            <span style="color: #991b1b; font-size: 12px; font-weight: 700;">
-                                <i class="fa fa-shield"></i> Protección:
-                            </span>
-                            <p style="font-size: 11px; color: #991b1b; margin: 5px 0 0; line-height: 1.4;">
-                                Por seguridad, el sistema bloquea acciones directas sobre tu propia sesión activa para
-                                evitar la pérdida accidental de acceso.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    {{-- MODAL 1: CREAR USUARIO NUEVO --}}
+    {{-- ========================================== --}}
+    {{-- ══ MODAL AYUDA ══ --}}
+    {{-- ========================================== --}}
+    <x-modal id="modalAyuda" title="Guía del Módulo de Usuarios" size="modal-md">
+        <div style="line-height:1.7;">
+
+            <p style="font-size:13px;color:#555;margin-bottom:16px;">
+                Esta pantalla te permite gestionar los <strong>usuarios del sistema</strong> y sus permisos.
+                Puedes dar de alta nuevas cuentas, suspender accesos o modificar credenciales de ingreso.
+            </p>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-user-plus text-orange" style="margin-top:4px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Cuentas Pendientes</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Genera credenciales masivas para padres de familia que tienen acceso autorizado pero aún no
+                            tienen usuario.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-plus text-green" style="margin-top:4px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Crear Usuario Manual</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Registra manualmente a personal administrativo (Admin, Recepción, Caja, IT) o a padres
+                            específicos.
+                        </p>
+                    </div>
+                </div>
+
+                <hr style="margin:10px 0;">
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-pencil text-blue" style="margin-top:4px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Editar (Modificar credenciales)</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Modifica el rol o genera una nueva contraseña. Al hacerlo, tendrás la opción de generar un PDF
+                            con las credenciales actualizadas y enviar un correo automático.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-ban text-red" style="margin-top:4px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Desactivar / Reactivar Accesos</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            <i class="fa fa-ban text-red"></i> <b>Desactivar:</b> Suspende temporalmente el acceso del
+                            usuario al sistema.<br>
+                            <i class="fa fa-arrow-up text-green"></i> <b>Reactivar:</b> Devuelve el acceso a una cuenta
+                            previamente suspendida.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-trash text-red" style="margin-top:4px;flex-shrink:0; font-weight:900;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Borrar Definitivamente</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Elimina la cuenta definitivamente del sistema y revoca el acceso en la ficha original del
+                            contacto.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <hr style="margin:16px 0 10px;">
+
+            <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 10px; border-radius: 6px;">
+                <span style="color: #991b1b; font-size: 12px; font-weight: 700;">
+                    <i class="fa fa-shield"></i> Protección de Seguridad:
+                </span>
+                <p style="font-size: 11px; color: #991b1b; margin: 5px 0 0; line-height: 1.4;">
+                    Por seguridad, el sistema bloquea acciones directas sobre tu propia sesión activa para evitar la pérdida
+                    accidental de acceso.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="clearfix" style="padding-top:15px;">
+            <button type="button" class="btn btn-default pull-right" data-dismiss="modal">
+                <i class="fa fa-times"></i> Cerrar Ayuda
+            </button>
+        </div>
+    </x-modal>
+
+    {{-- MODAL CREAR USUARIO --}}
     <x-modal id="modal-crear-usuario" title="Registrar Nuevo Usuario">
         <form id="form-crear-usuario">
             @csrf
@@ -537,7 +590,7 @@
         </form>
     </x-modal>
 
-    {{-- MODAL 2: EDITAR USUARIO --}}
+    {{-- MODAL EDITAR USUARIO --}}
     <x-modal id="modal-editar-usuario" title="Modificar Perfil de Usuario">
         <form id="form-editar-usuario">
             @csrf
