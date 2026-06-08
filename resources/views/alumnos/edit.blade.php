@@ -712,6 +712,7 @@
                                         <input type="text" class="form-control input-xs ctc-foto-nombre" placeholder="Sin foto" readonly style="font-size:11px;">
                                     </div>
                                     <input type="file" id="foto-ctc-{{ $contacto->id }}"
+                                        name="fotos_contacto[{{ $contacto->id }}]"
                                         class="ctc-foto-input" data-id="{{ $contacto->id }}"
                                         accept="image/jpeg,image/png,image/webp" style="display:none">
                                     <small class="text-muted" style="font-size:10px;">JPG, PNG o WEBP · Máx. 2 MB.</small>
@@ -1225,7 +1226,7 @@
                 }
 
                 $nombre.val(f.name);
-                alertaCtc('Foto seleccionada. Pulsa "Guardar" en el contacto para guardarla.', 'info');
+                alertaCtc('Foto seleccionada. Se guardará al hacer clic en "Guardar cambios".', 'info');
 
                 var reader = new FileReader();
                 reader.onload = function(e) {
@@ -1248,35 +1249,8 @@
             });
 
             // ══════════════════════════════════════════════════
-            // HELPER — sube la foto de un contacto si fue seleccionada
-            // Devuelve una promesa jQuery (o promesa resuelta si no hay foto)
-            // ══════════════════════════════════════════════════
-            function subirFotoContactoSiHay($panel, contactoId) {
-                var fotoInput = $panel.find('.ctc-foto-input')[0];
-                if (!fotoInput || !fotoInput.files[0]) {
-                    return $.when();            // promesa ya resuelta
-                }
-                var fd = new FormData();
-                fd.append('foto', fotoInput.files[0]);
-                return $.ajax({
-                    url: '/familias/contactos/' + contactoId + '/foto',
-                    method: 'POST',
-                    data: fd,
-                    processData: false,
-                    contentType: false,
-                }).done(function(res) {
-                    if (res.foto_url) {
-                        $panel.find('.ctc-foto-preview').html(
-                            '<img src="' + res.foto_url + '" style="width:100%;height:100%;object-fit:cover;">'
-                        );
-                    }
-                    $panel.find('.ctc-foto-nombre').val('');
-                    $panel.find('.ctc-foto-input').val('');
-                });
-            }
-
-            // ══════════════════════════════════════════════════
             // SUBMIT — guardar contactos vía AJAX y luego enviar el formulario
+            // Las fotos de contacto se incluyen directamente en el submit del form
             // ══════════════════════════════════════════════════
             $('#form-editar-alumno').on('submit', function(e) {
                 var $form = $(this);
@@ -1293,8 +1267,9 @@
                     var $panel = $(this);
                     var id = $panel.data('id');
 
-                    // 1. Guardar texto (JSON PUT — igual que siempre)
-                    var jsonGuardar = $.ajax({
+                    // Guardar texto de cada contacto (JSON PUT)
+                    // Las fotos van incluidas directamente en el submit del formulario principal
+                    return $.ajax({
                         url: '/familias/contactos/' + id,
                         method: 'PUT',
                         contentType: 'application/json',
@@ -1311,11 +1286,6 @@
                             es_responsable_pago: $panel.find('.ctc-pago').is(':checked'),
                             tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
                         }),
-                    });
-
-                    // 2. Si hay foto, encadenarla tras el guardado de texto
-                    return jsonGuardar.then(function() {
-                        return subirFotoContactoSiHay($panel, id);
                     });
                 }).get();
 
@@ -1357,17 +1327,13 @@
                         tiene_acceso_portal: $panel.find('.ctc-portal').is(':checked'),
                     }),
                 })
-                .then(function(res) {
+                .done(function() {
                     $panel.find('.ctc-titulo').text(
                         $panel.find('.ctc-nombre').val().trim() + ' ' +
                         $panel.find('.ctc-ap-paterno').val().trim()
                     );
-                    // 2. Si hay foto seleccionada, subirla ahora
-                    return subirFotoContactoSiHay($panel, id);
-                })
-                .done(function() {
                     $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Guardado');
-                    alertaCtc('Contacto guardado correctamente.', 'success');
+                    alertaCtc('Contacto guardado. La foto se guardará con "Guardar cambios".', 'success');
                     setTimeout(function() { $btn.html(orig); }, 2500);
                 })
                 .fail(function(xhr) {
@@ -1446,11 +1412,26 @@
 
                 $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
 
+                // Construir FormData con campos explícitos (misma técnica que el formulario de registro)
                 var fd = new FormData();
-                fd.append('_token', $('meta[name="csrf-token"]').attr('content'));
-                Object.keys(datos).forEach(function(k) { fd.append(k, datos[k] === true ? '1' : datos[k] === false ? '0' : datos[k] ?? ''); });
-                var fotoFile = document.getElementById('nctc-foto').files[0];
-                if (fotoFile) { fd.append('foto', fotoFile); }
+                fd.append('alumno_id',           String(ALUMNO_ID));
+                fd.append('familia_id',           FAMILIA_ID !== null && FAMILIA_ID !== undefined ? String(FAMILIA_ID) : '');
+                fd.append('nombre',               $('#nctc-nombre').val().trim());
+                fd.append('ap_paterno',           $('#nctc-ap-paterno').val().trim());
+                fd.append('ap_materno',           $('#nctc-ap-materno').val().trim());
+                fd.append('telefono_celular',     $('#nctc-telefono').val().trim());
+                fd.append('email',                $('#nctc-email').val().trim());
+                fd.append('curp',                 $('#nctc-curp').val().trim().toUpperCase());
+                fd.append('parentesco',           $('#nctc-parentesco').val());
+                fd.append('tipo',                 $('#nctc-tipo').val());
+                fd.append('orden',                $('#nctc-orden').val());
+                fd.append('autorizado_recoger',   $('#nctc-recoger').is(':checked') ? '1' : '0');
+                fd.append('es_responsable_pago',  $('#nctc-pago').is(':checked')    ? '1' : '0');
+                fd.append('tiene_acceso_portal',  $('#nctc-portal').is(':checked')  ? '1' : '0');
+                var fotoNueva = document.getElementById('nctc-foto');
+                if (fotoNueva && fotoNueva.files[0]) {
+                    fd.append('foto', fotoNueva.files[0]);
+                }
 
                 $.ajax({
                     url: '/familias/contactos',
@@ -1458,66 +1439,80 @@
                     data: fd,
                     processData: false,
                     contentType: false,
-                    success: function(res) {
-                        $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
+                })
+                .done(function(res) {
+                    $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
 
-                        var c = res.contacto, piv = res.pivot;
+                    var c = res.contacto, piv = res.pivot;
 
-                        var pOpts = [['padre','Padre'],['madre','Madre'],['abuelo','Abuelo/a'],['tio','Tío/a'],['otro','Otro']]
-                            .map(function(p) {
-                                return '<option value="' + p[0] + '"' + (datos.parentesco === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
-                            }).join('');
-                        var tOpts =
-                            '<option value="padre"' + (datos.tipo === 'padre' ? ' selected' : '') + '>Padre/Madre</option>' +
-                            '<option value="tutor"' + (datos.tipo === 'tutor' ? ' selected' : '') + '>Tutor</option>' +
-                            '<option value="tercero_autorizado"' + (datos.tipo === 'tercero_autorizado' ? ' selected' : '') + '>Tercero autorizado</option>';
-                        var oOpts =
-                            '<option value="1"' + (datos.orden === 1 ? ' selected' : '') + '>1 — Principal</option>' +
-                            '<option value="2"' + (datos.orden === 2 ? ' selected' : '') + '>2 — Secundario</option>' +
-                            '<option value="3"' + (datos.orden === 3 ? ' selected' : '') + '>3 — Tercero</option>';
+                    var pOpts = [['padre','Padre'],['madre','Madre'],['abuelo','Abuelo/a'],['tio','Tío/a'],['otro','Otro']]
+                        .map(function(p) {
+                            return '<option value="' + p[0] + '"' + (datos.parentesco === p[0] ? ' selected' : '') + '>' + p[1] + '</option>';
+                        }).join('');
+                    var tOpts =
+                        '<option value="padre"' + (datos.tipo === 'padre' ? ' selected' : '') + '>Padre/Madre</option>' +
+                        '<option value="tutor"' + (datos.tipo === 'tutor' ? ' selected' : '') + '>Tutor</option>' +
+                        '<option value="tercero_autorizado"' + (datos.tipo === 'tercero_autorizado' ? ' selected' : '') + '>Tercero autorizado</option>';
+                    var oOpts =
+                        '<option value="1"' + (datos.orden === 1 ? ' selected' : '') + '>1 — Principal</option>' +
+                        '<option value="2"' + (datos.orden === 2 ? ' selected' : '') + '>2 — Secundario</option>' +
+                        '<option value="3"' + (datos.orden === 3 ? ' selected' : '') + '>3 — Tercero</option>';
 
-                        var html =
-                            '<div class="panel panel-default ctc-panel" style="margin-bottom:10px;" data-id="' + c.id + '">' +
-                            '<div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">' +
-                            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-                            '<strong style="font-size:13px;"><span class="ctc-titulo">' + datos.nombre + ' ' + datos.ap_paterno + '</span></strong>' +
-                            '<div>' +
-                            '<button type="button" class="btn btn-success btn-xs btn-ctc-guardar"><i class="fa fa-save"></i> Guardar</button>' +
-                            '<button type="button" class="btn btn-danger btn-xs btn-ctc-eliminar" style="margin-left:4px;"><i class="fa fa-trash"></i></button>' +
-                            '</div></div></div>' +
-                            '<div class="panel-body" style="padding:12px;">' +
-                            '<div class="row">' +
-                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label><input type="text" class="form-control input-sm ctc-nombre" value="' + datos.nombre + '" maxlength="100"></div></div>' +
-                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido paterno</label><input type="text" class="form-control input-sm ctc-ap-paterno" value="' + (datos.ap_paterno || '') + '" maxlength="100"></div></div>' +
-                            '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido materno</label><input type="text" class="form-control input-sm ctc-ap-materno" value="' + (datos.ap_materno || '') + '" maxlength="100"></div></div>' +
-                            '</div>' +
-                            '<div class="row">' +
-                            '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Teléfono</label><input type="tel" class="form-control input-sm ctc-telefono" value="' + (datos.telefono_celular || '') + '"></div></div>' +
-                            '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Correo</label><input type="email" class="form-control input-sm ctc-email" value="' + (datos.email || '') + '"></div></div>' +
-                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Parentesco</label><select class="form-control input-sm ctc-parentesco">' + pOpts + '</select></div></div>' +
-                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Tipo</label><select class="form-control input-sm ctc-tipo">' + tOpts + '</select></div></div>' +
-                            '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Orden</label><select class="form-control input-sm ctc-orden">' + oOpts + '</select></div></div>' +
-                            '</div>' +
-                            '<div class="row"><div class="col-md-12">' +
-                            '<label class="checkbox-inline"><input type="checkbox" class="ctc-recoger"' + (piv.autorizado_recoger ? ' checked' : '') + '>  Autorizado recoger</label>' +
-                            '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-pago"' + (piv.es_responsable_pago ? ' checked' : '') + '>  Resp. pagos</label>' +
-                            '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' + (c.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
-                            '</div></div>' +
-                            '</div></div>';
+                    var html =
+                        '<div class="panel panel-default ctc-panel" style="margin-bottom:10px;" data-id="' + c.id + '">' +
+                        '<div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                        '<strong style="font-size:13px;"><span class="ctc-titulo">' + datos.nombre + ' ' + datos.ap_paterno + '</span></strong>' +
+                        '<div>' +
+                        '<button type="button" class="btn btn-success btn-xs btn-ctc-guardar"><i class="fa fa-save"></i> Guardar</button>' +
+                        '<button type="button" class="btn btn-danger btn-xs btn-ctc-eliminar" style="margin-left:4px;"><i class="fa fa-trash"></i></button>' +
+                        '</div></div></div>' +
+                        '<div class="panel-body" style="padding:12px;">' +
+                        '<div class="row">' +
+                        '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Nombre(s) <span class="text-red">*</span></label><input type="text" class="form-control input-sm ctc-nombre" value="' + datos.nombre + '" maxlength="100"></div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido paterno</label><input type="text" class="form-control input-sm ctc-ap-paterno" value="' + (datos.ap_paterno || '') + '" maxlength="100"></div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Apellido materno</label><input type="text" class="form-control input-sm ctc-ap-materno" value="' + (datos.ap_materno || '') + '" maxlength="100"></div></div>' +
+                        '</div>' +
+                        '<div class="row">' +
+                        '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Teléfono</label><input type="tel" class="form-control input-sm ctc-telefono" value="' + (datos.telefono_celular || '') + '"></div></div>' +
+                        '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Correo</label><input type="email" class="form-control input-sm ctc-email" value="' + (datos.email || '') + '"></div></div>' +
+                        '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Parentesco</label><select class="form-control input-sm ctc-parentesco">' + pOpts + '</select></div></div>' +
+                        '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Tipo</label><select class="form-control input-sm ctc-tipo">' + tOpts + '</select></div></div>' +
+                        '<div class="col-md-2"><div class="form-group"><label style="font-size:12px;">Orden</label><select class="form-control input-sm ctc-orden">' + oOpts + '</select></div></div>' +
+                        '</div>' +
+                        '<div class="row"><div class="col-md-12">' +
+                        '<label class="checkbox-inline"><input type="checkbox" class="ctc-recoger"' + (piv.autorizado_recoger ? ' checked' : '') + '>  Autorizado recoger</label>' +
+                        '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-pago"' + (piv.es_responsable_pago ? ' checked' : '') + '>  Resp. pagos</label>' +
+                        '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' + (c.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
+                        '</div></div>' +
+                        '<div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;">' +
+                        '<div class="ctc-foto-preview" style="width:52px;height:52px;border-radius:50%;border:2px solid #ddd;overflow:hidden;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                        (c.foto_url ? '<img src="/storage/' + c.foto_url + '" style="width:100%;height:100%;object-fit:cover;" alt="">' : '<i class="fa fa-user" style="font-size:22px;color:#ccc;"></i>') +
+                        '</div>' +
+                        '<div>' +
+                        '<label style="font-size:11px;color:#888;margin-bottom:4px;display:block;">Foto del contacto</label>' +
+                        '<div class="input-group" style="width:230px;">' +
+                        '<span class="input-group-btn"><label class="btn btn-default btn-xs btn-flat" for="foto-ctc-' + c.id + '" style="margin:0;cursor:pointer;"><i class="fa fa-camera"></i> ' + (c.foto_url ? 'Cambiar' : 'Subir foto') + '</label></span>' +
+                        '<input type="text" class="form-control input-xs ctc-foto-nombre" placeholder="Sin foto" readonly style="font-size:11px;">' +
+                        '</div>' +
+                        '<input type="file" id="foto-ctc-' + c.id + '" name="fotos_contacto[' + c.id + ']" class="ctc-foto-input" data-id="' + c.id + '" accept="image/jpeg,image/png,image/webp" style="display:none">' +
+                        '<small class="text-muted" style="font-size:10px;">JPG, PNG o WEBP · Máx. 2 MB.</small>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div></div>';
 
-                        $('.panel.panel-success').before(html);
-                        $('.alert.alert-warning').remove();
-                        limpiarCtc();
-                        $('#form-nuevo-ctc').hide();
-                        $('#ico-toggle-ctc').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-                        alertaCtc(res.message || 'Contacto agregado.', 'success');
-                    },
-                    error: function(xhr) {
-                        $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
-                        var msg = xhr.responseJSON?.message || 'Error al agregar el contacto.';
-                        if (xhr.responseJSON?.errors) msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
-                        alertaCtc(msg, 'danger');
-                    }
+                    $('.panel.panel-success').before(html);
+                    $('.alert.alert-warning').remove();
+                    limpiarCtc();
+                    $('#form-nuevo-ctc').hide();
+                    $('#ico-toggle-ctc').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                    alertaCtc(res.message || 'Contacto agregado.', 'success');
+                })
+                .fail(function(xhr) {
+                    $btn.prop('disabled', false).html('<i class="fa fa-plus"></i> Agregar contacto');
+                    var msg = xhr.responseJSON?.message || 'Error al agregar el contacto.';
+                    if (xhr.responseJSON?.errors) msg = Object.values(xhr.responseJSON.errors).flat().join(' ');
+                    alertaCtc(msg, 'danger');
                 });
             });
 

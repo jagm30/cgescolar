@@ -298,10 +298,8 @@ class AlumnoController extends Controller
         $cicloId = $campos['ciclo_id'] ?? null;
         unset($campos['grupo_id'], $campos['nivel_id'], $campos['ciclo_id']);
 
-        // Procesar foto si viene en el request
-        // Al igual que en store(), el archivo no está en validated()
+        // Procesar foto del alumno si viene en el request
         if ($request->hasFile('foto')) {
-            // Eliminar foto anterior si existe
             if ($alumno->foto_url) {
                 Storage::disk('public')->delete($alumno->foto_url);
             }
@@ -309,6 +307,19 @@ class AlumnoController extends Controller
         }
 
         $alumno->update($campos);
+
+        // Procesar fotos de contactos familiares (fotos_contacto[contacto_id])
+        foreach ($request->file('fotos_contacto', []) as $contactoId => $fotoFile) {
+            $contacto = ContactoFamiliar::find($contactoId);
+            if (! $contacto) {
+                continue;
+            }
+            if ($contacto->foto_url) {
+                Storage::disk('public')->delete($contacto->foto_url);
+            }
+            $ruta = $fotoFile->store('contactos/fotos', 'public');
+            $contacto->update(['foto_url' => $ruta]);
+        }
 
         // Actualizar inscripción si se indicó al menos un ciclo
         if ($cicloId) {
