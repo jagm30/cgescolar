@@ -33,6 +33,8 @@ class UpdateAlumnoRequest extends FormRequest
             'ciclo_id'         => ['nullable', 'exists:ciclo_escolar,id'],
             'nivel_id'         => ['nullable', 'exists:nivel_escolar,id'],
             'grupo_id'         => ['nullable', 'exists:grupo,id'],
+            'fotos_contacto'   => ['nullable', 'array'],
+            'fotos_contacto.*' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
         ];
     }
 
