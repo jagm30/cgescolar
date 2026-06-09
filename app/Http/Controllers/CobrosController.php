@@ -7,6 +7,7 @@ use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\ConceptoCobro;
+use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
 use Illuminate\Http\Request;
@@ -59,6 +60,13 @@ class CobrosController extends Controller
 
         $inscripcionActual = $alumno->inscripciones->first();
 
+        // Fallback: si no hay inscripción activa, usar la más reciente de cualquier ciclo
+        $inscripcionParaCobro = $inscripcionActual
+            ?? Inscripcion::with('grupo.grado.nivel', 'ciclo')
+                ->where('alumno_id', $alumnoId)
+                ->orderByDesc('id')
+                ->first();
+
         $becasAlumno = BecaAlumno::with('catalogoBeca')
             ->where('alumno_id', $alumnoId)
             ->vigenteHoy()
@@ -68,6 +76,7 @@ class CobrosController extends Controller
 
         // Cargos pendientes y parciales de todas sus inscripciones
         $hoy = now();
+        $hoyFecha = today();
 
         $cargos = Cargo::with([
             'concepto',
@@ -81,10 +90,11 @@ class CobrosController extends Controller
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(function ($cargo) use ($hoy, $becasPorPlan, $becasPorConcepto) {
+            ->map(function ($cargo) use ($hoy, $hoyFecha, $becasPorPlan, $becasPorConcepto) {
                 $abonado = (float) ($cargo->total_abonado ?? 0);
                 $pendiente = max(0, round((float) $cargo->monto_original - $abonado, 2));
-                $vencido = $hoy->gt($cargo->fecha_vencimiento);
+                // Comparar solo fechas: un cargo que vence HOY no está vencido aún
+                $vencido = $hoyFecha->gt($cargo->fecha_vencimiento);
 
                 $cargo->abonado = $abonado;
                 $cargo->pendiente = $pendiente;
@@ -116,7 +126,7 @@ class CobrosController extends Controller
                     $plan = $cargo->asignacion->plan;
 
                     if ($vencido) {
-                        $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
+                        $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
                         $pr = $plan->politicasRecargo->firstWhere('activo', true);
                         if ($pr) {
                             $recargo = $pr->calcular($pendiente, $mesesRetraso);
@@ -146,7 +156,7 @@ class CobrosController extends Controller
             ->get();
 
         return view('cobros.alumno', compact(
-            'alumno', 'inscripcionActual', 'cargos', 'conceptos'
+            'alumno', 'inscripcionActual', 'inscripcionParaCobro', 'cargos', 'conceptos'
         ));
     }
 
