@@ -47,12 +47,29 @@ class FacturaComService
         return $status === 'error';
     }
 
-    /** Convierte el campo de error de factura.com a texto limpio (sin HTML). */
+    /**
+     * Convierte el campo de error de factura.com a texto limpio.
+     *
+     * strip_tags() elimina etiquetas pero deja el contenido de <style> y <script>.
+     * Por eso primero se borran esos bloques con regex antes de llamar strip_tags().
+     */
     private function extraerMensaje(mixed $raw): string
     {
         $texto = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
 
-        return trim(strip_tags($texto));
+        // Eliminar bloques <style> y <script> completos (con su contenido)
+        $texto = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $texto);
+        $texto = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $texto);
+
+        $texto = trim(strip_tags($texto));
+
+        // Si tras la limpieza el mensaje sigue siendo largo (HTML de error)
+        // mostrar solo los primeros 200 caracteres para no saturar la UI.
+        if (mb_strlen($texto) > 200) {
+            $texto = mb_substr($texto, 0, 200).'…';
+        }
+
+        return $texto ?: 'Error desconocido en factura.com.';
     }
 
     // ── Clientes ─────────────────────────────────────────
@@ -162,6 +179,28 @@ class FacturaComService
             $raw     = $json['message'] ?? $json['error'] ?? $response->body();
             $mensaje = $this->extraerMensaje($raw);
             throw new \RuntimeException("Error al cancelar CFDI: {$mensaje}", $response->status());
+        }
+    }
+
+    /**
+     * Envía por correo el CFDI timbrado usando la API de factura.com.
+     *
+     * La API reenvía la factura al e-mail registrado en el receptor del CFDI.
+     * Método: GET /v4/cfdi40/{uid}/email  (sin cuerpo).
+     *
+     * @throws \RuntimeException Si el envío falla
+     */
+    public function enviarCorreo(string $uid): void
+    {
+        $response = Http::withHeaders($this->headers())
+            ->get($this->url("/api/v4/cfdi40/{$uid}/email"));
+
+        $json = $response->json();
+
+        if ($this->esError($response, $json)) {
+            $raw     = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
+            $mensaje = $this->extraerMensaje($raw);
+            throw new \RuntimeException($mensaje);
         }
     }
 

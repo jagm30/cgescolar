@@ -45,7 +45,7 @@ class PagoController extends Controller
         ];
 
         $pagos = (clone $base)
-            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno', 'cfdis'])
             ->orderByDesc('fecha_pago')
             ->orderByDesc('id')
             ->paginate($perPage)
@@ -55,7 +55,9 @@ class PagoController extends Controller
             return response()->json($pagos);
         }
 
-        return view('pagos.index', compact('pagos', 'resumen', 'perPage'));
+        $configFiscal = ConfigFiscal::first();
+
+        return view('pagos.index', compact('pagos', 'resumen', 'perPage', 'configFiscal'));
     }
 
     /** GET /pagos/{id} */
@@ -89,6 +91,46 @@ class PagoController extends Controller
         $configFiscal = ConfigFiscal::first();
 
         return view('pagos.show', compact('pago', 'razonesDisponibles', 'configFiscal'));
+    }
+
+    /** GET /pagos/{pago}/form-factura  — datos para el modal de facturación (AJAX) */
+    public function formFactura(int $id)
+    {
+        $pago = Pago::with([
+            'detalles.cargo.inscripcion.alumno',
+            'cfdis' => fn ($q) => $q->where('estado', 'vigente'),
+        ])->findOrFail($id);
+
+        $alumnoIds = $pago->detalles
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno_id)
+            ->filter()->unique()->values();
+
+        $razones = RazonSocialContacto::query()
+            ->where('activo', true)
+            ->whereHas('contacto.alumnos', fn ($q) => $q->whereIn('alumno.id', $alumnoIds))
+            ->with('contacto')
+            ->get()
+            ->map(fn ($rs) => [
+                'id'          => $rs->id,
+                'rfc'         => $rs->rfc,
+                'razon_social'=> $rs->razon_social,
+                'contacto'    => $rs->contacto?->nombre_completo,
+            ]);
+
+        $alumnos = $pago->detalles
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno)
+            ->filter()->unique('id')
+            ->map(fn ($a) => trim("{$a->ap_paterno} {$a->ap_materno}, {$a->nombre}"))
+            ->values();
+
+        return response()->json([
+            'pago_id'        => $pago->id,
+            'folio'          => $pago->folio_recibo,
+            'monto'          => number_format($pago->monto_total, 2),
+            'ya_facturado'   => $pago->cfdis->isNotEmpty(),
+            'alumnos'        => $alumnos,
+            'razones'        => $razones,
+        ]);
     }
 
     /** GET /pagos/create */
