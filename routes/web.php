@@ -223,6 +223,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador')
         ->name('pagos.anular');
 
+    Route::get('/pagos/{pago}/form-factura', [PagoController::class, 'formFactura'])
+        ->middleware('rol:administrador,caja')
+        ->name('pagos.form-factura');
+
     Route::resource('pagos', PagoController::class)
         ->only(['index', 'show', 'create', 'store'])
         ->middleware('rol:administrador,caja');
@@ -416,6 +420,8 @@ Route::middleware('rol:administrador,caja')->prefix('cfdis')->name('cfdis.')->gr
     Route::post('/emitir/{pago}', [CfdiController::class, 'emitir'])->name('emitir');
     Route::post('/{cfdi}/cancelar', [CfdiController::class, 'cancelar'])->name('cancelar');
     Route::get('/{cfdi}/descargar/{formato}', [CfdiController::class, 'descargar'])->name('descargar');
+    Route::get('/{cfdi}/form-correo', [CfdiController::class, 'formCorreo'])->name('form-correo');
+    Route::post('/{cfdi}/enviar-correo', [CfdiController::class, 'enviarCorreo'])->name('enviar-correo');
 });
 
 // ── Cobros / Caja ─────────────────────────────────────

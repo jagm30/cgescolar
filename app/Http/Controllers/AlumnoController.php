@@ -186,6 +186,8 @@ class AlumnoController extends Controller
             ]);
 
             // ── 4. Contactos ──────────────────────────────
+            $contactosVinculados = [];
+
             foreach ($data['contactos'] as $index => $contactoData) {
                 $contacto = null;
 
@@ -220,6 +222,10 @@ class AlumnoController extends Controller
                     $contacto->update(['foto_url' => $ruta]);
                 }
 
+                if (in_array($contacto->id, $contactosVinculados)) {
+                    continue;
+                }
+
                 AlumnoContacto::create([
                     'alumno_id' => $alumno->id,
                     'contacto_id' => $contacto->id,
@@ -230,6 +236,8 @@ class AlumnoController extends Controller
                     'es_responsable_pago' => $contactoData['es_responsable_pago'] ?? false,
                     'activo' => true,
                 ]);
+
+                $contactosVinculados[] = $contacto->id;
             }
 
             // ── 5. Documentos requeridos ──────────────────

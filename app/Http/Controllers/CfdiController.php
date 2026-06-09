@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Auditoria;
 use App\Models\Cfdi;
 use App\Models\ConfigFiscal;
+use App\Models\ContactoFamiliar;
 use App\Models\Pago;
 use App\Models\RazonSocialContacto;
+use App\Models\Setting;
 use App\Services\FacturaComService;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class CfdiController extends Controller
 {
@@ -192,6 +195,96 @@ class CfdiController extends Controller
             );
         } catch (\Throwable $e) {
             return $this->respuestaError('Error al cancelar CFDI: '.$e->getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /cfdis/{cfdi}/form-correo
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Devuelve los contactos con email del pago para el modal de envío (AJAX).
+     * El contacto del receptor del CFDI viene marcado como predeterminado.
+     */
+    public function formCorreo(int $cfdiId)
+    {
+        $cfdi = Cfdi::with([
+            'razonSocial.contacto',
+            'pago.detalles.cargo.inscripcion.alumno',
+        ])->findOrFail($cfdiId);
+
+        $emailDefecto = $cfdi->razonSocial?->contacto?->email;
+
+        $alumnoIds = $cfdi->pago->detalles
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno_id)
+            ->filter()->unique()->values();
+
+        $contactos = ContactoFamiliar::query()
+            ->whereHas('alumnos', fn ($q) => $q->whereIn('alumno.id', $alumnoIds))
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->get()
+            ->map(fn ($c) => [
+                'nombre'     => $c->nombre_completo,
+                'email'      => $c->email,
+                'es_defecto' => $emailDefecto && $c->email === $emailDefecto,
+            ])
+            ->sortByDesc('es_defecto')
+            ->values();
+
+        return response()->json([
+            'cfdi_id'      => $cfdi->id,
+            'folio'        => $cfdi->folio,
+            'email_defecto'=> $emailDefecto,
+            'contactos'    => $contactos,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // POST /cfdis/{cfdi}/enviar-correo
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Descarga el PDF y XML de factura.com y los envía como adjuntos
+     * al correo elegido por el usuario mediante Laravel Mail.
+     */
+    public function enviarCorreo(Request $request, int $cfdiId, FacturaComService $factura)
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $cfdi = Cfdi::with('pago')->findOrFail($cfdiId);
+
+        if (! $cfdi->factura_uid) {
+            return $this->respuestaError('No se puede enviar: el CFDI no tiene UID de factura.com.');
+        }
+
+        try {
+            $pdf  = $factura->descargar($cfdi->factura_uid, 'pdf');
+            $xml  = $factura->descargar($cfdi->factura_uid, 'xml');
+            $folio = $cfdi->folio ?? "CFDI-{$cfdiId}";
+            $escuela = Setting::find(1)?->nombre_escuela ?? config('app.name');
+
+            Mail::send(
+                'emails.cfdi',
+                ['folio' => $folio, 'nombreEscuela' => $escuela],
+                function ($msg) use ($request, $folio, $escuela, $pdf, $xml) {
+                    $msg->to($request->email)
+                        ->subject("Factura electrónica {$folio} — {$escuela}")
+                        ->attachData($pdf, "{$folio}.pdf", ['mime' => 'application/pdf'])
+                        ->attachData($xml, "{$folio}.xml", ['mime' => 'application/xml']);
+                }
+            );
+
+            return $this->respuestaExito(
+                redirectRoute: 'pagos.show',
+                jsonData: ['ok' => true],
+                mensaje: "Factura {$folio} enviada a {$request->email}.",
+                routeParams: [$cfdi->pago_id]
+            );
+        } catch (\Throwable $e) {
+            return $this->respuestaError('Error al enviar la factura: '.$e->getMessage());
         }
     }
 
