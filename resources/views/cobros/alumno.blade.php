@@ -195,11 +195,18 @@
             </code>
             @if($inscripcionActual)
                 &nbsp;·&nbsp;
-                {{ $inscripcionActual->grupo->grado->nivel->nombre ?? '' }}
-                {{ $inscripcionActual->grupo->grado->nombre }}°
-                {{ $inscripcionActual->grupo->nombre }}
+                {{ $inscripcionActual->grupo?->grado?->nivel?->nombre ?? '' }}
+                {{ $inscripcionActual->grupo?->grado?->nombre }}°
+                {{ $inscripcionActual->grupo?->nombre ?? 'Sin grupo' }}
                 &nbsp;·&nbsp;
                 {{ $inscripcionActual->ciclo->nombre ?? '' }}
+            @elseif($inscripcionParaCobro)
+                &nbsp;·&nbsp;
+                <span style="background:rgba(255,193,7,.25);color:rgba(255,255,255,.9);
+                              padding:1px 8px;border-radius:10px;font-size:11px;">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    Sin inscripción activa &mdash; último ciclo: {{ $inscripcionParaCobro->ciclo?->nombre ?? 'desconocido' }}
+                </span>
             @endif
         </div>
     </div>
@@ -527,6 +534,14 @@
             </div>
         </div>
         <div class="box-body" id="contenedor-nuevos">
+            @if(! $inscripcionActual && $inscripcionParaCobro)
+            <div class="alert alert-warning" style="font-size:12px;margin-bottom:10px;padding:8px 12px;">
+                <i class="fa fa-exclamation-triangle"></i>
+                <strong>Sin inscripción activa.</strong>
+                El nuevo concepto se asociará al ciclo más reciente:
+                <strong>{{ $inscripcionParaCobro->ciclo?->nombre ?? 'desconocido' }}</strong>.
+            </div>
+            @endif
             <p class="text-muted" style="font-size:13px;margin:0;" id="txt-sin-nuevos">
                 <i class="fa fa-info-circle"></i>
                 Usa este panel para cobrar un concepto que no está en los cargos pendientes
@@ -681,7 +696,7 @@
         </button>
     </div>
     <input type="hidden" name="items[__IDX__][tipo]" value="nuevo">
-    <input type="hidden" name="items[__IDX__][inscripcion_id]" value="{{ $inscripcionActual?->id }}">
+    <input type="hidden" name="items[__IDX__][inscripcion_id]" value="{{ $inscripcionParaCobro?->id }}">
     <div class="row">
         <div class="col-md-4">
             <div class="form-group">
@@ -795,8 +810,8 @@ $(function() {
     // NUEVO CONCEPTO
     // ══════════════════════════════════════════════════
     $('#btn-agregar-nuevo').on('click', function() {
-        if (!{{ $inscripcionActual ? 'true' : 'false' }}) {
-            alert('El alumno no tiene inscripción activa. No se puede agregar un concepto nuevo.');
+        if (!{{ $inscripcionParaCobro ? 'true' : 'false' }}) {
+            alert('El alumno no tiene ninguna inscripción registrada. No se puede agregar un concepto nuevo.');
             return;
         }
         $('#txt-sin-nuevos').hide();

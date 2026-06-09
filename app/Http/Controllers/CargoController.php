@@ -317,7 +317,7 @@ class CargoController extends Controller
         if ($plan) {
             foreach ($plan->politicasDescuentoActivas as $politica) {
                 if ($politica->aplicaHoy()) {
-                    $monto = $politica->calcularDescuento($montoOriginal);
+                    $monto = $politica->calcular($montoOriginal);
                     $descuentoOtros += $monto;
                     $descuentosDetalle[] = ['nombre' => $politica->nombre, 'monto' => $monto];
                 }
