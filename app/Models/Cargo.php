@@ -74,7 +74,7 @@ class Cargo extends Model
 
         $fecha = Carbon::createFromFormat('Y-m', $this->periodo)->locale('es');
 
-        return $nombre . ' ' . ucfirst($fecha->monthName) . ' ' . $fecha->year;
+        return $nombre.' '.ucfirst($fecha->monthName).' '.$fecha->year;
     }
 
     /**
@@ -119,13 +119,14 @@ class Cargo extends Model
             return (float) $this->detallesPagosVigentes->sum(
                 fn (PagoDetalle $detalle) => (float) $detalle->monto_abonado
                     + (float) $detalle->descuento_beca
+                    + (float) $detalle->descuento_pronto_pago
                     + (float) $detalle->descuento_otros
             );
         }
 
         return (float) $this->detallesPagos()
             ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
-            ->sum(DB::raw('monto_abonado + descuento_beca + descuento_otros'));
+            ->sum(DB::raw('monto_abonado + descuento_beca + descuento_pronto_pago + descuento_otros'));
     }
 
     /**

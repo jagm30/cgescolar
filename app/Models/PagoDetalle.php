@@ -8,12 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PagoDetalle extends Model
 {
     protected $table = 'pago_detalle';
+
     public $timestamps = false;
 
     protected $fillable = [
         'pago_id',
         'cargo_id',
         'descuento_beca',
+        'descuento_pronto_pago',
         'descuento_otros',
         'recargo_aplicado',
         'monto_abonado',
@@ -21,11 +23,12 @@ class PagoDetalle extends Model
     ];
 
     protected $casts = [
-        'descuento_beca'   => 'decimal:2',
-        'descuento_otros'  => 'decimal:2',
+        'descuento_beca' => 'decimal:2',
+        'descuento_pronto_pago' => 'decimal:2',
+        'descuento_otros' => 'decimal:2',
         'recargo_aplicado' => 'decimal:2',
-        'monto_abonado'    => 'decimal:2',
-        'monto_final'      => 'decimal:2',
+        'monto_abonado' => 'decimal:2',
+        'monto_final' => 'decimal:2',
     ];
 
     // ── Relaciones ───────────────────────────────────────

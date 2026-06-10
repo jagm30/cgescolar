@@ -121,6 +121,7 @@ class CobrosController extends Controller
                 $descuento = 0.0;
                 $recargo = 0.0;
                 $mesesRetraso = 0;
+                $pd = null;
 
                 if ($pendiente > 0 && $cargo->asignacion?->plan) {
                     $plan = $cargo->asignacion->plan;
@@ -143,6 +144,8 @@ class CobrosController extends Controller
                 $cargo->beca_porcentaje = $becaPorcentaje;
                 $cargo->recargo_calc = $recargo;
                 $cargo->descuento_calc = $descuento;
+                $cargo->descuento_tipo = $pd?->tipo_valor;
+                $cargo->descuento_valor = $pd ? (float) $pd->valor : 0.0;
                 $cargo->meses_retraso = $mesesRetraso;
                 $cargo->monto_a_pagar_hoy = max(0, $pendiente - $becaDescuento - $descuento + $recargo);
 
@@ -216,6 +219,7 @@ class CobrosController extends Controller
             'items.*.cargo_id' => ['required_if:items.*.tipo,cargo', 'integer'],
             'items.*.monto_abonado' => ['required', 'numeric', 'min:0.01'],
             'items.*.descuento_beca' => ['nullable', 'numeric', 'min:0'],
+            'items.*.descuento_pronto_pago' => ['nullable', 'numeric', 'min:0'],
             'items.*.descuento_otros' => ['nullable', 'numeric', 'min:0'],
             'items.*.recargo' => ['nullable', 'numeric', 'min:0'],
             // Para cargo nuevo en el momento
@@ -237,9 +241,10 @@ class CobrosController extends Controller
             foreach ($request->items as $item) {
                 $abonado = (float) $item['monto_abonado'];
                 $descBeca = (float) ($item['descuento_beca'] ?? 0);
+                $descProntoPago = (float) ($item['descuento_pronto_pago'] ?? 0);
                 $descOtros = (float) ($item['descuento_otros'] ?? 0);
                 $recargo = (float) ($item['recargo'] ?? 0);
-                $montoFinal = round($abonado - $descBeca - $descOtros + $recargo, 2);
+                $montoFinal = round($abonado - $descBeca - $descProntoPago - $descOtros + $recargo, 2);
 
                 if ($montoFinal <= 0) {
                     throw new \Exception('El monto final de un concepto no puede ser cero o negativo.');
@@ -264,6 +269,7 @@ class CobrosController extends Controller
                     'cargo' => $cargo,
                     'abonado' => $abonado,
                     'descBeca' => $descBeca,
+                    'descProntoPago' => $descProntoPago,
                     'descOtros' => $descOtros,
                     'recargo' => $recargo,
                     'montoFinal' => $montoFinal,
@@ -292,6 +298,7 @@ class CobrosController extends Controller
                     'pago_id' => $pago->id,
                     'cargo_id' => $d['cargo']->id,
                     'descuento_beca' => $d['descBeca'],
+                    'descuento_pronto_pago' => $d['descProntoPago'],
                     'descuento_otros' => $d['descOtros'],
                     'recargo_aplicado' => $d['recargo'],
                     'monto_abonado' => $d['abonado'],
