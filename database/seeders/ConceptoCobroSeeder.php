@@ -11,7 +11,7 @@ class ConceptoCobroSeeder extends Seeder
     {
         DB::table('concepto_cobro')->insert([
             // Colegiaturas (aplica_beca = true)
-            ['nombre' => 'Colegiatura Maternal',   'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
+            ['nombre' => 'Colegiatura Maternal',    'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
             ['nombre' => 'Colegiatura Preescolar',  'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
             ['nombre' => 'Colegiatura Primaria',    'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],
             ['nombre' => 'Colegiatura Secundaria',  'tipo' => 'colegiatura', 'aplica_beca' => true,  'aplica_recargo' => true,  'clave_sat' => '86121500', 'activo' => true, 'descripcion' => null],

@@ -19,7 +19,7 @@ class UsuarioController extends Controller
 {
     use RespondsWithJson;
 
-/** GET /usuarios - Modificado con Paginación Dinámica */
+    /** GET /usuarios - Modificado con Paginación Dinámica */
     public function index(Request $request)
     {
         $mostrar = $request->input('mostrar', 10);
@@ -32,7 +32,7 @@ class UsuarioController extends Controller
                   ->orWhere('email', 'like', "%{$request->buscar}%");
             }))
             ->orderBy('rol')->orderBy('nombre')
-            ->paginate($mostrar); // Paginación nativa de Laravel
+            ->paginate($mostrar);
 
         if ($request->ajax()) {
             return response()->json($usuarios);
@@ -41,10 +41,7 @@ class UsuarioController extends Controller
         return view('usuarios.index', compact('usuarios'));
     }
 
-    /** GET /usuarios/pendientes-portal
-     * Contactos con acceso habilitado pero sin usuario creado.
-     * Útil para que el admin sepa a quién le falta crear cuenta.
-     */
+    /** GET /usuarios/pendientes-portal */
     public function pendientesPortal()
     {
         $pendientes = ContactoFamiliar::with('familia')
@@ -63,7 +60,6 @@ class UsuarioController extends Controller
     /** GET /usuarios/create */
     public function create()
     {
-        // Para rol padre: contactos que tienen acceso habilitado pero sin usuario
         $contactosPendientes = ContactoFamiliar::with('familia')
             ->where('tiene_acceso_portal', true)
             ->whereNull('usuario_id')
@@ -72,12 +68,10 @@ class UsuarioController extends Controller
         return view('usuarios.create', compact('contactosPendientes'));
     }
 
-    /** POST /usuarios - Modificado para recibir peticiones AJAX desde el Modal */
-
+    /** POST /usuarios */
     public function store(Request $request)
     {
         try {
-            // 1. Validamos los datos
             $request->validate([
                 'nombre'   => 'required|string|max:255',
                 'email'    => 'required|email|unique:usuario,email',
@@ -85,7 +79,6 @@ class UsuarioController extends Controller
                 'password' => 'required|string|min:6'
             ]);
 
-            // 2. Creamos al usuario
             $usuario = Usuario::create([
                 'nombre'        => $request->nombre,
                 'email'         => $request->email,
@@ -94,15 +87,21 @@ class UsuarioController extends Controller
                 'activo'        => true,
             ]);
 
-            // === NUEVA LÍNEA PARA ENVIAR CORREO ===
-            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
-                'nombre'   => $usuario->nombre,
-                'email'    => $usuario->email,
-                'password' => $request->password,
-                'rol'      => $usuario->rol
-            ]));
+            $estadoCorreo = "";
+            try {
+                Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                    'nombre'   => $usuario->nombre,
+                    'email'    => $usuario->email,
+                    'password' => $request->password,
+                    'rol'      => $usuario->rol
+                ]));
+                $estadoCorreo = " Correo con credenciales enviado con éxito.";
+            } catch (\Exception $e) {
+                $estadoCorreo = " (Advertencia: No se pudo enviar el correo electrónico).";
+            }
 
-            // 3. Preparamos los datos para el PDF en la sesión temporal
+            $mensajeFinal = "Usuario creado correctamente." . $estadoCorreo;
+
             $credenciales = [[
                 'nombre'   => $usuario->nombre,
                 'email'    => $usuario->email,
@@ -110,29 +109,22 @@ class UsuarioController extends Controller
                 'rol'      => $usuario->rol
             ]];
             session()->flash('credenciales_nuevas', $credenciales);
+            session()->put('mensaje_persistente', $mensajeFinal);
 
-            // 4. Registramos en la Auditoría
-            Auditoria::registrar('usuario', $usuario->id, 'insert', null, [
-                'nombre' => $usuario->nombre,
-                'email'  => $usuario->email,
-                'rol'    => $usuario->rol,
-            ]);
+            Auditoria::registrar('usuario', $usuario->id, 'insert', null, $usuario->toArray());
 
-            // 5. Devolvemos éxito
             return response()->json([
                 'status' => 'success',
-                'mensaje' => "Usuario creado correctamente."
+                'mensaje' => $mensajeFinal
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Error de validación (ej. el correo ya existe)
             return response()->json([
                 'status' => 'error', 
                 'mensaje' => $e->validator->errors()->first()
             ], 422);
 
         } catch (\Exception $e) {
-            // Error fatal de PHP o Base de Datos
             return response()->json([
                 'status' => 'error', 
                 'mensaje' => 'Fallo en el servidor: ' . $e->getMessage()
@@ -152,21 +144,18 @@ class UsuarioController extends Controller
         return view('usuarios.edit', compact('usuario'));
     }
 
-   /** PUT /usuarios/{id} - Editar */
+    /** PUT /usuarios/{id} - Editar */
     public function update(Request $request, int $id)
     {
         $usuario = Usuario::findOrFail($id);
         $anterior = $usuario->toArray();
 
-        // --- NUEVO CANDADO DE SEGURIDAD ---
-        // Si el usuario intenta editar su propia cuenta y cambiar su rol, lo bloqueamos
         if ($usuario->id === auth()->id() && $request->rol !== $usuario->rol) {
             return response()->json([
                 'status' => 'error',
                 'mensaje' => 'Medida de seguridad: No puedes cambiar tu propio rol para evitar la pérdida de acceso.'
             ], 403);
         }
-        // ----------------------------------
 
         $request->validate([
             'rol' => ['required', 'string'],
@@ -175,16 +164,23 @@ class UsuarioController extends Controller
 
         $usuario->rol = $request->rol;
         
+        $estadoCorreo = "";
         $passwordPlana = $request->password;
+        
         if (!empty($passwordPlana)) {
             $usuario->password_hash = Hash::make($passwordPlana);
-            // === NUEVA LÍNEA PARA ENVIAR CORREO DE ACTUALIZACIÓN ===
-            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
-                'nombre'   => $usuario->nombre,
-                'email'    => $usuario->email,
-                'password' => $passwordPlana,
-                'rol'      => $request->rol
-            ]));
+            
+            try {
+                Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                    'nombre'   => $usuario->nombre,
+                    'email'    => $usuario->email,
+                    'password' => $passwordPlana,
+                    'rol'      => $request->rol
+                ]));
+                $estadoCorreo = " Correo de actualización de contraseña enviado.";
+            } catch (\Exception $e) {
+                $estadoCorreo = " (Advertencia: Falló el envío del correo).";
+            }
         }
         $usuario->save();
 
@@ -199,6 +195,9 @@ class UsuarioController extends Controller
             ]];
             session()->flash('credenciales_nuevas', $credenciales);
         }
+
+        $mensajeFinal = "Usuario actualizado correctamente." . $estadoCorreo;
+        session()->put('mensaje_persistente', $mensajeFinal);
 
         return response()->json([
             'status' => 'success',
@@ -238,24 +237,22 @@ class UsuarioController extends Controller
         return view('usuarios.perfil', compact('usuario'));
     }
 
-    
+    /** POST /usuarios/generar-masivos */
     public function generarUsuariosMasivos(Request $request)
     {
         $ids = $request->input('contacto_ids'); 
         $usuariosCreados = [];
 
+        $enviados = 0;
+        $fallidos = 0;
+
         foreach ($ids as $id) {
             $contacto = ContactoFamiliar::with('familia')->findOrFail($id);
-            
-            // Evitar duplicados si ya tiene usuario
             if($contacto->usuario_id) continue;
             
             $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
-
-            // 1. ARMAMOS EL NOMBRE COMPLETO USANDO TUS COLUMNAS REALES
             $nombreCompleto = trim($contacto->nombre . ' ' . $contacto->ap_paterno . ' ' . $contacto->ap_materno);
 
-            // 2. CREAMOS EL USUARIO
             $usuario = Usuario::create([
                 'nombre'        => $nombreCompleto,
                 'email'         => $contacto->email,
@@ -263,48 +260,53 @@ class UsuarioController extends Controller
                 'rol'           => 'padre',
                 'activo'        => true,
             ]);
-
             $contacto->update(['usuario_id' => $usuario->id]);
 
-            // === NUEVA LÍNEA PARA ENVIAR CORREO ===
-            Mail::to($usuario->email)->send(new CredencialesAccesoMail([
-                'nombre'   => $nombreCompleto,
-                'email'    => $usuario->email,
-                'password' => $passwordPlana,
-                'rol'      => 'padre'
-            ]));
+            try {
+                Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                    'nombre'   => $nombreCompleto,
+                    'email'    => $usuario->email,
+                    'password' => $passwordPlana,
+                    'rol'      => 'padre'
+                ]));
+                $enviados++;
+            } catch (\Exception $e) {
+                $fallidos++; 
+            }
 
             $usuariosCreados[] = [
                 'nombre'   => $nombreCompleto, 
                 'email'    => $usuario->email,
-                'password' => $passwordPlana
+                'password' => $passwordPlana,
+                'rol'      => 'padre'
             ];
         }
 
-        // Guardamos los datos temporalmente en la sesión (Flash)
+        $mensajeNotificacion = count($usuariosCreados) . " usuarios generados. Correos enviados: {$enviados}. Fallidos: {$fallidos}.";
+        
         session()->flash('credenciales_nuevas', $usuariosCreados);
+        session()->put('mensaje_persistente', $mensajeNotificacion);
 
         return response()->json([
             'status' => 'success',
-            'mensaje' => count($usuariosCreados) . ' usuarios generados.'
+            'mensaje' => $mensajeNotificacion
         ]);
     }
 
     public function descargarCredencialesPdf()
     {
-        // Recuperamos los datos de la sesión
         $credenciales = session('credenciales_nuevas');
 
         if (!$credenciales) {
             return abort(404, 'No hay credenciales recientes para imprimir o la sesión caducó.');
         }
 
-        // Generamos el PDF usando una vista dedicada
         $pdf = Pdf::loadView('usuarios.pdf-credenciales', compact('credenciales'));
     
-        return $pdf->stream('Credenciales_Colegio.pdf'); // Usa ->download() si prefieres que se descargue directo
+        return $pdf->stream('Credenciales_Colegio.pdf'); 
     }
-    /** POST /usuarios/{id}/reactivar - Nuevo método */
+
+    /** POST /usuarios/{id}/reactivar */
     public function reactivar(int $id)
     {
         $usuario = Usuario::findOrFail($id);
@@ -329,17 +331,14 @@ class UsuarioController extends Controller
                 ], 403);
             }
 
-            // 1. Desvincular al Contacto Familiar
             ContactoFamiliar::where('usuario_id', $usuario->id)
                 ->update([
                     'usuario_id' => null,
                     'tiene_acceso_portal' => 0 
                 ]);
 
-            // 2. Registrar en auditoría antes de destruirlo
             Auditoria::registrar('usuario', $id, 'delete', $usuario->toArray(), null);
 
-            // 3. Borrar de la BD
             $usuario->delete();
 
             return response()->json([
@@ -348,18 +347,15 @@ class UsuarioController extends Controller
             ]);
 
         } catch (\Illuminate\Database\QueryException $e) {
-            // Atrapa errores de SQL (Casi seguro es por relaciones en otras tablas)
             return response()->json([
                 'status' => 'error',
                 'mensaje' => 'Conflicto en Base de Datos: No se puede borrar porque el usuario tiene historial en otras tablas (Auditorías, etc). ' . $e->getMessage()
             ], 500);
         } catch (\Exception $e) {
-            // Atrapa cualquier otro error de PHP
             return response()->json([
                 'status' => 'error',
                 'mensaje' => 'Fallo en el servidor: ' . $e->getMessage()
             ], 500);
         }
     }   
-
 }

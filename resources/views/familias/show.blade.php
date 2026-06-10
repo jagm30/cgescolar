@@ -709,9 +709,11 @@
                         @if($inscripcion)
                         <span title="Grupo">
                             <i class="fa fa-graduation-cap"></i>
-                            {{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}
-                            · {{ $inscripcion->grupo->grado->numero }}°
-                            {{ $inscripcion->grupo->nombre }}
+                            {{ $inscripcion->grupo?->grado?->nivel?->nombre ?? '' }}
+                            @if($inscripcion->grupo?->grado?->numero)
+                                · {{ $inscripcion->grupo->grado->numero }}°
+                            @endif
+                            {{ $inscripcion->grupo?->nombre ?? '' }}
                         </span>
                         @else
                         <span style="color:#e0e0e0;font-style:italic;">Sin inscripción activa</span>

@@ -186,7 +186,9 @@ class AlumnoController extends Controller
             ]);
 
             // ── 4. Contactos ──────────────────────────────
-            foreach ($data['contactos'] as $contactoData) {
+            $contactosVinculados = [];
+
+            foreach ($data['contactos'] as $index => $contactoData) {
                 $contacto = null;
 
                 if (! empty($contactoData['curp'])) {
@@ -215,6 +217,15 @@ class AlumnoController extends Controller
                     ]);
                 }
 
+                if ($request->hasFile("fotos_contacto.{$index}")) {
+                    $ruta = $request->file("fotos_contacto.{$index}")->store('contactos/fotos', 'public');
+                    $contacto->update(['foto_url' => $ruta]);
+                }
+
+                if (in_array($contacto->id, $contactosVinculados)) {
+                    continue;
+                }
+
                 AlumnoContacto::create([
                     'alumno_id' => $alumno->id,
                     'contacto_id' => $contacto->id,
@@ -225,6 +236,8 @@ class AlumnoController extends Controller
                     'es_responsable_pago' => $contactoData['es_responsable_pago'] ?? false,
                     'activo' => true,
                 ]);
+
+                $contactosVinculados[] = $contacto->id;
             }
 
             // ── 5. Documentos requeridos ──────────────────
@@ -293,10 +306,8 @@ class AlumnoController extends Controller
         $cicloId = $campos['ciclo_id'] ?? null;
         unset($campos['grupo_id'], $campos['nivel_id'], $campos['ciclo_id']);
 
-        // Procesar foto si viene en el request
-        // Al igual que en store(), el archivo no está en validated()
+        // Procesar foto del alumno si viene en el request
         if ($request->hasFile('foto')) {
-            // Eliminar foto anterior si existe
             if ($alumno->foto_url) {
                 Storage::disk('public')->delete($alumno->foto_url);
             }
@@ -304,6 +315,19 @@ class AlumnoController extends Controller
         }
 
         $alumno->update($campos);
+
+        // Procesar fotos de contactos familiares (fotos_contacto[contacto_id])
+        foreach ($request->file('fotos_contacto', []) as $contactoId => $fotoFile) {
+            $contacto = ContactoFamiliar::find($contactoId);
+            if (! $contacto) {
+                continue;
+            }
+            if ($contacto->foto_url) {
+                Storage::disk('public')->delete($contacto->foto_url);
+            }
+            $ruta = $fotoFile->store('contactos/fotos', 'public');
+            $contacto->update(['foto_url' => $ruta]);
+        }
 
         // Actualizar inscripción si se indicó al menos un ciclo
         if ($cicloId) {
@@ -404,10 +428,13 @@ class AlumnoController extends Controller
             'inscripciones.ciclo',
         ])->findOrFail($id);
 
+        // Preferir la inscripción activa más reciente que tenga grupo asignado
+        // (las anticipadas sin grupo no aportan datos útiles al hero).
         $inscripcionActual = $alumno->inscripciones
             ->where('activo', true)
             ->sortByDesc('id')
-            ->first();
+            ->first(fn ($i) => $i->grupo_id !== null)
+            ?? $alumno->inscripciones->where('activo', true)->sortByDesc('id')->first();
 
         // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
         $ciclos = CicloEscolar::whereHas(

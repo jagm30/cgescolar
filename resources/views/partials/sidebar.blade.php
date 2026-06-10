@@ -44,7 +44,8 @@
             @if (auth()->user()->esPadre())
                 <li class="header">FAMILIA</li>
 
-                <li class="{{ request()->routeIs('portal.hijos', 'portal.estado-cuenta', 'portal.historial-pagos') ? 'active' : '' }}">
+                <li
+                    class="{{ request()->routeIs('portal.hijos', 'portal.estado-cuenta', 'portal.historial-pagos') ? 'active' : '' }}">
                     <a href="{{ route('portal.hijos') }}">
                         <i class="fa fa-users"></i> <span>Mis hijos</span>
                     </a>
@@ -219,7 +220,7 @@
                 </li>
 
                 <li
-                    class="treeview {{ request()->routeIs(['cobros.*']) && !request()->routeIs('cobros.index') ? 'active menu-open' : '' }}">
+                    class="treeview {{ request()->routeIs(['pagos.*', 'reportes.deudores']) ? 'active menu-open' : '' }}">
                     <a href="#">
                         <i class="fa fa-credit-card"></i>
                         <span>Pagos</span>
@@ -228,7 +229,7 @@
                         </span>
                     </a>
                     <ul class="treeview-menu">
-                        <li class="{{ request()->routeIs('cobros.index') ? 'active' : '' }}">
+                        <li class="{{ request()->routeIs('pagos.index') ? 'active' : '' }}">
                             <a href="{{ route('pagos.index') }}">
                                 <i class="fa fa-circle-o"></i> Historial de pagos
                             </a>
@@ -238,7 +239,7 @@
                                 <i class="fa fa-circle-o"></i> Registrar pago
                             </a>
                         </li>
-                        <li>
+                        <li class="{{ request()->routeIs('pagos.corte') ? 'active' : '' }}">
                             <a href="{{ route('pagos.corte') }}">
                                 <i class="fa fa-circle-o"></i> Corte del día
                             </a>
@@ -270,11 +271,7 @@
                                 <i class="fa fa-circle-o"></i> Lista de usuarios
                             </a>
                         </li>
-                        <li class="{{ request()->routeIs('usuarios.create') ? 'active' : '' }}">
-                            <a href="{{ route('usuarios.create') }}">
-                                <i class="fa fa-circle-o"></i> Nuevo usuario
-                            </a>
-                        </li>
+
                         <li class="{{ request()->routeIs('usuarios.pendientes-portal') ? 'active' : '' }}">
                             <a href="{{ route('usuarios.pendientes-portal') }}">
                                 <i class="fa fa-circle-o"></i> Pendientes portal
@@ -283,7 +280,7 @@
                     </ul>
                 </li>
             @endif
-            @if (! auth()->user()->esPadre())
+            @if (!auth()->user()->esPadre())
                 <li>
                     <a href="{{ route('settings.index') }}">
                         <i class="fa fa-gear"></i> <span>Configuración</span>

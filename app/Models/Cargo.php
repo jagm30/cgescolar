@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -58,6 +59,23 @@ class Cargo extends Model
     }
 
     // ── Accessors ────────────────────────────────────────
+
+    /**
+     * Etiqueta legible del cargo: "Colegiatura Agosto 2026".
+     * Para cargos sin periodo (pago único) devuelve solo el nombre del concepto.
+     */
+    public function getEtiquetaAttribute(): string
+    {
+        $nombre = $this->concepto?->nombre ?? 'Servicio educativo';
+
+        if (! $this->periodo) {
+            return $nombre;
+        }
+
+        $fecha = Carbon::createFromFormat('Y-m', $this->periodo)->locale('es');
+
+        return $nombre . ' ' . ucfirst($fecha->monthName) . ' ' . $fecha->year;
+    }
 
     /**
      * Estado real calculado en tiempo real.
