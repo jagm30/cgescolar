@@ -393,7 +393,7 @@
                                                 <div class="col-md-12">
                                                     <label
                                                         style="font-size:12px;font-weight:600;display:block;margin-bottom:8px;">
-                                                        Tipo de descuento <span class="text-red">*</span>
+                                                        Selecciona un tipo de descuento <span class="text-red">*</span>
                                                     </label>
                                                     <label class="tipo-opt" id="opt-desc-pct">
                                                         <input type="radio" name="desc_tipo" value="porcentaje">
@@ -619,7 +619,7 @@
                                                 <div class="col-md-12">
                                                     <label
                                                         style="font-size:12px;font-weight:600;display:block;margin-bottom:8px;">
-                                                        Tipo de recargo <span class="text-red">*</span>
+                                                        Selecciona un tipo de recargo <span class="text-red">*</span>
                                                     </label>
                                                     <label class="tipo-opt" id="opt-rec-pct">
                                                         <input type="radio" name="rec_tipo" value="porcentaje">
@@ -1202,7 +1202,7 @@
                 $.ajax({
                     url: url,
                     method: 'POST',
-                    data: JSON.stringify(datos),
+                    data: datos,
                     success: function(res) {
                         mostrarAlerta(res.message || 'Guardado.', 'success');
                         setTimeout(function() {
@@ -1232,9 +1232,7 @@
                 $.ajax({
                     url: '/planes/' + PLAN_ID + '/politicas/descuento/' + id,
                     method: 'POST',
-                    data: JSON.stringify({
-                        _method: 'DELETE'
-                    }),
+                    data: { _method: 'DELETE' },
                     success: function(res) {
                         $btn.closest('.politica-card').fadeOut(250, function() {
                             $(this).remove();
@@ -1343,7 +1341,7 @@
                 $.ajax({
                     url: url,
                     method: 'POST',
-                    data: JSON.stringify(datos),
+                    data: datos,
                     success: function(res) {
                         mostrarAlerta(res.message || 'Guardado.', 'success');
                         setTimeout(function() {
@@ -1372,9 +1370,7 @@
                 $.ajax({
                     url: '/planes/' + PLAN_ID + '/politicas/recargo/' + id,
                     method: 'POST',
-                    data: JSON.stringify({
-                        _method: 'DELETE'
-                    }),
+                    data: { _method: 'DELETE' },
                     success: function(res) {
                         $('.politica-card.recargo').fadeOut(250, function() {
                             $(this).remove();
