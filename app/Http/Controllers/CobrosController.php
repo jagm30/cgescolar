@@ -64,9 +64,9 @@ class CobrosController extends Controller
         // Fallback: si no hay inscripción activa, usar la más reciente de cualquier ciclo
         $inscripcionParaCobro = $inscripcionActual
             ?? Inscripcion::with('grupo.grado.nivel', 'ciclo')
-                ->where('alumno_id', $alumnoId)
-                ->orderByDesc('id')
-                ->first();
+            ->where('alumno_id', $alumnoId)
+            ->orderByDesc('id')
+            ->first();
 
         $becasAlumno = BecaAlumno::with('catalogoBeca')
             ->where('alumno_id', $alumnoId)
