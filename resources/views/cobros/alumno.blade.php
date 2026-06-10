@@ -259,7 +259,9 @@
                  data-beca="{{ $becaDescuento }}"
                  data-recargo="{{ $cargo->recargo_calc }}"
                  data-descuento="{{ $cargo->descuento_calc }}"
-                 data-pagar-hoy="{{ $cargo->monto_a_pagar_hoy }}">
+                 data-pagar-hoy="{{ $cargo->monto_a_pagar_hoy }}"
+                 data-descuento-tipo="{{ $cargo->descuento_tipo ?? '' }}"
+                 data-descuento-valor="{{ $cargo->descuento_valor ?? 0 }}">
 
                 {{-- Cabecera del cargo (clickeable para seleccionar) --}}
                 <div class="cargo-header" onclick="toggleCargo({{ $cargo->id }}, {{ $cargo->monto_a_pagar_hoy }})">
@@ -411,9 +413,13 @@
                     </div>
                     @endif
 
+                    {{-- Valores de beca y pronto pago: ocultos para el form, visibles como etiqueta --}}
+                    <input type="hidden" name="items[{{ $i }}][descuento_beca]"        value="{{ $becaDescuento }}">
+                    <input type="hidden" name="items[{{ $i }}][descuento_pronto_pago]" value="{{ $cargo->descuento_calc }}">
+
                     <div class="row">
                         {{-- Monto a abonar --}}
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
                                 Monto a cobrar
                             </label>
@@ -433,29 +439,38 @@
                             </div>
                         </div>
 
-                        {{-- Descuento beca --}}
+                        {{-- Etiqueta: Descuento beca --}}
                         <div class="col-md-2">
-                            <label style="font-size:12px;{{ $tieneBeca ? 'color:#3c763d;' : 'color:#555;' }}font-weight:600;display:block;margin-bottom:4px;">
-                                Desc. beca
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-addon"
-                                      style="font-size:11px;{{ $tieneBeca ? 'background:#dff0d8;color:#3c763d;border-color:#b2dfb2;' : '' }}">$</span>
-                                <input type="number"
-                                       name="items[{{ $i }}][descuento_beca]"
-                                       class="form-control input-sm item-desc"
-                                       value="{{ $becaDescuento }}" min="0" step="0.01"
-                                       data-idx="{{ $i }}"
-                                       style="{{ $tieneBeca ? 'border-color:#b2dfb2;color:#2d6a2d;font-weight:600;' : '' }}">
+                            <div style="font-size:12px;font-weight:600;margin-bottom:6px;
+                                        color:{{ $tieneBeca ? '#3c763d' : '#aaa' }};">
+                                <i class="fa fa-graduation-cap"></i> Desc. beca
+                            </div>
+                            <div style="font-size:16px;font-weight:700;
+                                        color:{{ $tieneBeca ? '#3c763d' : '#ccc' }};">
+                                {{ $tieneBeca ? '-$'.number_format($becaDescuento, 2) : '—' }}
                             </div>
                             @if($tieneBeca)
-                            <div style="font-size:10px;color:#3c763d;margin-top:3px;">
-                                <i class="fa fa-graduation-cap"></i> Beca auto
-                            </div>
+                            <div style="font-size:10px;color:#3c763d;margin-top:3px;">Auto</div>
                             @endif
                         </div>
 
-                        {{-- Descuento extra --}}
+                        {{-- Etiqueta: Descuento pronto pago --}}
+                        <div class="col-md-2">
+                            <div style="font-size:12px;font-weight:600;margin-bottom:6px;
+                                        color:{{ $tieneDescuento ? '#27ae60' : '#aaa' }};">
+                                <i class="fa fa-tag"></i> Pronto pago
+                            </div>
+                            <div id="label-pronto-pago-{{ $i }}"
+                                 style="font-size:16px;font-weight:700;
+                                        color:{{ $tieneDescuento ? '#27ae60' : '#ccc' }};">
+                                {{ $tieneDescuento ? '-$'.number_format($cargo->descuento_calc, 2) : '—' }}
+                            </div>
+                            @if($tieneDescuento)
+                            <div style="font-size:10px;color:#27ae60;margin-top:3px;">Auto</div>
+                            @endif
+                        </div>
+
+                        {{-- Descuento extra (manual) --}}
                         <div class="col-md-2">
                             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
                                 Desc. extra
@@ -465,24 +480,19 @@
                                 <input type="number"
                                        name="items[{{ $i }}][descuento_otros]"
                                        class="form-control input-sm item-desc"
-                                       value="{{ $cargo->descuento_calc }}" min="0" step="0.01"
+                                       value="0" min="0" step="0.01"
                                        data-idx="{{ $i }}">
                             </div>
-                            @if($tieneDescuento)
-                            <div style="font-size:10px;color:#27ae60;margin-top:3px;">
-                                Pronto pago auto
-                            </div>
-                            @endif
                         </div>
 
                         {{-- Recargo --}}
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <label style="font-size:12px;{{ $tieneRecargo ? 'color:#e74c3c;' : 'color:#555;' }}font-weight:600;display:block;margin-bottom:4px;">
                                 Recargo
                             </label>
                             <div class="input-group">
                                 <span class="input-group-addon"
-                                      style="font-size:11px;{{ $tieneRecargo ? 'background:#fdecea;color:#e74c3c;border-color:#f5c6cb;' : '' }}">$</span>
+                                      style="font-size:10px;padding:6px 4px;{{ $tieneRecargo ? 'background:#fdecea;color:#e74c3c;border-color:#f5c6cb;' : '' }}">$</span>
                                 <input type="number"
                                        name="items[{{ $i }}][recargo]"
                                        class="form-control input-sm item-desc"
@@ -798,10 +808,30 @@ $(function() {
     function recalcularItem(idx) {
         var $row   = $('[data-idx="' + idx + '"]').closest('.cargo-detalle, .nuevo-concepto-panel');
         var monto  = parseFloat($row.find('input[name*="[monto_abonado]"]').val()) || 0;
-        var dBeca  = parseFloat($row.find('input[name*="[descuento_beca]"]').val()) || 0;
-        var dOtros = parseFloat($row.find('input[name*="[descuento_otros]"]').val()) || 0;
-        var recarg = parseFloat($row.find('input[name*="[recargo]"]').val()) || 0;
-        var total  = Math.max(0, monto - dBeca - dOtros + recarg);
+
+        // Recalcular pronto pago proporcional al monto ingresado (solo cargos existentes)
+        var $card = $row.closest('.cargo-item');
+        if ($card.length) {
+            var tipo  = $card.data('descuento-tipo');
+            var valor = parseFloat($card.data('descuento-valor')) || 0;
+            var nuevoPP = 0;
+            if (tipo === 'porcentaje' && valor > 0) {
+                nuevoPP = Math.round(monto * valor / 100 * 100) / 100;
+            } else if (tipo === 'monto_fijo' && valor > 0) {
+                nuevoPP = Math.min(valor, monto);
+            }
+            $row.find('input[name*="[descuento_pronto_pago]"]').val(nuevoPP.toFixed(2));
+            var $lbl = $('#label-pronto-pago-' + idx);
+            if ($lbl.length) {
+                $lbl.text(nuevoPP > 0 ? '-$' + nuevoPP.toFixed(2) : '—');
+            }
+        }
+
+        var dBeca       = parseFloat($row.find('input[name*="[descuento_beca]"]').val()) || 0;
+        var dProntoPago = parseFloat($row.find('input[name*="[descuento_pronto_pago]"]').val()) || 0;
+        var dOtros      = parseFloat($row.find('input[name*="[descuento_otros]"]').val()) || 0;
+        var recarg      = parseFloat($row.find('input[name*="[recargo]"]').val()) || 0;
+        var total       = Math.max(0, monto - dBeca - dProntoPago - dOtros + recarg);
         $('#total-item-' + idx).text('$' + total.toFixed(2));
         return total;
     }
@@ -1011,25 +1041,27 @@ $(function() {
         $('.cargo-item.seleccionado').each(function() {
             var $d = $(this).find('.cargo-detalle');
             itemsData.push({
-                tipo:           'cargo',
-                cargo_id:       $d.find('input[name*="[cargo_id]"]').val(),
-                monto_abonado:  $d.find('input[name*="[monto_abonado]"]').val() || '0',
-                descuento_beca: $d.find('input[name*="[descuento_beca]"]').val() || '0',
-                descuento_otros:$d.find('input[name*="[descuento_otros]"]').val() || '0',
-                recargo:        $d.find('input[name*="[recargo]"]').val() || '0',
+                tipo:                  'cargo',
+                cargo_id:              $d.find('input[name*="[cargo_id]"]').val(),
+                monto_abonado:         $d.find('input[name*="[monto_abonado]"]').val() || '0',
+                descuento_beca:        $d.find('input[name*="[descuento_beca]"]').val() || '0',
+                descuento_pronto_pago: $d.find('input[name*="[descuento_pronto_pago]"]').val() || '0',
+                descuento_otros:       $d.find('input[name*="[descuento_otros]"]').val() || '0',
+                recargo:               $d.find('input[name*="[recargo]"]').val() || '0',
             });
         });
 
         // Nuevos conceptos
         $('.nuevo-concepto-panel').each(function() {
             itemsData.push({
-                tipo:            'nuevo',
-                concepto_id:     $(this).find('select[name*="[concepto_id]"]').val(),
-                inscripcion_id:  $(this).find('input[name*="[inscripcion_id]"]').val(),
-                monto_abonado:   $(this).find('input[name*="[monto_abonado]"]').val() || '0',
-                descuento_beca:  '0',
-                descuento_otros: $(this).find('input[name*="[descuento_otros]"]').val() || '0',
-                recargo:         '0',
+                tipo:                  'nuevo',
+                concepto_id:           $(this).find('select[name*="[concepto_id]"]').val(),
+                inscripcion_id:        $(this).find('input[name*="[inscripcion_id]"]').val(),
+                monto_abonado:         $(this).find('input[name*="[monto_abonado]"]').val() || '0',
+                descuento_beca:        '0',
+                descuento_pronto_pago: '0',
+                descuento_otros:       $(this).find('input[name*="[descuento_otros]"]').val() || '0',
+                recargo:               '0',
             });
         });
 
