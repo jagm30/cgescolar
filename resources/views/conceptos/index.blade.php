@@ -10,8 +10,8 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                                                                                       ESTADÍSTICAS
-                                                                                    ══════════════════════════════════════════ */
+                                                                                                                       ESTADÍSTICAS
+                                                                                                                    ══════════════════════════════════════════ */
         .con-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +84,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       TOOLBAR
-                                                                                    ══════════════════════════════════════════ */
+                                                                                                                       TOOLBAR
+                                                                                                                    ══════════════════════════════════════════ */
         .con-toolbar {
             display: flex;
             align-items: center;
@@ -170,8 +170,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       TABLA
-                                                                                    ══════════════════════════════════════════ */
+                                                                                                                       TABLA
+                                                                                                                    ══════════════════════════════════════════ */
         .con-table {
             margin: 0;
             border-collapse: separate;
@@ -302,8 +302,8 @@
         }
 
         /* ══════════════════════════════════════════
-                                                                                       EMPTY STATE
-                                                                                    ══════════════════════════════════════════ */
+                                                                                                                       EMPTY STATE
+                                                                                                                    ══════════════════════════════════════════ */
         .con-empty {
             text-align: center;
             padding: 60px 20px;
@@ -338,7 +338,7 @@
                 <i class="fa fa-tags" style="color:#3c8dbc;font-size:18px;"></i>
             </div>
             <div>
-                <div class="con-stat-num">{{ $conceptos->count() }}</div>
+                <div class="con-stat-num">{{ $totales->count() }}</div>
                 <div class="con-stat-lbl">Total conceptos</div>
             </div>
         </div>
@@ -347,7 +347,7 @@
                 <i class="fa fa-check-circle" style="color:#00a65a;font-size:18px;"></i>
             </div>
             <div>
-                <div class="con-stat-num">{{ $conceptos->where('activo', true)->count() }}</div>
+                <div class="con-stat-num">{{ $totales->where('activo', true)->count() }}</div>
                 <div class="con-stat-lbl">Activos</div>
             </div>
         </div>
@@ -356,7 +356,7 @@
                 <i class="fa fa-ban" style="color:#dd4b39;font-size:18px;"></i>
             </div>
             <div>
-                <div class="con-stat-num">{{ $conceptos->where('activo', false)->count() }}</div>
+                <div class="con-stat-num">{{ $totales->where('activo', false)->count() }}</div>
                 <div class="con-stat-lbl">Inactivos</div>
             </div>
         </div>
@@ -365,7 +365,7 @@
                 <i class="fa fa-list-alt" style="color:#f39c12;font-size:18px;"></i>
             </div>
             <div>
-                <div class="con-stat-num">{{ $conceptos->pluck('tipo')->unique()->count() }}</div>
+                <div class="con-stat-num">{{ $totales->pluck('tipo')->unique()->count() }}</div>
                 <div class="con-stat-lbl">Tipos distintos</div>
             </div>
         </div>
@@ -405,45 +405,30 @@
                         recurrente</option>
                 </select>
 
-                {{-- Filtro estatus --}}
-                <div class="btn-group" style="flex-shrink:0;">
-                    <a href="{{ route('conceptos.index', array_merge(request()->except('activo'), [])) }}"
-                        class="btn btn-sm btn-flat {{ !request()->filled('activo') ? 'btn-primary' : 'btn-default' }}"
-                        style="border-radius:4px 0 0 4px;font-size:12px;">
-                        Todos
-                    </a>
-                    <a href="{{ route('conceptos.index', array_merge(request()->except('activo'), ['activo' => '1'])) }}"
-                        class="btn btn-sm btn-flat {{ request('activo') === '1' ? 'btn-success' : 'btn-default' }}"
-                        style="font-size:12px;">
-                        Activos
-                    </a>
-                    <a href="{{ route('conceptos.index', array_merge(request()->except('activo'), ['activo' => '0'])) }}"
-                        class="btn btn-sm btn-flat {{ request('activo') === '0' ? 'btn-danger' : 'btn-default' }}"
-                        style="border-radius:0 4px 4px 0;font-size:12px;">
-                        Inactivos
-                    </a>
-                </div>
+                {{-- Filtro estatus dropdown --}}
+                <select name="activo" class="con-select" onchange="this.form.submit()" title="Filtrar por estatus">
+                    <option value="">Todos los estatus</option>
+                    <option value="1" {{ request('activo') === '1' ? 'selected' : '' }}>Activos</option>
+                    <option value="0" {{ request('activo') === '0' ? 'selected' : '' }}>Inactivos</option>
+                </select>
 
-                {{-- Botón buscar --}}
-                <button type="submit" class="btn btn-primary btn-flat btn-sm"
-                    style="border-radius:20px;padding:5px 14px;flex-shrink:0;">
-                    <i class="fa fa-search"></i> Buscar
-                </button>
+
+                {{-- Filtro numero de concepto por pagina --}}
+                <select name="perPage" class="con-select" onchange="this.form.submit()" title="Elementos por página">
+                    @foreach ([5, 10, 25, 50, 100] as $op)
+                        <option value="{{ $op }}" {{ request('perPage', 10) == $op ? 'selected' : '' }}>
+                            {{ $op }} / pág.
+                        </option>
+                    @endforeach
+                </select>
+
 
                 {{-- Limpiar filtros --}}
-                @if (request()->anyFilled(['buscar', 'tipo', 'activo']))
+                @if (request()->anyFilled(['buscar', 'tipo', 'activo', 'perPage']))
                     <a href="{{ route('conceptos.index') }}" class="btn btn-default btn-flat btn-sm"
                         style="border-radius:20px;padding:5px 14px;flex-shrink:0;" title="Quitar todos los filtros">
                         <i class="fa fa-times"></i>
                     </a>
-                @endif
-
-                {{-- Contador --}}
-                @if ($conceptos->count() > 0)
-                    <span class="con-count-badge">
-                        <i class="fa fa-tag"></i>
-                        {{ $conceptos->count() }} concepto{{ $conceptos->count() != 1 ? 's' : '' }}
-                    </span>
                 @endif
 
                 {{-- Nuevo concepto --}}
@@ -595,7 +580,35 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
+        </div> {{-- ══ CONTROLES DE PAGINACIÓN ENTERPRISE ══ --}}
+        {{-- ══ CONTROLES DE PAGINACIÓN ENTERPRISE ══ --}}
+        @if ($conceptos->hasPages())
+            <style>
+                /* Forzamos a que Bootstrap no le ponga márgenes gigantes a los botones */
+                .con-pagination-wrap .pagination {
+                    margin: 0 !important;
+                }
+
+                .con-pagination-wrap .page-link {
+                    padding: 5px 10px;
+                    /* Hacemos los botones un poco más sutiles */
+                    font-size: 13px;
+                }
+            </style>
+
+            <div class="box-footer con-pagination-wrap"
+                style="border-top: 1px solid #f0f3f7; padding: 10px 15px; background: #fff; display: flex; justify-content: space-between; align-items: center;">
+                <div class="text-muted" style="font-size: 13px;">
+                    Mostrando <b>{{ $conceptos->firstItem() }}</b> a <b>{{ $conceptos->lastItem() }}</b> de
+                    <b>{{ $conceptos->total() }}</b> conceptos
+                </div>
+                <div>
+                    {{ $conceptos->links('pagination::bootstrap-4') }}
+                </div>
+            </div>
+        @endif
+    </div>
+    </div>
 
     </div>
 
@@ -793,6 +806,12 @@
         $(document).ready(function() {
             // Lógica dinámica del select de tipo (Agregamos la 'e' de evento)
             $('.select-tipo-dinamico').on('change', function(e) {
+                let searchTimer;
+                document.querySelector('input[name="buscar"]').addEventListener('input', function() {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => this.closest('form').submit(), 500);
+                });
+
                 let valorSeleccionado = $(this).val();
                 let form = $(this).closest('form');
 
@@ -802,6 +821,7 @@
                 let checkboxActivo = form.find('input[name="activo"]');
                 let divMonto = form.find('.div-monto-dinamico');
                 let inputMonto = form.find('input[name="monto"]');
+                let inputClaveSat = form.find('input[name="clave_sat"]'); // <-- Atrapamos el input SAT
 
                 // ── LÓGICA DE CHECKBOXES ──
                 if (valorSeleccionado === 'colegiatura') {
@@ -809,15 +829,23 @@
                     checkboxBeca.prop('checked', true).prop('disabled', false);
 
                     // 2. TRUCO DE INGENIERO: Solo forzamos los otros checks si el usuario cambió el select manualmente.
-                    // Si el evento viene de un "trigger" automático al cargar la página (isTrigger), lo ignora para respetar lo guardado.
                     if (!e.isTrigger) {
                         checkboxRecargo.prop('checked', true);
                         checkboxActivo.prop('checked', true);
                     }
                 } else {
                     // Si no es colegiatura, se apaga y bloquea la beca.
-                    // (Los checks de Mora y Activo se dejan quietos para no molestar al usuario)
                     checkboxBeca.prop('checked', false).prop('disabled', true);
+                }
+
+                // ── LÓGICA DE CLAVE SAT AUTOMÁTICA ──
+                // Solo rellenamos si el evento viene de un clic humano (para no dañar la edición)
+                if (!e.isTrigger) {
+                    if (valorSeleccionado === 'colegiatura' || valorSeleccionado === 'inscripcion') {
+                        inputClaveSat.val('86121500');
+                    } else {
+                        inputClaveSat.val(''); // Limpiamos si elige un cargo distinto
+                    }
                 }
 
                 // ── LÓGICA DE MONTO ──
@@ -825,12 +853,50 @@
                     divMonto.slideDown();
                 } else {
                     divMonto.slideUp();
-                    inputMonto.val(''); // Limpiamos si elige otro tipo
+                    if (!e.isTrigger) {
+                        inputMonto.val(''); // Limpiamos el monto si elige otro tipo
+                    }
                 }
             });
 
             // Ejecutar al cargar para modales de edición (asegura que se muestre correcto al abrir)
             $('.select-tipo-dinamico').trigger('change');
+
+            // ── EL TRUCO DEL FUGITIVO: Evita que la tabla corte los dropdowns ──
+            $('table').on('show.bs.dropdown', function(e) {
+                var $dropdownContainer = $(e.target);
+                var $menu = $dropdownContainer.find('.dropdown-menu');
+
+                $('body').append($menu.detach());
+                var buttonOffset = $dropdownContainer.offset();
+
+                $menu.css({
+                    'display': 'block',
+                    'top': buttonOffset.top + $dropdownContainer.outerHeight(),
+                    'left': buttonOffset.left - $menu.outerWidth() + $dropdownContainer
+                        .outerWidth(),
+                    'position': 'absolute',
+                    'z-index': 999999
+                });
+
+                $dropdownContainer.data('menu-fugitivo', $menu);
+            });
+
+            $('table').on('hide.bs.dropdown', function(e) {
+                var $dropdownContainer = $(e.target);
+                var $menu = $dropdownContainer.data('menu-fugitivo');
+
+                if ($menu) {
+                    $dropdownContainer.append($menu.detach());
+                    $menu.css({
+                        'display': '',
+                        'top': '',
+                        'left': '',
+                        'position': '',
+                        'z-index': ''
+                    });
+                }
+            });
         });
     </script>
 @endpush

@@ -15,10 +15,11 @@ class ConceptoCobroController extends Controller
     /** GET /conceptos */
     public function index(Request $request)
     {
-        $conceptos = ConceptoCobro::when(
-                $request->filled('tipo'),
-                fn($q) => $q->where('tipo', $request->tipo)
-            )
+        // 1. Armamos la consulta base con sus filtros (sin el get ni el orden)
+        $query = ConceptoCobro::when(
+            $request->filled('tipo'),
+            fn($q) => $q->where('tipo', $request->tipo)
+        )
             ->when(
                 $request->filled('activo'),
                 fn($q) => $q->where('activo', $request->boolean('activo'))
@@ -26,16 +27,26 @@ class ConceptoCobroController extends Controller
             ->when(
                 $request->filled('buscar'),
                 fn($q) => $q->where('nombre', 'like', "%{$request->buscar}%")
-            )
-            ->orderBy('tipo')
+            );
+
+        // 2. TRUCO DE INGENIERO: Clonamos la consulta y sacamos TODO para las estadísticas
+        $totales = (clone $query)->get();
+
+        // 3. A la consulta original le aplicamos el orden y la paginación para la tabla
+        $porPagina = in_array((int) $request->input('perPage', 10), [5, 10, 25, 50, 100])
+            ? (int) $request->input('perPage', 10)
+            : 10;
+        $conceptos = $query->orderBy('tipo')
             ->orderBy('nombre')
-            ->get();
+            ->paginate($porPagina)
+            ->withQueryString();
 
         if ($request->ajax()) {
             return response()->json($conceptos);
         }
 
-        return view('conceptos.index', compact('conceptos'));
+        // 4. Mandamos ambas variables a la vista
+        return view('conceptos.index', compact('conceptos', 'totales'));
     }
 
     /** GET /conceptos/{id} — solo AJAX */
@@ -52,7 +63,7 @@ class ConceptoCobroController extends Controller
         return view('conceptos.create');
     }
 
- /** POST /conceptos */
+    /** POST /conceptos */
     public function store(Request $request)
     {
         $request->merge([
@@ -66,7 +77,7 @@ class ConceptoCobroController extends Controller
             'descripcion'   => ['nullable', 'string', 'max:500'],
             'tipo'          => ['required', 'in:colegiatura,inscripcion,cargo_unico,cargo_recurrente'],
             'aplica_beca'   => ['boolean'],
-            'aplica_recargo'=> ['boolean'],
+            'aplica_recargo' => ['boolean'],
             'clave_sat'     => ['nullable', 'string', 'max:20'],
             'activo'        => ['boolean'],
             'monto'         => ['nullable', 'numeric', 'min:0'], // <--- NUEVO
@@ -113,12 +124,17 @@ class ConceptoCobroController extends Controller
         ]);
 
         $data = $request->validate([
-            'nombre'        => ['sometimes', 'required', 'string', 'max:200',
-                                Rule::unique('concepto_cobro', 'nombre')->ignore($id)],
+            'nombre'        => [
+                'sometimes',
+                'required',
+                'string',
+                'max:200',
+                Rule::unique('concepto_cobro', 'nombre')->ignore($id)
+            ],
             'descripcion'   => ['nullable', 'string', 'max:500'],
             'tipo'          => ['sometimes', 'required', 'in:colegiatura,inscripcion,cargo_unico,cargo_recurrente'],
             'aplica_beca'   => ['boolean'],
-            'aplica_recargo'=> ['boolean'],
+            'aplica_recargo' => ['boolean'],
             'clave_sat'     => ['nullable', 'string', 'max:20'],
             'activo'        => ['boolean'],
             'monto'         => ['nullable', 'numeric', 'min:0'], // <--- NUEVO

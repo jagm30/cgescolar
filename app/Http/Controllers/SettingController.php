@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ConfigFiscal;
 use App\Models\Setting;
+use App\Services\FacturaComService;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
@@ -24,6 +25,7 @@ class SettingController extends Controller
             'razon_social'   => ['required', 'string', 'max:300'],
             'regimen_fiscal' => ['required', 'string', 'max:10'],
             'serie'          => ['required', 'string', 'max:5'],
+            'serie_id'       => ['nullable', 'integer', 'min:1'],
         ]);
 
         $data['rfc']   = strtoupper($data['rfc']);
@@ -41,6 +43,34 @@ class SettingController extends Controller
         return back()->with('success', 'Configuración fiscal guardada correctamente.');
     }
 
+    /**
+     * GET /fiscal/verificar-series
+     *
+     * Consulta factura.com y devuelve las series configuradas en la cuenta.
+     * Útil para confirmar que el serie_id en config_fiscal corresponde a una serie válida.
+     */
+    public function verificarSeries(FacturaComService $factura)
+    {
+        $config = ConfigFiscal::first();
+
+        try {
+            $series = $factura->listarSeries();
+
+            return response()->json([
+                'ok'       => true,
+                'series'   => $series,
+                'serie_id' => $config?->serie_id,
+                'url'      => config('factura.url'),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'      => false,
+                'mensaje' => $e->getMessage(),
+                'url'     => config('factura.url'),
+            ], 422);
+        }
+    }
+
     public function update(Request $request)
     {
         $request->validate([
@@ -50,7 +80,7 @@ class SettingController extends Controller
 
         // Buscamos el registro 1 o creamos uno nuevo
         $setting = Setting::findOrNew(1);
-        
+
         if (!$setting->exists) {
             $setting->id = 1;
         }
@@ -60,7 +90,7 @@ class SettingController extends Controller
         if ($request->hasFile('escuela_logo')) {
             $file = $request->file('escuela_logo');
             $fileName = 'logo_reportes.png';
-            $file->move(public_path('imgs_escuela'), $fileName);
+            $file->move(public_path('imgs_escuela/reportes/'), $fileName);
             $setting->logo_ruta = $fileName;
         }
 

@@ -532,8 +532,20 @@
     @endif
 
     @php
-        $inscActiva =
-            $alumno->inscripciones->where('activo', true)->first() ?? $alumno->inscripciones->sortByDesc('id')->first();
+        use App\Enums\TipoInscripcion;
+
+        // Inscripción vigente (regular, activa)
+        $inscActiva = $alumno->inscripciones
+            ->filter(fn($i) => $i->activo && $i->tipo !== TipoInscripcion::Anticipada)
+            ->sortByDesc('id')
+            ->first();
+
+        // Inscripción anticipada (próximo ciclo)
+        $inscAnticipada = $alumno->inscripciones
+            ->filter(fn($i) => $i->activo && $i->tipo === TipoInscripcion::Anticipada)
+            ->sortByDesc('id')
+            ->first();
+
         $totalInsc = $alumno->inscripciones->count();
         $totalContactos = $alumno->contactos->count();
         $totalDocs = $alumno->documentos->count();
@@ -574,7 +586,7 @@
             <div class="alm-hero-nombre">{{ $alumno->nombre }}</div>
             <div class="alm-hero-apellidos">{{ $alumno->ap_paterno }} {{ $alumno->ap_materno }}</div>
             <span class="alm-hero-matricula">{{ $alumno->matricula }}</span>
-            <div class="alm-hero-estado">
+            <div class="alm-hero-estado" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
                 <span
                     style="background:{{ $estadoBadge['bg'] }};color:{{ $estadoBadge['color'] }};
                          border:1px solid {{ $estadoBadge['borde'] }};
@@ -582,6 +594,16 @@
                          display:inline-flex;align-items:center;gap:5px;">
                     <i class="fa fa-circle" style="font-size:7px;"></i> {{ $estadoBadge['txt'] }}
                 </span>
+                @if ($inscAnticipada)
+                    <span
+                        style="background:rgba(255,193,7,.25);color:#fff;border:1px solid rgba(255,193,7,.5);
+                               font-size:11px;font-weight:700;padding:3px 12px;border-radius:12px;
+                               display:inline-flex;align-items:center;gap:5px;"
+                        title="Inscrito anticipadamente al ciclo {{ $inscAnticipada->ciclo->nombre ?? '' }}">
+                        <i class="fa fa-calendar-plus-o" style="font-size:10px;"></i>
+                        Inscrito al {{ $inscAnticipada->ciclo->nombre ?? 'próximo ciclo' }}
+                    </span>
+                @endif
             </div>
         </div>
 
@@ -589,12 +611,17 @@
         <div class="alm-hero-stats">
             @if ($inscActiva)
                 <div class="alm-hero-stat">
-                    <div class="alm-hero-stat-num">{{ $inscActiva->grupo->grado->nivel->nombre ?? '—' }}</div>
+                    <div class="alm-hero-stat-num">{{ $inscActiva->grupo?->grado?->nivel?->nombre ?? '—' }}</div>
                     <div class="alm-hero-stat-lbl">Nivel</div>
                 </div>
                 <div class="alm-hero-stat alm-hero-sep">
                     <div class="alm-hero-stat-num">
-                        {{ ($inscActiva->grupo->grado->nombre ?? '') . '° ' . ($inscActiva->grupo->nombre ?? '') }}</div>
+                        @if ($inscActiva->grupo_id)
+                            {{ ($inscActiva->grupo?->grado?->numero ?? '') . '° ' . ($inscActiva->grupo?->nombre ?? '') }}
+                        @else
+                            Sin grupo
+                        @endif
+                    </div>
                     <div class="alm-hero-stat-lbl">Grupo actual</div>
                 </div>
             @endif
@@ -609,11 +636,11 @@
                 <div class="alm-hero-stat-lbl">Ciclo{{ $totalInsc != 1 ? 's' : '' }}</div>
             </div>
             <div class="alm-hero-stat alm-hero-sep" style="align-self:center;display:flex;gap:6px;">
-                @if ($inscActiva)
+                @if ($inscActiva && $inscActiva->grupo_id)
                     <a href="{{ route('grupos.show', $inscActiva->grupo_id) }}" class="btn btn-sm btn-flat"
                         style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:20px; padding: 5px 12px;">
                         <i class="fa fa-users"></i> Ver grupo
-                        {{ $inscActiva->grupo->grado->nombre }} {{ $inscActiva->grupo->nombre }}
+                        {{ $inscActiva->grupo->grado->numero }} {{ $inscActiva->grupo->nombre }}
                     </a>
                 @endif
                 @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
@@ -651,31 +678,49 @@
 
                 @forelse($alumno->inscripciones->sortByDesc('id') as $inscripcion)
                     @php
-                        $activa = $inscripcion->activo;
-                        $nivel = $inscripcion->grupo->grado->nivel->nombre ?? '—';
-                        $grado = $inscripcion->grupo->grado->nombre ?? '—';
-                        $grupo = $inscripcion->grupo->nombre ?? '—';
-                        $ciclo = $inscripcion->ciclo->nombre ?? '—';
+                        $activa      = $inscripcion->activo;
+                        $esAntic     = $inscripcion->tipo?->value === 'anticipada';
+                        $nivel       = $inscripcion->grupo?->grado?->nivel?->nombre ?? '—';
+                        $grado       = $inscripcion->grupo?->grado?->numero ?? '—';
+                        $grupo       = $inscripcion->grupo?->nombre ?? null;
+                        $ciclo       = $inscripcion->ciclo?->nombre ?? '—';
+
+                        // Colores: ámbar para anticipada, verde para activa regular, gris para historial
+                        $accentColor = $esAntic ? '#f39c12' : ($activa ? '#00a65a' : '#dde4eb');
+                        $iconColor   = $esAntic ? '#f39c12' : ($activa ? '#3c8dbc' : '#b0bec5');
+                        $iconBg      = $esAntic ? '#fff8e1' : ($activa ? '#eaf3fb' : '#f0f3f7');
                     @endphp
                     <div class="ins-card">
-                        <div class="ins-card-accent {{ $activa ? 'activa' : '' }}"></div>
+                        <div class="ins-card-accent {{ $activa && !$esAntic ? 'activa' : '' }}"
+                             style="{{ $esAntic ? 'background:#f39c12;' : '' }}"></div>
                         <div class="ins-card-body">
-                            <div class="ins-icon {{ $activa ? 'activa' : '' }}">
-                                <i class="fa fa-graduation-cap"
-                                    style="font-size:18px;color:{{ $activa ? '#3c8dbc' : '#b0bec5' }};"></i>
+                            <div class="ins-icon" style="background:{{ $iconBg }};">
+                                <i class="fa {{ $esAntic ? 'fa-calendar-plus-o' : 'fa-graduation-cap' }}"
+                                   style="font-size:18px;color:{{ $iconColor }};"></i>
                             </div>
                             <div style="flex:1;">
                                 <div class="ins-ciclo">
                                     {{ $ciclo }}
-                                    @if ($activa)
+                                    @if ($esAntic && $activa)
+                                        <span class="ins-chip"
+                                              style="margin-left:6px;font-size:10px;background:#fff3cd;color:#856404;">
+                                            PRÓXIMO CICLO
+                                        </span>
+                                    @elseif ($activa)
                                         <span class="ins-chip activa" style="margin-left:6px;font-size:10px;">ACTIVA</span>
                                     @endif
                                 </div>
                                 <div class="ins-detalle">
-                                    <span class="ins-chip">{{ $nivel }}</span>
-                                    <span>{{ $grado }}° Grado</span>
-                                    <span>·</span>
-                                    <span style="font-weight:700;color:#333;">Grupo {{ $grupo }}</span>
+                                    @if ($nivel !== '—')
+                                        <span class="ins-chip">{{ $nivel }}</span>
+                                    @endif
+                                    @if ($grupo)
+                                        <span>{{ $grado }}° Grado</span>
+                                        <span>·</span>
+                                        <span style="font-weight:700;color:#333;">Grupo {{ $grupo }}</span>
+                                    @else
+                                        <span style="color:#b0bec5;font-style:italic;">Sin grupo asignado aún</span>
+                                    @endif
                                     @if ($inscripcion->fecha)
                                         <span style="color:#b0bec5;">· {{ $inscripcion->fecha->format('d/m/Y') }}</span>
                                     @endif
@@ -1014,15 +1059,6 @@
                 </div>
             @endif
 
-            @if (auth()->user()->esAdministrador())
-                <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn">
-                    <div class="accion-icon" style="background:#fff8e1;">
-                        <i class="fa fa-star" style="color:#f39c12;font-size:14px;"></i>
-                    </div>
-                    Asignar beca
-                    <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
-                </a>
-            @endif
 
             @if (auth()->user()->esAdministrador())
                 <a href="{{ route('becas.create', ['alumno_id' => $alumno->id]) }}" class="accion-btn"
@@ -1079,6 +1115,50 @@
                 </div>
             @endif
 
+            {{-- Inscripción anticipada (solo si activo y sin anticipada vigente) --}}
+            @if (
+                (auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) &&
+                $alumno->estado === 'activo' &&
+                ! $inscAnticipada
+            )
+                <div class="info-card" style="border-color:#fcd97d;">
+                    <div class="info-card-header" style="background:#fffbf0;">
+                        <span class="info-card-title" style="color:#b45309;">
+                            <i class="fa fa-calendar-plus-o" style="margin-right:5px;color:#f39c12;"></i>
+                            Inscripción anticipada
+                        </span>
+                    </div>
+                    <div style="padding:14px 16px;">
+                        <p style="font-size:12px;color:#6b7a8d;margin:0 0 12px;">
+                            Registra al alumno en el siguiente ciclo escolar con descuento anticipado.
+                        </p>
+                        <button type="button" class="btn btn-warning btn-sm btn-block btn-flat"
+                                data-toggle="modal" data-target="#modalAnticipada"
+                                style="border-radius:6px;">
+                            <i class="fa fa-plus"></i> Registrar inscripción anticipada
+                        </button>
+                    </div>
+                </div>
+            @elseif ($inscAnticipada)
+                <div class="info-card" style="border-color:#fcd97d;">
+                    <div class="info-card-header" style="background:#fffbf0;">
+                        <span class="info-card-title" style="color:#b45309;">
+                            <i class="fa fa-calendar-check-o" style="margin-right:5px;color:#f39c12;"></i>
+                            Inscripción anticipada
+                        </span>
+                    </div>
+                    <div style="padding:12px 16px;font-size:13px;color:#555;">
+                        <i class="fa fa-check-circle" style="color:#f39c12;"></i>
+                        Ya inscrito al ciclo <strong>{{ $inscAnticipada->ciclo->nombre ?? '—' }}</strong>
+                        @if ($inscAnticipada->grupo)
+                            · Grupo {{ $inscAnticipada->grupo->grado->numero }}{{ $inscAnticipada->grupo->nombre }}
+                        @else
+                            <br><small style="color:#b0bec5;">Grupo pendiente de asignar</small>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             {{-- Acciones rápidas --}}
             <div class="info-card">
                 <div class="info-card-header">
@@ -1124,10 +1204,219 @@
                             <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                         </a>
                     @endif
+
+                    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) && $alumno->estado === 'activo')
+                        <button type="button" class="accion-btn" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;"
+                                data-toggle="modal" data-target="#modalBaja">
+                            <div class="accion-icon" style="background:#fdecea;">
+                                <i class="fa fa-user-times" style="color:#e74c3c;font-size:13px;"></i>
+                            </div>
+                            Dar de baja
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </button>
+                    @endif
                 </div>
             </div>
+
+            {{-- Historial de bajas --}}
+            @if ($alumno->historialBajas->isNotEmpty())
+                <div class="info-card" style="border-color:#fca5a5;">
+                    <div class="info-card-header" style="background:#fff5f5;">
+                        <span class="info-card-title" style="color:#b91c1c;">
+                            <i class="fa fa-history" style="margin-right:5px;"></i>Historial de bajas
+                        </span>
+                    </div>
+                    @foreach ($alumno->historialBajas as $baja)
+                        <div style="padding:10px 16px;border-bottom:1px solid #f5f7fa;font-size:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                                <span style="font-weight:700;color:{{ $baja->tipo === 'baja_definitiva' ? '#b91c1c' : '#b45309' }};">
+                                    {{ $baja->tipoEtiqueta() }}
+                                </span>
+                                <span style="color:#9aa5b4;">{{ $baja->fecha_baja->format('d/m/Y') }}</span>
+                            </div>
+                            <div style="color:#4a5568;margin-top:2px;">
+                                <i class="fa fa-tag" style="font-size:9px;"></i>
+                                {{ $baja->motivo_categoria->etiqueta() }}
+                            </div>
+                            @if ($baja->motivo_detalle)
+                                <div style="color:#6b7a8d;margin-top:3px;font-style:italic;">
+                                    "{{ $baja->motivo_detalle }}"
+                                </div>
+                            @endif
+                            @if ($baja->registradoPor)
+                                <div style="color:#b0bec5;margin-top:2px;">
+                                    Registrado por {{ $baja->registradoPor->nombre }}
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
         </div>{{-- /col-md-4 --}}
 
     </div>{{-- /row --}}
+
+    {{-- ══ MODAL DAR DE BAJA ══ --}}
+    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) && $alumno->estado === 'activo')
+    <div class="modal fade" id="modalBaja" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#fff5f5;border-bottom:1px solid #fca5a5;">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" style="color:#b91c1c;">
+                        <i class="fa fa-user-times"></i> Dar de baja al alumno
+                    </h4>
+                </div>
+                <form method="POST" action="{{ route('alumnos.darBaja', $alumno->id) }}">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-body">
+                        <p style="font-size:13px;color:#6b7a8d;margin-bottom:16px;">
+                            Esta acción registrará la baja de
+                            <strong>{{ $alumno->nombre }} {{ $alumno->ap_paterno }}</strong>
+                            y desactivará su inscripción actual.
+                        </p>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Tipo de baja <span style="color:#e74c3c;">*</span></label>
+                            <select name="tipo_baja" class="form-control" required>
+                                <option value="">— Selecciona —</option>
+                                <option value="baja_temporal">Temporal (puede reingresar)</option>
+                                <option value="baja_definitiva">Definitiva</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Motivo de baja <span style="color:#e74c3c;">*</span></label>
+                            <select name="motivo_categoria" class="form-control" required>
+                                <option value="">— Selecciona el motivo —</option>
+                                <option value="cambio_escuela">Cambio de escuela</option>
+                                <option value="traslado">Traslado de ciudad/estado</option>
+                                <option value="economico">Motivos económicos</option>
+                                <option value="familiar">Situación familiar</option>
+                                <option value="salud">Problemas de salud</option>
+                                <option value="conducta">Problemas de conducta</option>
+                                <option value="rendimiento">Bajo rendimiento académico</option>
+                                <option value="otro">Otro motivo</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Observaciones adicionales</label>
+                            <textarea name="motivo_detalle" class="form-control" rows="3"
+                                      placeholder="Detalles adicionales sobre la baja (opcional)"
+                                      maxlength="1000"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid #f0f3f7;">
+                        <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger btn-flat"
+                                onclick="return confirm('¿Confirmas la baja de este alumno?');">
+                            <i class="fa fa-user-times"></i> Confirmar baja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══ MODAL INSCRIPCIÓN ANTICIPADA ══ --}}
+    @if (
+        (auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) &&
+        $alumno->estado === 'activo' &&
+        ! $inscAnticipada
+    )
+    <div class="modal fade" id="modalAnticipada" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#fffbf0;border-bottom:1px solid #fcd97d;">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" style="color:#b45309;">
+                        <i class="fa fa-calendar-plus-o"></i> Inscripción anticipada
+                    </h4>
+                </div>
+                <form method="POST" action="{{ route('alumnos.inscripcion-anticipada', $alumno->id) }}">
+                    @csrf
+                    <div class="modal-body">
+                        <p style="font-size:13px;color:#6b7a8d;margin-bottom:16px;">
+                            Selecciona el ciclo escolar próximo y, si ya están configurados,
+                            el grupo al que ingresará <strong>{{ $alumno->nombre }} {{ $alumno->ap_paterno }}</strong>.
+                        </p>
+
+                        {{-- Ciclo destino --}}
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Ciclo escolar destino</label>
+                            <select name="ciclo_id" class="form-control" required id="selectCicloAntic">
+                                <option value="">— Selecciona ciclo —</option>
+                                @foreach (\App\Models\CicloEscolar::where('estado', 'configuracion')->orderByDesc('fecha_inicio')->get() as $ciclo)
+                                    <option value="{{ $ciclo->id }}">{{ $ciclo->nombre }}</option>
+                                @endforeach
+                            </select>
+                            <small style="color:#9aa;">Solo aparecen ciclos en configuración (no el activo).</small>
+                        </div>
+
+                        {{-- Grupo (opcional) --}}
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">
+                                Grupo <span style="font-weight:400;color:#9aa;">(opcional)</span>
+                            </label>
+                            <select name="grupo_id" class="form-control" id="selectGrupoAntic">
+                                <option value="">— Sin grupo asignado aún —</option>
+                            </select>
+                            <small style="color:#9aa;">Se carga según el ciclo seleccionado.</small>
+                        </div>
+
+                        {{-- Fecha --}}
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Fecha de inscripción anticipada</label>
+                            <input type="date" name="fecha" class="form-control"
+                                   value="{{ now()->format('Y-m-d') }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="background:#fafbfc;">
+                        <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning btn-flat">
+                            <i class="fa fa-check"></i> Confirmar inscripción anticipada
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('selectCicloAntic').addEventListener('change', function () {
+            const cicloId = this.value;
+            const grupoSelect = document.getElementById('selectGrupoAntic');
+            grupoSelect.innerHTML = '<option value="">Cargando...</option>';
+
+            if (!cicloId) {
+                grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
+                return;
+            }
+
+            fetch(`/api/grupos?ciclo_id=${cicloId}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const grupos = data.data ?? data;
+                    grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
+                    grupos.forEach(g => {
+                        const label = g.nombre_completo ?? `${g.grado?.nombre ?? ''}° ${g.nombre}`;
+                        grupoSelect.innerHTML += `<option value="${g.id}">${label}</option>`;
+                    });
+                    if (grupos.length === 0) {
+                        grupoSelect.innerHTML = '<option value="">— No hay grupos configurados aún —</option>';
+                    }
+                })
+                .catch(() => {
+                    grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
+                });
+        });
+    </script>
+    @endif
+
 @endsection

@@ -102,10 +102,7 @@ class GrupoController extends Controller
             return $grado->nivel->id . '-' . $grado->numero;
         });
 
-        // 2. OBTENEMOS LOS CICLOS ESCOLARES
-        $ciclosDisponibles = \App\Models\CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
-
-        // 3. Grupos disponibles para cambios (tu lógica original)
+        // 2. Grupos disponibles para cambios (tu lógica original)
         $gruposDisponibles = Grupo::where('ciclo_id', $grupo->ciclo_id)
             ->where('grado_id', $grupo->grado_id)
             ->with('grado')
@@ -113,9 +110,66 @@ class GrupoController extends Controller
                 $query->where('activo', true);
             }])
             ->get();
+        // 3. OBTENEMOS LOS CICLOS ESCOLARES
+        $ciclosDisponibles = \App\Models\CicloEscolar::where('id', '!=', $grupo->ciclo_id) // Excluye el actual
+            ->where('id', '>', $grupo->ciclo_id) // Solo IDs mayores (ciclos creados después)
+            ->whereIn('estado', ['activo', 'configuracion'])
+            ->orderBy('id', 'asc')
+            ->get();
 
         return view('grupos.show', compact('grupo', 'gruposDisponibles', 'grados', 'ciclosDisponibles'));
     }
+    /** GET /grupos/grados-por-ciclo?ciclo_id=X */
+public function gradosPorCiclo(Request $request)
+{
+    $query = Grado::with('nivel')
+        ->whereHas('grupos', fn($q) => $q->where('ciclo_id', $request->ciclo_id));
+
+    // LÓGICA INTELIGENTE: Filtramos a partir del grado de origen
+    if ($request->filled('grado_origen_id')) {
+        $gradoOrigen = Grado::find($request->grado_origen_id);
+
+        if ($gradoOrigen) {
+            $query->where(function($q) use ($gradoOrigen) {
+                // Opción A: Es un nivel educativo superior (ej. de Preescolar a Primaria)
+                $q->where('nivel_id', '>', $gradoOrigen->nivel_id)
+                  // Opción B: Es el mismo nivel, pero un año superior o igual (ej. 1° a 2°)
+                  ->orWhere(function($sub) use ($gradoOrigen) {
+                      $sub->where('nivel_id', $gradoOrigen->nivel_id)
+                          ->where('numero', '>=', $gradoOrigen->numero);
+                  });
+            });
+        }
+    }
+
+    $grados = $query->orderBy('nivel_id')
+        ->orderBy('numero')
+        ->get()
+        ->map(fn($gr) => [
+            'id'    => $gr->id,
+            'label' => $gr->nivel->nombre . ' - ' . $gr->numero . '°',
+        ]);
+
+    return response()->json($grados);
+}
+
+    /** GET /grupos/grupos-por-ciclo-grado?ciclo_id=X&grado_id=Y */
+    public function gruposPorCicloGrado(Request $request)
+    {
+        $grupos = Grupo::where('ciclo_id', $request->ciclo_id)
+            ->where('grado_id', $request->grado_id)
+            ->where('activo', true)
+            ->withCount(['inscripciones as alumnos_count' => fn($q) => $q->where('activo', true)])
+            ->orderBy('nombre')
+            ->get()
+            ->map(fn($g) => [
+                'id'    => $g->id,
+                'label' => 'Grupo ' . $g->nombre . ' (' . $g->alumnos_count . ' alumnos)',
+            ]);
+
+        return response()->json($grupos);
+    }
+
     /** GET /grupos/create */
     public function create()
     {
@@ -388,52 +442,37 @@ class GrupoController extends Controller
     }
     public function promocionarMasivo(Request $request)
     {
-        // 1. Validaciones iniciales
         $request->validate([
-            'inscripciones_ids' => 'required|array',
-            'ciclo_destino_id'  => 'required',
-            'grado_destino_id'  => 'required',
-            'grupo_origen_id'   => 'required'
+            'inscripciones_ids'  => 'required|array',
+            'ciclo_destino_id'   => 'required|exists:ciclo_escolar,id',
+            'grado_destino_id'   => 'required|exists:grado,id',
+            'grupo_destino_id'   => 'required|exists:grupo,id',   // ← ahora viene del select
+            'grupo_origen_id'    => 'required|exists:grupo,id',
         ]);
 
-        // 2. Buscamos el grupo origen para conocer su identificador (ej: "A", "B")
-        $grupoOrigen = \App\Models\Grupo::findOrFail($request->grupo_origen_id);
-        $identificador = trim($grupoOrigen->nombre);
-
-        // 3. Buscamos el grupo destino
-        $grupoDestino = \App\Models\Grupo::where('ciclo_id', $request->ciclo_destino_id)
-            ->where('grado_id', $request->grado_destino_id)
-            ->where('nombre', $identificador)
-            ->first();
-
-        if (!$grupoDestino) {
-            return back()->with('error', "No se pudo realizar la promoción. No existe el grupo '{$identificador}' en el grado y ciclo seleccionados. Por favor, créalo o migra la estructura primero.");
-        }
-
+        $grupoDestino = Grupo::findOrFail($request->grupo_destino_id);
         $contador = 0;
 
         try {
             \DB::transaction(function () use ($request, $grupoDestino, &$contador) {
                 foreach ($request->inscripciones_ids as $inscripcionId) {
-
                     $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
                     $alumno = $inscripcionActual->alumno;
 
-                    // 4. Cerramos la inscripción actual
                     $inscripcionActual->update([
-                        'activo' => false,
-                        'observaciones' => ($inscripcionActual->observaciones ?? '') . " | Promocionado al grupo {$grupoDestino->nombre} ({$grupoDestino->ciclo->nombre})"
+                        'activo'        => false,
+                        'observaciones' => ($inscripcionActual->observaciones ?? '') .
+                            " | Promocionado al grupo {$grupoDestino->nombre} ({$grupoDestino->ciclo->nombre})"
                     ]);
 
-                    // 5. Creamos la nueva inscripción (CORREGIDO: usando el campo 'fecha')
                     \App\Models\Inscripcion::create([
                         'alumno_id' => $alumno->id,
                         'ciclo_id'  => $request->ciclo_destino_id,
                         'grado_id'  => $request->grado_destino_id,
                         'grupo_id'  => $grupoDestino->id,
-                        'fecha'     => now()->format('Y-m-d'), // <--- CAMBIADO de 'fecha_inscripcion' a 'fecha'
+                        'fecha'     => now()->format('Y-m-d'),
                         'activo'    => true,
-                        'estado'    => 'inscrito'
+                        'estado'    => 'inscrito',
                     ]);
 
                     $alumno->update(['estado' => 'activo']);
@@ -442,9 +481,9 @@ class GrupoController extends Controller
             });
 
             return redirect()->route('grupos.show', $request->grupo_origen_id)
-                ->with('success', "Se han promocionado $contador alumnos al grupo '{$identificador}' correctamente.");
+                ->with('success', "Se promocionaron {$contador} alumnos al grupo '{$grupoDestino->nombre}' correctamente.");
         } catch (\Exception $e) {
-            return back()->with('error', "Hubo un problema de base de datos: " . $e->getMessage());
+            return back()->with('error', 'Error en base de datos: ' . $e->getMessage());
         }
     }
 }

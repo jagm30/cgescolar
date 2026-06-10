@@ -7,6 +7,7 @@ use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
 use App\Traits\RespondsWithJson;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -64,6 +65,8 @@ class CargoController extends Controller
         $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
         $resumenBase = Cargo::query()
             ->whereHas('inscripcion', fn ($q) => $q->where('ciclo_id', $cicloId));
+        $resumenPagados = clone $resumenBase;
+        $this->aplicarFiltroPagado($resumenPagados);
 
         $resumen = [
             'total' => (clone $resumenBase)->count(),
@@ -78,9 +81,7 @@ class CargoController extends Controller
             'parciales' => (clone $resumenBase)
                 ->where('estado', 'parcial')
                 ->count(),
-            'pagados' => (clone $resumenBase)
-                ->where('estado', 'pagado')
-                ->count(),
+            'pagados' => $resumenPagados->count(),
         ];
 
         $resumen['parciales_vencidos'] = (clone $resumenBase)
@@ -256,8 +257,27 @@ class CargoController extends Controller
                 ->whereDate('fecha_vencimiento', '<', today()),
             'parcial' => $query->where('estado', 'parcial')
                 ->whereDate('fecha_vencimiento', '>=', today()),
+            'pagado' => $this->aplicarFiltroPagado($query),
             default => $query->where('estado', $estado),
         };
+    }
+
+    private function aplicarFiltroPagado(Builder $query): void
+    {
+        $query->where(
+            fn (Builder $query) => $query
+                ->where('estado', 'pagado')
+                ->orWhereRaw($this->montoCubiertoSql().' >= cargo.monto_original', ['vigente'])
+        );
+    }
+
+    private function montoCubiertoSql(): string
+    {
+        return '(select coalesce(sum(pago_detalle.monto_abonado + pago_detalle.descuento_beca + pago_detalle.descuento_otros), 0)
+            from pago_detalle
+            inner join pago on pago.id = pago_detalle.pago_id
+            where pago_detalle.cargo_id = cargo.id
+            and pago.estado = ?)';
     }
 
     public function calcularPreviewCobro(Cargo $cargo): array
@@ -312,7 +332,7 @@ class CargoController extends Controller
 
             if ($pol && $pol->aplicaHoy()) {
                 $mesesRetraso = (int) now()->startOfMonth()
-                    ->diffInMonths(\Carbon\Carbon::parse($cargo->fecha_vencimiento)->startOfMonth());
+                    ->diffInMonths(Carbon::parse($cargo->fecha_vencimiento)->startOfMonth());
                 $mesesRetraso = max(1, $mesesRetraso);
 
                 $recargo = $pol->calcular($montoOriginal, $mesesRetraso);

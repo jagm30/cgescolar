@@ -203,3 +203,47 @@ test('no permite duplicar la asignacion del mismo alcance en el ciclo', function
     expect(AsignacionPlan::count())->toBe(1);
     expect(Cargo::count())->toBe(2);
 });
+
+test('solo devuelve planes disponibles que no estan asignados al alumno seleccionado', function () {
+    $contexto = crearContextoPlanPago();
+
+    $planDisponible = PlanPago::create([
+        'ciclo_id' => $contexto['ciclo']->id,
+        'nivel_id' => $contexto['nivel']->id,
+        'nombre' => 'Plan Disponible',
+        'periodicidad' => 'mensual',
+        'fecha_inicio' => '2026-08-01',
+        'fecha_fin' => '2026-09-30',
+        'activo' => true,
+    ]);
+
+    PlanPagoConcepto::create([
+        'plan_id' => $planDisponible->id,
+        'concepto_id' => $contexto['concepto']->id,
+        'monto' => 1200,
+    ]);
+
+    $payload = [
+        'plan_id' => $contexto['plan']->id,
+        'origen' => 'individual',
+        'alumno_id' => $contexto['alumno']->id,
+        'fecha_inicio' => '2026-08-01',
+        'fecha_fin' => '2026-09-30',
+        'conceptos' => [$contexto['planConcepto']->id],
+    ];
+
+    $this->actingAs($contexto['admin'])->post(route('planes.asignar'), $payload);
+
+    $response = $this->actingAs($contexto['admin'])
+        ->getJson(route('planes.asignar.disponibles', [
+            'origen' => 'individual',
+            'alumno_id' => $contexto['alumno']->id,
+        ]));
+
+    $response->assertStatus(200);
+
+    $ids = collect($response->json())->pluck('id');
+
+    expect($ids)->toContain($planDisponible->id);
+    expect($ids)->not->toContain($contexto['plan']->id);
+});

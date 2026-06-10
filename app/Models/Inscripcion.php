@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TipoInscripcion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,18 +18,40 @@ class Inscripcion extends Model
         'grupo_id',
         'fecha',
         'activo',
+        'tipo',
     ];
 
-    protected $casts = [
-        'fecha'  => 'date',
-        'activo' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'fecha'  => 'date',
+            'activo' => 'boolean',
+            'tipo'   => TipoInscripcion::class,
+        ];
+    }
 
     // ── Scopes ──────────────────────────────────────────
 
     public function scopeActiva($query)
     {
         return $query->where('activo', true);
+    }
+
+    public function scopeRegular($query)
+    {
+        return $query->where('tipo', TipoInscripcion::Regular);
+    }
+
+    public function scopeAnticipada($query)
+    {
+        return $query->where('tipo', TipoInscripcion::Anticipada);
+    }
+
+    // ── Helpers ──────────────────────────────────────────
+
+    public function esAnticipada(): bool
+    {
+        return $this->tipo === TipoInscripcion::Anticipada;
     }
 
     // ── Relaciones ───────────────────────────────────────
@@ -43,6 +66,7 @@ class Inscripcion extends Model
         return $this->belongsTo(CicloEscolar::class, 'ciclo_id');
     }
 
+    /** grupo_id es nullable en inscripciones anticipadas sin grupo asignado aún */
     public function grupo(): BelongsTo
     {
         return $this->belongsTo(Grupo::class, 'grupo_id');

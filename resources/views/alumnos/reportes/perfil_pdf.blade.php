@@ -126,12 +126,13 @@
     <table class="header">
         <tr>
             <td style="width: 20%; text-align: left;">
-                <div
-                    style="width: 90px; height: 90px; background: #e0e0e0; text-align:center; line-height:90px; color:#666;">
-                    LOGO</div>
+                <img src="{{ $base64 }}" alt="Logo Escuela" style="height: 50px;">
             </td>
             <td style="width: 60%; text-align: center;">
-                <div class="title">Ficha de Identificación</div>
+                <div class="title">
+                    {{ $setting->nombre_escuela ?? 'CGESCOLAR' }}
+                </div>
+                <div class="subtitle" style="font-size: 20px; color: #1e4d7b; font-weight: bold;">Ficha de Alumno</div>
                 <div class="subtitle">Perfil Académico y Datos de Contacto</div>
             </td>
             <td style="width: 20%; text-align: right; color: #666; font-size: 10px;">
@@ -188,7 +189,7 @@
     </table>
 
     {{-- ── 2. INSCRIPCIONES ── --}}
-    <div class="section-title">2. Historial de Inscripciones</div>
+    <div class="section-title">2. Periodo actual</div>
     <table class="info-table">
         <thead>
             <tr>
@@ -200,7 +201,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($alumno->inscripciones as $inscripcion)
+            @forelse($alumno->inscripciones->where('ciclo_id', $cicloActualId) as $inscripcion)
                 <tr>
                     <td style="font-weight: bold;">{{ $inscripcion->ciclo->nombre ?? 'N/A' }}</td>
                     <td>
@@ -211,7 +212,7 @@
                         @endif
                     </td>
                     <td>{{ $inscripcion->grupo->grado->nivel->nombre ?? '' }} -
-                        {{ $inscripcion->grupo->grado->nombre ?? '' }}°</td>
+                        {{ $inscripcion->grupo->grado->numero ?? '' }}°</td>
                     <td>{{ $inscripcion->grupo->nombre ?? 'N/A' }}</td>
                     <td>{{ \Carbon\Carbon::parse($inscripcion->created_at)->format('d/m/Y') }}</td>
                 </tr>

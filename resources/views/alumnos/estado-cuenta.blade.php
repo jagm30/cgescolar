@@ -188,7 +188,7 @@
             <span>
                 <i class="fa fa-graduation-cap"></i>
                 {{ $inscripcionActual->grupo->grado->nivel->nombre ?? '' }}
-                · {{ $inscripcionActual->grupo->grado->nombre }}°
+                · {{ $inscripcionActual->grupo->grado->numero }}°
                 {{ $inscripcionActual->grupo->nombre }}
             </span>
             <span>
@@ -323,7 +323,8 @@
                 @forelse($cargos as $cargo)
                 @php
                     $saldoAbonado   = (float) ($cargo->total_abonado ?? 0);
-                    $saldoPendiente = max(0, (float) $cargo->monto_original - $saldoAbonado);
+                    $montoCubierto  = (float) $cargo->monto_cubierto;
+                    $saldoPendiente = max(0, (float) $cargo->monto_original - $montoCubierto);
                     $hoy            = now();
                     $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
                     $descuentoCalc  = (float) ($cargo->descuento_calc      ?? 0);
@@ -331,17 +332,12 @@
                     $becaDesc       = (float) ($cargo->beca_descuento_calc ?? 0);
                     $becaPct        = $cargo->beca_porcentaje ?? null;
                     $mesesRetraso   = (int)   ($cargo->meses_retraso       ?? 0);
+                    $estadoReal = $cargo->estado_real;
                     $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0 || $becaDesc > 0)
-                                      && !in_array($cargo->estado, ['pagado', 'condonado']);
-                    $estadoReal = match($cargo->estado) {
-                        'pagado'    => 'pagado',
-                        'condonado' => 'condonado',
-                        'parcial'   => $vencido ? 'vencido' : 'parcial',
-                        default     => $vencido ? 'vencido' : 'pendiente',
-                    };
+                                      && !in_array($estadoReal, ['pagado', 'condonado']);
                     $estadoClass = match($estadoReal) {
                         'pagado'    => 'ec-pagado',
-                        'parcial'   => 'ec-parcial',
+                        'parcial', 'parcial_vencido' => 'ec-parcial',
                         'vencido'   => 'ec-vencido',
                         'condonado' => 'ec-condonado',
                         default     => 'ec-pendiente',
@@ -349,6 +345,7 @@
                     $estadoLabel = match($estadoReal) {
                         'pagado'    => 'Pagado',
                         'parcial'   => 'Parcial',
+                        'parcial_vencido' => 'Parcial vencido',
                         'vencido'   => 'Vencido',
                         'condonado' => 'Condonado',
                         default     => 'Pendiente',
@@ -751,7 +748,12 @@ $(function() {
             var cargoId = $(this).data('cargo-id');
             var detalle = $('#pagos-' + cargoId);
 
-            if (filtro === 'todos' || estado === filtro) {
+            var mostrar = filtro === 'todos'
+                || estado === filtro
+                || (filtro === 'parcial' && estado === 'parcial_vencido')
+                || (filtro === 'pagado' && estado === 'condonado');
+
+            if (mostrar) {
                 $(this).show();
             } else {
                 $(this).hide();

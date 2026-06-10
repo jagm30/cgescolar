@@ -48,7 +48,7 @@
                     <p class="text-muted">Matrícula: {{ $cargo->inscripcion?->alumno?->matricula ?? 'N/D' }}</p>
                     <p class="text-muted">
                         Grupo:
-                        {{ $grupo ? ($grupo->grado?->nombre . ' ' . $grupo->nombre) : 'Sin grupo' }}
+                        {{ $grupo ? ($grupo->grado?->numero . '° ' . $grupo->nombre) : 'Sin grupo' }}
                     </p>
                 </div>
             </div>

@@ -61,6 +61,10 @@ class CfdiController extends Controller
             return $this->respuestaError('No hay configuración fiscal registrada. Configure el emisor primero.');
         }
 
+        if (! $config->serie_id) {
+            return $this->respuestaError('Falta el ID de serie de factura.com. Ve a Configuración → Datos del Emisor e ingresa el ID numérico de la serie (Catálogos → Series en tu panel de factura.com).');
+        }
+
         // Determinar datos del receptor
         $razonSocialId = $request->filled('razon_social_id')
             ? (int) $request->razon_social_id
@@ -76,7 +80,7 @@ class CfdiController extends Controller
         DB::beginTransaction();
         try {
             $folio   = $config->siguienteFolio();
-            $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi);
+            $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi, $razonSocialId === null);
 
             $respuesta = $factura->emitir($payload);
 
@@ -110,8 +114,43 @@ class CfdiController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
+            // Si el error es que el receptor no existe en el catálogo de factura.com,
+            // el UID almacenado pertenece a otra cuenta (p.ej. después de cambiar credenciales).
+            // Limpiamos el UID obsoleto para que el siguiente intento lo recree.
+            if ($this->esErrorReceptorInvalido($e->getMessage())) {
+                if ($razonSocialId === null) {
+                    $config->update(['publico_general_uid' => null]);
+                } else {
+                    RazonSocialContacto::where('id', $razonSocialId)->update(['factura_uid' => null]);
+                }
+
+                return $this->respuestaError(
+                    'El cliente receptor estaba desactualizado en factura.com y fue eliminado del caché. '.
+                    'Vuelve a intentar emitir el CFDI — en este segundo intento se registrará automáticamente.'
+                );
+            }
+
             return $this->respuestaError('Error al emitir CFDI: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Detecta si el error de factura.com indica que el receptor tiene datos inválidos/desactualizados.
+     * En ese caso conviene limpiar el UID en caché y recrear el cliente.
+     */
+    private function esErrorReceptorInvalido(string $mensaje): bool
+    {
+        $m = strtolower($mensaje);
+
+        return str_contains($m, 'receptor') && (
+            str_contains($m, 'catálogo')
+            || str_contains($m, 'catalogo')
+            || str_contains($m, 'no se encuentra')
+            || str_contains($m, 'not found')
+            || str_contains($m, 'código postal')
+            || str_contains($m, 'codigo postal')
+            || str_contains($m, 'domicilio fiscal')
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -224,6 +263,13 @@ class CfdiController extends Controller
     private function receptorPublicoGeneral(ConfigFiscal $config, FacturaComService $factura): array
     {
         if (! $config->publico_general_uid) {
+            $cp = config('factura.cp_expedicion');
+            if (! $cp) {
+                throw new \RuntimeException(
+                    'Configure FACTURA_CP_EXPEDICION en .env con el código postal del lugar de expedición.'
+                );
+            }
+
             $email = config('factura.email_contacto')
                 ?: throw new \RuntimeException(
                     'Configure FACTURA_EMAIL_CONTACTO en .env para emitir a Público en General.'
@@ -232,7 +278,7 @@ class CfdiController extends Controller
             $uid = $factura->crearCliente(
                 'XAXX010101000',
                 'PUBLICO EN GENERAL',
-                config('factura.cp_expedicion'),
+                $cp,
                 '616',
                 $email,
             );
@@ -255,7 +301,8 @@ class CfdiController extends Controller
         ConfigFiscal $config,
         array $receptor,
         string $folio,
-        string $usoCfdi
+        string $usoCfdi,
+        bool $esPublicoGeneral = false
     ): array {
         $conceptos = $pago->detalles->map(function ($detalle) {
             $concepto = $detalle->cargo?->concepto;
@@ -283,7 +330,7 @@ class CfdiController extends Controller
             ];
         })->values()->toArray();
 
-        return [
+        $payload = [
             'TipoDocumento'   => 'factura',
             'Serie'           => $config->serie_id ?? $config->serie,
             'Folio'           => (string) $config->folio_actual,
@@ -297,5 +344,15 @@ class CfdiController extends Controller
             'EnviarCorreo'    => false,
             'Draft'           => false,
         ];
+
+        if ($esPublicoGeneral) {
+            $payload['InformacionGlobal'] = [
+                'Periodicidad' => '04',                          // Mensual
+                'Meses'        => now()->format('m'),            // Mes actual (01–12)
+                'Año'          => (string) now()->year,
+            ];
+        }
+
+        return $payload;
     }
 }

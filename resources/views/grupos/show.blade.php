@@ -198,7 +198,7 @@
                     <table class="table table-info-flat">
                         <tr>
                             <th>Nivel / Grado</th>
-                            <td>{{ $grupo->grado->nivel->nombre }} - {{ $grupo->grado->nombre }}</td>
+                            <td>{{ $grupo->grado->nivel->nombre }} - {{ $grupo->grado->numero }}°</td>
                         </tr>
                         <tr>
                             <th>Grupo</th>
@@ -523,30 +523,44 @@
                         <h4 class="modal-title"><b><i class="fa fa-rocket"></i> Promoción de Alumnos</b></h4>
                     </div>
                     <div class="modal-body">
-                        <p style="font-size: 15px;">Vas a promover a <b id="contador-promocion">0</b> alumnos del salón
+                        <p style="font-size: 15px;">Vas a promover a <b id="contador-promocion">0</b> alumnos del
+                            <b>{{ $grupo->grado->nivel->nombre }} - {{ $grupo->grado->numero }}°</b> del grupo
                             <b>{{ $grupo->nombre }}</b>.
                         </p>
                         <hr>
+
+                        {{-- SELECT 1: Ciclo --}}
                         <div class="form-group">
                             <label>Ciclo Escolar Destino:</label>
-                            <select name="ciclo_destino_id" class="form-control" required style="border-radius: 8px;">
+                            <select name="ciclo_destino_id" id="select-ciclo-promocion" class="form-control" required
+                                style="border-radius: 8px;">
                                 <option value="">-- Seleccionar Ciclo --</option>
                                 @foreach ($ciclosDisponibles ?? [] as $cicloD)
-                                    @if ($cicloD->id != $grupo->ciclo_id)
-                                        <option value="{{ $cicloD->id }}">{{ $cicloD->nombre }}</option>
+                                    @if (in_array($cicloD->estado, ['activo', 'configuracion']) && $cicloD->id > $grupo->ciclo_id)
+                                        <option value="{{ $cicloD->id }}">
+                                            {{ $cicloD->nombre }}
+                                            | {{ $cicloD->estado == 'activo' ? '🟢 Activo' : '⚙️ Configuración' }}
+                                        </option>
                                     @endif
                                 @endforeach
                             </select>
                         </div>
 
+                        {{-- SELECT 2: Grado (se llena al elegir ciclo) --}}
                         <div class="form-group">
                             <label>Nivel / Grado al que pasan:</label>
-                            <select name="grado_destino_id" class="form-control" required style="border-radius: 8px;">
-                                <option value="">-- Seleccionar Grado --</option>
-                                @foreach ($grados ?? [] as $gr)
-                                    <option value="{{ $gr->id }}">{{ $gr->nivel->nombre }} - {{ $gr->nombre }}
-                                    </option>
-                                @endforeach
+                            <select name="grado_destino_id" id="select-grado-promocion" class="form-control" required
+                                style="border-radius: 8px;" disabled>
+                                <option value="">-- Primero selecciona un ciclo --</option>
+                            </select>
+                        </div>
+
+                        {{-- SELECT 3: Grupo (se llena al elegir grado) --}}
+                        <div class="form-group">
+                            <label>Grupo Destino:</label>
+                            <select name="grupo_destino_id" id="select-grupo-promocion" class="form-control" required
+                                style="border-radius: 8px;" disabled>
+                                <option value="">-- Primero selecciona un grado --</option>
                             </select>
                         </div>
 
@@ -572,7 +586,81 @@
             let formToSubmit = null;
             let currentType = null;
 
-            // Lógica unificada para mostrar el modal de confirmación (Quitar, Bajas, Egreso)
+            // ── SELECTS ENCADENADOS: Ciclo → Grado → Grupo ──────────────────────
+
+            // 1. Al cambiar CICLO: carga grados y resetea grupo
+            $('#select-ciclo-promocion').on('change', function() {
+                const cicloId = $(this).val();
+                const gradoOrigenId = '{{ $grupo->grado_id }}'; // Aquí inyectamos el grado actual
+
+                const $gradoSelect = $('#select-grado-promocion');
+                const $grupoSelect = $('#select-grupo-promocion');
+
+                // Resetear selects dependientes
+                $grupoSelect.html('<option value="">-- Primero selecciona un grado --</option>').prop('disabled', true);
+                $gradoSelect.html('<option value="">-- Cargando grados... --</option>').prop('disabled', true);
+
+                if (!cicloId) {
+                    $gradoSelect.html('<option value="">-- Primero selecciona un ciclo --</option>');
+                    return;
+                }
+
+                // Llamada AJAX para obtener grados filtrados
+                $.getJSON('{{ route('grupos.gradosPorCiclo') }}', {
+                    ciclo_id: cicloId,
+                    grado_origen_id: gradoOrigenId
+                })
+                .done(function(grados) {
+                    $gradoSelect.html('<option value="">-- Seleccionar Grado --</option>');
+                    if (grados.length === 0) {
+                        $gradoSelect.html('<option value="">-- Sin grados disponibles --</option>');
+                        return;
+                    }
+                    grados.forEach(function(gr) {
+                        $gradoSelect.append(`<option value="${gr.id}">${gr.label}</option>`);
+                    });
+                    $gradoSelect.prop('disabled', false);
+                })
+                .fail(function() {
+                    $gradoSelect.html('<option value="">-- Error al cargar --</option>');
+                });
+            });
+
+            // 2. Al cambiar GRADO: carga grupos
+            $('#select-grado-promocion').on('change', function() {
+                const gradoId = $(this).val();
+                const cicloId = $('#select-ciclo-promocion').val();
+                const $grupoSelect = $('#select-grupo-promocion');
+
+                $grupoSelect.html('<option value="">-- Cargando grupos... --</option>').prop('disabled', true);
+
+                if (!gradoId || !cicloId) {
+                    $grupoSelect.html('<option value="">-- Primero selecciona un grado --</option>');
+                    return;
+                }
+
+                // Llamada AJAX para obtener grupos
+                $.getJSON('{{ route('grupos.gruposPorCicloGrado') }}', {
+                    ciclo_id: cicloId,
+                    grado_id: gradoId
+                })
+                .done(function(grupos) {
+                    $grupoSelect.html('<option value="">-- Seleccionar Grupo --</option>');
+                    if (grupos.length === 0) {
+                        $grupoSelect.html('<option value="">-- Sin grupos en este grado/ciclo --</option>');
+                        return;
+                    }
+                    grupos.forEach(function(g) {
+                        $grupoSelect.append(`<option value="${g.id}">${g.label}</option>`);
+                    });
+                    $grupoSelect.prop('disabled', false);
+                })
+                .fail(function() {
+                    $grupoSelect.html('<option value="">-- Error al cargar --</option>');
+                });
+            });
+
+            // ── LÓGICA DE CONFIRMACIONES Y MODALES (BAJAS, EGRESOS, QUITAR) ──
             $('.btn-action-confirm, #btn-trigger-modal-egreso').on('click', function(e) {
                 e.preventDefault();
                 const btn = $(this);
@@ -643,7 +731,7 @@
                 $('#modalConfirmacion').modal('show');
             });
 
-            // Acción del botón Promoción Masiva
+            // ── LÓGICA DE PROMOCIÓN MASIVA (BOTÓN PRINCIPAL) ──
             $('#btn-trigger-promocion').on('click', function(e) {
                 e.preventDefault();
                 var ids = [];
@@ -654,38 +742,36 @@
                 $('#contador-promocion').text(ids.length);
                 $('#ids-alumnos-promocion').empty();
                 ids.forEach(id => {
-                    $('#ids-alumnos-promocion').append(
-                        `<input type="hidden" name="inscripciones_ids[]" value="${id}">`);
+                    $('#ids-alumnos-promocion').append(`<input type="hidden" name="inscripciones_ids[]" value="${id}">`);
                 });
 
                 $('#modalPromocionMasiva').modal('show');
             });
 
+            // Confirmar Submit de modales
             $('#btn-confirm-submit').on('click', function() {
                 if (currentType.includes('baja')) {
                     let razon = $('#razon_baja_input').val();
                     let tipoTexto = (currentType === 'baja_temporal') ? 'Baja Temporal' : 'Baja Definitiva';
                     $(formToSubmit).find('input[name="observaciones"]').remove();
-                    $(formToSubmit).append(
-                        `<input type="hidden" name="observaciones" value="${tipoTexto}: ${razon}">`);
+                    $(formToSubmit).append(`<input type="hidden" name="observaciones" value="${tipoTexto}: ${razon}">`);
                 }
                 $(formToSubmit).submit();
             });
 
+            // ── LÓGICA DE CHECKBOXES ──
             function actualizarEstadoBoton() {
                 var seleccionados = $('.check-item:checked').length;
                 var btnEgreso = $('#btn-trigger-modal-egreso');
                 var btnPromocion = $('#btn-trigger-promocion');
 
                 if (seleccionados > 0) {
-                    // Activar Promoción
                     btnPromocion.prop('disabled', false).css({
                         'background-color': '#f0fff4',
                         'color': '#276749',
                         'border-color': '#c6f6d5',
                         'cursor': 'pointer'
                     });
-                    // Activar Egreso (si el botón existe en el DOM)
                     if (btnEgreso.length) {
                         btnEgreso.prop('disabled', false).css({
                             'background-color': '#fff5f5',
@@ -719,11 +805,11 @@
 
             $(document).on('change', '.check-item', function() {
                 if (!$(this).is(':checked')) $('#check-all').prop('checked', false);
-                if ($('.check-item:checked').length === $('.check-item').length) $('#check-all').prop(
-                    'checked', true);
+                if ($('.check-item:checked').length === $('.check-item').length) $('#check-all').prop('checked', true);
                 actualizarEstadoBoton();
             });
 
+            // ── LÓGICA DE DROPDOWNS Y CAMBIAR GRUPO ──
             $('.btn-dropdown-manual').on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();

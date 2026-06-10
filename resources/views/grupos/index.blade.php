@@ -250,7 +250,7 @@
                                 <td>
                                     <span class="text-blue"
                                         style="font-weight: bold;">{{ $g['grado']['nivel']['nombre'] }}</span><br>
-                                    <small class="text-muted">{{ $g['grado']['nombre'] }}</small>
+                                    <small class="text-muted">{{ $g['grado']['numero'] }}°</small>
                                 </td>
                                 <td style="vertical-align: middle;">
                                     <span class="label label-info label-grupo">{{ $g['nombre'] }}</span>
@@ -388,7 +388,7 @@
     </div>
 
     {{-- ── MODAL NUEVO GRUPO ── --}}
-    <x-modal id="modalNuevoGrupo" title="Crear Nuevo Grupo" size="modal-md">
+    <x-modal id="modalNuevoGrupo" title="Crear Nuevo Grupo - {{ $cicloActual->nombre }}" size="modal-md">
         <form action="{{ route('grupos.store') }}" method="POST" id="form-nuevo-grupo">
             @csrf
             {{-- ── INYECCIÓN DEL CICLO ACTUAL ── --}}
@@ -418,7 +418,7 @@
                             @foreach ($grados as $g)
                                 {{-- Guardamos el id del nivel en un atributo data para leerlo con JS --}}
                                 <option value="{{ $g->id }}" data-nivel="{{ $g->nivel->id }}" hidden>
-                                    {{ $g->nombre }}
+                                    {{ $g->numero }}°
                                 </option>
                             @endforeach
                         </select>

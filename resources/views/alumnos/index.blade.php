@@ -564,7 +564,7 @@
                     <option value="">Todos los grupos</option>
                     @foreach ($grupos as $grupo)
                         <option value="{{ $grupo->id }}" {{ request('grupo_id') == $grupo->id ? 'selected' : '' }}>
-                            {{ $grupo->grado->nombre }}° {{ $grupo->nombre }}
+                            {{ $grupo->grado->numero }}° {{ $grupo->nombre }}
                         </option>
                     @endforeach
                 </select>
@@ -678,8 +678,8 @@
                                 @if ($inscripcion)
                                     <div class="alm-nivel-tag">{{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}</div>
                                     <div class="alm-grupo-txt">
-                                        {{ $inscripcion->grupo->grado->nombre }}°
-                                        <strong>{{ $inscripcion->grupo->nombre }}</strong>
+                                        {{ $inscripcion->grupo->grado->numero ?? ''}}°
+                                        <strong>{{ $inscripcion->grupo->nombre ?? '' }}</strong>
                                     </div>
                                 @else
                                     <span class="alm-badge"

@@ -8,10 +8,44 @@
 @endsection
 
 @push('styles')
+    {{-- ── LIBRERÍA SELECT2 ── --}}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <style>
+        /* ── DISEÑO IDÉNTICO A TU IMAGEN DE EJEMPLO ── */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 34px !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 4px 12px;
+            background-color: #fff;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 32px !important;
+        }
+
+        .select2-dropdown {
+            border: 1px solid #ccc !important;
+            border-radius: 0 0 4px 4px !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 99999 !important;
+            /* Inmortalidad sobre el modal */
+        }
+
+        .select2-search__field {
+            border: 1px solid #aaa !important;
+            /* Borde al escribir */
+            border-radius: 3px;
+        }
+
         /* ══════════════════════════════════════════
-                       ESTADÍSTICAS
-                    ══════════════════════════════════════════ */
+                                                               ESTADÍSTICAS Y TABLAS (Tu CSS original)
+                                                            ══════════════════════════════════════════ */
         .pln-stats {
             display: flex;
             gap: 12px;
@@ -84,8 +118,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       TOOLBAR
-                    ══════════════════════════════════════════ */
+                                                                                                               TOOLBAR
+                                                                                                            ══════════════════════════════════════════ */
         .pln-toolbar {
             display: flex;
             align-items: center;
@@ -133,8 +167,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       TABLA
-                    ══════════════════════════════════════════ */
+                                                                                                               TABLA
+                                                                                                            ══════════════════════════════════════════ */
         .pln-table {
             margin: 0;
             border-collapse: separate;
@@ -280,8 +314,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       EMPTY STATE
-                    ══════════════════════════════════════════ */
+                                                                                                               EMPTY STATE
+                                                                                                            ══════════════════════════════════════════ */
         .pln-empty {
             text-align: center;
             padding: 60px 20px;
@@ -307,8 +341,8 @@
         }
 
         /* ══════════════════════════════════════════
-                       FOOTER / PAGINACIÓN
-                    ══════════════════════════════════════════ */
+                                            FOOTER / PAGINACIÓN
+                                        ══════════════════════════════════════════ */
         .pln-footer {
             display: flex;
             align-items: center;
@@ -398,7 +432,7 @@
 
     {{-- ══ PANEL PRINCIPAL ══ --}}
     <div class="box"
-        style="border-radius:8px;border:1px solid #e0e7ef;box-shadow:0 2px 10px rgba(0,0,0,.05);overflow:hidden;">
+        style="border-radius:8px;border:1px solid #e0e7ef;box-shadow:0 2px 10px rgba(0,0,0,.05);overflow:visible;">
 
         {{-- Toolbar ─────────────────────────────────── --}}
         <form method="GET" action="{{ route('planes.index') }}" id="form-filtros">
@@ -414,12 +448,6 @@
                     @endforeach
                 </select>
 
-                {{-- Botón filtrar --}}
-                <button type="submit" class="btn btn-primary btn-flat btn-sm"
-                    style="border-radius:20px;padding:5px 14px;flex-shrink:0;">
-                    <i class="fa fa-filter"></i> Filtrar
-                </button>
-
                 {{-- Limpiar filtros --}}
                 @if (request()->filled('nivel_id'))
                     <a href="{{ route('planes.index') }}" class="btn btn-default btn-flat btn-sm"
@@ -428,13 +456,7 @@
                     </a>
                 @endif
 
-                {{-- Contador --}}
-                @if ($planes->total() > 0)
-                    <span class="pln-count-badge">
-                        <i class="fa fa-file-text-o"></i>
-                        {{ $planes->total() }} plan{{ $planes->total() != 1 ? 'es' : '' }}
-                    </span>
-                @endif
+
 
                 {{-- Badge seleccionados --}}
                 <span class="pln-clone-badge" id="badge-seleccionados">
@@ -442,9 +464,16 @@
                     <span id="txt-seleccionados">0</span> seleccionado(s)
                 </span>
 
+                {{-- Ayuda --}}
+                <button type="button" class="btn btn-info btn-flat btn-sm"
+                    style="border-radius:20px;padding:5px 12px;flex-shrink:0;" data-toggle="modal" data-target="#modalAyuda"
+                    title="Ayuda"> Ayuda
+                    <i class="fa fa-question-circle"></i>
+                </button>
+
                 {{-- Botones acción --}}
                 <div style="display:flex;gap:6px;margin-left:auto;flex-shrink:0;">
-                    <button type="button" class="btn btn-default btn-flat btn-sm" id="btn-clonar-masivo" disabled
+                    <button type="button" class="btn btn-warning btn-flat btn-sm" id="btn-clonar-masivo" disabled
                         data-toggle="modal" data-target="#modalClonacionMasiva"
                         style="border-radius:20px;padding:5px 14px;">
                         <i class="fa fa-copy"></i> Clonar seleccionados
@@ -476,7 +505,7 @@
                 </thead>
                 <tbody>
                     @forelse($planes as $plan)
-                        <tr>
+                        <tr data-href="{{ route('planes.show', $plan->id) }}" style="cursor: pointer;">
                             {{-- CHECKBOX --}}
                             <td class="text-center">
                                 <input type="checkbox" class="plan-checkbox pln-check" value="{{ $plan->id }}">
@@ -530,45 +559,69 @@
                             {{-- ACCIONES --}}
                             <td>
                                 <div class="pln-acciones">
-                                    <a href="{{ route('planes.show', $plan->id) }}" class="btn btn-info btn-xs btn-flat"
-                                        style="border-radius:4px;" title="Ver resumen">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
+                                    <div class="dropdown">
+                                        <button class="btn btn-default btn-xs btn-flat dropdown-toggle" type="button"
+                                            id="dropdownMenu{{ $plan->id }}" data-toggle="dropdown"
+                                            aria-haspopup="true" aria-expanded="false" title="Más acciones"
+                                            style="border-radius:4px; padding:3px 8px;">
+                                            Ver opciones <span class="caret"></span>
+                                        </button>
 
-                                    <button type="button" class="btn btn-default btn-xs btn-flat"
-                                        style="border-radius:4px;" data-toggle="modal"
-                                        data-target="#modalEditarPlan{{ $plan->id }}" title="Editar">
-                                        <i class="fa fa-pencil"></i>
-                                    </button>
+                                        <ul class="dropdown-menu dropdown-menu-right"
+                                            aria-labelledby="dropdownMenu{{ $plan->id }}">
 
-                                    @if ($plan->activo)
-                                        <form action="{{ route('planes.destroy', $plan->id) }}" method="POST"
-                                            style="margin:0; display:contents;">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-xs btn-flat"
-                                                style="border-radius:4px;" title="Desactivar"
-                                                onclick="return confirm('¿Desactivar este plan?');">
-                                                <i class="fa fa-ban"></i>
-                                            </button>
-                                        </form>
-                                    @else
-                                        <form action="{{ route('planes.update', $plan->id) }}" method="POST"
-                                            style="margin:0; display:contents;">
-                                            @csrf @method('PUT')
-                                            <input type="hidden" name="activo" value="1">
-                                            <button type="submit" class="btn btn-success btn-xs btn-flat"
-                                                style="border-radius:4px;" title="Reactivar"
-                                                onclick="return confirm('¿Reactivar este plan?');">
-                                                <i class="fa fa-refresh"></i>
-                                            </button>
-                                        </form>
-                                    @endif
+                                            <li>
+                                                <a href="{{ route('planes.show', $plan->id) }}" title="Ver resumen">
+                                                    <i class="fa fa-eye"></i> Ver resumen
+                                                </a>
+                                            </li>
 
-                                    <a href="{{ route('planes.conceptos.index', $plan->id) }}"
-                                        class="btn btn-primary btn-xs btn-flat" style="border-radius:4px;padding:3px 8px;"
-                                        title="Configurar plan">
-                                        <i class="fa fa-cogs"></i> Configurar
-                                    </a>
+                                            <li>
+                                                <a href="#" data-toggle="modal"
+                                                    data-target="#modalEditarPlan{{ $plan->id }}" title="Editar">
+                                                    <i class="fa fa-pencil"></i> Editar
+                                                </a>
+                                            </li>
+
+                                            <li role="separator" class="divider"></li>
+
+                                            <li>
+                                                <a href="{{ route('planes.conceptos.index', $plan->id) }}"
+                                                    title="Configurar plan">
+                                                    <i class="fa fa-cogs text-primary"></i> Configurar
+                                                </a>
+                                            </li>
+
+                                            @if ($plan->activo)
+                                                <li>
+                                                    <form action="{{ route('planes.destroy', $plan->id) }}"
+                                                        method="POST" style="margin: 0;">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-link"
+                                                            style="width: 100%; text-align: left; padding: 3px 20px; color: #333; text-decoration: none;"
+                                                            title="Desactivar"
+                                                            onclick="return confirm('¿Desactivar este plan?');">
+                                                            <i class="fa fa-ban text-danger"></i> Desactivar
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @else
+                                                <li>
+                                                    <form action="{{ route('planes.update', $plan->id) }}" method="POST"
+                                                        style="margin: 0;">
+                                                        @csrf @method('PUT')
+                                                        <input type="hidden" name="activo" value="1">
+                                                        <button type="submit" class="btn btn-link"
+                                                            style="width: 100%; text-align: left; padding: 3px 20px; color: #333; text-decoration: none;"
+                                                            title="Reactivar"
+                                                            onclick="return confirm('¿Reactivar este plan?');">
+                                                            <i class="fa fa-refresh text-success"></i> Reactivar
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -717,10 +770,12 @@
                                 @foreach (old('conceptos') as $index => $concepto)
                                     <tr id="fila-concepto-{{ $index }}">
                                         <td>
+                                            {{-- Select configurado con la clase y el ancho correcto --}}
                                             <select name="conceptos[{{ $index }}][concepto_id]"
-                                                class="form-control input-sm select-concepto-magico" required>
+                                                class="form-control input-sm select-concepto-magico select2-busqueda"
+                                                style="width: 100%;" required>
                                                 <option value="">Seleccione...</option>
-                                                @foreach ($conceptos as $c)
+                                                @foreach ($conceptos->sortBy('nombre') as $c)
                                                     <option value="{{ $c->id }}" data-monto="{{ $c->monto }}"
                                                         {{ isset($concepto['concepto_id']) && $concepto['concepto_id'] == $c->id ? 'selected' : '' }}>
                                                         {{ $c->nombre }}</option>
@@ -922,30 +977,154 @@
         </form>
     </x-modal>
 
+    {{-- ══ MODAL AYUDA ══ --}}
+    <x-modal id="modalAyuda" title="¿Cómo usar esta pantalla?" size="modal-md">
+        <div style="line-height:1.7;">
+
+            <p style="font-size:13px;color:#555;margin-bottom:16px;">
+                Esta pantalla te permite gestionar los <strong>planes de pago</strong>
+                que ofreces a tus estudiantes. Un plan de pago es un conjunto de conceptos (colegiaturas, inscripciones,
+                cargos) con una vigencia determinada. Puedes crear planes diferentes para cada nivel educativo y
+                configurarlos.
+            </p>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-filter" style="color:#3c8dbc;margin-top:2px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Filtros</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Puedes filtrar los planes por nivel educativo usando el menú desplegable. El botón de "X" limpia
+                            los filtros y muestra todos los planes.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-copy" style="color:#3c8dbc;margin-top:2px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Clonar</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Puedes seleccionar uno o varios planes usando las casillas de verificación y luego hacer clic en
+                            "Clonar seleccionados" para crear copias exactas en otro ciclo escolar. Esto es útil para
+                            reutilizar configuraciones sin tener que crearlas desde cero.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <i class="fa fa-plus-circle" style="color:#00a65a;margin-top:2px;flex-shrink:0;"></i>
+                    <div>
+                        <strong style="font-size:13px;">Nuevo plan</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Abre el formulario para crear un plan de pago. Puedes seleccionar conceptos de cobro para
+                            incluir en el plan. Ademas puedes configurar descuentos por pronto pago y recargos por mora.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <span class="caret" style="color:#f39c12;margin-top:10px;flex-shrink:0;"></span>
+                    <div>
+                        <strong style="font-size:13px;">Ver Opciones: Ver / Editar / Desactivar / Configurar</strong>
+                        <p style="font-size:12px;color:#777;margin:2px 0 0;">
+                            Usa el menú de acciones <span class="caret"></span> en cada fila.
+                            <br>
+                            <strong>Ver resumen</strong>: Muestra un resumen con los detalles del plan.
+                            <br>
+                            <strong>Editar</strong>: Permite modificar el nombre, fechas y estatus del plan.
+                            <br>
+                            <strong>Configurar</strong>: Aquí puedes agregar o quitar conceptos, y configurar descuentos
+                            y recargos.
+                            <br>
+                            <strong>Desactivar/Reactivar</strong>: Cambia el estatus del plan. Los planes inactivos no se
+                            mostrarán como opción de pago para los estudiantes, pero se mantienen en el sistema por si
+                            deseas reactivarlos en el futuro.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <hr style="margin:16px 0 10px;">
+
+        </div>
+
+        <div class="clearfix" style="padding-bottom:4px;">
+            <button type="button" class="btn btn-default pull-right" data-dismiss="modal">
+                <i class="fa fa-times"></i> Cerrar
+            </button>
+        </div>
+    </x-modal>
+
 @endsection
 
 @push('scripts')
+    {{-- Solo traemos el MOTOR de Select2, sin los estilos, para respetar tu AdminLTE --}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script>
         $(document).ready(function() {
+            // Redireccionar al resumen al hacer click en la fila
+            $('#tabla-planes tbody').on('click', 'tr', function(e) {
+                // Si el usuario hace click en un checkbox, un botón, un enlace o dentro del dropdown, ignoramos la redirección
+                if ($(e.target).closest('input[type="checkbox"], .dropdown, .pln-acciones, a, button')
+                    .length) {
+                    return;
+                }
 
-            // ── Conceptos en modal ───────────────────────────────
+                // Obtenemos la URL guardada en el data-href de la fila
+                let url = $(this).data('href');
+                if (url) {
+                    window.location = url;
+                }
+            });
+
             // ── Conceptos en modal ───────────────────────────────
             let indiceConcepto = Date.now();
 
+            // Función maestra BLINDADA para inicializar Select2
+            function activarSelect2(selector) {
+                // EL ESCUDO: Solo se ejecuta si la librería cargó con éxito
+                if ($.fn.select2) {
+                    $(selector).select2({
+                        placeholder: "Seleccione un concepto...",
+                        allowClear: true,
+                        width: '100%',
+                        dropdownParent: $('#modalNuevoPlan')
+                    });
+                } else {
+                    console.warn("Select2 no detectado. Usando select nativo para evitar caída del sistema.");
+                }
+            }
+
+            // 1. Inicializar los selects que ya existen al cargar la página
+            activarSelect2('.select2-busqueda');
+
+            // Botón Añadir Concepto
             $('#btn-agregar-concepto').click(function() {
                 $('#mensaje-vacio-modal').hide();
+
+                // 2. Inyectamos la fila
                 let fila = `<tr id="fila-concepto-${indiceConcepto}">
-            <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm select-concepto-magico" required>
+            <td><select name="conceptos[${indiceConcepto}][concepto_id]" class="form-control input-sm select-concepto-magico select2-busqueda" style="width: 100%;" required>
                 <option value="">Seleccione...</option>
-                @foreach ($conceptos as $c)<option value="{{ $c->id }}" data-monto="{{ $c->monto }}">{{ $c->nombre }}</option>@endforeach
+                @foreach ($conceptos->sortBy('nombre') as $c)<option value="{{ $c->id }}" data-monto="{{ $c->monto }}">{{ $c->nombre }}</option>@endforeach
             </select></td>
             <td><input type="number" step="0.01" min="0" name="conceptos[${indiceConcepto}][monto]" class="form-control input-sm input-monto-magico" required></td>
             <td class="text-center"><button type="button" class="btn btn-danger btn-xs btn-eliminar-fila" data-id="${indiceConcepto}"><i class="fa fa-trash"></i></button></td>
         </tr>`;
+
                 $('#tabla-conceptos-modal tbody').append(fila);
+
+                // 3. Inicializamos Select2 para el elemento nuevo
+                activarSelect2(`#fila-concepto-${indiceConcepto} .select2-busqueda`);
+
                 indiceConcepto++;
             });
 
+            // Eliminar fila de concepto
             $('#tabla-conceptos-modal').on('click', '.btn-eliminar-fila', function() {
                 $('#fila-concepto-' + $(this).data('id')).remove();
                 if ($('#tabla-conceptos-modal tbody tr').length === 0) $('#mensaje-vacio-modal').show();
@@ -962,6 +1141,7 @@
                     inputMonto.val('');
                 }
             });
+
             // ── Descuentos en modal ──────────────────────────────
             let indiceDesc = Date.now();
 
@@ -982,7 +1162,7 @@
                 $('#fila-desc-' + $(this).data('id')).remove();
             });
 
-            // ── Selección masiva ─────────────────────────────────
+            // ── Selección masiva y Clonación ─────────────────────
             $('#select-all-planes').click(function() {
                 $('.plan-checkbox').prop('checked', this.checked);
                 actualizarBotonClonar();
@@ -1014,7 +1194,7 @@
                 });
             });
 
-            // ── Auto-abrir modal si hay errores ─────────────────
+            // ── Auto-abrir modal si hay errores de validación ──
             @if ($errors->any())
                 setTimeout(function() {
                     $('#modalNuevoPlan').modal('show');
