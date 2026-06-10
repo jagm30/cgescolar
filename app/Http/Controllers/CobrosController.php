@@ -12,6 +12,7 @@ use App\Models\Pago;
 use App\Models\PagoDetalle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CobrosController extends Controller
 {
@@ -26,7 +27,7 @@ class CobrosController extends Controller
 
         if ($request->filled('q')) {
             $alumnos = Alumno::with([
-                'inscripciones' => fn ($q) => $q
+                'inscripciones' => fn($q) => $q
                     ->where('activo', true)
                     ->with('grupo.grado.nivel', 'ciclo'),
             ])
@@ -52,7 +53,7 @@ class CobrosController extends Controller
     {
         $alumno = Alumno::with([
             'familia',
-            'inscripciones' => fn ($q) => $q
+            'inscripciones' => fn($q) => $q
                 ->where('activo', true)
                 ->with('grupo.grado.nivel', 'ciclo')
                 ->orderByDesc('id'),
@@ -85,7 +86,7 @@ class CobrosController extends Controller
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
         ])
-            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumnoId))
+            ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumnoId))
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
             ->orderBy('fecha_vencimiento')
@@ -132,7 +133,7 @@ class CobrosController extends Controller
                             $recargo = $pr->calcular($pendiente, $mesesRetraso);
                         }
                     } else {
-                        $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
+                        $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
                         if ($pd) {
                             $descuento = $pd->calcular($pendiente);
                         }
@@ -156,7 +157,10 @@ class CobrosController extends Controller
             ->get();
 
         return view('cobros.alumno', compact(
-            'alumno', 'inscripcionActual', 'inscripcionParaCobro', 'cargos', 'conceptos'
+            'alumno',
+            'inscripcionActual',
+            'cargos',
+            'conceptos'
         ));
     }
 
@@ -173,7 +177,7 @@ class CobrosController extends Controller
         }
 
         $alumnos = Alumno::with([
-            'inscripciones' => fn ($q) => $q
+            'inscripciones' => fn($q) => $q
                 ->where('activo', true)
                 ->with('grupo.grado.nivel')
                 ->orderByDesc('id'),
@@ -186,13 +190,13 @@ class CobrosController extends Controller
             ->where('estado', 'activo')
             ->limit(8)
             ->get()
-            ->map(fn ($a) => [
+            ->map(fn($a) => [
                 'id' => $a->id,
                 'nombre' => "{$a->nombre} {$a->ap_paterno} {$a->ap_materno}",
                 'matricula' => $a->matricula,
-                'grupo' => $a->inscripciones->first()?->grupo?->grado?->nivel?->nombre.' '
-                              .($a->inscripciones->first()?->grupo?->grado?->nombre ?? '').'° '
-                              .($a->inscripciones->first()?->grupo?->nombre ?? ''),
+                'grupo' => $a->inscripciones->first()?->grupo?->grado?->nivel?->nombre . ' '
+                    . ($a->inscripciones->first()?->grupo?->grado?->nombre ?? '') . '° '
+                    . ($a->inscripciones->first()?->grupo?->nombre ?? ''),
                 'url' => route('cobros.alumno', $a->id),
             ]);
 
@@ -301,7 +305,7 @@ class CobrosController extends Controller
                 // Actualizar estado del cargo
                 if ($d['cargo']->estado !== 'pagado') {
                     $totalAbonado = PagoDetalle::where('cargo_id', $d['cargo']->id)
-                        ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
+                        ->whereHas('pago', fn($q) => $q->where('estado', 'vigente'))
                         ->sum('monto_abonado');
 
                     $nuevoEstado = $totalAbonado >= $d['cargo']->monto_original
@@ -324,13 +328,12 @@ class CobrosController extends Controller
             return redirect()
                 ->route('cobros.recibo', $pago->id)
                 ->with('success', "Pago registrado. Folio: {$folio}");
-
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return back()
                 ->withInput()
-                ->with('error', 'Error al registrar el pago: '.$e->getMessage());
+                ->with('error', 'Error al registrar el pago: ' . $e->getMessage());
         }
     }
 
@@ -357,12 +360,42 @@ class CobrosController extends Controller
     // ══════════════════════════════════════════════════════════
     private function generarFolio(): string
     {
-        $prefijo = 'R'.now()->format('Ymd');
+        $prefijo = 'R' . now()->format('Ymd');
         $ultimo = Pago::where('folio_recibo', 'like', "{$prefijo}%")
             ->orderByDesc('folio_recibo')
             ->value('folio_recibo');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $prefijo.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $prefijo . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function descargarPdf(int $pagoId)
+    {
+        // 1. Usamos tu misma consulta con todas las relaciones anidadas
+        $pago = Pago::with([
+            'detalles.cargo.concepto',
+            'detalles.cargo.inscripcion.alumno',
+            'cajero',
+        ])->findOrFail($pagoId);
+
+        // 2. Obtenemos el alumno tal como lo haces en la vista web
+        $alumno = $pago->detalles->first()?->cargo?->inscripcion?->alumno;
+
+        // Limpiamos buffers por si hay basura en la salida
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        // 3. Cargamos la vista del PDF pasándole las variables
+        $pdf = Pdf::loadView('cobros.reportes.recibo_pdf', [
+            'pago'   => $pago,
+            'alumno' => $alumno
+        ]);
+
+        // Configuramos en tamaño carta
+        $pdf->setPaper('letter', 'portrait');
+
+        // Retornamos el PDF
+        return $pdf->stream("Recibo_Folio_{$pago->folio_recibo}.pdf");
     }
 }
