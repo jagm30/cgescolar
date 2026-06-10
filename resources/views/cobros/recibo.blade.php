@@ -82,12 +82,35 @@
                                 <tr>
                                     <td>
                                         <b>{{ $detalle->cargo->concepto->nombre }}</b>
-                                        <small class="text-muted" style="display:block;">Periodo:
-                                            {{ $detalle->cargo->periodo }}</small>
+                                        @if($detalle->cargo->periodo_label)
+                                            <small class="text-muted" style="display:block;">
+                                                {{ $detalle->cargo->periodo_label }}
+                                            </small>
+                                        @endif
                                     </td>
                                     <td class="text-right">${{ number_format($detalle->monto_abonado, 2) }}</td>
                                     <td class="text-right text-green">
-                                        -${{ number_format($detalle->descuento_beca + $detalle->descuento_otros, 2) }}
+                                        @php
+                                            $totalDesc = (float)$detalle->descuento_beca
+                                                       + (float)$detalle->descuento_pronto_pago
+                                                       + (float)$detalle->descuento_otros;
+                                        @endphp
+                                        -${{ number_format($totalDesc, 2) }}
+                                        @if($detalle->descuento_beca > 0)
+                                            <small class="text-muted" style="display:block;font-size:10px;">
+                                                Beca: -${{ number_format($detalle->descuento_beca, 2) }}
+                                            </small>
+                                        @endif
+                                        @if($detalle->descuento_pronto_pago > 0)
+                                            <small class="text-muted" style="display:block;font-size:10px;">
+                                                Pronto pago: -${{ number_format($detalle->descuento_pronto_pago, 2) }}
+                                            </small>
+                                        @endif
+                                        @if($detalle->descuento_otros > 0)
+                                            <small class="text-muted" style="display:block;font-size:10px;">
+                                                Otros: -${{ number_format($detalle->descuento_otros, 2) }}
+                                            </small>
+                                        @endif
                                     </td>
                                     <td class="text-right text-red">+${{ number_format($detalle->recargo_aplicado, 2) }}
                                     </td>

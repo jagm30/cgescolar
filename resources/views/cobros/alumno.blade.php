@@ -295,8 +295,12 @@
                                 {{ $cargo->asignacion->plan->nombre }}
                             </span>
                             @endif
+                            @if($cargo->periodo_label)
                             &nbsp;
-                            <code style="font-size:11px;">{{ $cargo->periodo }}</code>
+                            <span style="background:#e8f0fb;color:#2c6fad;padding:1px 7px;border-radius:8px;font-size:10px;">
+                                {{ $cargo->periodo_label }}
+                            </span>
+                            @endif
                             &nbsp;·&nbsp;
                             Vence: {{ $cargo->fecha_vencimiento->format('d/m/Y') }}
                             @if($cargo->vencido)

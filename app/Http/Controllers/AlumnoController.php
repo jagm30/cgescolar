@@ -479,6 +479,7 @@ class AlumnoController extends Controller
 
         // ── Resumen ───────────────────────────────────────
         $hoy = now();
+        $hoyFecha = today();
         $totalCargado = 0;
         $totalPagado = 0;
         $totalCondonado = 0;
@@ -493,7 +494,7 @@ class AlumnoController extends Controller
             $abonado = (float) ($cargo->total_abonado ?? 0);
             $montoCubierto = (float) $cargo->monto_cubierto;
             $saldoBase = max(0, (float) $cargo->monto_original - $montoCubierto);
-            $vencido = $hoy->gt($cargo->fecha_vencimiento);
+            $vencido = $hoyFecha->gt($cargo->fecha_vencimiento);
             $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
 
             // ── Descuento de beca para este concepto ──
@@ -525,7 +526,7 @@ class AlumnoController extends Controller
 
                 if ($vencido) {
                     // Meses de retraso: meses completos desde el vencimiento + 1
-                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoy) + 1;
+                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
 
                     // Cargo vencido → aplicar recargo si existe política activa
                     $pr = $plan->politicasRecargo->firstWhere('activo', true);

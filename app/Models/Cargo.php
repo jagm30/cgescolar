@@ -61,6 +61,21 @@ class Cargo extends Model
     // ── Accessors ────────────────────────────────────────
 
     /**
+     * Mes y año del período formateado: "Agosto 2026".
+     * Devuelve cadena vacía si el cargo no tiene período.
+     */
+    public function getPeriodoLabelAttribute(): string
+    {
+        if (! $this->periodo) {
+            return '';
+        }
+
+        $fecha = Carbon::createFromFormat('Y-m', $this->periodo)->locale('es');
+
+        return ucfirst($fecha->monthName) . ' ' . $fecha->year;
+    }
+
+    /**
      * Etiqueta legible del cargo: "Colegiatura Agosto 2026".
      * Para cargos sin periodo (pago único) devuelve solo el nombre del concepto.
      */
