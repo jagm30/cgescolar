@@ -281,12 +281,12 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('usuarios.pendientes-portal');
 
     Route::get('usuarios/credenciales-pdf', [UsuarioController::class, 'descargarCredencialesPdf'])
-    ->middleware('rol:administrador')
-    ->name('usuarios.credencialesPdf');
+        ->middleware('rol:administrador')
+        ->name('usuarios.credencialesPdf');
 
     Route::get('usuarios/credenciales-pdf', [UsuarioController::class, 'descargarCredencialesPdf'])
-    ->middleware('rol:administrador')
-    ->name('usuarios.credencialesPdf');
+        ->middleware('rol:administrador')
+        ->name('usuarios.credencialesPdf');
 
     Route::get('/perfil', [UsuarioController::class, 'perfil'])
         ->name('usuarios.perfil');
@@ -410,6 +410,8 @@ Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->
     // Recibo generado
     Route::get('/recibo/{pagoId}', [CobrosController::class, 'recibo'])
         ->name('recibo');
+
+    Route::get('/recibo/{pagoId}/pdf', [CobrosController::class, 'descargarPdf'])->name('pdf');
 });
 // =======================================================
 // Portal de padres de familia
