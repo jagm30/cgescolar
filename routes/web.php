@@ -446,6 +446,8 @@ Route::middleware('rol:administrador,caja')->prefix('cobros')->name('cobros.')->
     // Recibo generado
     Route::get('/recibo/{pagoId}', [CobrosController::class, 'recibo'])
         ->name('recibo');
+
+    Route::get('/recibo/{pagoId}/pdf', [CobrosController::class, 'descargarPdf'])->name('pdf');
 });
 // =======================================================
 // Portal de padres de familia
