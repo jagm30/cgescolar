@@ -773,6 +773,7 @@
                                             </li>
                                         @endif
 
+                                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
                                         <li role="separator" class="divider"></li>
 
                                         {{-- 4. DESCARGAR FICHA PDF --}}
@@ -795,6 +796,7 @@
                                                 credencial
                                             </a>
                                         </li>
+                                        @endif
                                     </ul>
                                 </div>
                             </td>

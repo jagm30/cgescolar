@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\View\Composers\CicloComposer;
+use Carbon\Carbon;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Carbon::setLocale('es_MX');
+
         View::composer('*', CicloComposer::class);
         Paginator::defaultView('vendor.pagination.adminlte');
         Paginator::defaultSimpleView('vendor.pagination.simple-adminlte');

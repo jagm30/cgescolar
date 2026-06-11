@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cfdi extends Model
@@ -15,6 +16,10 @@ class Cfdi extends Model
         'pago_id',
         'config_fiscal_id',
         'razon_social_id',
+        'tipo',
+        'periodicidad',
+        'fecha_desde',
+        'fecha_hasta',
         'uso_cfdi',
         'uuid_sat',
         'xml_url',
@@ -25,9 +30,14 @@ class Cfdi extends Model
         'folio',
     ];
 
-    protected $casts = [
-        'fecha_timbrado' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'fecha_timbrado' => 'datetime',
+            'fecha_desde'    => 'date',
+            'fecha_hasta'    => 'date',
+        ];
+    }
 
     // ── Scopes ──────────────────────────────────────────
 
@@ -39,6 +49,16 @@ class Cfdi extends Model
     public function scopeCancelado($query)
     {
         return $query->where('estado', 'cancelado');
+    }
+
+    public function scopeGlobal($query)
+    {
+        return $query->where('tipo', 'global');
+    }
+
+    public function scopeIndividual($query)
+    {
+        return $query->where('tipo', 'individual');
     }
 
     // ── Relaciones ───────────────────────────────────────
@@ -56,5 +76,13 @@ class Cfdi extends Model
     public function razonSocial(): BelongsTo
     {
         return $this->belongsTo(RazonSocialContacto::class, 'razon_social_id');
+    }
+
+    /**
+     * Pagos agrupados en esta factura global (solo aplica para tipo=global).
+     */
+    public function pagos(): BelongsToMany
+    {
+        return $this->belongsToMany(Pago::class, 'cfdi_pago');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pago extends Model
@@ -101,5 +102,13 @@ class Pago extends Model
     public function cfdis(): HasMany
     {
         return $this->hasMany(Cfdi::class, 'pago_id');
+    }
+
+    /**
+     * CFDIs globales en los que fue incluido este pago.
+     */
+    public function cfdiGlobal(): BelongsToMany
+    {
+        return $this->belongsToMany(Cfdi::class, 'cfdi_pago');
     }
 }

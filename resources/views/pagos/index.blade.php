@@ -81,6 +81,13 @@
         <div class="hp-stat-lbl">Anulados</div>
     </div>
     <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+        @if(isset($configFiscal) && $configFiscal)
+        <button type="button" id="btn-factura-global"
+                class="btn btn-sm btn-flat"
+                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;">
+            <i class="fa fa-globe"></i> Factura global
+        </button>
+        @endif
         <a href="{{ route('pagos.corte') }}"
            class="btn btn-sm btn-flat"
            style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
@@ -275,15 +282,20 @@
                     </span>
                 </td>
                 <td style="text-align:center;">
-                    @php $cfdiVigente = $pago->cfdis->where('estado','vigente')->first(); @endphp
-                    @if($cfdiVigente)
-                        <a href="{{ route('cfdis.descargar', [$cfdiVigente->id, 'pdf']) }}"
+                    @php
+                        $cfdiIndividual = $pago->cfdis->where('estado', 'vigente')->first();
+                        $cfdiGlobal     = $pago->cfdiGlobal->where('estado', 'vigente')->first();
+                    @endphp
+
+                    @if($cfdiIndividual)
+                        {{-- Factura individual emitida --}}
+                        <a href="{{ route('cfdis.descargar', [$cfdiIndividual->id, 'pdf']) }}"
                            class="btn btn-xs btn-flat"
                            style="background:#fdecea;color:#c0392b;border:1px solid #fca5a5;border-radius:5px;margin-right:2px;"
                            title="Descargar PDF">
                             <i class="fa fa-file-pdf-o"></i>
                         </a>
-                        <a href="{{ route('cfdis.descargar', [$cfdiVigente->id, 'xml']) }}"
+                        <a href="{{ route('cfdis.descargar', [$cfdiIndividual->id, 'xml']) }}"
                            class="btn btn-xs btn-flat"
                            style="background:#e8f0fb;color:#2980b9;border:1px solid #90c2e7;border-radius:5px;margin-right:2px;"
                            title="Descargar XML">
@@ -292,11 +304,32 @@
                         <button type="button"
                                 class="btn btn-xs btn-flat btn-enviar-correo"
                                 style="background:#e8f5ee;color:#00875a;border:1px solid #b3e8d0;border-radius:5px;margin-right:2px;"
-                                data-cfdi-id="{{ $cfdiVigente->id }}"
+                                data-cfdi-id="{{ $cfdiIndividual->id }}"
                                 title="Enviar por correo">
                             <i class="fa fa-envelope-o"></i>
                         </button>
+                    @elseif($cfdiGlobal)
+                        {{-- Incluido en factura global --}}
+                        <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'pdf']) }}"
+                           class="btn btn-xs btn-flat"
+                           style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;margin-right:2px;"
+                           title="Descargar PDF factura global {{ $cfdiGlobal->folio }}">
+                            <i class="fa fa-file-pdf-o"></i>
+                        </a>
+                        <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'xml']) }}"
+                           class="btn btn-xs btn-flat"
+                           style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;margin-right:2px;"
+                           title="Descargar XML factura global {{ $cfdiGlobal->folio }}">
+                            <i class="fa fa-code"></i>
+                        </a>
+                        <span class="hp-badge"
+                              style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;
+                                     font-size:10px;padding:2px 7px;vertical-align:middle;"
+                              title="Folio: {{ $cfdiGlobal->folio }}">
+                            <i class="fa fa-globe" style="font-size:9px;"></i> Global
+                        </span>
                     @elseif($pago->estado === 'vigente' && isset($configFiscal) && $configFiscal)
+                        {{-- Sin factura — se puede facturar individualmente --}}
                         <button type="button"
                                 class="btn btn-xs btn-flat btn-facturar"
                                 style="background:#7b2d8b;color:#fff;border-radius:5px;margin-right:3px;"
@@ -305,6 +338,7 @@
                             <i class="fa fa-file-text-o"></i>
                         </button>
                     @endif
+
                     <a href="{{ route('pagos.show', $pago->id) }}"
                        class="btn btn-xs btn-default btn-flat"
                        style="border-radius:5px;" title="Ver detalle">
@@ -591,6 +625,258 @@
             try { msg = JSON.parse(xhr.responseText).message || msg; } catch (ex) {}
             $('#mec-error').text(msg).show();
             $btn.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Enviar');
+        });
+    });
+}());
+</script>
+@endpush
+
+{{-- ══ MODAL FACTURA GLOBAL ══ --}}
+<div class="modal fade" id="modalFacturaGlobal" tabindex="-1" role="dialog" aria-labelledby="modalFGLabel">
+    <div class="modal-dialog" role="document" style="max-width:500px;">
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;">
+
+            <div class="modal-header" style="background:linear-gradient(135deg,#0e5fa3 0%,#2e86de 100%);border-bottom:none;padding:16px 20px;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.8;">
+                    <span>&times;</span>
+                </button>
+                <h4 class="modal-title" id="modalFGLabel" style="color:#fff;font-size:15px;font-weight:700;">
+                    <i class="fa fa-globe"></i> Factura global — Público en general
+                </h4>
+            </div>
+
+            <div class="modal-body" style="padding:20px;">
+
+                {{-- Explicación --}}
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
+                            padding:10px 14px;margin-bottom:18px;font-size:12px;color:#1e40af;">
+                    <i class="fa fa-info-circle" style="margin-right:5px;"></i>
+                    Agrupa todos los pagos <strong>vigentes sin CFDI</strong> en el período seleccionado
+                    y emite un único CFDI a <strong>XAXX010101000 — Público en general</strong>.
+                </div>
+
+                <form id="form-factura-global" method="POST" action="{{ route('cfdis.emitir-global') }}">
+                    @csrf
+
+                    {{-- Rango de fechas --}}
+                    <div class="row" style="margin:0 -6px 14px;">
+                        <div class="col-sm-6" style="padding:0 6px;">
+                            <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                                Fecha desde
+                            </label>
+                            <input type="date" name="fecha_desde" id="fg-fecha-desde"
+                                   class="form-control input-sm"
+                                   style="border-radius:6px;border-color:#dde4eb;"
+                                   required>
+                        </div>
+                        <div class="col-sm-6" style="padding:0 6px;">
+                            <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                                Fecha hasta
+                            </label>
+                            <input type="date" name="fecha_hasta" id="fg-fecha-hasta"
+                                   class="form-control input-sm"
+                                   style="border-radius:6px;border-color:#dde4eb;"
+                                   required>
+                        </div>
+                    </div>
+
+                    {{-- Periodicidad --}}
+                    <div style="margin-bottom:16px;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                            Periodicidad
+                        </label>
+                        <select name="periodicidad" id="fg-periodicidad"
+                                class="form-control input-sm"
+                                style="border-radius:6px;border-color:#dde4eb;">
+                            <option value="04" selected>04 — Mensual</option>
+                            <option value="02">02 — Semanal</option>
+                            <option value="01">01 — Diaria</option>
+                            <option value="03">03 — Decena</option>
+                        </select>
+                    </div>
+
+                    {{-- Botón previsualizar --}}
+                    <button type="button" id="fg-btn-preview"
+                            class="btn btn-sm btn-default btn-flat btn-block"
+                            style="border-radius:6px;margin-bottom:16px;border-color:#dde4eb;">
+                        <i class="fa fa-search"></i> Previsualizar
+                    </button>
+
+                    {{-- Panel de previsualización --}}
+                    <div id="fg-preview-panel" style="display:none;margin-bottom:16px;">
+                        <div id="fg-preview-cargando"
+                             style="text-align:center;padding:16px 0;color:#b0bec5;">
+                            <i class="fa fa-spinner fa-spin"></i> Consultando…
+                        </div>
+                        <div id="fg-preview-resultado" style="display:none;">
+                            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                    <span style="font-size:12px;color:#166534;font-weight:700;">
+                                        <i class="fa fa-check-circle"></i> Pagos sin factura encontrados
+                                    </span>
+                                    <span id="fg-count"
+                                          style="background:#dcfce7;color:#166534;font-size:13px;
+                                                 font-weight:800;padding:2px 10px;border-radius:10px;"></span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;
+                                            border-top:1px solid #bbf7d0;padding-top:8px;margin-top:4px;">
+                                    <span style="font-size:12px;color:#4a5568;">Total a facturar</span>
+                                    <span id="fg-monto"
+                                          style="font-size:15px;font-weight:800;color:#1a6b3a;"></span>
+                                </div>
+                                <div id="fg-conceptos" style="margin-top:10px;border-top:1px solid #bbf7d0;padding-top:8px;"></div>
+                            </div>
+                        </div>
+                        <div id="fg-preview-vacio" style="display:none;">
+                            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
+                                        padding:12px 14px;font-size:12px;color:#92400e;text-align:center;">
+                                <i class="fa fa-exclamation-triangle"></i>
+                                No hay pagos sin factura en el período seleccionado.
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Error --}}
+                    <div id="fg-error"
+                         style="display:none;background:#fdecea;color:#b91c1c;
+                                padding:9px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;"></div>
+
+                    {{-- Botón emitir (oculto hasta previsualizar) --}}
+                    <button type="submit" id="fg-submit"
+                            class="btn btn-sm btn-flat btn-block"
+                            style="display:none;background:#0e5fa3;color:#fff;border-radius:6px;font-weight:600;">
+                        <i class="fa fa-globe"></i> Emitir factura global
+                    </button>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    var previewUrl    = '{{ route('cfdis.preview-global') }}';
+    var emitirGlobalUrl = '{{ route('cfdis.emitir-global') }}';
+
+    // Defaults: primer y último día del mes actual
+    var hoy    = new Date();
+    var primerDia = hoy.getFullYear() + '-' +
+                    String(hoy.getMonth() + 1).padStart(2, '0') + '-01';
+    var ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+    var ultimoDiaStr = ultimoDia.getFullYear() + '-' +
+                       String(ultimoDia.getMonth() + 1).padStart(2, '0') + '-' +
+                       String(ultimoDia.getDate()).padStart(2, '0');
+
+    $('#btn-factura-global').on('click', function () {
+        // Resetear modal
+        $('#fg-fecha-desde').val(primerDia);
+        $('#fg-fecha-hasta').val(ultimoDiaStr);
+        $('#fg-preview-panel').hide();
+        $('#fg-preview-resultado').hide();
+        $('#fg-preview-vacio').hide();
+        $('#fg-preview-cargando').hide();
+        $('#fg-submit').hide();
+        $('#fg-error').hide().text('');
+        $('#fg-btn-preview').prop('disabled', false).html('<i class="fa fa-search"></i> Previsualizar');
+        $('#modalFacturaGlobal').modal('show');
+    });
+
+    // Resetear submit si cambian las fechas después de previsualizar
+    $('#fg-fecha-desde, #fg-fecha-hasta, #fg-periodicidad').on('change', function () {
+        $('#fg-preview-panel').hide();
+        $('#fg-submit').hide();
+        $('#fg-error').hide().text('');
+    });
+
+    $('#fg-btn-preview').on('click', function () {
+        var desde  = $('#fg-fecha-desde').val();
+        var hasta  = $('#fg-fecha-hasta').val();
+
+        if (!desde || !hasta) {
+            $('#fg-error').text('Selecciona un rango de fechas.').show();
+            return;
+        }
+        if (desde > hasta) {
+            $('#fg-error').text('La fecha desde no puede ser mayor que la fecha hasta.').show();
+            return;
+        }
+
+        $('#fg-error').hide().text('');
+        $('#fg-preview-panel').show();
+        $('#fg-preview-cargando').show();
+        $('#fg-preview-resultado').hide();
+        $('#fg-preview-vacio').hide();
+        $('#fg-submit').hide();
+
+        $.getJSON(previewUrl, { fecha_desde: desde, fecha_hasta: hasta })
+            .done(function (data) {
+                $('#fg-preview-cargando').hide();
+
+                if (data.pagos_count === 0) {
+                    $('#fg-preview-vacio').show();
+                    return;
+                }
+
+                $('#fg-count').text(data.pagos_count + ' pago(s)');
+                $('#fg-monto').text('$' + Number(data.monto_total).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+
+                // Desglose por concepto
+                var html = '';
+                if (data.resumen_conceptos && data.resumen_conceptos.length > 0) {
+                    html += '<div style="font-size:11px;color:#4a5568;font-weight:700;margin-bottom:4px;">Desglose por concepto</div>';
+                    $.each(data.resumen_conceptos, function (i, c) {
+                        html += '<div style="display:flex;justify-content:space-between;' +
+                            'font-size:12px;color:#4a5568;padding:2px 0;">' +
+                            '<span>' + $('<div>').text(c.nombre).html() + '</span>' +
+                            '<span style="font-weight:600;">$' +
+                            Number(c.monto).toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2}) +
+                            '</span></div>';
+                    });
+                }
+                $('#fg-conceptos').html(html);
+
+                $('#fg-preview-resultado').show();
+                $('#fg-submit').show();
+            })
+            .fail(function (xhr) {
+                $('#fg-preview-cargando').hide();
+                var msg = 'Error al consultar.';
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    msg = resp.message || resp.errors && Object.values(resp.errors)[0][0] || msg;
+                } catch (ex) {}
+                $('#fg-error').text(msg).show();
+            });
+    });
+
+    $('#form-factura-global').on('submit', function (e) {
+        e.preventDefault();
+        var $btn = $('#fg-submit');
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Emitiendo…');
+        $('#fg-error').hide().text('');
+
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: $(this).serialize(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .done(function (resp) {
+            $('#modalFacturaGlobal').modal('hide');
+            $('<div class="alert alert-success alert-dismissible" style="border-radius:8px;margin-bottom:16px;">' +
+              '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
+              '<i class="fa fa-check-circle"></i> ' + (resp.message || 'Factura global emitida correctamente.') +
+              '</div>').prependTo('.content').hide().slideDown(200);
+            setTimeout(function () { location.reload(); }, 2500);
+        })
+        .fail(function (xhr) {
+            var msg = 'Error al emitir la factura global.';
+            try { msg = JSON.parse(xhr.responseText).message || msg; } catch (ex) {}
+            $('#fg-error').text(msg).show();
+            $btn.prop('disabled', false).html('<i class="fa fa-globe"></i> Emitir factura global');
         });
     });
 }());

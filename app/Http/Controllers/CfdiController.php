@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Services\FacturaComService;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -30,6 +31,53 @@ class CfdiController extends Controller
 
     /** Clave SAT por defecto para servicios educativos */
     private const CLAVE_PROD_SERV_DEFAULT = '86101500';
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /facturas
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Lista todas las facturas electrónicas (individuales y globales).
+     */
+    public function index(Request $request)
+    {
+        $perPage = (int) $request->get('per_page', 25);
+        if (! in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 25;
+        }
+
+        $base = Cfdi::query()
+            ->when($request->filled('folio'),
+                fn ($q) => $q->where('folio', 'like', "%{$request->folio}%"))
+            ->when($request->filled('tipo'),
+                fn ($q) => $q->where('tipo', $request->tipo))
+            ->when($request->filled('estado'),
+                fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('fecha_desde'),
+                fn ($q) => $q->whereDate('fecha_timbrado', '>=', $request->fecha_desde))
+            ->when($request->filled('fecha_hasta'),
+                fn ($q) => $q->whereDate('fecha_timbrado', '<=', $request->fecha_hasta));
+
+        $resumen = [
+            'total'      => (clone $base)->count(),
+            'vigentes'   => (clone $base)->where('estado', 'vigente')->count(),
+            'cancelados' => (clone $base)->where('estado', 'cancelado')->count(),
+            'globales'   => (clone $base)->where('tipo', 'global')->where('estado', 'vigente')->count(),
+        ];
+
+        $cfdis = (clone $base)
+            ->with(['razonSocial', 'pago'])
+            ->withSum('pagos', 'monto_total')
+            ->withCount('pagos')
+            ->orderByDesc('fecha_timbrado')
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $configFiscal = ConfigFiscal::first();
+
+        return view('facturas.index', compact('cfdis', 'resumen', 'perPage', 'configFiscal'));
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // POST /cfdis/emitir/{pago}
@@ -188,10 +236,10 @@ class CfdiController extends Controller
             Auditoria::registrar('cfdi', $cfdi->id, 'cancelacion', $anterior, $cfdi->fresh()->toArray());
 
             return $this->respuestaExito(
-                redirectRoute: 'pagos.show',
+                redirectRoute: $cfdi->pago_id ? 'pagos.show' : 'facturas.index',
                 jsonData: ['ok' => true],
                 mensaje: "CFDI {$cfdi->folio} cancelado correctamente.",
-                routeParams: [$cfdi->pago_id]
+                routeParams: $cfdi->pago_id ? [$cfdi->pago_id] : []
             );
         } catch (\Throwable $e) {
             return $this->respuestaError('Error al cancelar CFDI: '.$e->getMessage());
@@ -323,6 +371,158 @@ class CfdiController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // GET /cfdis/preview-global   (AJAX)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Devuelve un resumen de los pagos sin CFDI vigente en el rango indicado.
+     * Usado por el modal de factura global para mostrar una previsualización
+     * antes de timbrar.
+     */
+    public function previewGlobal(Request $request)
+    {
+        $request->validate([
+            'fecha_desde' => ['required', 'date'],
+            'fecha_hasta' => ['required', 'date', 'after_or_equal:fecha_desde'],
+        ]);
+
+        $pagos = $this->pagosParaFacturaGlobal($request->fecha_desde, $request->fecha_hasta);
+
+        $totalMonto = $pagos->sum('monto_total');
+
+        $resumenConceptos = $pagos
+            ->flatMap(fn (Pago $p) => $p->detalles)
+            ->groupBy(fn ($d) => $d->cargo?->concepto?->nombre ?? 'Servicio educativo')
+            ->map(fn ($detalles, $nombre) => [
+                'nombre' => $nombre,
+                'monto'  => round($detalles->sum('monto_abonado'), 2),
+            ])
+            ->values();
+
+        return response()->json([
+            'pagos_count'      => $pagos->count(),
+            'monto_total'      => round($totalMonto, 2),
+            'resumen_conceptos'=> $resumenConceptos,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // POST /cfdis/emitir-global
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Emite una factura global (CFDI 4.0 a Público en General) que agrupa
+     * todos los pagos vigentes sin CFDI en el rango de fechas indicado.
+     */
+    public function emitirGlobal(Request $request, FacturaComService $factura)
+    {
+        $request->validate([
+            'fecha_desde'  => ['required', 'date'],
+            'fecha_hasta'  => ['required', 'date', 'after_or_equal:fecha_desde'],
+            'periodicidad' => ['required', 'string', 'in:01,02,03,04'],
+        ]);
+
+        $config = ConfigFiscal::first();
+        if (! $config) {
+            return $this->respuestaError('No hay configuración fiscal registrada. Configure el emisor primero.');
+        }
+
+        if (! $config->serie_id) {
+            return $this->respuestaError(
+                'Falta el ID de serie de factura.com. Ve a Configuración → Datos del Emisor.'
+            );
+        }
+
+        $pagos = $this->pagosParaFacturaGlobal($request->fecha_desde, $request->fecha_hasta);
+
+        if ($pagos->isEmpty()) {
+            return $this->respuestaError('No hay pagos sin factura en el período seleccionado.');
+        }
+
+        $receptor  = $this->receptorPublicoGeneral($config, $factura);
+        $conceptos = $this->construirConceptosGlobal($pagos);
+
+        DB::beginTransaction();
+        try {
+            $folio   = $config->siguienteFolio();
+            $mes     = \Carbon\Carbon::parse($request->fecha_desde)->format('m');
+            $anio    = \Carbon\Carbon::parse($request->fecha_desde)->year;
+
+            $payload = [
+                'TipoDocumento'     => 'factura',
+                'Serie'             => $config->serie_id ?? $config->serie,
+                'Folio'             => (string) $config->folio_actual,
+                'UsoCFDI'           => 'S01',
+                'FormaPago'         => '99',   // No identificado (agrupa varios métodos)
+                'MetodoPago'        => 'PUE',
+                'Moneda'            => 'MXN',
+                'LugarExpedicion'   => config('factura.cp_expedicion'),
+                'Receptor'          => $receptor,
+                'Conceptos'         => $conceptos,
+                'InformacionGlobal' => [
+                    'Periodicidad' => $request->periodicidad,
+                    'Meses'        => $mes,
+                    'Año'          => (string) $anio,
+                ],
+                'EnviarCorreo'      => false,
+                'Draft'             => false,
+            ];
+
+            $respuesta = $factura->emitir($payload);
+
+            $cfdi = Cfdi::create([
+                'pago_id'          => null,
+                'config_fiscal_id' => $config->id,
+                'razon_social_id'  => null,
+                'tipo'             => 'global',
+                'periodicidad'     => $request->periodicidad,
+                'fecha_desde'      => $request->fecha_desde,
+                'fecha_hasta'      => $request->fecha_hasta,
+                'uso_cfdi'         => 'S01',
+                'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
+                'factura_uid'      => $respuesta['UID'] ?? null,
+                'folio'            => $folio,
+                'fecha_timbrado'   => now(),
+                'estado'           => 'vigente',
+            ]);
+
+            $cfdi->pagos()->attach($pagos->pluck('id'));
+
+            Auditoria::registrar('cfdi', $cfdi->id, 'insert', null, [
+                'tipo'        => 'global',
+                'folio'       => $folio,
+                'fecha_desde' => $request->fecha_desde,
+                'fecha_hasta' => $request->fecha_hasta,
+                'pagos_count' => $pagos->count(),
+                'monto_total' => $pagos->sum('monto_total'),
+                'factura_uid' => $cfdi->factura_uid,
+                'uuid_sat'    => $cfdi->uuid_sat,
+            ]);
+
+            DB::commit();
+
+            return $this->respuestaExito(
+                redirectRoute: 'pagos.index',
+                jsonData: ['cfdi' => $cfdi],
+                mensaje: "Factura global emitida. Folio: {$folio} · {$pagos->count()} pagos agrupados.",
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            if ($this->esErrorReceptorInvalido($e->getMessage())) {
+                $config->update(['publico_general_uid' => null]);
+
+                return $this->respuestaError(
+                    'El cliente "Público en General" estaba desactualizado en factura.com y fue eliminado del caché. '.
+                    'Vuelve a intentar — en este segundo intento se registrará automáticamente.'
+                );
+            }
+
+            return $this->respuestaError('Error al emitir factura global: '.$e->getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Helpers privados
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -444,5 +644,58 @@ class CfdiController extends Controller
         }
 
         return $payload;
+    }
+
+    /**
+     * Pagos vigentes sin CFDI vigente en el rango de fechas dado.
+     */
+    private function pagosParaFacturaGlobal(string $fechaDesde, string $fechaHasta): Collection
+    {
+        return Pago::with([
+            'detalles.cargo.concepto',
+            'detalles.cargo.inscripcion.alumno',
+        ])
+            ->where('estado', 'vigente')
+            ->whereBetween('fecha_pago', [$fechaDesde, $fechaHasta])
+            ->whereDoesntHave('cfdis', fn ($q) => $q->where('estado', 'vigente'))
+            ->get();
+    }
+
+    /**
+     * Construye los conceptos del CFDI global agrupando los detalles de pago
+     * por concepto de cobro y sumando sus montos.
+     *
+     * @param  Collection<int, Pago>  $pagos
+     */
+    private function construirConceptosGlobal(Collection $pagos): array
+    {
+        $grupos = [];
+
+        foreach ($pagos as $pago) {
+            foreach ($pago->detalles as $detalle) {
+                $concepto = $detalle->cargo?->concepto;
+                $clave    = $concepto?->id ?? 0;
+
+                if (! isset($grupos[$clave])) {
+                    $grupos[$clave] = [
+                        'clave_sat' => $concepto?->clave_sat ?? self::CLAVE_PROD_SERV_DEFAULT,
+                        'nombre'    => $concepto?->nombre ?? 'Servicio educativo',
+                        'monto'     => 0.0,
+                    ];
+                }
+
+                $grupos[$clave]['monto'] += (float) $detalle->monto_abonado;
+            }
+        }
+
+        return array_values(array_map(fn (array $g) => [
+            'ClaveProdServ' => $g['clave_sat'],
+            'Cantidad'      => 1,
+            'ClaveUnidad'   => 'E48',
+            'Unidad'        => 'Servicio',
+            'ValorUnitario' => round($g['monto'], 2),
+            'Descripcion'   => mb_substr($g['nombre'], 0, 1000),
+            'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
+        ], $grupos));
     }
 }
