@@ -2,8 +2,8 @@
 
     {{-- Logo --}}
     <a href="#" class="logo">
-        <span class="logo-mini"><b>C</b>GE</span>
-        <span class="logo-lg"><b>CGes</b>Escolar</span>
+        <span class="logo-mini"><b>K</b>E</span>
+        <span class="logo-lg"><b>Kotan</b>Escolar</span>
     </a>
 
     {{-- Navbar --}}

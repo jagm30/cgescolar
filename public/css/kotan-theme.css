@@ -1,0 +1,566 @@
+/*
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║          KOTAN GESTIÓN ESCOLAR — Custom AdminLTE Theme       ║
+ * ║                                                              ║
+ * ║  Sidebar   : #1A3A52                                         ║
+ * ║  Navbar    : #1A4A6B                                         ║
+ * ║  Accent    : #4BC9A8                                         ║
+ * ║  Success   : #1DB87E                                         ║
+ * ║  Warning   : #E8A23A                                         ║
+ * ║  Danger    : #C0392B                                         ║
+ * ║  Body BG   : #EEF2F7                                         ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ */
+
+/* ── CSS Variables ───────────────────────────────────────────── */
+:root {
+    --kotan-sidebar:      #1A3A52;
+    --kotan-sidebar-dark: #122A3D;
+    --kotan-sidebar-hover:#1F4A68;
+    --kotan-navbar:       #1A4A6B;
+    --kotan-navbar-dark:  #123350;
+    --kotan-accent:       #4BC9A8;
+    --kotan-accent-dark:  #35B090;
+    --kotan-accent-light: rgba(75, 201, 168, .12);
+    --kotan-success:      #1DB87E;
+    --kotan-warning:      #E8A23A;
+    --kotan-danger:       #C0392B;
+    --kotan-body-bg:      #EEF2F7;
+    --kotan-text-light:   rgba(255, 255, 255, .75);
+    --kotan-text-muted:   rgba(255, 255, 255, .45);
+    --kotan-border:       rgba(255, 255, 255, .08);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   1. BODY / WRAPPER
+   ══════════════════════════════════════════════════════════════ */
+body {
+    background-color: var(--kotan-body-bg) !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.wrapper {
+    background-color: var(--kotan-body-bg);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. TOP NAVBAR
+   ══════════════════════════════════════════════════════════════ */
+.main-header .navbar,
+.main-header > .navbar {
+    background-color: var(--kotan-navbar) !important;
+    border-bottom: 3px solid var(--kotan-accent) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+
+/* Logo area */
+.main-header .logo {
+    background-color: var(--kotan-navbar-dark) !important;
+    border-bottom: 3px solid var(--kotan-accent) !important;
+    color: #fff !important;
+    font-weight: 700;
+    letter-spacing: .5px;
+    transition: background .2s;
+}
+
+.main-header .logo:hover {
+    background-color: var(--kotan-sidebar-dark) !important;
+}
+
+.main-header .logo .logo-mini,
+.main-header .logo .logo-lg {
+    color: #fff;
+}
+
+/* Navbar brand accent dot */
+.main-header .logo .logo-lg b {
+    color: var(--kotan-accent);
+}
+
+/* Navbar links / icons */
+.main-header .navbar .nav > li > a {
+    color: var(--kotan-text-light) !important;
+    transition: color .15s, background .15s;
+}
+
+.main-header .navbar .nav > li > a:hover,
+.main-header .navbar .nav > li > a:focus {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, .1) !important;
+}
+
+/* Navbar toggle button */
+.main-header .navbar .sidebar-toggle {
+    color: var(--kotan-text-light) !important;
+}
+
+.main-header .navbar .sidebar-toggle:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, .1) !important;
+}
+
+/* Navbar dropdown menus */
+.main-header .navbar .dropdown-menu {
+    border-top: 3px solid var(--kotan-accent);
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .15);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. SIDEBAR
+   ══════════════════════════════════════════════════════════════ */
+.main-sidebar,
+.left-side {
+    background-color: var(--kotan-sidebar) !important;
+}
+
+/* Sidebar overlay on mobile */
+.sidebar-overlay {
+    background-color: rgba(26, 58, 82, .6);
+}
+
+/* ── User panel ── */
+.sidebar-menu .user-panel {
+    border-bottom: 1px solid var(--kotan-border);
+    padding: 12px 16px;
+}
+
+.sidebar-menu .user-panel .info a,
+.sidebar-menu .user-panel .info p {
+    color: #fff !important;
+}
+
+.sidebar-menu .user-panel .info a:hover {
+    color: var(--kotan-accent) !important;
+}
+
+/* ── Section headers ── */
+.sidebar-menu li.header {
+    color: var(--kotan-accent) !important;
+    background: transparent !important;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    padding: 14px 16px 6px;
+    opacity: .85;
+}
+
+/* ── Menu items ── */
+.sidebar-menu > li > a {
+    color: var(--kotan-text-light) !important;
+    border-left: 3px solid transparent;
+    transition: background .15s, color .15s, border-color .15s;
+    padding: 10px 16px;
+}
+
+.sidebar-menu > li > a:hover {
+    color: #fff !important;
+    background-color: var(--kotan-sidebar-hover) !important;
+    border-left-color: var(--kotan-accent) !important;
+}
+
+/* Active item */
+.sidebar-menu > li.active > a,
+.sidebar-menu > li.menu-open > a {
+    color: #fff !important;
+    background-color: var(--kotan-sidebar-hover) !important;
+    border-left-color: var(--kotan-accent) !important;
+}
+
+/* Icons */
+.sidebar-menu > li > a > .fa,
+.sidebar-menu > li > a > .glyphicon,
+.sidebar-menu > li > a > .ion {
+    color: var(--kotan-accent);
+    margin-right: 8px;
+    width: 20px;
+    text-align: center;
+}
+
+/* ── Treeview submenu ── */
+.sidebar-menu .treeview-menu {
+    background-color: var(--kotan-sidebar-dark) !important;
+    padding: 4px 0;
+}
+
+.sidebar-menu .treeview-menu > li > a {
+    color: var(--kotan-text-light) !important;
+    padding: 8px 8px 8px 36px;
+    font-size: 13px;
+    transition: color .15s, background .15s;
+}
+
+.sidebar-menu .treeview-menu > li > a:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, .06) !important;
+}
+
+.sidebar-menu .treeview-menu > li.active > a,
+.sidebar-menu .treeview-menu > li > a.active {
+    color: var(--kotan-accent) !important;
+    font-weight: 600;
+}
+
+.sidebar-menu .treeview-menu > li > a > .fa {
+    color: var(--kotan-accent);
+    opacity: .7;
+    font-size: 8px;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+/* ── Sidebar search ── */
+.sidebar-form {
+    border: 1px solid var(--kotan-border) !important;
+    border-radius: 6px;
+    margin: 8px 10px;
+    background: transparent;
+}
+
+.sidebar-form input[type="text"] {
+    background: rgba(255, 255, 255, .07) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 6px 0 0 6px;
+}
+
+.sidebar-form input[type="text"]::placeholder {
+    color: var(--kotan-text-muted);
+}
+
+.sidebar-form .btn {
+    background: rgba(255, 255, 255, .07) !important;
+    color: var(--kotan-text-light) !important;
+    border: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4. CONTENT AREA
+   ══════════════════════════════════════════════════════════════ */
+.content-wrapper {
+    background-color: var(--kotan-body-bg) !important;
+}
+
+/* Page header */
+.content-header > h1 {
+    color: var(--kotan-sidebar);
+    font-weight: 700;
+}
+
+.content-header .breadcrumb > li.active {
+    color: var(--kotan-accent);
+}
+
+/* ── Box / Card ── */
+.box {
+    border-top: 3px solid var(--kotan-accent) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .06) !important;
+    border-radius: 6px !important;
+}
+
+.box.box-primary   { border-top-color: var(--kotan-navbar)  !important; }
+.box.box-success   { border-top-color: var(--kotan-success)  !important; }
+.box.box-warning   { border-top-color: var(--kotan-warning)  !important; }
+.box.box-danger    { border-top-color: var(--kotan-danger)   !important; }
+.box.box-info      { border-top-color: var(--kotan-accent)   !important; }
+
+.box-header.with-border {
+    border-bottom-color: #e8edf3 !important;
+}
+
+.box-title {
+    color: var(--kotan-sidebar);
+    font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   5. BUTTONS
+   ══════════════════════════════════════════════════════════════ */
+/* Primary → navbar blue */
+.btn-primary {
+    background-color: var(--kotan-navbar) !important;
+    border-color: var(--kotan-navbar-dark) !important;
+    color: #fff !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--kotan-navbar-dark) !important;
+    border-color: var(--kotan-sidebar) !important;
+}
+
+/* Success */
+.btn-success {
+    background-color: var(--kotan-success) !important;
+    border-color: #189a6a !important;
+    color: #fff !important;
+}
+
+.btn-success:hover,
+.btn-success:focus {
+    background-color: #189a6a !important;
+    border-color: #137d56 !important;
+}
+
+/* Warning */
+.btn-warning {
+    background-color: var(--kotan-warning) !important;
+    border-color: #c8891e !important;
+    color: #fff !important;
+}
+
+.btn-warning:hover,
+.btn-warning:focus {
+    background-color: #c8891e !important;
+    border-color: #a8720f !important;
+}
+
+/* Danger */
+.btn-danger {
+    background-color: var(--kotan-danger) !important;
+    border-color: #a52d20 !important;
+    color: #fff !important;
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+    background-color: #a52d20 !important;
+    border-color: #8a2418 !important;
+}
+
+/* Info → accent teal */
+.btn-info {
+    background-color: var(--kotan-accent) !important;
+    border-color: var(--kotan-accent-dark) !important;
+    color: #fff !important;
+}
+
+.btn-info:hover,
+.btn-info:focus {
+    background-color: var(--kotan-accent-dark) !important;
+    border-color: #289880 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. SMALL BOXES (dashboard KPI widgets)
+   ══════════════════════════════════════════════════════════════ */
+.small-box {
+    border-radius: 8px !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .08) !important;
+    overflow: hidden;
+}
+
+.small-box.bg-aqua,
+.small-box.bg-blue  { background-color: var(--kotan-navbar)  !important; }
+.small-box.bg-green { background-color: var(--kotan-success)  !important; }
+.small-box.bg-yellow{ background-color: var(--kotan-warning)  !important; }
+.small-box.bg-red   { background-color: var(--kotan-danger)   !important; }
+.small-box.bg-teal  { background-color: var(--kotan-accent)   !important; }
+
+.small-box .inner h3 {
+    font-size: 32px;
+    font-weight: 800;
+}
+
+.small-box > .small-box-footer {
+    background: rgba(0, 0, 0, .12);
+    transition: background .2s;
+}
+
+.small-box > .small-box-footer:hover {
+    background: rgba(0, 0, 0, .22);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   7. INFO BOXES
+   ══════════════════════════════════════════════════════════════ */
+.info-box {
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .07) !important;
+}
+
+.info-box-icon.bg-aqua,
+.info-box-icon.bg-blue  { background-color: var(--kotan-navbar)  !important; }
+.info-box-icon.bg-green { background-color: var(--kotan-success)  !important; }
+.info-box-icon.bg-yellow{ background-color: var(--kotan-warning)  !important; }
+.info-box-icon.bg-red   { background-color: var(--kotan-danger)   !important; }
+.info-box-icon.bg-teal  { background-color: var(--kotan-accent)   !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   8. ALERTS
+   ══════════════════════════════════════════════════════════════ */
+.alert-success {
+    background-color: #d4f4e8 !important;
+    border-color: #a8e8cf !important;
+    color: #0e6b46 !important;
+}
+
+.alert-info {
+    background-color: var(--kotan-accent-light) !important;
+    border-color: rgba(75, 201, 168, .35) !important;
+    color: #1a7060 !important;
+}
+
+.alert-warning {
+    background-color: #fdf3dc !important;
+    border-color: #f8dfa0 !important;
+    color: #7d4e0e !important;
+}
+
+.alert-danger {
+    background-color: #fce8e6 !important;
+    border-color: #f4b8b3 !important;
+    color: #7a1f17 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   9. TABLES
+   ══════════════════════════════════════════════════════════════ */
+.table > thead > tr > th {
+    background-color: #f0f4f8 !important;
+    color: var(--kotan-sidebar) !important;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 2px solid #d8e2ed !important;
+}
+
+.table-hover > tbody > tr:hover > td {
+    background-color: #e8f4ff !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   10. LABELS / BADGES
+   ══════════════════════════════════════════════════════════════ */
+.label-primary, .badge-primary { background-color: var(--kotan-navbar)   !important; }
+.label-success, .badge-success { background-color: var(--kotan-success)  !important; }
+.label-warning, .badge-warning { background-color: var(--kotan-warning)  !important; }
+.label-danger,  .badge-danger  { background-color: var(--kotan-danger)   !important; }
+.label-info,    .badge-info    { background-color: var(--kotan-accent)   !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   11. FORM CONTROLS
+   ══════════════════════════════════════════════════════════════ */
+.form-control:focus {
+    border-color: var(--kotan-accent) !important;
+    box-shadow: 0 0 0 3px rgba(75, 201, 168, .18) !important;
+    outline: none;
+}
+
+.has-success .form-control,
+.has-success .form-control:focus {
+    border-color: var(--kotan-success) !important;
+}
+
+.has-error .form-control,
+.has-error .form-control:focus {
+    border-color: var(--kotan-danger) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   12. PAGINATION
+   ══════════════════════════════════════════════════════════════ */
+.pagination > li > a,
+.pagination > li > span {
+    color: var(--kotan-navbar) !important;
+    border-color: #d0dbe6;
+}
+
+.pagination > li > a:hover,
+.pagination > li > span:hover {
+    background-color: var(--kotan-accent-light) !important;
+    border-color: var(--kotan-accent) !important;
+    color: var(--kotan-accent-dark) !important;
+}
+
+.pagination > .active > a,
+.pagination > .active > span,
+.pagination > .active > a:hover,
+.pagination > .active > span:hover {
+    background-color: var(--kotan-navbar) !important;
+    border-color: var(--kotan-navbar) !important;
+    color: #fff !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   13. MODALS
+   ══════════════════════════════════════════════════════════════ */
+.modal-header {
+    background-color: var(--kotan-sidebar);
+    color: #fff;
+    border-radius: 6px 6px 0 0;
+}
+
+.modal-header .modal-title {
+    color: #fff;
+    font-weight: 700;
+}
+
+.modal-header .close {
+    color: rgba(255, 255, 255, .7) !important;
+    text-shadow: none;
+    opacity: 1;
+}
+
+.modal-header .close:hover {
+    color: #fff !important;
+}
+
+.modal-content {
+    border-radius: 6px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, .2) !important;
+    border: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   14. FOOTER
+   ══════════════════════════════════════════════════════════════ */
+.main-footer {
+    background-color: #fff;
+    border-top: 1px solid #e0e7ef;
+    color: #aab;
+    font-size: 12px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   15. LOADING OVERLAY / PRELOADER
+   ══════════════════════════════════════════════════════════════ */
+#loading-bar .bar {
+    background: var(--kotan-accent) !important;
+}
+
+#loading-bar-spinner .spinner-icon {
+    border-top-color:  var(--kotan-accent) !important;
+    border-left-color: var(--kotan-accent) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   16. SCROLLBAR (Webkit)
+   ══════════════════════════════════════════════════════════════ */
+.main-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.main-sidebar::-webkit-scrollbar-track {
+    background: var(--kotan-sidebar-dark);
+}
+
+.main-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(75, 201, 168, .4);
+    border-radius: 2px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--kotan-accent);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   17. UTILITY HELPERS
+   ══════════════════════════════════════════════════════════════ */
+.text-kotan  { color: var(--kotan-accent) !important; }
+.text-navy   { color: var(--kotan-sidebar) !important; }
+.bg-kotan    { background-color: var(--kotan-accent) !important; color: #fff; }
+.bg-navy     { background-color: var(--kotan-sidebar) !important; color: #fff; }
+.border-kotan{ border-color: var(--kotan-accent) !important; }
