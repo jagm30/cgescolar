@@ -162,6 +162,7 @@ class CobrosController extends Controller
         return view('cobros.alumno', compact(
             'alumno',
             'inscripcionActual',
+            'inscripcionParaCobro',
             'cargos',
             'conceptos'
         ));
