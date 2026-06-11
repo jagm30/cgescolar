@@ -71,11 +71,13 @@
 @endif
 
 @php
-    $esAnulado    = $pago->estado === 'anulado';
-    $cfdiVigente  = $pago->cfdis->where('estado', 'vigente')->first();
-    $totalDesc    = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_otros);
-    $totalRecarg  = $pago->detalles->sum(fn($d) => (float)$d->recargo_aplicado);
-    $alumnos      = $pago->detalles
+    $esAnulado      = $pago->estado === 'anulado';
+    $cfdiVigente    = $pago->cfdis->where('estado', 'vigente')->first();
+    $cfdiGlobal     = $pago->cfdiGlobal->where('estado', 'vigente')->first();
+    $tieneFactura   = $cfdiVigente || $cfdiGlobal;
+    $totalDesc      = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_otros);
+    $totalRecarg    = $pago->detalles->sum(fn($d) => (float)$d->recargo_aplicado);
+    $alumnos        = $pago->detalles
         ->map(fn($d) => $d->cargo?->inscripcion?->alumno)
         ->filter()->unique('id')->values();
 @endphp
@@ -304,21 +306,28 @@
 
     {{-- Anular (solo admin, pago vigente) --}}
     @if(auth()->user()->esAdministrador() && !$esAnulado)
-    <div class="recibo-card" style="border-color:{{ $cfdiVigente ? '#e0c97a' : '#fca5a5' }};">
-        <div class="recibo-card-header" style="background:{{ $cfdiVigente ? '#fefce8' : '#fdecea' }};">
-            <i class="fa fa-ban" style="color:{{ $cfdiVigente ? '#92400e' : '#b91c1c' }};"></i>
-            <span class="recibo-card-title" style="color:{{ $cfdiVigente ? '#92400e' : '#b91c1c' }};">Anular pago</span>
+    <div class="recibo-card" style="border-color:{{ $tieneFactura ? '#e0c97a' : '#fca5a5' }};">
+        <div class="recibo-card-header" style="background:{{ $tieneFactura ? '#fefce8' : '#fdecea' }};">
+            <i class="fa fa-ban" style="color:{{ $tieneFactura ? '#92400e' : '#b91c1c' }};"></i>
+            <span class="recibo-card-title" style="color:{{ $tieneFactura ? '#92400e' : '#b91c1c' }};">Anular pago</span>
         </div>
         @if($cfdiVigente)
         <div style="padding:14px 16px;font-size:12px;color:#92400e;line-height:1.6;">
             <i class="fa fa-lock"></i>
             <strong>No se puede anular.</strong><br>
-            Este pago tiene una factura electrónica vigente
-            @if($cfdiVigente->folio)
-                (<strong>{{ $cfdiVigente->folio }}</strong>)
-            @endif
+            Este pago tiene una factura individual vigente
+            @if($cfdiVigente->folio)(<strong>{{ $cfdiVigente->folio }}</strong>)@endif
             timbrada ante el SAT.<br>
             <span style="color:#6b5a00;">Primero cancele el CFDI y luego podrá anular el pago.</span>
+        </div>
+        @elseif($cfdiGlobal)
+        <div style="padding:14px 16px;font-size:12px;color:#92400e;line-height:1.6;">
+            <i class="fa fa-lock"></i>
+            <strong>No se puede anular.</strong><br>
+            Este pago está incluido en la factura global
+            @if($cfdiGlobal->folio)(<strong>{{ $cfdiGlobal->folio }}</strong>)@endif
+            timbrada ante el SAT.<br>
+            <span style="color:#6b5a00;">Primero cancele la factura global y luego podrá anular el pago.</span>
         </div>
         @else
         <div style="padding:14px 16px;">
@@ -369,9 +378,54 @@
             <i class="fa fa-ban"></i> Los pagos anulados no pueden facturarse.
         </div>
 
+        @elseif($cfdiGlobal)
+        {{-- ── Incluido en factura global ── --}}
+        <div style="padding:12px 16px 4px;">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
+                        padding:10px 13px;font-size:12px;color:#1e40af;line-height:1.6;margin-bottom:12px;">
+                <i class="fa fa-globe"></i>
+                <strong>Incluido en factura global.</strong><br>
+                Este pago forma parte de la factura global
+                @if($cfdiGlobal->folio)<strong>{{ $cfdiGlobal->folio }}</strong>@endif
+                emitida a <strong>Público en general</strong>
+                @if($cfdiGlobal->fecha_timbrado)
+                    el {{ $cfdiGlobal->fecha_timbrado->format('d/m/Y') }}
+                @endif.<br>
+                <span style="color:#1d4ed8;">No puede facturarse de forma individual.</span>
+            </div>
+        </div>
+        @if($cfdiGlobal->uuid_sat)
+        <div class="info-row" style="align-items:flex-start;">
+            <span class="info-lbl" style="flex-shrink:0;">UUID SAT</span>
+            <code style="font-size:9px;word-break:break-all;text-align:right;color:#4a5568;line-height:1.4;">
+                {{ $cfdiGlobal->uuid_sat }}
+            </code>
+        </div>
+        @endif
+        @if($cfdiGlobal->fecha_desde && $cfdiGlobal->fecha_hasta)
+        <div class="info-row">
+            <span class="info-lbl">Período</span>
+            <span class="info-val" style="font-size:12px;">
+                {{ $cfdiGlobal->fecha_desde->format('d/m/Y') }} — {{ $cfdiGlobal->fecha_hasta->format('d/m/Y') }}
+            </span>
+        </div>
+        @endif
+        <div style="padding:10px 16px 14px;display:flex;gap:8px;">
+            <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'pdf']) }}"
+               class="btn btn-sm btn-default btn-flat"
+               style="border-radius:6px;font-size:12px;">
+                <i class="fa fa-file-pdf-o" style="color:#e74c3c;"></i> PDF global
+            </a>
+            <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'xml']) }}"
+               class="btn btn-sm btn-default btn-flat"
+               style="border-radius:6px;font-size:12px;">
+                <i class="fa fa-code" style="color:#3c8dbc;"></i> XML global
+            </a>
+        </div>
+
         @else
         @if($cfdiVigente)
-        {{-- ── CFDI ya emitido ── --}}
+        {{-- ── CFDI individual ya emitido ── --}}
         <div class="info-row">
             <span class="info-lbl">Estado</span>
             <span style="background:#e8f5ee;color:#00875a;font-size:11px;font-weight:700;padding:2px 9px;border-radius:8px;">

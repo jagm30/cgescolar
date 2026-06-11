@@ -45,7 +45,7 @@ class PagoController extends Controller
         ];
 
         $pagos = (clone $base)
-            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno', 'cfdis'])
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno', 'cfdis', 'cfdiGlobal'])
             ->orderByDesc('fecha_pago')
             ->orderByDesc('id')
             ->paginate($perPage)
@@ -68,6 +68,7 @@ class PagoController extends Controller
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
             'cfdis.razonSocial',
+            'cfdiGlobal',
         ])->findOrFail($id);
 
         if (request()->ajax()) {

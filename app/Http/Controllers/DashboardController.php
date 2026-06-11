@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Cargo;
+use App\Models\Cfdi;
 use App\Models\CicloEscolar;
 use App\Models\Familia;
 use App\Models\Inscripcion;
@@ -94,6 +95,93 @@ class DashboardController extends Controller
             'ultimosPagos',
             'prospectosPorEtapa',
             'totalProspectos',
+        ));
+    }
+
+    public function caja()
+    {
+        $hoy  = now()->toDateString();
+        $mes  = now()->month;
+        $anio = now()->year;
+
+        // ── Cobros del día ────────────────────────────────────
+        $cobradoHoy   = Pago::vigente()->delDia()->sum('monto_total');
+        $pagosHoy     = Pago::vigente()->delDia()->count();
+        $cobradoAyer  = Pago::vigente()->delDia(now()->subDay()->toDateString())->sum('monto_total');
+        $cobradoMes   = Pago::vigente()->whereYear('fecha_pago', $anio)->whereMonth('fecha_pago', $mes)->sum('monto_total');
+
+        // Desglose por forma de pago del día
+        $porFormaPago = Pago::vigente()
+            ->delDia()
+            ->select('forma_pago', DB::raw('COUNT(*) as cantidad'), DB::raw('SUM(monto_total) as total'))
+            ->groupBy('forma_pago')
+            ->get()
+            ->keyBy('forma_pago');
+
+        // ── Cargos ────────────────────────────────────────────
+        $cargosPendientes = Cargo::conDeuda()->count();
+        $montoPendiente   = Cargo::conDeuda()->sum('monto_original');
+
+        $cargosVencidos   = Cargo::conDeuda()
+            ->where('fecha_vencimiento', '<', $hoy)
+            ->count();
+        $montoVencido     = Cargo::conDeuda()
+            ->where('fecha_vencimiento', '<', $hoy)
+            ->sum('monto_original');
+
+        // ── Facturas (CFDIs) ──────────────────────────────────
+        $cfdisMes        = Cfdi::vigente()
+            ->whereYear('fecha_timbrado', $anio)
+            ->whereMonth('fecha_timbrado', $mes)
+            ->count();
+        $cfdisGlobalesMes = Cfdi::vigente()->global()
+            ->whereYear('fecha_timbrado', $anio)
+            ->whereMonth('fecha_timbrado', $mes)
+            ->count();
+
+        // Pagos del día sin CFDI vigente (pendientes de facturar)
+        $pagosSinFacturaHoy = Pago::vigente()
+            ->delDia()
+            ->whereDoesntHave('cfdis', fn ($q) => $q->where('estado', 'vigente'))
+            ->whereDoesntHave('cfdiGlobal', fn ($q) => $q->where('estado', 'vigente'))
+            ->count();
+
+        // ── Últimos pagos del día ─────────────────────────────
+        $ultimosPagos = Pago::with([
+            'cajero',
+            'detalles.cargo.concepto',
+            'detalles.cargo.inscripcion.alumno',
+            'cfdis' => fn ($q) => $q->where('estado', 'vigente'),
+        ])
+            ->vigente()
+            ->delDia()
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+
+        // ── Top deudores (los 5 cargos vencidos de mayor monto) ──
+        $topDeudores = Cargo::with(['inscripcion.alumno', 'concepto'])
+            ->conDeuda()
+            ->where('fecha_vencimiento', '<', $hoy)
+            ->orderByDesc('monto_original')
+            ->limit(5)
+            ->get();
+
+        return view('dashboards.caja', compact(
+            'cobradoHoy',
+            'pagosHoy',
+            'cobradoAyer',
+            'cobradoMes',
+            'porFormaPago',
+            'cargosPendientes',
+            'montoPendiente',
+            'cargosVencidos',
+            'montoVencido',
+            'cfdisMes',
+            'cfdisGlobalesMes',
+            'pagosSinFacturaHoy',
+            'ultimosPagos',
+            'topDeudores',
         ));
     }
 }

@@ -98,11 +98,20 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // IMPORTANTE: ruta fija ANTES del resource
     Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
 
+    // Caja puede consultar grupos (solo lectura)
+    Route::get('/grupos', [GrupoController::class, 'index'])
+        ->middleware('rol:administrador,caja')
+        ->name('grupos.index');
+    Route::get('/grupos/{grupo}', [GrupoController::class, 'show'])
+        ->middleware('rol:administrador,caja')
+        ->name('grupos.show');
+
     Route::post('/grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno'])
         ->middleware('rol:administrador')
         ->name('grupos.cambiar-alumno');
     Route::resource('grupos', GrupoController::class)
-        ->middleware('rol:administrador');
+        ->middleware('rol:administrador')
+        ->except(['index', 'show']);
     Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
     Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
     Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
@@ -121,8 +130,17 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja,recepcion')
         ->name('alumnos.estado-cuenta');
 
+    // Caja puede ver el índice y perfil de alumnos (solo lectura)
+    Route::get('/alumnos', [AlumnoController::class, 'index'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('alumnos.index');
+    Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('alumnos.show');
+    // Operaciones de escritura — solo admin y recepción
     Route::resource('alumnos', AlumnoController::class)
-        ->middleware('rol:administrador,recepcion');
+        ->middleware('rol:administrador,recepcion')
+        ->except(['index', 'show']);
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
@@ -325,7 +343,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador')
         ->name('admin.dashboard');
 
-    Route::get('/caja', fn() => view('dashboards.caja'))
+    Route::get('/caja', [DashboardController::class, 'caja'])
         ->middleware('rol:administrador,caja')
         ->name('caja.dashboard');
 
@@ -394,10 +412,16 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
             ->name('razon-social.principal');
     });
 
-    // Resource de familias — admin y recepción ven, solo admin crea/edita
+    // Resource de familias — caja solo consulta, recepción ve y gestiona, admin hace todo
+    Route::get('/familias', [FamiliaController::class, 'index'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('familias.index');
+    Route::get('/familias/{familia}', [FamiliaController::class, 'show'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('familias.show');
     Route::resource('familias', FamiliaController::class)
         ->middleware('rol:administrador,recepcion')
-        ->only(['index', 'show', 'create', 'store', 'edit', 'update']);
+        ->only(['create', 'store', 'edit', 'update']);
 
     // =======================================================
     // Endpoints generados:
@@ -416,8 +440,12 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // =======================================================
 });
 // ── CFDI / Facturación ────────────────────────────────
+Route::middleware('rol:administrador,caja')->get('/facturas', [CfdiController::class, 'index'])->name('facturas.index');
+
 Route::middleware('rol:administrador,caja')->prefix('cfdis')->name('cfdis.')->group(function () {
     Route::post('/emitir/{pago}', [CfdiController::class, 'emitir'])->name('emitir');
+    Route::get('/preview-global', [CfdiController::class, 'previewGlobal'])->name('preview-global');
+    Route::post('/emitir-global', [CfdiController::class, 'emitirGlobal'])->name('emitir-global');
     Route::post('/{cfdi}/cancelar', [CfdiController::class, 'cancelar'])->name('cancelar');
     Route::get('/{cfdi}/descargar/{formato}', [CfdiController::class, 'descargar'])->name('descargar');
     Route::get('/{cfdi}/form-correo', [CfdiController::class, 'formCorreo'])->name('form-correo');
@@ -468,16 +496,14 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
 // Rutas para  configuración general (nombre del colegio, logo, etc.)
 // =======================================================
 // Agrupamos las rutas de configuración
-Route::prefix('configuracion')->group(function () {
-    // Ruta para ver el formulario (el que tiene los inputs de nombre y logo)
+Route::middleware('rol:administrador,recepcion')->prefix('configuracion')->group(function () {
     Route::get('/', [SettingController::class, 'index'])->name('settings.index');
-    // Ruta para procesar el formulario cuando le das a "Guardar Cambios"
     Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
 });
 // =======================================================
 // Rutas para diseño de credenciales
 // =======================================================
-Route::prefix('credenciales')->group(function () {
+Route::middleware('rol:administrador,recepcion')->prefix('credenciales')->group(function () {
     Route::get('/', [CredencialController::class, 'index'])->name('credenciales.index');
 
     // RUTAS ESTÁTICAS Y DE MÚLTIPLES PARÁMETROS (Siempre van arriba)

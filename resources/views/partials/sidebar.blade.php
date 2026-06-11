@@ -131,7 +131,7 @@
             @endif
 
             {{-- ── SECCIÓN: Alumnos ─────────────────────── --}}
-            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
                 <li class="header">ALUMNOS</li>
 
                 <li class="treeview {{ request()->routeIs(['familias.*']) ? 'active menu-open' : '' }}">
@@ -172,6 +172,7 @@
                                 <i class="fa fa-circle-o"></i> Lista de alumnos
                             </a>
                         </li>
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
                         <li class="{{ request()->routeIs('alumnos.create') ? 'active' : '' }}">
                             <a href="{{ route('alumnos.create') }}">
                                 <i class="fa fa-circle-o"></i> Registrar alumno
@@ -182,36 +183,39 @@
                                 <i class="fa fa-circle-o"></i> Reporte de bajas
                             </a>
                         </li>
+                        @endif
                     </ul>
                 </li>
 
-                <li class="{{ request()->routeIs('prospectos.*') ? 'active' : '' }}">
-                    <a href="{{ route('prospectos.index') }}">
-                        <i class="fa fa-user-plus"></i> <span>Admisiones</span>
-                    </a>
-                </li>
-            @endif
-
-            {{-- ── SECCIÓN: Cobranza ────────────────────── --}}
-            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
-                <li class="header">COBRANZA</li>
-
-                <li class="treeview {{ request()->routeIs(['cargos.*']) ? 'active menu-open' : '' }}">
+                <li class="treeview {{ request()->routeIs(['grupos.*']) ? 'active menu-open' : '' }}">
                     <a href="#">
-                        <i class="fa fa-file-text-o"></i>
-                        <span>Cargos</span>
+                        <i class="fa fa-th-large"></i>
+                        <span>Grupos</span>
                         <span class="pull-right-container">
                             <i class="fa fa-angle-left pull-right"></i>
                         </span>
                     </a>
                     <ul class="treeview-menu">
-                        <li class="{{ request()->routeIs('cargos.index') ? 'active' : '' }}">
-                            <a href="{{ route('cargos.index') }}">
-                                <i class="fa fa-circle-o"></i> Ver cargos
+                        <li class="{{ request()->routeIs('grupos.index') ? 'active' : '' }}">
+                            <a href="{{ route('grupos.index') }}">
+                                <i class="fa fa-circle-o"></i> Lista de grupos
                             </a>
                         </li>
                     </ul>
                 </li>
+
+                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                <li class="{{ request()->routeIs('prospectos.*') ? 'active' : '' }}">
+                    <a href="{{ route('prospectos.index') }}">
+                        <i class="fa fa-user-plus"></i> <span>Admisiones</span>
+                    </a>
+                </li>
+                @endif
+            @endif
+
+            {{-- ── SECCIÓN: Cobranza ────────────────────── --}}
+            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                <li class="header">COBRANZA</li>
 
                 <li class="{{ request()->routeIs('cobros.index') ? 'active' : '' }}">
                     <a href="{{ route('cobros.index') }}">
@@ -234,11 +238,6 @@
                                 <i class="fa fa-circle-o"></i> Historial de pagos
                             </a>
                         </li>
-                        <li class="{{ request()->routeIs('pagos.create') ? 'active' : '' }}">
-                            <a href="{{ route('pagos.create') }}">
-                                <i class="fa fa-circle-o"></i> Registrar pago
-                            </a>
-                        </li>
                         <li class="{{ request()->routeIs('pagos.corte') ? 'active' : '' }}">
                             <a href="{{ route('pagos.corte') }}">
                                 <i class="fa fa-circle-o"></i> Corte del día
@@ -250,6 +249,11 @@
                             </a>
                         </li>
                     </ul>
+                </li>
+                <li class="{{ request()->routeIs('facturas.index') ? 'active' : '' }}">
+                    <a href="{{ route('facturas.index') }}">
+                        <i class="fa fa-file-text-o"></i> <span>Facturas</span>
+                    </a>
                 </li>
             @endif
 
@@ -280,7 +284,7 @@
                     </ul>
                 </li>
             @endif
-            @if (!auth()->user()->esPadre())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
                 <li>
                     <a href="{{ route('settings.index') }}">
                         <i class="fa fa-gear"></i> <span>Configuración</span>
