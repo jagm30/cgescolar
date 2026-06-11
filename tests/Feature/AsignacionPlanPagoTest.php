@@ -179,7 +179,7 @@ test('permite crear un plan sin politicas de descuento ni recargo', function () 
     expect(PoliticaRecargo::where('plan_id', $plan->id)->exists())->toBeFalse();
 });
 
-test('no permite duplicar la asignacion del mismo alcance en el ciclo', function () {
+test('no permite duplicar el mismo plan para el mismo alcance cuando conserva cargos', function () {
     $contexto = crearContextoPlanPago();
 
     $payload = [
@@ -202,6 +202,75 @@ test('no permite duplicar la asignacion del mismo alcance en el ciclo', function
 
     expect(AsignacionPlan::count())->toBe(1);
     expect(Cargo::count())->toBe(2);
+});
+
+test('permite reasignar el mismo plan cuando se eliminaron sus cargos', function () {
+    $contexto = crearContextoPlanPago();
+
+    $payload = [
+        'plan_id' => $contexto['plan']->id,
+        'origen' => 'individual',
+        'alumno_id' => $contexto['alumno']->id,
+        'fecha_inicio' => '2026-08-01',
+        'fecha_fin' => '2026-09-30',
+        'conceptos' => [$contexto['planConcepto']->id],
+    ];
+
+    $this->actingAs($contexto['admin'])->post(route('planes.asignar'), $payload);
+
+    Cargo::query()->delete();
+
+    $response = $this->actingAs($contexto['admin'])->post(route('planes.asignar'), $payload);
+
+    $response->assertRedirect(route('planes.asignar.index'));
+
+    expect(AsignacionPlan::count())->toBe(2);
+    expect(Cargo::count())->toBe(2);
+});
+
+test('permite asignar a un alumno un plan de otro nivel educativo', function () {
+    $contexto = crearContextoPlanPago();
+
+    $nivelSecundaria = NivelEscolar::create([
+        'nombre' => 'Secundaria',
+        'revoe' => fake()->unique()->numerify('REV####'),
+        'orden' => 2,
+        'activo' => true,
+    ]);
+
+    $planSecundaria = PlanPago::create([
+        'ciclo_id' => $contexto['ciclo']->id,
+        'nivel_id' => $nivelSecundaria->id,
+        'nombre' => 'Plan Secundaria',
+        'periodicidad' => 'mensual',
+        'fecha_inicio' => '2026-08-01',
+        'fecha_fin' => '2026-09-30',
+        'activo' => true,
+    ]);
+
+    $planConceptoSecundaria = PlanPagoConcepto::create([
+        'plan_id' => $planSecundaria->id,
+        'concepto_id' => $contexto['concepto']->id,
+        'monto' => 1800,
+    ]);
+
+    $response = $this->actingAs($contexto['admin'])
+        ->post(route('planes.asignar'), [
+            'plan_id' => $planSecundaria->id,
+            'origen' => 'individual',
+            'alumno_id' => $contexto['alumno']->id,
+            'fecha_inicio' => '2026-08-01',
+            'fecha_fin' => '2026-09-30',
+            'conceptos' => [$planConceptoSecundaria->id],
+        ]);
+
+    $response->assertRedirect(route('planes.asignar.index'));
+
+    $this->assertDatabaseHas('asignacion_plan', [
+        'plan_id' => $planSecundaria->id,
+        'alumno_id' => $contexto['alumno']->id,
+        'origen' => 'individual',
+    ]);
 });
 
 test('solo devuelve planes disponibles que no estan asignados al alumno seleccionado', function () {
@@ -240,10 +309,39 @@ test('solo devuelve planes disponibles que no estan asignados al alumno seleccio
             'alumno_id' => $contexto['alumno']->id,
         ]));
 
-    $response->assertStatus(200);
+    $response->assertSuccessful();
 
     $ids = collect($response->json())->pluck('id');
 
     expect($ids)->toContain($planDisponible->id);
     expect($ids)->not->toContain($contexto['plan']->id);
+});
+
+test('vuelve a devolver un plan disponible cuando su asignacion ya no tiene cargos', function () {
+    $contexto = crearContextoPlanPago();
+
+    $payload = [
+        'plan_id' => $contexto['plan']->id,
+        'origen' => 'individual',
+        'alumno_id' => $contexto['alumno']->id,
+        'fecha_inicio' => '2026-08-01',
+        'fecha_fin' => '2026-09-30',
+        'conceptos' => [$contexto['planConcepto']->id],
+    ];
+
+    $this->actingAs($contexto['admin'])->post(route('planes.asignar'), $payload);
+
+    Cargo::query()->delete();
+
+    $response = $this->actingAs($contexto['admin'])
+        ->getJson(route('planes.asignar.disponibles', [
+            'origen' => 'individual',
+            'alumno_id' => $contexto['alumno']->id,
+        ]));
+
+    $response->assertSuccessful();
+
+    $ids = collect($response->json())->pluck('id');
+
+    expect($ids)->toContain($contexto['plan']->id);
 });
