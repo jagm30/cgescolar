@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html>
-
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>KotanEscolar | @yield('page_title', 'Sistema')</title>
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+
+    {{-- NUEVO: Icono de la pestaña del navegador (Favicon) --}}
+    <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}?v=2">
 
     {{-- CSRF token en el head para que $.ajaxSetup lo lea desde cualquier vista --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
