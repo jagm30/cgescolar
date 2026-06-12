@@ -6,7 +6,9 @@ use App\Http\Requests\AnularPagoRequest;
 use App\Http\Requests\StorePagoRequest;
 use App\Models\Auditoria;
 use App\Models\Cargo;
+use App\Models\ConceptoCobro;
 use App\Models\ConfigFiscal;
+use App\Models\NivelEscolar;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
 use App\Models\RazonSocialContacto;
@@ -331,6 +333,66 @@ class PagoController extends Controller
         }
 
         return view('pagos.corte', compact('resumen', 'pagos', 'fecha', 'esAdmin', 'porCajero', 'cajeros'));
+    }
+
+    /** GET /pagos/detalle-ingresos */
+    public function detalleIngresos(Request $request): \Illuminate\View\View
+    {
+        $fechaDesde = $request->get('fecha_desde', now()->startOfMonth()->toDateString());
+        $fechaHasta = $request->get('fecha_hasta', now()->toDateString());
+
+        $conceptos = ConceptoCobro::query()->orderBy('nombre')->get();
+        $niveles   = NivelEscolar::query()->activo()->get();
+
+        $detalles = PagoDetalle::query()
+            ->whereHas('pago', fn ($q) => $q
+                ->where('estado', 'vigente')
+                ->whereBetween('fecha_pago', [$fechaDesde, $fechaHasta])
+                ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
+            )
+            ->when($request->filled('concepto_id'), fn ($q) => $q->whereHas(
+                'cargo', fn ($q) => $q->where('concepto_id', $request->concepto_id)
+            ))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
+                'cargo.inscripcion.grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id)
+            ))
+            ->when($request->filled('periodo'), fn ($q) => $q->whereHas(
+                'cargo', fn ($q) => $q->where('periodo', $request->periodo)
+            ))
+            ->with(['pago.cajero', 'cargo.concepto', 'cargo.inscripcion.alumno', 'cargo.inscripcion.grupo.grado.nivel'])
+            ->get();
+
+        // Agrupar por concepto + periodo (clave compuesta para máximo detalle)
+        $porConcepto = $detalles
+            ->groupBy(fn ($d) => ($d->cargo?->concepto_id ?? 0).':'.($d->cargo?->periodo ?? ''))
+            ->map(fn ($grupo) => [
+                'concepto' => $grupo->first()->cargo?->concepto,
+                'periodo'  => $grupo->first()->cargo?->periodo,
+                'periodo_label' => $grupo->first()->cargo?->periodo_label,
+                'cantidad' => $grupo->count(),
+                'total'    => $grupo->sum('monto_abonado'),
+            ])
+            ->filter(fn ($g) => $g['concepto'] !== null)
+            ->sortByDesc('total')
+            ->values();
+
+        $pagosUnicos = $detalles
+            ->groupBy('pago_id')
+            ->map(fn ($g) => $g->first()->pago)
+            ->filter()
+            ->sortByDesc(fn ($p) => $p->fecha_pago)
+            ->values();
+
+        $resumen = [
+            'total_cobrado'   => $detalles->sum('monto_abonado'),
+            'total_pagos'     => $pagosUnicos->count(),
+            'total_conceptos' => $porConcepto->count(),
+        ];
+
+        return view('pagos.detalle_ingresos', compact(
+            'conceptos', 'niveles', 'porConcepto', 'pagosUnicos',
+            'resumen', 'fechaDesde', 'fechaHasta'
+        ));
     }
 
     // ── Helper ───────────────────────────────────────────
