@@ -626,6 +626,23 @@
                                         class="fa fa-check-square-o"></i> Aut 3</button>
                             </div>
                         </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-4" style="padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado1', 'FOTO AUT 1')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 1</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px; padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado2', 'FOTO AUT 2')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 2</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado3', 'FOTO AUT 3')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 3</button>
+                            </div>
+                        </div>
 
                         {{-- ── SECCIÓN 3: INSTITUCIÓN ── --}}
                         <hr style="margin: 10px 0;">
@@ -695,21 +712,31 @@
                                 $tutorStr = $tutorObj ? $tutorObj->nombre . ' ' . $tutorObj->ap_paterno : '';
                                 $emergenciaStr = $tutorObj?->telefono_celular ?? ''; // <-- El ? evita el crash
 
-                                $autorizados = $contactos
-                                    ->filter(function ($c) {
-                                        return $c->puede_recoger ?? true;
-                                    })
-                                    ->values();
+                                $autorizados = \Illuminate\Support\Facades\DB::table('alumno_contacto')
+                                    ->join('contacto_familiar', 'alumno_contacto.contacto_id', '=', 'contacto_familiar.id')
+                                    ->where('alumno_contacto.alumno_id', $alumno->id)
+                                    ->where('alumno_contacto.activo', 1)
+                                    ->orderBy('alumno_contacto.orden')
+                                    ->select('contacto_familiar.nombre', 'contacto_familiar.ap_paterno', 'contacto_familiar.foto_url')
+                                    ->limit(3)
+                                    ->get();
 
                                 $aut1 = isset($autorizados[0])
-                                    ? $autorizados[0]->nombre . ' ' . $autorizados[0]->ap_paterno
+                                    ? trim($autorizados[0]->nombre . ' ' . $autorizados[0]->ap_paterno)
                                     : '';
                                 $aut2 = isset($autorizados[1])
-                                    ? $autorizados[1]->nombre . ' ' . $autorizados[1]->ap_paterno
+                                    ? trim($autorizados[1]->nombre . ' ' . $autorizados[1]->ap_paterno)
                                     : '';
                                 $aut3 = isset($autorizados[2])
-                                    ? $autorizados[2]->nombre . ' ' . $autorizados[2]->ap_paterno
+                                    ? trim($autorizados[2]->nombre . ' ' . $autorizados[2]->ap_paterno)
                                     : '';
+
+                                $fotoAut1 = (isset($autorizados[0]) && !empty($autorizados[0]->foto_url))
+                                    ? asset('storage/' . $autorizados[0]->foto_url) : '';
+                                $fotoAut2 = (isset($autorizados[1]) && !empty($autorizados[1]->foto_url))
+                                    ? asset('storage/' . $autorizados[1]->foto_url) : '';
+                                $fotoAut3 = (isset($autorizados[2]) && !empty($autorizados[2]->foto_url))
+                                    ? asset('storage/' . $autorizados[2]->foto_url) : '';
 
                                 $nombreStr =
                                     $alumno->nombre .
@@ -734,7 +761,10 @@
                                 data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
                                 data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
                                 data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
-                                data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
+                                data-autorizado3="{{ $aut3 }}"
+                                data-foto-autorizado1="{{ $fotoAut1 }}" data-foto-autorizado2="{{ $fotoAut2 }}"
+                                data-foto-autorizado3="{{ $fotoAut3 }}"
+                                data-director="" data-puesto_director=""
                                 onclick="deselect(event)">
                                 @if ($diseno->fondo_anverso)
                                     <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial">
@@ -754,7 +784,10 @@
                                 data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
                                 data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
                                 data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
-                                data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
+                                data-autorizado3="{{ $aut3 }}"
+                                data-foto-autorizado1="{{ $fotoAut1 }}" data-foto-autorizado2="{{ $fotoAut2 }}"
+                                data-foto-autorizado3="{{ $fotoAut3 }}"
+                                data-director="" data-puesto_director=""
                                 onclick="deselect(event)">
                                 @if ($diseno->fondo_reverso)
                                     <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial">
@@ -775,6 +808,26 @@
                             $inscM = $alumnoMuestra?->inscripciones->first();
                             $contactosM = $alumnoMuestra?->familia?->contactos ?? collect();
                             $tutorM = $contactosM->where('es_principal', true)->first() ?? $contactosM->first();
+
+                            // Contactos autorizados ordenados por prioridad (alumno_contacto.orden)
+                            $autorizadosM = $alumnoMuestra
+                                ? \Illuminate\Support\Facades\DB::table('alumno_contacto')
+                                    ->join('contacto_familiar', 'alumno_contacto.contacto_id', '=', 'contacto_familiar.id')
+                                    ->where('alumno_contacto.alumno_id', $alumnoMuestra->id)
+                                    ->where('alumno_contacto.activo', 1)
+                                    ->orderBy('alumno_contacto.orden')
+                                    ->select('contacto_familiar.nombre', 'contacto_familiar.ap_paterno', 'contacto_familiar.foto_url')
+                                    ->limit(3)
+                                    ->get()
+                                : collect();
+
+                            $autM1 = isset($autorizadosM[0]) ? trim($autorizadosM[0]->nombre . ' ' . $autorizadosM[0]->ap_paterno) : '';
+                            $autM2 = isset($autorizadosM[1]) ? trim($autorizadosM[1]->nombre . ' ' . $autorizadosM[1]->ap_paterno) : '';
+                            $autM3 = isset($autorizadosM[2]) ? trim($autorizadosM[2]->nombre . ' ' . $autorizadosM[2]->ap_paterno) : '';
+
+                            $fotoAutM1 = (isset($autorizadosM[0]) && !empty($autorizadosM[0]->foto_url)) ? asset('storage/' . $autorizadosM[0]->foto_url) : '';
+                            $fotoAutM2 = (isset($autorizadosM[1]) && !empty($autorizadosM[1]->foto_url)) ? asset('storage/' . $autorizadosM[1]->foto_url) : '';
+                            $fotoAutM3 = (isset($autorizadosM[2]) && !empty($autorizadosM[2]->foto_url)) ? asset('storage/' . $autorizadosM[2]->foto_url) : '';
                         @endphp
 
                         <div id="credencial-canvas" class="credencial-canvas-instance face-anverso"
@@ -788,9 +841,11 @@
                             data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
                             data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
                             data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
-                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
-                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
-                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
+                            data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
+                            data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
+                            data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
+                            data-foto-autorizado1="{{ $fotoAutM1 }}" data-foto-autorizado2="{{ $fotoAutM2 }}"
+                            data-foto-autorizado3="{{ $fotoAutM3 }}"
                             data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                             onclick="deselect(event)">
                             @if ($diseno->fondo_anverso)
@@ -816,9 +871,11 @@
                             data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
                             data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
                             data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
-                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
-                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
-                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
+                            data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
+                            data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
+                            data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
+                            data-foto-autorizado1="{{ $fotoAutM1 }}" data-foto-autorizado2="{{ $fotoAutM2 }}"
+                            data-foto-autorizado3="{{ $fotoAutM3 }}"
                             data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                             onclick="deselect(event)" style="display:none;">
                             @if ($diseno->fondo_reverso)
@@ -997,6 +1054,12 @@
         const isModeVisual = wrapperPrincipal.classList.contains('modo-visualizacion');
         if (isModeVisual) document.body.classList.add('modo-visualizacion-body');
 
+        // Cualquier tipo que empiece con "foto" (foto, foto_autorizado1, foto_autorizado2, foto_autorizado3)
+        // o el logo, se trata como elemento gráfico (imagen) en el editor.
+        function isFotoType(type) {
+            return type === 'logo' || (typeof type === 'string' && type.startsWith('foto'));
+        }
+
         function switchFace(face) {
             currentFace = face;
             deselect();
@@ -1060,7 +1123,7 @@
         });
 
         function checkOverflow(el) {
-            if (isModeVisual || el.dataset.type === 'foto' || el.dataset.type === 'logo') return;
+            if (isModeVisual || isFotoType(el.dataset.type)) return;
             const span = el.querySelector('.content-span');
             if (!span) return;
 
@@ -1146,6 +1209,14 @@
                     'puesto_director': 'puesto_director'
                 };
 
+                // Tipos de foto -> atributo data-* correspondiente en el canvas
+                const mapFoto = {
+                    'foto': 'foto',
+                    'foto_autorizado1': 'fotoAutorizado1',
+                    'foto_autorizado2': 'fotoAutorizado2',
+                    'foto_autorizado3': 'fotoAutorizado3'
+                };
+
                 let isEmpty = false;
 
                 if (mapData[data.type]) {
@@ -1158,8 +1229,8 @@
                     }
                 }
 
-                if (data.type === 'foto') {
-                    fotoUrl = canvas.dataset.foto; // ya estaba bien
+                if (mapFoto[data.type]) {
+                    fotoUrl = canvas.dataset[mapFoto[data.type]];
                     if (!fotoUrl || fotoUrl.trim() === '') isEmpty = true;
                 }
 
@@ -1175,7 +1246,7 @@
                 }
             }
 
-            if (data.type === 'foto' || data.type === 'logo') {
+            if (isFotoType(data.type)) {
                 el.style.padding = '0';
                 el.style.border = isModeVisual ? 'none' : '1px dashed #ccc';
                 el.style.display = 'flex';
@@ -1406,7 +1477,7 @@
             document.getElementById('ctx-chevron').classList.remove('open');
 
             // Poblar valores actuales
-            const isMedia = (el.dataset.type === 'foto' || el.dataset.type === 'logo');
+            const isMedia = isFotoType(el.dataset.type);
             const propText = document.getElementById('prop-text');
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
             propText.disabled = isMedia;
@@ -1428,7 +1499,7 @@
         function updateLive() {
             if (!selected) return;
             const span = selected.querySelector('.content-span');
-            if (selected.dataset.type !== 'foto' && selected.dataset.type !== 'logo') span.innerText = document
+            if (!isFotoType(selected.dataset.type)) span.innerText = document
                 .getElementById('prop-text').value;
             selected.style.fontSize = document.getElementById('prop-size').value + 'px';
             document.getElementById('txt-size').innerText = document.getElementById('prop-size').value;
@@ -1496,7 +1567,7 @@
             const id = 'el_' + Date.now();
             let defaultW = 'auto';
             let defaultH = 'auto';
-            if (type === 'foto') {
+            if (type === 'foto' || type.startsWith('foto_autorizado')) {
                 defaultW = '100px';
                 defaultH = '130px';
             }
