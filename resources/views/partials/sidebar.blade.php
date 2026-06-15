@@ -158,7 +158,7 @@
                     </ul>
                 </li>
 
-                <li class="treeview {{ request()->routeIs(['alumnos.*']) ? 'active menu-open' : '' }}">
+                <li class="treeview {{ request()->routeIs(['alumnos.*', 'reinscripciones.*']) ? 'active menu-open' : '' }}">
                     <a href="#">
                         <i class="fa fa-users"></i>
                         <span>Alumnos</span>
@@ -176,6 +176,11 @@
                         <li class="{{ request()->routeIs('alumnos.create') ? 'active' : '' }}">
                             <a href="{{ route('alumnos.create') }}">
                                 <i class="fa fa-circle-o"></i> Registrar alumno
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('reinscripciones.*') ? 'active' : '' }}">
+                            <a href="{{ route('reinscripciones.index') }}">
+                                <i class="fa fa-circle-o"></i> Reinscripciones
                             </a>
                         </li>
                         <li class="{{ request()->routeIs('alumnos.bajas') ? 'active' : '' }}">
@@ -241,6 +246,11 @@
                         <li class="{{ request()->routeIs('pagos.corte') ? 'active' : '' }}">
                             <a href="{{ route('pagos.corte') }}">
                                 <i class="fa fa-circle-o"></i> Corte del día
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('pagos.detalle-ingresos') ? 'active' : '' }}">
+                            <a href="{{ route('pagos.detalle-ingresos') }}">
+                                <i class="fa fa-circle-o"></i> Detalle de ingresos
                             </a>
                         </li>
                         <li class="{{ request()->routeIs('reportes.deudores') ? 'active' : '' }}">
