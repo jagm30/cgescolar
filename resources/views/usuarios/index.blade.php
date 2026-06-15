@@ -174,7 +174,7 @@
             justify-content: center;
             color: #64748b;
             padding: 0;
-            margin: 0 2px;
+            margin: 0;
         }
 
         .btn-action-flat:hover {
@@ -371,9 +371,11 @@
                                             </span>
                                         @endif
                                     </td>
+
+                                    {{-- COLUMNA DE ACCIONES ALINEADA CON FLEXBOX --}}
                                     <td class="text-center">
                                         <div
-                                            style="display: flex; gap: 2px; justify-content: center; align-items: center;">
+                                            style="display: flex; gap: 5px; justify-content: center; align-items: center;">
 
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-modal-edit" title="Editar"
@@ -390,7 +392,7 @@
 
                                             @if (!$usuario->activo)
                                                 <form action="{{ route('usuarios.reactivar', $usuario->id) }}"
-                                                    method="POST" style="display:inline;">
+                                                    method="POST" style="margin: 0; display: flex;">
                                                     @csrf
                                                     <button type="submit" class="btn-action-flat"
                                                         title="Reactivar Usuario">
@@ -406,7 +408,7 @@
 
                                             @if ($usuario->id !== auth()->id() && $usuario->activo)
                                                 <form action="{{ route('usuarios.destroy', $usuario->id) }}"
-                                                    method="POST" style="display:inline;">
+                                                    method="POST" style="margin: 0; display: flex;">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="btn-action-flat" title="Desactivar"
                                                         onclick="return confirm('¿Desactivar acceso al portal?')">

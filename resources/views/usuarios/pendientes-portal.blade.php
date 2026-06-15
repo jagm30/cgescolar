@@ -268,6 +268,7 @@
                 .catch(err => {
                     console.error(err);
                     alert('Ocurrió un error en el servidor.');
+                    alert('Ocurrió un error en el servidor.');
                 });
         }
     </script>

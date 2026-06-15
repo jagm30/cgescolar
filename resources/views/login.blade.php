@@ -7,16 +7,16 @@
     <title>KotanEscolar | Iniciar sesión</title>
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
 
-    <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}">
+    {{-- 1. SCRIPT DE CLOUDFLARE (En el head) --}}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
+    {{-- ... resto de tus links CSS ... --}}
+    <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}">
     <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../../bower_components/font-awesome/css/font-awesome.min.css">
-    <link rel="stylesheet" href="../../bower_components/Ionicons/css/ionicons.min.css">
     <link rel="stylesheet" href="../../dist/css/AdminLTE.min.css">
-
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
-
     {{-- ESTILOS DE LA PÁGINA --}}
     <style>
         /* Fondo general y estructura Flexbox para el scroll */
@@ -25,7 +25,8 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Mantiene Navbar arriba, Footer abajo, y Caja en medio */
+            justify-content: space-between;
+            /* Mantiene Navbar arriba, Footer abajo, y Caja en medio */
             margin: 0;
         }
 
@@ -89,6 +90,7 @@
             font-weight: 700 !important;
             box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);
         }
+
         .btn-wa-client:hover {
             background-color: #1ebc59;
             transform: translateY(-2px);
@@ -101,7 +103,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-grow: 1; /* Ocupa todo el espacio restante */
+            flex-grow: 1;
+            /* Ocupa todo el espacio restante */
             padding: 50px 20px;
         }
 
@@ -202,10 +205,12 @@
            3. FOOTER CORPORATIVO (KOTAN ESCOLAR)
            ========================================= */
         .kotan-footer {
-            background-color: #0b3c50; /* Mismo azul oscuro corporativo */
+            background-color: #0b3c50;
+            /* Mismo azul oscuro corporativo */
             color: #8aa4af;
             padding: 50px 30px 20px 30px;
-            border-top: 5px solid #48c4a1; /* Acento menta */
+            border-top: 5px solid #48c4a1;
+            /* Acento menta */
         }
 
         .footer-grid {
@@ -232,7 +237,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background-color: #48c4a1; /* Menta de Kotan */
+            background-color: #48c4a1;
+            /* Menta de Kotan */
             color: #0b3c50 !important;
             padding: 10px 20px;
             border-radius: 25px;
@@ -250,7 +256,7 @@
 
         .footer-bottom {
             text-align: center;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             margin-top: 40px;
             padding-top: 20px;
             font-size: 12px;
@@ -258,11 +264,30 @@
 
         /* Responsividad básica */
         @media (max-width: 768px) {
-            .client-navbar { flex-direction: column; gap: 15px; text-align: center; }
-            .client-links { justify-content: center; flex-wrap: wrap; }
-            .login-box { width: 95%; }
-            .login-box-header div { flex-direction: column; gap: 15px; }
-            .login-box-header div > div { height: 2px !important; width: 80px !important; }
+            .client-navbar {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .client-links {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .login-box {
+                width: 95%;
+            }
+
+            .login-box-header div {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .login-box-header div>div {
+                height: 2px !important;
+                width: 80px !important;
+            }
         }
     </style>
 </head>
@@ -273,15 +298,20 @@
     <nav class="client-navbar">
         <div class="client-brand">
             {{-- Logo en base64 proporcionado --}}
-            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAcCAMAAABMOI/cAAAAWlBMVEVHcExILHEGKZ/ILT/BLUTzLiAbK4DbLjPNLTzSLToHJNjULTfrLiaELGB+LGK8LUezLUvFLUEaK3oaK3qiLVOPLVuQLFsaK3kHK4IZK3oVK3zjLi0YK3oZK3r4bBaNAAAAHnRSTlMAORPWtv8h/+z0Bf3/UHalisjH5nugaf8tW0f/rIrca4iqAAABM0lEQVR4AXXNBYKEMAxA0d9CaoRFt2GmzP2Pue7y6pKEL5znb13/z73IXy8hSsqSCj8NOsKddHzjcTIBdOrxH7fzoHGRkXVjliVq2gHuB5W8RJGK2TGJpD5LTHd4lR2YZMHMJ60vhwjkBMeFKbJZ0Z3rFdoCdB2YbTjO52k188QJmJrnZmaHN3N+M1upsgNO80F4frpcn6bzoLbmAXbV3AfsAsGK6wdpIwAuSssjq4Ni1NwkB4DQdIfjtA1Oe36eNRZglop7qnl7KnO+lGKXCiwRno5XODcIZlZoE5AGuK2+DqxW4sh5QlygNBmBqh1m5PZykAHuo+i0Lyo7ZmESXfZeNVbA9U00yYgZsySVOAVeUJx3MuMDvfjg+CY2D04TP7nWpl5j4BefRbrCX4aOv42BT4+SPhJws58WdwAAAABJRU5ErkJggg==" alt="Logo Genki Pequeño">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAcCAMAAABMOI/cAAAAWlBMVEVHcExILHEGKZ/ILT/BLUTzLiAbK4DbLjPNLTzSLToHJNjULTfrLiaELGB+LGK8LUezLUvFLUEaK3oaK3qiLVOPLVuQLFsaK3kHK4IZK3oVK3zjLi0YK3oZK3r4bBaNAAAAHnRSTlMAORPWtv8h/+z0Bf3/UHalisjH5nugaf8tW0f/rIrca4iqAAABM0lEQVR4AXXNBYKEMAxA0d9CaoRFt2GmzP2Pue7y6pKEL5znb13/z73IXy8hSsqSCj8NOsKddHzjcTIBdOrxH7fzoHGRkXVjliVq2gHuB5W8RJGK2TGJpD5LTHd4lR2YZMHMJ60vhwjkBMeFKbJZ0Z3rFdoCdB2YbTjO52k188QJmJrnZmaHN3N+M1upsgNO80F4frpcn6bzoLbmAXbV3AfsAsGK6wdpIwAuSssjq4Ni1NwkB4DQdIfjtA1Oe36eNRZglop7qnl7KnO+lGKXCiwRno5XODcIZlZoE5AGuK2+DqxW4sh5QlygNBmBqh1m5PZykAHuo+i0Lyo7ZmESXfZeNVbA9U00yYgZsySVOAVeUJx3MuMDvfjg+CY2D04TP7nWpl5j4BefRbrCX4aOv42BT4+SPhJws58WdwAAAABJRU5ErkJggg=="
+                alt="Logo Genki Pequeño">
             <span>Inscripciones Abiertas | Conoce más</span>
         </div>
         <div class="client-links">
-            <a href="https://genkischool.mx/" target="_blank" title="Visitar Sitio Web"><i class="fa fa-globe"></i> Sitio Web</a>
-            <a href="https://www.facebook.com/ColegioJaponesGenkiSchoolTuxtla/?locale=es_LA" target="_blank" title="Facebook"><i class="fa fa-facebook-official"></i> Facebook</a>
-            <a href="https://www.instagram.com/colegiojaponesgenki/" target="_blank" title="Instagram"><i class="fa fa-instagram"></i> Instagram</a>
+            <a href="https://genkischool.mx/" target="_blank" title="Visitar Sitio Web"><i class="fa fa-globe"></i>
+                Sitio Web</a>
+            <a href="https://www.facebook.com/ColegioJaponesGenkiSchoolTuxtla/?locale=es_LA" target="_blank"
+                title="Facebook"><i class="fa fa-facebook-official"></i> Facebook</a>
+            <a href="https://www.instagram.com/colegiojaponesgenki/" target="_blank" title="Instagram"><i
+                    class="fa fa-instagram"></i> Instagram</a>
             {{-- Enlace API de WhatsApp (52 es código de México) --}}
-            <a href="https://wa.me/529611364088" target="_blank" class="btn-wa-client"><i class="fa fa-whatsapp"></i> Chat Directo</a>
+            <a href="https://wa.me/529611364088" target="_blank" class="btn-wa-client"><i class="fa fa-whatsapp"></i>
+                Chat Directo</a>
         </div>
     </nav>
 
@@ -290,16 +320,21 @@
         <div class="login-box">
             {{-- ENCABEZADO OSCURO --}}
             <div class="login-box-header">
-                <div style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 25px;">
+                <div
+                    style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 25px;">
                     {{-- Logo del Sistema --}}
                     <img src="{{ asset('dist/img/Kotan3.png') }}" alt="Kotan Logo" style="width: 170px; height: auto;">
 
                     {{-- Línea separadora --}}
-                    <div style="height: 80px; width: 2px; background-color: rgba(255, 255, 255, 0.15); border-radius: 2px;"></div>
+                    <div
+                        style="height: 80px; width: 2px; background-color: rgba(255, 255, 255, 0.15); border-radius: 2px;">
+                    </div>
 
                     {{-- Placa Blanca para el Logo del Cliente --}}
-                    <div style="background-color: #ffffff; padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                        <img src="{{ asset('dist/img/genki1.png') }}" alt="Colegio Logo" style="width: 220px; height: auto;">
+                    <div
+                        style="background-color: #ffffff; padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                        <img src="{{ asset('dist/img/genki1.png') }}" alt="Colegio Logo"
+                            style="width: 220px; height: auto;">
                     </div>
                 </div>
 
@@ -309,11 +344,14 @@
             </div>
 
             {{-- CUERPO DEL FORMULARIO --}}
+            {{-- CUERPO DEL FORMULARIO --}}
             <div class="login-box-body">
                 <p class="login-box-msg">Ingresa tus credenciales para acceder</p>
 
                 <form action="{{ route('login.submit') }}" method="post">
                     @csrf
+
+                    {{-- CAMPO DE CORREO (Corregido, sin duplicar) --}}
                     <div class="form-group has-feedback">
                         <input type="email" name="email" class="form-control" placeholder="Correo electrónico"
                             value="{{ old('email') }}" required autocomplete="off">
@@ -324,12 +362,27 @@
                         @enderror
                     </div>
 
+                    {{-- CAMPO DE CONTRASEÑA (Restauré el ícono del "ojito" y el ID) --}}
                     <div class="form-group has-feedback" style="margin-bottom: 20px;">
-                        <input type="password" name="password" class="form-control" id="password" placeholder="Contraseña" required>
+                        <input type="password" name="password" class="form-control" id="password"
+                            placeholder="Contraseña" required>
                         <span class="glyphicon glyphicon-eye-open form-control-feedback toggle-password"
                             style="cursor: pointer; pointer-events: auto;" title="Mostrar/Ocultar contraseña"></span>
                     </div>
 
+                    {{-- WIDGET DE TURNSTILE (Corregido, alineado y sin divs rotos) --}}
+                    <div class="form-group text-center"
+                        style="margin-bottom: 20px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div class="cf-turnstile" data-sitekey="{{ env('TURNSTILE_SITE_KEY') }}" data-theme="light">
+                        </div>
+
+                        @error('cf-turnstile-response')
+                            <span class="text-danger"
+                                style="font-size: 12px; display: block; font-weight: 600; margin-top: 5px;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    {{-- BOTÓN --}}
                     <div class="row">
                         <div class="col-xs-12">
                             <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
@@ -345,29 +398,34 @@
         <div class="footer-grid">
             <div class="footer-col">
                 <h4>Acerca de KotanEscolar</h4>
-                <p>Somos la plataforma integral líder en gestión educativa, diseñada para simplificar y optimizar los procesos administrativos, financieros y académicos de tu institución, integrando la tecnología en el aprendizaje diario.</p>
+                <p>Somos la plataforma integral líder en gestión educativa, diseñada para simplificar y optimizar los
+                    procesos administrativos, financieros y académicos de tu institución, integrando la tecnología en el
+                    aprendizaje diario.</p>
             </div>
-            
+
             <div class="footer-col">
                 <h4>Nuestra Misión</h4>
-                <p>Brindar herramientas tecnológicas innovadoras y accesibles que faciliten la comunicación y el control escolar, empoderando a las instituciones, docentes y familias para mejorar la calidad educativa.</p>
+                <p>Brindar herramientas tecnológicas innovadoras y accesibles que faciliten la comunicación y el control
+                    escolar, empoderando a las instituciones, docentes y familias para mejorar la calidad educativa.</p>
             </div>
 
             <div class="footer-col">
                 <h4>Nuestra Visión</h4>
-                <p>Ser el estándar de excelencia en software de gestión educativa, impulsando la transformación digital de las escuelas y creando ecosistemas escolares conectados y eficientes en todo el país.</p>
+                <p>Ser el estándar de excelencia en software de gestión educativa, impulsando la transformación digital
+                    de las escuelas y creando ecosistemas escolares conectados y eficientes en todo el país.</p>
             </div>
 
             <div class="footer-col">
                 <h4>¿Te interesa nuestro sistema?</h4>
-                <p>Para contrataciones, cotizaciones o demostraciones del sistema, comunícate directamente con nuestro equipo comercial.</p>
+                <p>Para contrataciones, cotizaciones o demostraciones del sistema, comunícate directamente con nuestro
+                    equipo comercial.</p>
                 {{-- Enlace API de WhatsApp de Kotan --}}
                 <a href="https://wa.me/529191123147" target="_blank" class="footer-wa-btn">
                     <i class="fa fa-whatsapp" style="font-size: 18px;"></i> 919 112 3147
                 </a>
             </div>
         </div>
-        
+
         <div class="footer-bottom">
             &copy; {{ date('Y') }} KotanEscolar. Todos los derechos reservados.
         </div>
