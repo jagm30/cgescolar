@@ -11,7 +11,7 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
     {{-- ... resto de tus links CSS ... --}}
-    <link rel="icon" type="image/png" href="{{ asset('dist/img/credit/Kontan2.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}">
     <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../../bower_components/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="../../dist/css/AdminLTE.min.css">
