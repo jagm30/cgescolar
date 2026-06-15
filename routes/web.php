@@ -430,12 +430,12 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/familias', [FamiliaController::class, 'index'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('familias.index');
-    Route::get('/familias/{familia}', [FamiliaController::class, 'show'])
-        ->middleware('rol:administrador,recepcion,caja')
-        ->name('familias.show');
     Route::resource('familias', FamiliaController::class)
         ->middleware('rol:administrador,recepcion')
         ->only(['create', 'store', 'edit', 'update']);
+    Route::get('/familias/{familia}', [FamiliaController::class, 'show'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('familias.show');
 
     // =======================================================
     // Endpoints generados:
