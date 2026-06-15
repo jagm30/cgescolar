@@ -52,7 +52,9 @@ Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 
 Route::middleware('guest')->group(function () {
 
-    Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+    Route::post('/login', [AuthController::class, 'login'])
+    ->name('login.submit')
+    ->middleware('throttle:5,1');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
