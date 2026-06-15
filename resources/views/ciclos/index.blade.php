@@ -107,6 +107,22 @@
             transform: translateY(-1px);
         }
 
+        /* Botones de acción planos (Editar/Eliminar) */
+        .btn-action-flat {
+            background: rgba(230, 231, 233, 0.5);
+            border: 1px solid #e6e7e9;
+            box-shadow: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .btn-action-flat:hover {
+            background-color: #f1f5f9;
+            transform: scale(1.05);
+        }
+
         /* Panel de Ayuda */
         .box-ayuda {
             background: #fff;
@@ -170,7 +186,6 @@
 
 @section('content')
 
-
     <div class="con-stats">
         {{-- Indicador de total --}}
         <div
@@ -179,7 +194,7 @@
             <div>
                 <span
                     style="display: block; font-size: 18px; font-weight: 800; line-height: 1;">{{ $ciclos->total() }}</span>
-                <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Ciclos</span> {{-- Usamos total() por la paginación de Laravel --}}
+                <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Ciclos</span>
             </div>
         </div>
 
@@ -262,10 +277,11 @@
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        <div style="display: flex; gap: 5px; justify-content: center;">
+                                        <div style="display: flex; gap: 5px; justify-content: center; align-items: center;">
+
                                             {{-- Botón Seleccionar --}}
                                             <form action="{{ route('ciclos.seleccionar', $ciclo->id) }}" method="POST"
-                                                style="margin:0;">
+                                                style="display:inline; margin:0;">
                                                 @csrf
                                                 <button type="submit" class="btn-activar-saas" title="Seleccionar">
                                                     <i class="fa fa-check-circle"></i>
@@ -276,20 +292,21 @@
                                             <button class="btn-action-flat" data-toggle="modal" data-target="#modal-editar"
                                                 data-id="{{ $ciclo->id }}" data-nombre="{{ $ciclo->nombre }}"
                                                 data-inicio="{{ $ciclo->fecha_inicio }}"
-                                                data-fin="{{ $ciclo->fecha_fin }}" data-estado="{{ $ciclo->estado }}">
+                                                data-fin="{{ $ciclo->fecha_fin }}" data-estado="{{ $ciclo->estado }}"
+                                                title="Editar">
                                                 <i class="fa fa-pencil text-blue"></i>
                                             </button>
 
                                             {{-- Botón ELIMINAR PERMANENTE --}}
                                             <form action="{{ route('ciclos.forceDelete', $ciclo->id) }}" method="POST"
-                                                style="display:inline;">
+                                                style="display:inline; margin:0;">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="btn-action-flat"
-                                                    title="Eliminar definitivamente"
+                                                <button type="submit" class="btn-action-flat" title="Eliminar"
                                                     onclick="return confirm('¿Eliminar permanentemente de la base de datos? Esta acción no se puede deshacer.')">
                                                     <i class="fa fa-trash text-red"></i>
                                                 </button>
                                             </form>
+
                                         </div>
                                     </td>
                                 </tr>
@@ -452,7 +469,6 @@
             </div>
         </form>
     </x-modal>
-
 
 @endsection
 

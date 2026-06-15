@@ -70,6 +70,7 @@
             content: none !important;
         }
     </style>
+
     {{--  WIDGETS DE RESUMEN --}}
     <div class="row" style="margin-bottom: 10px;">
         {{-- Total Grupos --}}
@@ -141,6 +142,7 @@
             </div>
         </div>
     </div>
+
     {{-- ── ENCABEZADO ── --}}
     <div class="row" style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap;">
         {{-- Columna del Título --}}
@@ -148,7 +150,6 @@
             <h2 style="margin: 0; font-weight: bold; color: #1e4d7b;">
                 <i class="fa fa-users text-blue"></i> Grupos Escolares
             </h2>
-
         </div>
 
         {{-- Columna de Botones --}}
@@ -274,8 +275,12 @@
                                         <span class="text-muted">∞</span>
                                     @endif
                                 </td>
+
+                                {{-- ── COLUMNA DE ACCIONES ALINEADA CON FLEXBOX ── --}}
                                 <td class="text-center" style="vertical-align: middle;">
-                                    <div class="btn-group">
+                                    <div style="display: flex; gap: 4px; justify-content: center; align-items: center;">
+
+                                        {{-- BOTÓN IMPRIMIR --}}
                                         <button type="button" class="btn btn-default btn-xs btn-abrir-modal-credencial"
                                             data-id="{{ $g['id'] }}" data-tipo="lote" title="Imprimir Lote">
                                             <i class="fa fa-id-card text-yellow"></i>
@@ -295,7 +300,7 @@
 
                                         {{-- BOTÓN DESACTIVAR/ACTIVAR --}}
                                         <form action="{{ route('grupos.status', $g['id']) }}" method="POST"
-                                            style="display:inline;">
+                                            style="margin: 0; display: flex;">
                                             @csrf @method('PATCH')
                                             <button type="submit" class="btn btn-default btn-xs"
                                                 title="{{ $g['activo'] ? 'Desactivar' : 'Activar' }}">
@@ -307,7 +312,7 @@
                                         {{-- BOTÓN ELIMINAR (Solo si no tiene inscritos) --}}
                                         @if ($g['alumnos_inscritos'] == 0)
                                             <form action="{{ route('grupos.destroy', $g['id']) }}" method="POST"
-                                                class="form-eliminar-grupo" style="display:inline;">
+                                                class="form-eliminar-grupo" style="margin: 0; display: flex;">
                                                 @csrf @method('DELETE')
                                                 <button type="button" class="btn btn-default btn-xs btn-trigger-eliminar"
                                                     title="Eliminar Permanente">
@@ -321,7 +326,6 @@
                                             </button>
                                         @endif
                                     </div>
-                                </td>
                                 </td>
                             </tr>
                         @empty
@@ -457,6 +461,7 @@
             </div>
         </form>
     </x-modal>
+
     {{-- ── MODAL MIGRAR  GRUPOs ── --}}
     <div class="modal fade" id="modalMigrarGrupos" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
@@ -520,6 +525,7 @@
             </form>
         </x-modal>
     @endforeach
+
     {{-- ── MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ── --}}
     <div class="modal fade" id="modalConfirmEliminar" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-sm">
@@ -581,7 +587,6 @@
         $(document).ready(function() {
 
             // ── 1. LÓGICA DE SELECTS EN CASCADA (NIVEL -> GRADO) ──
-            // La ponemos hasta arriba para que no dependa de si DataTables choca o no
             const $selectNivel = $('#filtro_nivel');
             const $selectGrado = $('#filtro_grado');
             const $opcionesGrado = $selectGrado.find('option[data-nivel]');
