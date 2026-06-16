@@ -443,8 +443,8 @@
 
                     {{-- WIDGET DE TURNSTILE --}}
                     <div class="form-group text-center"
-                        style="margin-bottom: 15px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                        <div class="cf-turnstile" data-sitekey="{{ env('TURNSTILE_SITE_KEY') }}" data-theme="light">
+                        style="margin-bottom: 20px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}" data-theme="light">
                         </div>
 
                         @error('cf-turnstile-response')

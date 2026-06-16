@@ -56,8 +56,10 @@ class StoreAsignacionPlanRequest extends FormRequest
             }
 
             $query = AsignacionPlan::query()
+                ->where('plan_id', $plan->id)
                 ->where('origen', $origen)
-                ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $plan->ciclo_id));
+                ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $plan->ciclo_id))
+                ->whereHas('cargos');
 
             if ($origen === 'individual') {
                 // Inscripción en el ciclo exacto del plan (caso normal o anticipada con grupo).
@@ -67,8 +69,7 @@ class StoreAsignacionPlanRequest extends FormRequest
                     ->where('activo', true)
                     ->first();
 
-                $inscripcion      = $inscripcionEnCiclo;
-                $validarNivel     = $inscripcionEnCiclo && $inscripcionEnCiclo->grupo_id !== null;
+                $inscripcion = $inscripcionEnCiclo;
 
                 // Ciclo en configuración: reinscripción anticipada.
                 // Si no existe inscripción en el nuevo ciclo (o existe sin grupo asignado),
@@ -76,22 +77,17 @@ class StoreAsignacionPlanRequest extends FormRequest
                 // En ambos casos se omite la validación de nivel porque el alumno puede
                 // estar cambiando de nivel (ej. 6° Primaria → 1° Secundaria).
                 if (! $inscripcion && $plan->ciclo?->estado === 'configuracion') {
-                    $inscripcion  = Inscripcion::with('grupo.grado')
+                    $inscripcion = Inscripcion::with('grupo.grado')
                         ->where('alumno_id', $alumnoId)
                         ->where('activo', true)
                         ->whereHas('ciclo', fn ($q) => $q->where('estado', 'activo'))
                         ->first();
-                    $validarNivel = false;
                 }
 
                 if (! $inscripcion) {
                     $validator->errors()->add('alumno_id', 'El alumno no tiene inscripción activa en el ciclo del plan.');
 
                     return;
-                }
-
-                if ($validarNivel && (int) $inscripcion->grupo?->grado?->nivel_id !== (int) $plan->nivel_id) {
-                    $validator->errors()->add('plan_id', 'El plan seleccionado no corresponde al nivel del alumno.');
                 }
 
                 $query->where('alumno_id', $alumnoId);

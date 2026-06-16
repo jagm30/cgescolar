@@ -10,42 +10,6 @@
 @push('styles')
 <style>
 /* ══════════════════════════════════════════
-   BARRA DE ESTADÍSTICAS
-══════════════════════════════════════════ */
-.fam-stats {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-.fam-stat-card {
-    flex: 1;
-    min-width: 130px;
-    background: #fff;
-    border: 1px solid #e4eaf0;
-    border-top: 3px solid #3c8dbc;
-    border-radius: 6px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.04);
-}
-.fam-stat-card.verde  { border-top-color: #00a65a; }
-.fam-stat-card.naranja { border-top-color: #f39c12; }
-.fam-stat-card.gris   { border-top-color: #b0bec5; }
-.fam-stat-icon {
-    width: 44px; height: 44px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    background: #eaf3fb; flex-shrink: 0;
-}
-.fam-stat-icon.verde   { background: #e8f8f0; }
-.fam-stat-icon.naranja { background: #fef6e7; }
-.fam-stat-icon.gris    { background: #f4f6f7; }
-.fam-stat-num  { font-size: 26px; font-weight: 800; line-height: 1; color: #222; }
-.fam-stat-lbl  { font-size: 11px; color: #999; margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
-
-/* ══════════════════════════════════════════
    BARRA DE BÚSQUEDA / ACCIONES
 ══════════════════════════════════════════ */
 .fam-toolbar {
@@ -254,35 +218,35 @@
 </div>
 @endif
 
-{{-- ══ ESTADÍSTICAS ══ --}}
-<div class="fam-stats">
-    <div class="fam-stat-card">
-        <div class="fam-stat-icon">
-            <i class="fa fa-home" style="color:#3c8dbc;font-size:18px;"></i>
-        </div>
-        <div>
-            <div class="fam-stat-num">{{ $familias->total() }}</div>
-            <div class="fam-stat-lbl">Total familias</div>
-        </div>
-    </div>
-    <div class="fam-stat-card verde">
-        <div class="fam-stat-icon verde">
-            <i class="fa fa-check-circle" style="color:#00a65a;font-size:18px;"></i>
-        </div>
-        <div>
-            <div class="fam-stat-num">{{ $totalActivas ?? $familias->where('activo', true)->count() }}</div>
-            <div class="fam-stat-lbl">Familias activas</div>
-        </div>
-    </div>
-    <div class="fam-stat-card naranja">
-        <div class="fam-stat-icon naranja">
-            <i class="fa fa-graduation-cap" style="color:#f39c12;font-size:18px;"></i>
-        </div>
-        <div>
-            <div class="fam-stat-num">{{ $totalAlumnos ?? '-' }}</div>
-            <div class="fam-stat-lbl">Alumnos activos</div>
+{{-- ══ ENCABEZADO + STATS ══ --}}
+<div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-home text-blue"></i> Familias
+        </h4>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;">
+            <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-home"></i> {{ $familias->total() }} total
+            </span>
+            <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-check-circle"></i> {{ $totalActivas ?? $familias->where('activo', true)->count() }} activas
+            </span>
+            <span style="background:#fef6e7;color:#b45309;border:1px solid #fcd97d;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-graduation-cap"></i> {{ $totalAlumnos ?? '—' }} alumnos activos
+            </span>
         </div>
     </div>
+    @can('administrador')
+    <a href="{{ route('familias.create') }}" class="btn btn-success btn-sm btn-flat"
+       style="border-radius:20px;white-space:nowrap;flex-shrink:0;">
+        <i class="fa fa-plus"></i> Nueva familia
+    </a>
+    @endcan
 </div>
 
 {{-- ══ PANEL PRINCIPAL ══ --}}
@@ -336,14 +300,6 @@
         </span>
         @endif
 
-        {{-- Nueva familia --}}
-        @can('administrador')
-        <a href="{{ route('familias.create') }}"
-           class="btn btn-success btn-flat btn-sm"
-           style="border-radius:20px;padding:5px 16px;white-space:nowrap;">
-            <i class="fa fa-plus"></i> Nueva familia
-        </a>
-        @endcan
     </div>
 
     {{-- Tabla --}}

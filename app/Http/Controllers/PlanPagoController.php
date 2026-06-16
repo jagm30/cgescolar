@@ -364,7 +364,8 @@ class PlanPagoController extends Controller
 
         $planIds = collect();
         $asignacionesQuery = AsignacionPlan::query()
-            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId)->where('activo', true));
+            ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $cicloId)->where('activo', true))
+            ->whereHas('cargos');
 
         if ($origen === 'individual' && $alumnoId) {
             $inscripcion = Inscripcion::with('grupo.grado')
@@ -564,13 +565,16 @@ class PlanPagoController extends Controller
             ->orderBy('id', 'desc')
             ->paginate(10);
 
+        $preAlumnoId = (int) request('alumno_id') ?: null;
+
         return view('planes.asignar', compact(
             'planes',
             'planesData',
             'alumnos',
             'grupos',
             'niveles',
-            'asignaciones'
+            'asignaciones',
+            'preAlumnoId'
         ));
     }
 
@@ -645,11 +649,11 @@ class PlanPagoController extends Controller
             if (! $tieneInscripcion && $asignacion->plan->ciclo?->estado === 'configuracion') {
                 Inscripcion::create([
                     'alumno_id' => $asignacion->alumno_id,
-                    'ciclo_id'  => $cicloId,
-                    'grupo_id'  => null,
-                    'fecha'     => now()->toDateString(),
-                    'activo'    => true,
-                    'tipo'      => TipoInscripcion::Anticipada,
+                    'ciclo_id' => $cicloId,
+                    'grupo_id' => null,
+                    'fecha' => now()->toDateString(),
+                    'activo' => true,
+                    'tipo' => TipoInscripcion::Anticipada,
                 ]);
             }
         }

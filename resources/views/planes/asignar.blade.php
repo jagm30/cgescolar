@@ -47,8 +47,20 @@
 .form-control {
     border-radius: 10px;
     border: 1px solid #e0e0e0;
+    color: #2f3b45;
+    height: 42px;
+    line-height: 20px;
     padding: 10px;
     transition: 0.2s;
+}
+
+select.form-control {
+    padding: 8px 12px;
+}
+
+select.form-control option {
+    color: #2f3b45;
+    background: #ffffff;
 }
 
 .form-control:focus {
@@ -58,9 +70,23 @@
 
 /* SELECT2 */
 .select2-container--default .select2-selection--single {
+    border: 1px solid #e0e0e0;
     border-radius: 10px;
     height: 42px;
     padding: 6px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #2f3b45;
+    line-height: 28px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #8a94a3;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
 }
 
 /* BOTÓN GUARDAR 🔥 */
@@ -173,7 +199,8 @@
                                 @foreach ($planes as $plan)
                                     <option value="{{ $plan->id }}"
                                         data-fecha-inicio="{{ $plan->fecha_inicio?->format('Y-m-d') }}"
-                                        data-fecha-fin="{{ $plan->fecha_fin?->format('Y-m-d') }}">
+                                        data-fecha-fin="{{ $plan->fecha_fin?->format('Y-m-d') }}"
+                                        @selected(old('plan_id') == $plan->id)>
                                         {{ $plan->nombre }}
                                     </option>
                                 @endforeach
@@ -197,11 +224,11 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <label>Fecha inicio</label>
-                                <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ old('fecha_inicio') }}" readonly>
+                                <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" value="{{ old('fecha_inicio') }}">
                             </div>
                             <div class="col-md-6">
                                 <label>Fecha fin</label>
-                                <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ old('fecha_fin') }}" readonly>
+                                <input type="date" name="fecha_fin" id="fecha_fin" class="form-control" value="{{ old('fecha_fin') }}">
                             </div>
                         </div>
 
@@ -238,9 +265,11 @@
             const niveles = @json($niveles);
             const planes = @json($planesData);
             const oldOrigen = @json(old('origen', 'individual'));
-            const oldAlumnoId = @json(old('alumno_id'));
+            const oldAlumnoId = @json(old('alumno_id', $preAlumnoId ?? null));
             const oldGrupoId = @json(old('grupo_id'));
             const oldNivelId = @json(old('nivel_id'));
+            const oldFechaInicio = @json(old('fecha_inicio'));
+            const oldFechaFin = @json(old('fecha_fin'));
 
             function formatearNombreAlumno(item) {
                 return [item.nombre, item.ap_paterno, item.ap_materno].filter(Boolean).join(' ');
@@ -352,32 +381,31 @@
                 $('#origen').val(oldOrigen);
                 actualizarSelect();
 
-                // Manejar cambio de plan para poblar fechas y conceptos
-                $('#plan_id').on('change', function() {
+                function actualizarDatosDelPlan(preservarFechasAnteriores = false) {
                     const selectedOption = $(this).find('option:selected');
                     const fechaInicio = selectedOption.data('fecha-inicio');
                     const fechaFin = selectedOption.data('fecha-fin');
                     const planId = $(this).val();
 
-                    if (fechaInicio && fechaFin) {
-                        $('#fecha_inicio').val(fechaInicio);
-                        $('#fecha_fin').val(fechaFin);
-                        $('#fecha_inicio').prop('readonly', true);
-                        $('#fecha_fin').prop('readonly', true);
-                    } else {
-                        $('#fecha_inicio').val('');
-                        $('#fecha_fin').val('');
-                        $('#fecha_inicio').prop('readonly', false);
-                        $('#fecha_fin').prop('readonly', false);
+                    if (!preservarFechasAnteriores || !oldFechaInicio) {
+                        $('#fecha_inicio').val(fechaInicio || '');
                     }
 
-                    // Mostrar conceptos del plan
+                    if (!preservarFechasAnteriores || !oldFechaFin) {
+                        $('#fecha_fin').val(fechaFin || '');
+                    }
+
                     mostrarConceptosDelPlan(planId);
+                }
+
+                // Manejar cambio de plan para poblar fechas editables y conceptos
+                $('#plan_id').on('change', function() {
+                    actualizarDatosDelPlan.call(this);
                 });
 
                 // Si hay un plan seleccionado al cargar, poblar fechas y conceptos
                 if ($('#plan_id').val()) {
-                    $('#plan_id').trigger('change');
+                    actualizarDatosDelPlan.call($('#plan_id')[0], true);
                 }
 
                 // Manejar envío del formulario

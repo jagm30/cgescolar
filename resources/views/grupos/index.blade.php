@@ -44,19 +44,10 @@
             border-radius: 4px;
         }
 
-        .filter-box {
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #d0dde8;
-        }
-
         .guia-ayuda {
             border-radius: 6px;
             background: #fff;
             border: 1px solid #d0dde8;
-            margin-bottom: 20px;
         }
 
         /* ── ELIMINADOR FORZADO DE FLECHAS DE DATATABLES ── */
@@ -71,110 +62,55 @@
         }
     </style>
 
-    {{--  WIDGETS DE RESUMEN --}}
-    <div class="row" style="margin-bottom: 10px;">
-        {{-- Total Grupos --}}
-        <div class="col-md-3 col-sm-6">
-            <div
-                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #3498db; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div
-                    style="width: 45px; height: 45px; border-radius: 50%; background: #ebf5fb; color: #3498db; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #d6eaf8;">
-                    <i class="fa fa-users"></i>
-                </div>
-                <div>
-                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">{{ $grupos->total() }}</h3>
-                    <p class="text-muted"
-                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
-                        Total Grupos</p>
-                </div>
-            </div>
-        </div>
-
-        {{-- Grupos Activos --}}
-        <div class="col-md-3 col-sm-6">
-            <div
-                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #2ecc71; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div
-                    style="width: 45px; height: 45px; border-radius: 50%; background: #eafaf1; color: #2ecc71; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #d5f5e3;">
-                    <i class="fa fa-check-circle"></i>
-                </div>
-                <div>
-                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">
-                        {{ $grupos->where('activo', true)->count() }}</h3>
-                    <p class="text-muted"
-                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
-                        Activos (Página)</p>
-                </div>
-            </div>
-        </div>
-
-        {{-- Grados --}}
-        <div class="col-md-3 col-sm-6">
-            <div
-                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #f39c12; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div
-                    style="width: 45px; height: 45px; border-radius: 50%; background: #fef9e7; color: #f39c12; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #fcf3cf;">
-                    <i class="fa fa-graduation-cap"></i>
-                </div>
-                <div>
-                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">{{ $grados->count() }}</h3>
-                    <p class="text-muted"
-                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
-                        Grados</p>
-                </div>
-            </div>
-        </div>
-
-        {{-- Ciclo Activo --}}
-        <div class="col-md-3 col-sm-6">
-            <div
-                style="background: #fff; border-radius: 8px; border: 1px solid #d0dde8; border-top: 3px solid #9b59b6; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; height: 85px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                <div
-                    style="width: 45px; height: 45px; border-radius: 50%; background: #f5eef8; color: #9b59b6; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #ebdef0;">
-                    <i class="fa fa-calendar"></i>
-                </div>
-                <div>
-                    <h3 style="margin:0; font-weight:bold; color: #2c3e50; font-size: 20px;">{{ $ciclo->nombre }}</h3>
-                    <p class="text-muted"
-                        style="margin:0; text-transform:uppercase; font-size:9px; letter-spacing: 0.5px; font-weight: 600;">
-                        Ciclo Activo</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- ── ENCABEZADO ── --}}
-    <div class="row" style="margin-bottom: 20px; display: flex; align-items: center; flex-wrap: wrap;">
-        {{-- Columna del Título --}}
-        <div class="col-md-6 col-sm-12">
-            <h2 style="margin: 0; font-weight: bold; color: #1e4d7b;">
+    {{-- ── ENCABEZADO + STATS + BOTONES ── --}}
+    <div style="background:#fff;border:1px solid #d0dde8;border-radius:8px;padding:14px 18px;margin-bottom:14px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        {{-- Título --}}
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
                 <i class="fa fa-users text-blue"></i> Grupos Escolares
-            </h2>
+            </h4>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="background:#ebf5fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-th-large"></i> {{ $grupos->total() }} grupos
+                </span>
+                <span style="background:#eafaf1;color:#27ae60;border:1px solid #d5f5e3;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-check-circle"></i> {{ $grupos->where('activo', true)->count() }} activos
+                </span>
+                <span style="background:#fef9e7;color:#d68910;border:1px solid #fcf3cf;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-graduation-cap"></i> {{ $grados->count() }} grados
+                </span>
+                <span style="background:#f5eef8;color:#7d3c98;border:1px solid #ebdef0;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-calendar"></i> {{ $ciclo->nombre }}
+                </span>
+            </div>
         </div>
-
-        {{-- Columna de Botones --}}
-        <div class="col-md-6 col-sm-12 text-right"
-            style="display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
-            {{-- Botón Migrar con estilo plano para que combine --}}
+        {{-- Botones --}}
+        <div style="display:flex;gap:8px;flex-shrink:0;">
             @if ($grupos->count() > 0)
-                <button type="button" class="btn btn-primary btn-flat" data-toggle="modal"
+                <button type="button" class="btn btn-primary btn-sm btn-flat" data-toggle="modal"
                     data-target="#modalMigrarGrupos">
-                    <i class="fa fa-copy"></i> Migrar Estructura a Nuevo Ciclo
+                    <i class="fa fa-copy"></i> Migrar estructura
                 </button>
             @endif
-            {{-- Botón Nuevo Grupo --}}
-            <button type="button" class="btn btn-success btn-flat" data-toggle="modal" data-target="#modalNuevoGrupo">
-                <i class="fa fa-plus"></i> Crear Nuevo Grupo
+            <button type="button" class="btn btn-success btn-sm btn-flat" data-toggle="modal"
+                data-target="#modalNuevoGrupo">
+                <i class="fa fa-plus"></i> Nuevo grupo
             </button>
         </div>
     </div>
 
-    {{-- ── FILTROS Y BUSCADOR ── --}}
-    <div class="filter-box">
-        <form method="GET" action="{{ route('grupos.index') }}" class="row">
-            {{-- Nivel (2.5/12) --}}
-            <div class="col-md-2">
-                <label class="small text-muted">NIVEL</label>
+    {{-- ── FILTROS ── --}}
+    <div style="background:#fff;border:1px solid #d0dde8;border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+        <form method="GET" action="{{ route('grupos.index') }}"
+              style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+            <div style="min-width:130px;flex:1;">
+                <label class="small text-muted" style="margin-bottom:3px;display:block;">NIVEL</label>
                 <select name="nivel_id" class="form-control input-sm" onchange="this.form.submit()">
                     <option value="">Todos</option>
                     @foreach ($niveles as $n)
@@ -183,10 +119,8 @@
                     @endforeach
                 </select>
             </div>
-
-            {{-- Grado (2.5/12) --}}
-            <div class="col-md-2">
-                <label class="small text-muted">GRADO</label>
+            <div style="min-width:130px;flex:1;">
+                <label class="small text-muted" style="margin-bottom:3px;display:block;">GRADO</label>
                 <select name="grado_id" class="form-control input-sm" onchange="this.form.submit()">
                     <option value="">Todos</option>
                     @foreach ($grados as $g)
@@ -197,34 +131,27 @@
                     @endforeach
                 </select>
             </div>
-
-            {{-- Estatus (2/12) --}}
-            <div class="col-md-2">
-                <label class="small text-muted">ESTATUS</label>
+            <div style="min-width:120px;flex:1;">
+                <label class="small text-muted" style="margin-bottom:3px;display:block;">ESTATUS</label>
                 <select name="estatus" class="form-control input-sm" onchange="this.form.submit()">
                     <option value="activos"
-                        {{ request('estatus') != 'inactivos' && request('estatus') != 'todos' ? 'selected' : '' }}>Activos
-                    </option>
+                        {{ request('estatus') != 'inactivos' && request('estatus') != 'todos' ? 'selected' : '' }}>
+                        Activos</option>
                     <option value="inactivos" {{ request('estatus') == 'inactivos' ? 'selected' : '' }}>Inactivos</option>
                     <option value="todos" {{ request('estatus') == 'todos' ? 'selected' : '' }}>Todos</option>
                 </select>
             </div>
-
-            {{-- Buscador (4/12) --}}
-            <div class="col-md-4">
-                <label class="small text-muted">BUSCAR POR NOMBRE</label>
+            <div style="min-width:180px;flex:2;">
+                <label class="small text-muted" style="margin-bottom:3px;display:block;">BUSCAR</label>
                 <div class="input-group">
                     <input type="text" id="buscador-manual" class="form-control input-sm"
-                        placeholder="Escribe el nombre...">
+                        placeholder="Nombre del grupo...">
                     <span class="input-group-addon"><i class="fa fa-search"></i></span>
                 </div>
             </div>
-
-            {{-- Limpiar (2/12) --}}
-            <div class="col-md-2 text-right">
-                <label class="small text-muted" style="display: block;">&nbsp;</label>
-                <a href="{{ route('grupos.index') }}" class="btn btn-default btn-sm btn-block" title="Limpiar Filtros">
-                    <i class="fa fa-eraser"></i> Limpiar
+            <div style="flex-shrink:0;">
+                <a href="{{ route('grupos.index') }}" class="btn btn-default btn-sm" title="Limpiar filtros">
+                    <i class="fa fa-eraser"></i>
                 </a>
             </div>
         </form>

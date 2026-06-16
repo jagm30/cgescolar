@@ -22,6 +22,7 @@ use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\ReporteDeudoresController;
+use App\Http\Controllers\ReinscripcionController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -136,13 +137,15 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/alumnos', [AlumnoController::class, 'index'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.index');
-    Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])
-        ->middleware('rol:administrador,recepcion,caja')
-        ->name('alumnos.show');
     // Operaciones de escritura — solo admin y recepción
+    // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
+    // de la ruta /alumnos/{alumno} para evitar que "create" se resuelva como {id}
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion')
         ->except(['index', 'show']);
+    Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('alumnos.show');
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
@@ -153,6 +156,13 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('/alumnos/{id}/inscripcion-anticipada', [AlumnoController::class, 'registrarAnticipada'])
         ->middleware('rol:administrador,recepcion')
         ->name('alumnos.inscripcion-anticipada');
+
+    // ── Reinscripciones ──────────────────────────────────
+    Route::middleware('rol:administrador,recepcion')->prefix('reinscripciones')->name('reinscripciones.')->group(function () {
+        Route::get('/',       [ReinscripcionController::class, 'index'])->name('index');
+        Route::get('/buscar', [ReinscripcionController::class, 'buscar'])->name('buscar');
+        Route::post('/',      [ReinscripcionController::class, 'store'])->name('store');
+    });
 
     // conceptos de cobro
     // Planes de pago
@@ -238,6 +248,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/pagos/corte', [PagoController::class, 'corte'])
         ->middleware('rol:administrador,caja')
         ->name('pagos.corte');
+
+    Route::get('/pagos/detalle-ingresos', [PagoController::class, 'detalleIngresos'])
+        ->middleware('rol:administrador,caja')
+        ->name('pagos.detalle-ingresos');
 
     Route::post('/pagos/{id}/anular', [PagoController::class, 'anular'])
         ->middleware('rol:administrador')
@@ -418,12 +432,12 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/familias', [FamiliaController::class, 'index'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('familias.index');
-    Route::get('/familias/{familia}', [FamiliaController::class, 'show'])
-        ->middleware('rol:administrador,recepcion,caja')
-        ->name('familias.show');
     Route::resource('familias', FamiliaController::class)
         ->middleware('rol:administrador,recepcion')
         ->only(['create', 'store', 'edit', 'update']);
+    Route::get('/familias/{familia}', [FamiliaController::class, 'show'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('familias.show');
 
     // =======================================================
     // Endpoints generados:

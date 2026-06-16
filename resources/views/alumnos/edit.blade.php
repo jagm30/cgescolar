@@ -463,6 +463,12 @@
                             </label>
                             <select name="grupo_id" id="grupo_id" class="form-control">
                                 <option value="">-- Sin grupo asignado --</option>
+                                @if ($grupoActual && $inscActual?->grupo)
+                                    <option value="{{ $grupoActual }}" selected>
+                                        {{ $inscActual->grupo->grado->numero ?? '' }}°
+                                        {{ $inscActual->grupo->nombre }}
+                                    </option>
+                                @endif
                             </select>
                             @error('grupo_id')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i>
@@ -1015,8 +1021,8 @@
                 if (pasoActual === 3) {
                     var ci = $('#ciclo_id').val();
                     var ni = $('#nivel_id').val();
-                    var gruposYaCargados = $('#grupo_id option').length > 1;
-                    if (ci && ni && !gruposYaCargados) {
+                    // Siempre recargar al visitar el paso 3 para mostrar capacidades actualizadas
+                    if (ci && ni) {
                         cargarGrupos(ci, ni, GRUPO_ACTUAL);
                     }
                 }

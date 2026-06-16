@@ -531,11 +531,12 @@
                                 <option value="Grupo:">Grupo:</option>
                                 <option value="Ciclo Escolar:">Ciclo Escolar:</option>
                                 <option value="Tipo de Sangre:">Tipo Sangre:</option>
-                                <option value="Tutor:">Tutor:</option>
-                                <option value="Tel. Emergencia:">Tel. Emergencia:</option>
                                 <option value="Autorizado 1:">Autorizado 1:</option>
                                 <option value="Autorizado 2:">Autorizado 2:</option>
                                 <option value="Autorizado 3:">Autorizado 3:</option>
+                                <option value="Tel. Autorizado 1:">Tel. Autorizado 1:</option>
+                                <option value="Tel. Autorizado 2:">Tel. Autorizado 2:</option>
+                                <option value="Tel. Autorizado 3:">Tel. Autorizado 3:</option>
                                 <option value="Director:">Director:</option>
                                 <option value="Firma:">Firma:</option>
                             </select>
@@ -598,18 +599,6 @@
                         <hr style="margin: 10px 0;">
                         <label style="color:#e67e22;"><i class="fa fa-home"></i> Contactos y Autorizados:</label>
                         <div class="row">
-                            <div class="col-xs-6" style="padding-right: 2px;">
-                                <button class="btn btn-default btn-block btn-sm text-left"
-                                    onclick="addElement('tutor', 'NOMBRE DEL TUTOR')"><i class="fa fa-user-circle"></i>
-                                    Tutor</button>
-                            </div>
-                            <div class="col-xs-6" style="padding-left: 2px;">
-                                <button class="btn btn-default btn-block btn-sm text-left"
-                                    onclick="addElement('tel_emergencia', '961-000-0000')"><i class="fa fa-phone"></i>
-                                    Tel. Emergencia</button>
-                            </div>
-                        </div>
-                        <div class="row" style="margin-top: 5px;">
                             <div class="col-xs-4" style="padding-right: 2px;">
                                 <button class="btn btn-default btn-block btn-sm text-left"
                                     onclick="addElement('autorizado1', 'AUTORIZADO 1')" style="padding: 5px 2px;"><i
@@ -624,6 +613,40 @@
                                 <button class="btn btn-default btn-block btn-sm text-left"
                                     onclick="addElement('autorizado3', 'AUTORIZADO 3')" style="padding: 5px 2px;"><i
                                         class="fa fa-check-square-o"></i> Aut 3</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-4" style="padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('tel_autorizado1', '961-000-0001')" style="padding: 5px 2px;"><i
+                                        class="fa fa-phone"></i> Tel 1</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px; padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('tel_autorizado2', '961-000-0002')" style="padding: 5px 2px;"><i
+                                        class="fa fa-phone"></i> Tel 2</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('tel_autorizado3', '961-000-0003')" style="padding: 5px 2px;"><i
+                                        class="fa fa-phone"></i> Tel 3</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-4" style="padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado1', 'FOTO AUT 1')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 1</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px; padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado2', 'FOTO AUT 2')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 2</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado3', 'FOTO AUT 3')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 3</button>
                             </div>
                         </div>
 
@@ -688,28 +711,37 @@
                                 $gradoStr = $insc?->grupo?->grado?->numero ?? '';
                                 $grupoStr = $insc?->grupo?->nombre ?? '';
 
-                                $contactos = $alumno->familia?->contactos ?? collect();
-                                $tutorObj = $contactos->where('es_principal', true)->first() ?? $contactos->first();
-
-                                // BLINDAJE APLICADO AQUÍ:
-                                $tutorStr = $tutorObj ? $tutorObj->nombre . ' ' . $tutorObj->ap_paterno : '';
-                                $emergenciaStr = $tutorObj?->telefono_celular ?? ''; // <-- El ? evita el crash
-
-                                $autorizados = $contactos
-                                    ->filter(function ($c) {
-                                        return $c->puede_recoger ?? true;
-                                    })
-                                    ->values();
+                                $autorizados = \Illuminate\Support\Facades\DB::table('alumno_contacto')
+                                    ->join('contacto_familiar', 'alumno_contacto.contacto_id', '=', 'contacto_familiar.id')
+                                    ->where('alumno_contacto.alumno_id', $alumno->id)
+                                    ->where('alumno_contacto.activo', 1)
+                                    ->where('alumno_contacto.autorizado_recoger', 1)
+                                    ->orderBy('alumno_contacto.orden')
+                                    ->orderBy('alumno_contacto.id')
+                                    ->select('contacto_familiar.nombre', 'contacto_familiar.ap_paterno', 'contacto_familiar.ap_materno', 'contacto_familiar.foto_url', 'contacto_familiar.telefono_celular')
+                                    ->limit(3)
+                                    ->get();
 
                                 $aut1 = isset($autorizados[0])
-                                    ? $autorizados[0]->nombre . ' ' . $autorizados[0]->ap_paterno
+                                    ? trim($autorizados[0]->nombre . ' ' . $autorizados[0]->ap_paterno . ' ' . ($autorizados[0]->ap_materno ?? ''))
                                     : '';
                                 $aut2 = isset($autorizados[1])
-                                    ? $autorizados[1]->nombre . ' ' . $autorizados[1]->ap_paterno
+                                    ? trim($autorizados[1]->nombre . ' ' . $autorizados[1]->ap_paterno . ' ' . ($autorizados[1]->ap_materno ?? ''))
                                     : '';
                                 $aut3 = isset($autorizados[2])
-                                    ? $autorizados[2]->nombre . ' ' . $autorizados[2]->ap_paterno
+                                    ? trim($autorizados[2]->nombre . ' ' . $autorizados[2]->ap_paterno . ' ' . ($autorizados[2]->ap_materno ?? ''))
                                     : '';
+
+                                $fotoAut1 = (isset($autorizados[0]) && !empty($autorizados[0]->foto_url))
+                                    ? asset('storage/' . $autorizados[0]->foto_url) : '';
+                                $fotoAut2 = (isset($autorizados[1]) && !empty($autorizados[1]->foto_url))
+                                    ? asset('storage/' . $autorizados[1]->foto_url) : '';
+                                $fotoAut3 = (isset($autorizados[2]) && !empty($autorizados[2]->foto_url))
+                                    ? asset('storage/' . $autorizados[2]->foto_url) : '';
+
+                                $telAut1 = $autorizados[0]->telefono_celular ?? '';
+                                $telAut2 = $autorizados[1]->telefono_celular ?? '';
+                                $telAut3 = $autorizados[2]->telefono_celular ?? '';
 
                                 $nombreStr =
                                     $alumno->nombre .
@@ -732,9 +764,13 @@
                                 data-ciclo="{{ $cicloActual->nombre ?? '' }}"
                                 data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
                                 data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
-                                data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
                                 data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
-                                data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
+                                data-autorizado3="{{ $aut3 }}"
+                                data-tel-autorizado1="{{ $telAut1 }}" data-tel-autorizado2="{{ $telAut2 }}"
+                                data-tel-autorizado3="{{ $telAut3 }}"
+                                data-foto-autorizado1="{{ $fotoAut1 }}" data-foto-autorizado2="{{ $fotoAut2 }}"
+                                data-foto-autorizado3="{{ $fotoAut3 }}"
+                                data-director="" data-puesto_director=""
                                 onclick="deselect(event)">
                                 @if ($diseno->fondo_anverso)
                                     <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial">
@@ -752,9 +788,13 @@
                                 data-ciclo="{{ $cicloActual->nombre ?? '' }}"
                                 data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
                                 data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
-                                data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
                                 data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
-                                data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
+                                data-autorizado3="{{ $aut3 }}"
+                                data-tel-autorizado1="{{ $telAut1 }}" data-tel-autorizado2="{{ $telAut2 }}"
+                                data-tel-autorizado3="{{ $telAut3 }}"
+                                data-foto-autorizado1="{{ $fotoAut1 }}" data-foto-autorizado2="{{ $fotoAut2 }}"
+                                data-foto-autorizado3="{{ $fotoAut3 }}"
+                                data-director="" data-puesto_director=""
                                 onclick="deselect(event)">
                                 @if ($diseno->fondo_reverso)
                                     <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial">
@@ -770,11 +810,34 @@
                             // Alumno de muestra para el editor (el primero del sistema, o uno fijo)
                             $alumnoMuestra = \App\Models\Alumno::with([
                                 'inscripciones.grupo.grado.nivel',
-                                'familia.contactos',
                             ])->first();
                             $inscM = $alumnoMuestra?->inscripciones->first();
-                            $contactosM = $alumnoMuestra?->familia?->contactos ?? collect();
-                            $tutorM = $contactosM->where('es_principal', true)->first() ?? $contactosM->first();
+
+                            // Contactos autorizados para recoger, ordenados por prioridad (alumno_contacto.orden)
+                            $autorizadosM = $alumnoMuestra
+                                ? \Illuminate\Support\Facades\DB::table('alumno_contacto')
+                                    ->join('contacto_familiar', 'alumno_contacto.contacto_id', '=', 'contacto_familiar.id')
+                                    ->where('alumno_contacto.alumno_id', $alumnoMuestra->id)
+                                    ->where('alumno_contacto.activo', 1)
+                                    ->where('alumno_contacto.autorizado_recoger', 1)
+                                    ->orderBy('alumno_contacto.orden')
+                                    ->orderBy('alumno_contacto.id')
+                                    ->select('contacto_familiar.nombre', 'contacto_familiar.ap_paterno', 'contacto_familiar.ap_materno', 'contacto_familiar.foto_url', 'contacto_familiar.telefono_celular')
+                                    ->limit(3)
+                                    ->get()
+                                : collect();
+
+                            $autM1 = isset($autorizadosM[0]) ? trim($autorizadosM[0]->nombre . ' ' . $autorizadosM[0]->ap_paterno . ' ' . ($autorizadosM[0]->ap_materno ?? '')) : '';
+                            $autM2 = isset($autorizadosM[1]) ? trim($autorizadosM[1]->nombre . ' ' . $autorizadosM[1]->ap_paterno . ' ' . ($autorizadosM[1]->ap_materno ?? '')) : '';
+                            $autM3 = isset($autorizadosM[2]) ? trim($autorizadosM[2]->nombre . ' ' . $autorizadosM[2]->ap_paterno . ' ' . ($autorizadosM[2]->ap_materno ?? '')) : '';
+
+                            $fotoAutM1 = (isset($autorizadosM[0]) && !empty($autorizadosM[0]->foto_url)) ? asset('storage/' . $autorizadosM[0]->foto_url) : '';
+                            $fotoAutM2 = (isset($autorizadosM[1]) && !empty($autorizadosM[1]->foto_url)) ? asset('storage/' . $autorizadosM[1]->foto_url) : '';
+                            $fotoAutM3 = (isset($autorizadosM[2]) && !empty($autorizadosM[2]->foto_url)) ? asset('storage/' . $autorizadosM[2]->foto_url) : '';
+
+                            $telAutM1 = $autorizadosM[0]->telefono_celular ?? '961-000-0001';
+                            $telAutM2 = $autorizadosM[1]->telefono_celular ?? '961-000-0002';
+                            $telAutM3 = $autorizadosM[2]->telefono_celular ?? '961-000-0003';
                         @endphp
 
                         <div id="credencial-canvas" class="credencial-canvas-instance face-anverso"
@@ -786,11 +849,13 @@
                             data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
                             data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
                             data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
-                            data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
-                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
-                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
-                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
-                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
+                            data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
+                            data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
+                            data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
+                            data-tel-autorizado1="{{ $telAutM1 }}" data-tel-autorizado2="{{ $telAutM2 }}"
+                            data-tel-autorizado3="{{ $telAutM3 }}"
+                            data-foto-autorizado1="{{ $fotoAutM1 }}" data-foto-autorizado2="{{ $fotoAutM2 }}"
+                            data-foto-autorizado3="{{ $fotoAutM3 }}"
                             data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                             onclick="deselect(event)">
                             @if ($diseno->fondo_anverso)
@@ -814,11 +879,13 @@
                             data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
                             data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
                             data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
-                            data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
-                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
-                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
-                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
-                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
+                            data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
+                            data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
+                            data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
+                            data-tel-autorizado1="{{ $telAutM1 }}" data-tel-autorizado2="{{ $telAutM2 }}"
+                            data-tel-autorizado3="{{ $telAutM3 }}"
+                            data-foto-autorizado1="{{ $fotoAutM1 }}" data-foto-autorizado2="{{ $fotoAutM2 }}"
+                            data-foto-autorizado3="{{ $fotoAutM3 }}"
                             data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                             onclick="deselect(event)" style="display:none;">
                             @if ($diseno->fondo_reverso)
@@ -953,12 +1020,6 @@
                     <hr style="margin: 10px 0;">
                     <label style="color:#e67e22; font-size:12px;"><i class="fa fa-home"></i> Contactos:</label>
                     <button class="btn btn-default btn-block text-left"
-                        onclick="confirmAnchor('tutor', 'NOMBRE DEL TUTOR')"><i class="fa fa-user-circle"></i> Tutor
-                        Principal</button>
-                    <button class="btn btn-default btn-block text-left"
-                        onclick="confirmAnchor('tel_emergencia', '961-000-0000')"><i class="fa fa-phone"></i> Tel.
-                        Emergencia</button>
-                    <button class="btn btn-default btn-block text-left"
                         onclick="confirmAnchor('autorizado1', 'AUTORIZADO 1')"><i class="fa fa-check-square-o"></i>
                         Autorizado 1</button>
                     <button class="btn btn-default btn-block text-left"
@@ -966,6 +1027,15 @@
                         Autorizado 2</button>
                     <button class="btn btn-default btn-block text-left"
                         onclick="confirmAnchor('autorizado3', 'AUTORIZADO 3')"><i class="fa fa-check-square-o"></i>
+                        Autorizado 3</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('tel_autorizado1', '961-000-0001')"><i class="fa fa-phone"></i> Tel.
+                        Autorizado 1</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('tel_autorizado2', '961-000-0002')"><i class="fa fa-phone"></i> Tel.
+                        Autorizado 2</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('tel_autorizado3', '961-000-0003')"><i class="fa fa-phone"></i> Tel.
                         Autorizado 3</button>
 
                     <hr style="margin: 10px 0;">
@@ -996,6 +1066,12 @@
         const wrapperPrincipal = document.getElementById('wrapper-principal');
         const isModeVisual = wrapperPrincipal.classList.contains('modo-visualizacion');
         if (isModeVisual) document.body.classList.add('modo-visualizacion-body');
+
+        // Cualquier tipo que empiece con "foto" (foto, foto_autorizado1, foto_autorizado2, foto_autorizado3)
+        // o el logo, se trata como elemento gráfico (imagen) en el editor.
+        function isFotoType(type) {
+            return type === 'logo' || (typeof type === 'string' && type.startsWith('foto'));
+        }
 
         function switchFace(face) {
             currentFace = face;
@@ -1060,7 +1136,7 @@
         });
 
         function checkOverflow(el) {
-            if (isModeVisual || el.dataset.type === 'foto' || el.dataset.type === 'logo') return;
+            if (isModeVisual || isFotoType(el.dataset.type)) return;
             const span = el.querySelector('.content-span');
             if (!span) return;
 
@@ -1137,13 +1213,22 @@
                     'grupo': 'grupo',
                     'ciclo': 'ciclo',
                     'sangre': 'sangre',
-                    'tutor': 'tutor',
-                    'tel_emergencia': 'emergencia',
                     'autorizado1': 'autorizado1',
                     'autorizado2': 'autorizado2',
                     'autorizado3': 'autorizado3',
+                    'tel_autorizado1': 'telAutorizado1',
+                    'tel_autorizado2': 'telAutorizado2',
+                    'tel_autorizado3': 'telAutorizado3',
                     'director': 'director',
                     'puesto_director': 'puesto_director'
+                };
+
+                // Tipos de foto -> atributo data-* correspondiente en el canvas
+                const mapFoto = {
+                    'foto': 'foto',
+                    'foto_autorizado1': 'fotoAutorizado1',
+                    'foto_autorizado2': 'fotoAutorizado2',
+                    'foto_autorizado3': 'fotoAutorizado3'
                 };
 
                 let isEmpty = false;
@@ -1158,8 +1243,8 @@
                     }
                 }
 
-                if (data.type === 'foto') {
-                    fotoUrl = canvas.dataset.foto; // ya estaba bien
+                if (mapFoto[data.type]) {
+                    fotoUrl = canvas.dataset[mapFoto[data.type]];
                     if (!fotoUrl || fotoUrl.trim() === '') isEmpty = true;
                 }
 
@@ -1175,7 +1260,7 @@
                 }
             }
 
-            if (data.type === 'foto' || data.type === 'logo') {
+            if (isFotoType(data.type)) {
                 el.style.padding = '0';
                 el.style.border = isModeVisual ? 'none' : '1px dashed #ccc';
                 el.style.display = 'flex';
@@ -1406,7 +1491,7 @@
             document.getElementById('ctx-chevron').classList.remove('open');
 
             // Poblar valores actuales
-            const isMedia = (el.dataset.type === 'foto' || el.dataset.type === 'logo');
+            const isMedia = isFotoType(el.dataset.type);
             const propText = document.getElementById('prop-text');
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
             propText.disabled = isMedia;
@@ -1428,7 +1513,7 @@
         function updateLive() {
             if (!selected) return;
             const span = selected.querySelector('.content-span');
-            if (selected.dataset.type !== 'foto' && selected.dataset.type !== 'logo') span.innerText = document
+            if (!isFotoType(selected.dataset.type)) span.innerText = document
                 .getElementById('prop-text').value;
             selected.style.fontSize = document.getElementById('prop-size').value + 'px';
             document.getElementById('txt-size').innerText = document.getElementById('prop-size').value;
@@ -1496,7 +1581,7 @@
             const id = 'el_' + Date.now();
             let defaultW = 'auto';
             let defaultH = 'auto';
-            if (type === 'foto') {
+            if (type === 'foto' || type.startsWith('foto_autorizado')) {
                 defaultW = '100px';
                 defaultH = '130px';
             }
@@ -1535,11 +1620,12 @@
                 'Grupo:':         { type: 'grupo',           text: 'A'                  },
                 'Ciclo Escolar:': { type: 'ciclo',           text: '2025-2026'          },
                 'Tipo Sangre:':   { type: 'sangre',          text: 'O+'                 },
-                'Tutor:':         { type: 'tutor',           text: 'NOMBRE DEL TUTOR'   },
-                'Tel. Emergencia:':{ type: 'tel_emergencia', text: '961-000-0000'       },
                 'Autorizado 1:':  { type: 'autorizado1',     text: 'AUTORIZADO 1'       },
                 'Autorizado 2:':  { type: 'autorizado2',     text: 'AUTORIZADO 2'       },
                 'Autorizado 3:':  { type: 'autorizado3',     text: 'AUTORIZADO 3'       },
+                'Tel. Autorizado 1:': { type: 'tel_autorizado1', text: '961-000-0001'   },
+                'Tel. Autorizado 2:': { type: 'tel_autorizado2', text: '961-000-0002'   },
+                'Tel. Autorizado 3:': { type: 'tel_autorizado3', text: '961-000-0003'   },
                 'Director:':      { type: 'director',        text: 'LIC. JUAN PÉREZ'    },
                 'Firma:':         null,
             };
