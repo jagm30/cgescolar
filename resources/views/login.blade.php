@@ -10,13 +10,13 @@
     {{-- 1. SCRIPT DE CLOUDFLARE (En el head) --}}
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
-    {{-- ... resto de tus links CSS ... --}}
     <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}">
     <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../../bower_components/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="../../dist/css/AdminLTE.min.css">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
+
     {{-- ESTILOS DE LA PÁGINA --}}
     <style>
         /* Fondo general y estructura Flexbox para el scroll */
@@ -26,17 +26,17 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            /* Mantiene Navbar arriba, Footer abajo, y Caja en medio */
             margin: 0;
         }
 
         /* =========================================
-           1. NAVBAR DEL CLIENTE (GENKI SCHOOL)
+           1. NAVBAR DEL CLIENTE (MÁS COMPACTO)
            ========================================= */
         .client-navbar {
             background-color: #ffffff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 15px 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            padding: 8px 20px;
+            /* Reducido para laptops */
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -47,35 +47,38 @@
         .client-brand {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .client-brand img {
-            height: 35px;
+            height: 28px;
+            /* Más pequeño */
             width: auto;
         }
 
         .client-brand span {
             color: #0b3c50;
             font-weight: 700;
-            font-size: 15px;
+            font-size: 13px;
+            /* Reducido */
             letter-spacing: 0.5px;
         }
 
         .client-links {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
         }
 
         .client-links a {
             color: #64748b;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 12px;
+            /* Reducido */
             transition: color 0.3s;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
 
         .client-links a:hover {
@@ -85,10 +88,11 @@
         .btn-wa-client {
             background-color: #25D366;
             color: #ffffff !important;
-            padding: 6px 15px;
+            padding: 4px 12px;
+            /* Reducido */
             border-radius: 20px;
             font-weight: 700 !important;
-            box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);
+            box-shadow: 0 2px 4px rgba(37, 211, 102, 0.3);
         }
 
         .btn-wa-client:hover {
@@ -104,13 +108,15 @@
             align-items: center;
             justify-content: center;
             flex-grow: 1;
-            /* Ocupa todo el espacio restante */
-            padding: 50px 20px;
+            padding: 30px 15px;
+            /* Reducido para no generar scroll en 720p */
         }
 
         .login-box {
             margin: 0 !important;
-            width: 540px;
+            width: 100%;
+            max-width: 520px;
+            /* Ajuste para laptops */
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             border-radius: 12px;
             overflow: hidden;
@@ -118,20 +124,60 @@
 
         .login-box-header {
             background-color: #0b3c50;
-            padding: 45px 30px 35px 30px;
+            padding: 35px 25px 25px 25px;
+            /* Reducido */
             text-align: center;
             border-bottom: 5px solid #3c8dbc;
         }
 
+        /* ESTILOS DE LOGOS RESPONSIVOS */
+        .logos-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .logo-kotan {
+            width: 150px;
+            height: auto;
+            max-width: 45%;
+            /* Evita que crezca más del contenedor */
+        }
+
+        .logo-separator {
+            height: 60px;
+            width: 2px;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+        }
+
+        .logo-genki-wrapper {
+            background-color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            max-width: 45%;
+            /* Evita que rompa en celular */
+        }
+
+        .logo-genki {
+            width: 180px;
+            height: auto;
+            max-width: 100%;
+            /* Se adapta al envoltorio */
+        }
+
         .login-box-header a.logo-text {
             color: #ffffff !important;
-            font-size: 38px;
+            font-size: 34px;
+            /* Reducido */
             font-weight: 300;
             text-decoration: none;
             display: block;
             line-height: 1;
             font-family: 'Source Sans Pro', sans-serif;
-            margin-top: 5px;
         }
 
         .login-box-header a.logo-text b {
@@ -141,31 +187,33 @@
 
         .school-name {
             display: block;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #8aa4af;
-            margin-top: 15px;
+            margin-top: 10px;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
 
         .login-box-body {
             background: #ffffff;
-            padding: 40px 50px;
+            padding: 35px 40px;
+            /* Ajuste para laptops */
             color: #475569;
         }
 
         .login-box-msg {
             color: #64748b;
             font-weight: 600;
-            font-size: 15px;
-            padding: 0 0 25px 0;
+            font-size: 14px;
+            padding: 0 0 20px 0;
             text-align: center;
         }
 
         .form-control {
             border-radius: 8px !important;
-            height: 50px;
+            height: 45px;
+            /* Más compacto */
             border: 1px solid #d2d6de;
             color: #2c3e50;
             font-size: 14px;
@@ -179,20 +227,20 @@
         }
 
         .form-control-feedback {
-            line-height: 50px;
+            line-height: 45px;
             color: #64748b;
         }
 
         .btn-primary {
             border-radius: 25px !important;
             font-weight: 700;
-            padding: 12px 0;
+            padding: 10px 0;
             background-color: #3c8dbc;
             border: none;
             box-shadow: 0 4px 8px rgba(60, 141, 188, 0.3);
             transition: all 0.3s ease;
-            font-size: 16px;
-            margin-top: 15px;
+            font-size: 15px;
+            margin-top: 10px;
         }
 
         .btn-primary:hover {
@@ -202,21 +250,19 @@
         }
 
         /* =========================================
-           3. FOOTER CORPORATIVO (KOTAN ESCOLAR)
+           3. FOOTER CORPORATIVO
            ========================================= */
         .kotan-footer {
             background-color: #0b3c50;
-            /* Mismo azul oscuro corporativo */
             color: #8aa4af;
-            padding: 50px 30px 20px 30px;
+            padding: 40px 20px 15px 20px;
             border-top: 5px solid #48c4a1;
-            /* Acento menta */
         }
 
         .footer-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
+            gap: 20px;
             max-width: 1200px;
             margin: 0 auto;
         }
@@ -224,13 +270,13 @@
         .footer-col h4 {
             color: #ffffff;
             font-weight: 700;
-            margin-bottom: 15px;
-            font-size: 16px;
+            margin-bottom: 12px;
+            font-size: 15px;
         }
 
         .footer-col p {
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
         }
 
         .footer-wa-btn {
@@ -238,13 +284,13 @@
             align-items: center;
             gap: 8px;
             background-color: #48c4a1;
-            /* Menta de Kotan */
             color: #0b3c50 !important;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 25px;
             font-weight: 700;
             margin-top: 10px;
             text-decoration: none;
+            font-size: 13px;
             transition: all 0.3s;
         }
 
@@ -257,16 +303,16 @@
         .footer-bottom {
             text-align: center;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 40px;
-            padding-top: 20px;
+            margin-top: 30px;
+            padding-top: 15px;
             font-size: 12px;
         }
 
-        /* Responsividad básica */
+        /* RESPONSIVIDAD PARA CELULARES Y PANTALLAS PEQUEÑAS */
         @media (max-width: 768px) {
             .client-navbar {
                 flex-direction: column;
-                gap: 15px;
+                gap: 10px;
                 text-align: center;
             }
 
@@ -275,18 +321,56 @@
                 flex-wrap: wrap;
             }
 
-            .login-box {
-                width: 95%;
+            .login-box-header {
+                padding: 25px 15px 20px 15px;
             }
 
-            .login-box-header div {
+            .login-box-body {
+                padding: 25px 20px;
+            }
+
+            /* Ajuste de logos en celular */
+            .logos-container {
+                gap: 10px;
+            }
+
+            .logo-kotan {
+                width: 110px;
+            }
+
+            .logo-genki-wrapper {
+                padding: 8px 10px;
+            }
+
+            .logo-genki {
+                width: 130px;
+            }
+
+            .logo-separator {
+                height: 45px;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            /* En teléfonos muy pequeños, apilamos los logos */
+            .logos-container {
                 flex-direction: column;
                 gap: 15px;
             }
 
-            .login-box-header div>div {
-                height: 2px !important;
-                width: 80px !important;
+            .logo-separator {
+                height: 2px;
+                width: 50%;
+            }
+
+            .logo-kotan {
+                width: 130px;
+                max-width: 100%;
+            }
+
+            .logo-genki-wrapper {
+                max-width: 100%;
             }
         }
     </style>
@@ -294,10 +378,9 @@
 
 <body class="hold-transition login-page">
 
-    {{-- NAVBAR DEL CLIENTE (GENKI SCHOOL) --}}
+    {{-- NAVBAR DEL CLIENTE --}}
     <nav class="client-navbar">
         <div class="client-brand">
-            {{-- Logo en base64 proporcionado --}}
             <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAcCAMAAABMOI/cAAAAWlBMVEVHcExILHEGKZ/ILT/BLUTzLiAbK4DbLjPNLTzSLToHJNjULTfrLiaELGB+LGK8LUezLUvFLUEaK3oaK3qiLVOPLVuQLFsaK3kHK4IZK3oVK3zjLi0YK3oZK3r4bBaNAAAAHnRSTlMAORPWtv8h/+z0Bf3/UHalisjH5nugaf8tW0f/rIrca4iqAAABM0lEQVR4AXXNBYKEMAxA0d9CaoRFt2GmzP2Pue7y6pKEL5znb13/z73IXy8hSsqSCj8NOsKddHzjcTIBdOrxH7fzoHGRkXVjliVq2gHuB5W8RJGK2TGJpD5LTHd4lR2YZMHMJ60vhwjkBMeFKbJZ0Z3rFdoCdB2YbTjO52k188QJmJrnZmaHN3N+M1upsgNO80F4frpcn6bzoLbmAXbV3AfsAsGK6wdpIwAuSssjq4Ni1NwkB4DQdIfjtA1Oe36eNRZglop7qnl7KnO+lGKXCiwRno5XODcIZlZoE5AGuK2+DqxW4sh5QlygNBmBqh1m5PZykAHuo+i0Lyo7ZmESXfZeNVbA9U00yYgZsySVOAVeUJx3MuMDvfjg+CY2D04TP7nWpl5j4BefRbrCX4aOv42BT4+SPhJws58WdwAAAABJRU5ErkJggg=="
                 alt="Logo Genki Pequeño">
             <span>Inscripciones Abiertas | Conoce más</span>
@@ -309,7 +392,6 @@
                 title="Facebook"><i class="fa fa-facebook-official"></i> Facebook</a>
             <a href="https://www.instagram.com/colegiojaponesgenki/" target="_blank" title="Instagram"><i
                     class="fa fa-instagram"></i> Instagram</a>
-            {{-- Enlace API de WhatsApp (52 es código de México) --}}
             <a href="https://wa.me/529611364088" target="_blank" class="btn-wa-client"><i class="fa fa-whatsapp"></i>
                 Chat Directo</a>
         </div>
@@ -320,30 +402,21 @@
         <div class="login-box">
             {{-- ENCABEZADO OSCURO --}}
             <div class="login-box-header">
-                <div
-                    style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 25px;">
-                    {{-- Logo del Sistema --}}
-                    <img src="{{ asset('dist/img/Kotan3.png') }}" alt="Kotan Logo" style="width: 170px; height: auto;">
+                {{-- NUEVA ESTRUCTURA DE LOGOS RESPONSIVOS --}}
+                <div class="logos-container">
+                    <img src="{{ asset('dist/img/Kotan3.png') }}" alt="Kotan Logo" class="logo-kotan">
 
-                    {{-- Línea separadora --}}
-                    <div
-                        style="height: 80px; width: 2px; background-color: rgba(255, 255, 255, 0.15); border-radius: 2px;">
-                    </div>
+                    <div class="logo-separator"></div>
 
-                    {{-- Placa Blanca para el Logo del Cliente --}}
-                    <div
-                        style="background-color: #ffffff; padding: 15px 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                        <img src="{{ asset('dist/img/genki1.png') }}" alt="Colegio Logo"
-                            style="width: 220px; height: auto;">
+                    <div class="logo-genki-wrapper">
+                        <img src="{{ asset('dist/img/genki1.png') }}" alt="Colegio Logo" class="logo-genki">
                     </div>
                 </div>
 
-                {{-- Textos (Kotan en menta, Escolar en blanco) --}}
                 <a href="{{ route('login') }}" class="logo-text"><b>Kotan</b>Escolar</a>
                 <span class="school-name">GENKI SCHOOL TUXTLA</span>
             </div>
 
-            {{-- CUERPO DEL FORMULARIO --}}
             {{-- CUERPO DEL FORMULARIO --}}
             <div class="login-box-body">
                 <p class="login-box-msg">Ingresa tus credenciales para acceder</p>
@@ -351,7 +424,6 @@
                 <form action="{{ route('login.submit') }}" method="post">
                     @csrf
 
-                    {{-- CAMPO DE CORREO (Corregido, sin duplicar) --}}
                     <div class="form-group has-feedback">
                         <input type="email" name="email" class="form-control" placeholder="Correo electrónico"
                             value="{{ old('email') }}" required autocomplete="off">
@@ -362,7 +434,6 @@
                         @enderror
                     </div>
 
-                    {{-- CAMPO DE CONTRASEÑA (Restauré el ícono del "ojito" y el ID) --}}
                     <div class="form-group has-feedback" style="margin-bottom: 20px;">
                         <input type="password" name="password" class="form-control" id="password"
                             placeholder="Contraseña" required>
@@ -370,9 +441,9 @@
                             style="cursor: pointer; pointer-events: auto;" title="Mostrar/Ocultar contraseña"></span>
                     </div>
 
-                    {{-- WIDGET DE TURNSTILE (Corregido, alineado y sin divs rotos) --}}
+                    {{-- WIDGET DE TURNSTILE --}}
                     <div class="form-group text-center"
-                        style="margin-bottom: 20px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        style="margin-bottom: 15px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                         <div class="cf-turnstile" data-sitekey="{{ env('TURNSTILE_SITE_KEY') }}" data-theme="light">
                         </div>
 
@@ -382,7 +453,6 @@
                         @enderror
                     </div>
 
-                    {{-- BOTÓN --}}
                     <div class="row">
                         <div class="col-xs-12">
                             <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
@@ -393,7 +463,7 @@
         </div>
     </div>
 
-    {{-- FOOTER CORPORATIVO (KOTAN ESCOLAR) --}}
+    {{-- FOOTER CORPORATIVO --}}
     <footer class="kotan-footer">
         <div class="footer-grid">
             <div class="footer-col">
@@ -419,9 +489,8 @@
                 <h4>¿Te interesa nuestro sistema?</h4>
                 <p>Para contrataciones, cotizaciones o demostraciones del sistema, comunícate directamente con nuestro
                     equipo comercial.</p>
-                {{-- Enlace API de WhatsApp de Kotan --}}
                 <a href="https://wa.me/529191123147" target="_blank" class="footer-wa-btn">
-                    <i class="fa fa-whatsapp" style="font-size: 18px;"></i> 919 112 3147
+                    <i class="fa fa-whatsapp" style="font-size: 16px;"></i> 919 112 3147
                 </a>
             </div>
         </div>
