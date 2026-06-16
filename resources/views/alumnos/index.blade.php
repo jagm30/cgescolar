@@ -8,529 +8,55 @@
 @endsection
 
 @push('styles')
-    <style>
-        /* ══════════════════════════════════════════
-                                                                                           ESTADÍSTICAS
-                                                                                        ══════════════════════════════════════════ */
-        .alm-stats {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .alm-stat-card {
-            flex: 1;
-            min-width: 130px;
-            background: #fff;
-            border: 1px solid #e4eaf0;
-            border-top: 3px solid #3c8dbc;
-            border-radius: 6px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
-        }
-
-        .alm-stat-card.verde {
-            border-top-color: #00a65a;
-        }
-
-        .alm-stat-card.naranja {
-            border-top-color: #f39c12;
-        }
-
-        .alm-stat-card.morado {
-            border-top-color: #8e44ad;
-        }
-
-        .alm-stat-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #eaf3fb;
-            flex-shrink: 0;
-        }
-
-        .alm-stat-icon.verde {
-            background: #e8f8f0;
-        }
-
-        .alm-stat-icon.naranja {
-            background: #fef6e7;
-        }
-
-        .alm-stat-icon.morado {
-            background: #f5eefb;
-        }
-
-        .alm-stat-num {
-            font-size: 26px;
-            font-weight: 800;
-            line-height: 1;
-            color: #222;
-        }
-
-        .alm-stat-lbl {
-            font-size: 11px;
-            color: #999;
-            margin-top: 2px;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        /* ══════════════════════════════════════════
-                                                                                           TOOLBAR
-                                                                                        ══════════════════════════════════════════ */
-        .alm-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 18px;
-            border-bottom: 1px solid #e8ecf0;
-            background: #f9fafb;
-            border-radius: 4px 4px 0 0;
-            flex-wrap: wrap;
-        }
-
-        .alm-search-wrap {
-            flex: 1;
-            min-width: 200px;
-            max-width: 360px;
-            position: relative;
-        }
-
-        .alm-search-wrap .form-control {
-            padding-left: 38px;
-            border-radius: 20px !important;
-            border: 1px solid #d0dbe6;
-            height: 36px;
-            font-size: 13px;
-            background: #fff;
-            box-shadow: none;
-            transition: border-color .15s, box-shadow .15s;
-        }
-
-        .alm-search-wrap .form-control:focus {
-            border-color: #3c8dbc;
-            box-shadow: 0 0 0 3px rgba(60, 141, 188, .12);
-        }
-
-        .alm-search-icon {
-            position: absolute;
-            left: 13px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #aab;
-            font-size: 14px;
-            pointer-events: none;
-        }
-
-        .alm-search-clear {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #aab;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: none;
-            line-height: 1;
-        }
-
-        .alm-search-clear:hover {
-            color: #dd4b39;
-        }
-
-        .alm-select {
-            height: 36px !important;
-            border-radius: 6px !important;
-            border: 1px solid #d0dbe6 !important;
-            font-size: 12px !important;
-            color: #555 !important;
-            padding: 0 8px !important;
-            background: #fff !important;
-            min-width: 120px;
-            max-width: 160px;
-        }
-
-        .alm-count-badge {
-            background: #e8f0fb;
-            color: #3c8dbc;
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 12px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        /* ══════════════════════════════════════════
-                                                                                           TABLA
-                                                                                        ══════════════════════════════════════════ */
-        .alm-table {
-            margin: 0;
-            border-collapse: separate;
-            border-spacing: 0;
-            width: 100%;
-        }
-
-        .alm-table thead tr th {
-            background: #f4f6f8;
-            color: #6b7a8d;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            padding: 10px 14px;
-            border-bottom: 2px solid #e0e6ed;
-            border-top: none;
-            white-space: nowrap;
-        }
-
-        .alm-table tbody tr {
-            border-bottom: 1px solid #f0f3f7;
-            transition: background .1s;
-        }
-
-        .alm-table tbody tr[data-href] {
-            cursor: pointer;
-        }
-
-        .alm-table tbody tr:last-child {
-            border-bottom: none;
-        }
-
-        .alm-table tbody tr:hover td {
-            background: #f0f7ff !important;
-        }
-
-        .alm-table td {
-            padding: 10px 14px;
-            vertical-align: middle;
-            font-size: 13px;
-        }
-
-        /* Avatar */
-        .alm-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #e8ecf0;
-            display: block;
-        }
-
-        .alm-avatar-placeholder {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3c8dbc, #2c6fad);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 14px;
-            font-weight: 800;
-            color: #fff;
-            box-shadow: 0 2px 6px rgba(60, 141, 188, .25);
-        }
-
-        .alm-avatar-placeholder.baja_temporal {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            box-shadow: 0 2px 6px rgba(243, 156, 18, .3);
-        }
-
-        .alm-avatar-placeholder.baja_definitiva {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            box-shadow: 0 2px 6px rgba(231, 76, 60, .3);
-        }
-
-        .alm-avatar-placeholder.egresado {
-            background: linear-gradient(135deg, #8e44ad, #6c3483);
-            box-shadow: 0 2px 6px rgba(142, 68, 173, .3);
-        }
-
-        /* Nombre */
-        .alm-nombre {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1a2634;
-            line-height: 1.2;
-        }
-
-        .alm-sub {
-            font-size: 11px;
-            color: #aab;
-            margin-top: 2px;
-        }
-
-        .alm-matricula {
-            font-family: monospace;
-            font-size: 12px;
-            background: #f0f3f7;
-            padding: 2px 7px;
-            border-radius: 4px;
-            color: #4a5568;
-            border: 1px solid #e2e8f0;
-        }
-
-        /* Nivel badge */
-        .alm-nivel-tag {
-            display: inline-block;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 10px;
-            background: #e8f3ff;
-            color: #2c6fad;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            margin-bottom: 3px;
-        }
-
-        .alm-grupo-txt {
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        /* Familia */
-        .alm-familia-lnk {
-            font-size: 13px;
-            color: #3c8dbc;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .alm-familia-lnk:hover {
-            text-decoration: underline;
-            color: #2c6fad;
-        }
-
-        /* Estado badge */
-        .alm-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 12px;
-            letter-spacing: .02em;
-            white-space: nowrap;
-        }
-
-        .alm-badge-activo {
-            background: #e8f8f0;
-            color: #00875a;
-            border: 1px solid #b3e8d0;
-        }
-
-        .alm-badge-baja_temporal {
-            background: #fff8e6;
-            color: #b45309;
-            border: 1px solid #fcd97d;
-        }
-
-        .alm-badge-baja_definitiva {
-            background: #fdecea;
-            color: #b91c1c;
-            border: 1px solid #fca5a5;
-        }
-
-        .alm-badge-egresado {
-            background: #f3e8fd;
-            color: #6b21a8;
-            border: 1px solid #d8b4fe;
-        }
-
-        /* Acciones */
-        .alm-acciones {
-            display: flex;
-            gap: 4px;
-        }
-
-        /* ══════════════════════════════════════════
-                           DROPDOWN ESTILO SAAS (Igual al de Grupos)
-                        ══════════════════════════════════════════ */
-        .btn-action-flat {
-            width: 30px;
-            height: 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            background: #f8f9fa;
-            color: #7f8c8d;
-            border: none;
-            transition: all 0.2s;
-        }
-
-        .btn-action-flat:hover {
-            background: #eef2f5;
-            color: #34495e;
-        }
-
-        .dropdown.open .dropdown-menu {
-            display: block !important;
-            z-index: 9999 !important;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-            border: 1px solid #eee;
-            margin-top: 5px;
-            border-radius: 8px;
-        }
-
-        .dropdown-menu>li>a {
-            padding: 10px 15px;
-            font-size: 13px;
-            color: #444;
-            transition: background 0.1s;
-        }
-
-        .dropdown-menu>li>a:hover {
-            background-color: #f0f7ff !important;
-            color: #3c8dbc !important;
-        }
-
-        /* ══════════════════════════════════════════
-                                                                                           EMPTY STATE
-                                                                                        ══════════════════════════════════════════ */
-        .alm-empty {
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        .alm-empty i {
-            font-size: 52px;
-            display: block;
-            margin-bottom: 16px;
-            color: #dde4ea;
-        }
-
-        .alm-empty h4 {
-            font-size: 16px;
-            color: #999;
-            margin: 0 0 8px;
-        }
-
-        .alm-empty p {
-            font-size: 13px;
-            color: #bbb;
-            margin: 0 0 20px;
-        }
-
-        /* ══════════════════════════════════════════
-                                                                                           FOOTER / PAGINACIÓN
-                                                                                        ══════════════════════════════════════════ */
-        .alm-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 18px;
-            border-top: 1px solid #edf1f5;
-            background: #f9fafb;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .alm-footer-info {
-            font-size: 12px;
-            color: #aaa;
-        }
-
-        .alm-footer .pagination {
-            margin: 0;
-        }
-
-        .alm-footer .pagination>li>a,
-        .alm-footer .pagination>li>span {
-            border-color: #dde4eb;
-            color: #3c8dbc;
-            font-size: 12px;
-            padding: 4px 10px;
-        }
-
-        .alm-footer .pagination>.active>a,
-        .alm-footer .pagination>.active>span {
-            background: #3c8dbc;
-            border-color: #3c8dbc;
-        }
-
-        /* ── FIX: EVITAR QUE LA TABLA CORTE LOS DROPDOWNS ── */
-        .box,
-        .box-body,
-        .table-responsive {
-            overflow: visible !important;
-        }
-
-        .con-table {
-            overflow: visible !important;
-        }
-
-        /* Asegurarnos que la celda de acciones tampoco esconda el menú */
-        .con-table td {
-            overflow: visible !important;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/alumnos.css') }}">
 @endpush
 
 @section('content')
 
     @if (session('success'))
-        <div class="alert alert-success alert-dismissible" style="border-radius:6px;">
+        <div class="alert alert-success alert-dismissible alm-alert">
             <button type="button" class="close" data-dismiss="alert">&times;</button>
             <i class="fa fa-check-circle"></i> {{ session('success') }}
         </div>
     @endif
 
-    {{-- ══ ESTADÍSTICAS ══ --}}
-    <div class="alm-stats">
-        <div class="alm-stat-card">
-            <div class="alm-stat-icon">
-                <i class="fa fa-users" style="color:#3c8dbc;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="alm-stat-num">{{ $statsTotal ?? $alumnos->total() }}</div>
-                <div class="alm-stat-lbl">Total alumnos</div>
-            </div>
-        </div>
-        <div class="alm-stat-card verde">
-            <div class="alm-stat-icon verde">
-                <i class="fa fa-check-circle" style="color:#00a65a;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="alm-stat-num">{{ $statsActivos ?? '—' }}</div>
-                <div class="alm-stat-lbl">Alumnos activos</div>
-            </div>
-        </div>
-        <div class="alm-stat-card naranja">
-            <div class="alm-stat-icon naranja">
-                <i class="fa fa-graduation-cap" style="color:#f39c12;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="alm-stat-num">{{ $statsInscritos ?? '—' }}</div>
-                <div class="alm-stat-lbl">Inscritos este ciclo</div>
+    {{-- ══ ENCABEZADO + STATS ══ --}}
+    <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+                <i class="fa fa-users text-blue"></i> Alumnos
+            </h4>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-users"></i> {{ $statsTotal ?? $alumnos->total() }} total
+                </span>
+                <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-check-circle"></i> {{ $statsActivos ?? '—' }} activos
+                </span>
+                <span style="background:#fef6e7;color:#b45309;border:1px solid #fcd97d;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-graduation-cap"></i> {{ $statsInscritos ?? '—' }} inscritos
+                </span>
+                <span style="background:#f5eef8;color:#7d3c98;border:1px solid #ebdef0;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-th-large"></i> {{ $grupos->count() }} grupos
+                </span>
             </div>
         </div>
-        <div class="alm-stat-card morado">
-            <div class="alm-stat-icon morado">
-                <i class="fa fa-th-large" style="color:#8e44ad;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="alm-stat-num">{{ $grupos->count() }}</div>
-                <div class="alm-stat-lbl">Grupos activos</div>
-            </div>
-        </div>
+        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+            <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;flex-shrink:0;">
+                <i class="fa fa-plus"></i> Registrar alumno
+            </a>
+        @endif
     </div>
 
     {{-- ══ PANEL PRINCIPAL ══ --}}
-    <div class="box"
-        style="border-radius:8px;border:1px solid #e0e7ef;box-shadow:0 2px 10px rgba(0,0,0,.05);overflow:hidden;">
+    <div class="box alm-box">
 
         {{-- Toolbar ─────────────────────────────────── --}}
         <form method="GET" action="{{ route('alumnos.index') }}" id="form-filtros">
@@ -570,39 +96,34 @@
                 </select>
 
                 {{-- Filtro estado --}}
-                <div class="btn-group" style="flex-shrink:0;">
+                <div class="btn-group alm-btn-estado-group">
                     <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), [])) }}"
-                        class="btn btn-sm btn-flat {{ !request()->filled('estado') ? 'btn-primary' : 'btn-default' }}"
-                        style="border-radius:4px 0 0 4px;font-size:12px;">
+                        class="btn btn-sm btn-flat alm-btn-estado {{ !request()->filled('estado') ? 'btn-primary' : 'btn-default' }}">
                         Todos
                     </a>
                     <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), ['estado' => 'activo'])) }}"
-                        class="btn btn-sm btn-flat {{ request('estado') === 'activo' ? 'btn-success' : 'btn-default' }}"
-                        style="font-size:12px;">
+                        class="btn btn-sm btn-flat alm-btn-estado {{ request('estado') === 'activo' ? 'btn-success' : 'btn-default' }}">
                         Activos
                     </a>
                     <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), ['estado' => 'baja_temporal'])) }}"
-                        class="btn btn-sm btn-flat {{ request('estado') === 'baja_temporal' ? 'btn-warning' : 'btn-default' }}"
-                        style="font-size:12px;">
+                        class="btn btn-sm btn-flat alm-btn-estado {{ request('estado') === 'baja_temporal' ? 'btn-warning' : 'btn-default' }}">
                         Baja temporal
                     </a>
                     <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), ['estado' => 'egresado'])) }}"
-                        class="btn btn-sm btn-flat {{ request('estado') === 'egresado' ? 'btn-default active' : 'btn-default' }}"
-                        style="border-radius:0 4px 4px 0;font-size:12px;">
+                        class="btn btn-sm btn-flat alm-btn-estado {{ request('estado') === 'egresado' ? 'btn-default active' : 'btn-default' }}">
                         Egresados
                     </a>
                 </div>
 
                 {{-- Botón buscar (si escribe y da Enter o clic) --}}
-                <button type="submit" class="btn btn-primary btn-flat btn-sm"
-                    style="border-radius:20px;padding:5px 14px;flex-shrink:0;">
+                <button type="submit" class="btn btn-primary btn-flat btn-sm alm-btn-pill">
                     <i class="fa fa-search"></i> Buscar
                 </button>
 
                 {{-- Limpiar filtros --}}
                 @if (request()->anyFilled(['buscar', 'nivel_id', 'grupo_id', 'estado']))
-                    <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-flat btn-sm"
-                        style="border-radius:20px;padding:5px 14px;flex-shrink:0;" title="Quitar todos los filtros">
+                    <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-flat btn-sm alm-btn-pill"
+                        title="Quitar todos los filtros">
                         <i class="fa fa-times"></i>
                     </a>
                 @endif
@@ -615,14 +136,6 @@
                     </span>
                 @endif
 
-                {{-- Nuevo alumno --}}
-                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
-                    <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-flat btn-sm"
-                        style="border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;">
-                        <i class="fa fa-plus"></i> Registrar alumno
-                    </a>
-                @endif
-
             </div>
         </form>
 
@@ -631,13 +144,14 @@
             <table class="alm-table">
                 <thead>
                     <tr>
-                        <th style="width:52px;"></th>
-                        <th style="width:11%;">Matrícula</th>
-                        <th style="width:26%;">Nombre</th>
-                        <th style="width:20%;">Nivel / Grupo</th>
-                        <th style="width:18%;">Familia</th>
-                        <th style="width:10%;">Estado</th>
-                        <th style="width:10%;" class="text-center">Acciones</th>
+                        <th></th>
+                        <th>Matrícula</th>
+                        <th>Nombre</th>
+                        <th>Nivel / Grupo</th>
+                        <th>Plan de pagos</th>
+                        <th>Familia</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -682,10 +196,22 @@
                                         <strong>{{ $inscripcion->grupo->nombre ?? '' }}</strong>
                                     </div>
                                 @else
-                                    <span class="alm-badge"
-                                        style="background-color: #fcf1d4; color: #f39c12; padding: 4px 8px;">
-                                        <i class="fa fa-exclamation-triangle" style="margin-right: 3px;"></i> Sin Grupo
+                                    <span class="alm-badge alm-badge-sin-grupo">
+                                        <i class="fa fa-exclamation-triangle"></i> Sin Grupo
                                     </span>
+                                @endif
+                            </td>
+
+                            {{-- PLAN DE PAGOS --}}
+                            <td>
+                                @php $plan = $alumno->asignacionesPlanes->first()?->plan; @endphp
+                                @if ($plan)
+                                    <span style="font-size:12px;font-weight:600;color:#2c5282;">
+                                        <i class="fa fa-file-text-o" style="color:#3c8dbc;margin-right:4px;"></i>
+                                        {{ $plan->nombre }}
+                                    </span>
+                                @else
+                                    <span style="font-size:12px;color:#b0bec5;">—</span>
                                 @endif
                             </td>
 
@@ -694,18 +220,18 @@
                                 @if ($alumno->familia)
                                     <a href="{{ route('familias.show', $alumno->familia->id) }}" class="alm-familia-lnk"
                                         title="Ver familia">
-                                        <i class="fa fa-home" style="font-size:11px;opacity:.6;margin-right:3px;"></i>
+                                        <i class="fa fa-home alm-familia-ico"></i>
                                         {{ $alumno->familia->apellido_familia }}
                                     </a>
                                 @else
-                                    <span style="font-size:12px;color:#ccc;font-style:italic;">—</span>
+                                    <span class="alm-familia-none">—</span>
                                 @endif
                             </td>
 
                             {{-- ESTADO --}}
                             <td>
                                 <span class="alm-badge alm-badge-{{ $estado }}">
-                                    <i class="fa fa-circle" style="font-size:7px;"></i>
+                                    <i class="fa fa-circle alm-estado-dot"></i>
                                     @switch($estado)
                                         @case('activo')
                                             Activo
@@ -736,27 +262,21 @@
                                         data-toggle="dropdown">
                                         <i class="fa fa-ellipsis-v"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-right"
-                                        style="min-width: 200px; padding: 8px 0; border-radius: 8px;">
+                                    <ul class="dropdown-menu dropdown-menu-right alm-dropdown-menu-actions">
                                         <li class="dropdown-header">Opciones</li>
 
                                         {{-- 1. VER PERFIL --}}
                                         <li>
-                                            <a href="{{ route('alumnos.show', $alumno->id) }}"
-                                                style="padding: 8px 20px;">
-                                                <i class="fa fa-eye"
-                                                    style="color: #3498db; width:24px; text-align:center;"></i> Ver perfil
+                                            <a href="{{ route('alumnos.show', $alumno->id) }}" class="alm-dropdown-item">
+                                                <i class="fa fa-eye alm-dropdown-icon alm-dropdown-icon-blue"></i> Ver perfil
                                             </a>
                                         </li>
 
                                         {{-- 2. EDITAR (Condicionado a Admin o Recepción) --}}
                                         @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
                                             <li>
-                                                <a href="{{ route('alumnos.edit', $alumno->id) }}"
-                                                    style="padding: 8px 20px;">
-                                                    <i class="fa fa-pencil"
-                                                        style="color: #f39c12; width:24px; text-align:center;"></i> Editar
-                                                    alumno
+                                                <a href="{{ route('alumnos.edit', $alumno->id) }}" class="alm-dropdown-item">
+                                                    <i class="fa fa-pencil alm-dropdown-icon alm-dropdown-icon-orange"></i> Editar alumno
                                                 </a>
                                             </li>
                                         @endif
@@ -764,11 +284,8 @@
                                         {{-- 3. ESTADO DE CUENTA (Condicionado a Admin o Cajero) --}}
                                         @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
                                             <li>
-                                                <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                                                    style="padding: 8px 20px;">
-                                                    <i class="fa fa-money"
-                                                        style="color: #2ecc71; width:24px; text-align:center;"></i> Estado
-                                                    de cuenta
+                                                <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}" class="alm-dropdown-item">
+                                                    <i class="fa fa-money alm-dropdown-icon alm-dropdown-icon-green"></i> Estado de cuenta
                                                 </a>
                                             </li>
                                         @endif
@@ -779,21 +296,16 @@
                                         {{-- 4. DESCARGAR FICHA PDF --}}
                                         <li>
                                             <a href="{{ route('alumnos.reporte', $alumno->id) }}" target="_blank"
-                                                style="padding: 8px 20px;">
-                                                <i class="fa fa-file-pdf-o"
-                                                    style="color: #e74c3c; width:24px; text-align:center;"></i> Ficha del
-                                                alumno
+                                                class="alm-dropdown-item">
+                                                <i class="fa fa-file-pdf-o alm-dropdown-icon alm-dropdown-icon-red"></i> Ficha del alumno
                                             </a>
                                         </li>
 
                                         {{-- 5. IMPRIMIR CREDENCIAL (Abre el Modal) --}}
                                         <li>
-                                            <a href="javascript:void(0)" class="btn-abrir-modal-credencial"
-                                                data-id="{{ $alumno->id }}" data-tipo="individual"
-                                                style="padding: 8px 20px;">
-                                                <i class="fa fa-id-card"
-                                                    style="color: #17a2b8; width:24px; text-align:center;"></i> Imprimir
-                                                credencial
+                                            <a href="javascript:void(0)" class="btn-abrir-modal-credencial alm-dropdown-item"
+                                                data-id="{{ $alumno->id }}" data-tipo="individual">
+                                                <i class="fa fa-id-card alm-dropdown-icon alm-dropdown-icon-teal"></i> Imprimir credencial
                                             </a>
                                         </li>
                                         @endif
@@ -803,22 +315,20 @@
                         </tr>
                         @empty
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="alm-empty">
                                         <i class="fa fa-users"></i>
                                         @if (request()->anyFilled(['buscar', 'nivel_id', 'grupo_id', 'estado']))
                                             <h4>Sin resultados</h4>
                                             <p>No se encontraron alumnos con los filtros aplicados.</p>
-                                            <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-sm"
-                                                style="border-radius:20px;">
+                                            <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-sm alm-btn-pill">
                                                 <i class="fa fa-times"></i> Quitar filtros
                                             </a>
                                         @else
                                             <h4>No hay alumnos registrados</h4>
                                             <p>Registra el primer alumno del ciclo escolar.</p>
                                             @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
-                                                <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm"
-                                                    style="border-radius:20px;">
+                                                <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm alm-btn-pill">
                                                     <i class="fa fa-plus"></i> Registrar alumno
                                                 </a>
                                             @endif
@@ -838,7 +348,7 @@
                         Mostrando <strong>{{ $alumnos->firstItem() }}</strong>–<strong>{{ $alumnos->lastItem() }}</strong>
                         de <strong>{{ $alumnos->total() }}</strong> alumno(s)
                         @if (request()->anyFilled(['buscar', 'nivel_id', 'grupo_id', 'estado']))
-                            <span style="color:#3c8dbc;"> · filtrado</span>
+                            <span class="alm-filtro-label"> · filtrado</span>
                         @endif
                     </span>
                     <div>

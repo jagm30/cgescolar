@@ -540,12 +540,6 @@
             ->sortByDesc('id')
             ->first();
 
-        // Inscripción anticipada (próximo ciclo)
-        $inscAnticipada = $alumno->inscripciones
-            ->filter(fn($i) => $i->activo && $i->tipo === TipoInscripcion::Anticipada)
-            ->sortByDesc('id')
-            ->first();
-
         $totalInsc = $alumno->inscripciones->count();
         $totalContactos = $alumno->contactos->count();
         $totalDocs = $alumno->documentos->count();
@@ -594,16 +588,6 @@
                          display:inline-flex;align-items:center;gap:5px;">
                     <i class="fa fa-circle" style="font-size:7px;"></i> {{ $estadoBadge['txt'] }}
                 </span>
-                @if ($inscAnticipada)
-                    <span
-                        style="background:rgba(255,193,7,.25);color:#fff;border:1px solid rgba(255,193,7,.5);
-                               font-size:11px;font-weight:700;padding:3px 12px;border-radius:12px;
-                               display:inline-flex;align-items:center;gap:5px;"
-                        title="Inscrito anticipadamente al ciclo {{ $inscAnticipada->ciclo->nombre ?? '' }}">
-                        <i class="fa fa-calendar-plus-o" style="font-size:10px;"></i>
-                        Inscrito al {{ $inscAnticipada->ciclo->nombre ?? 'próximo ciclo' }}
-                    </span>
-                @endif
             </div>
         </div>
 
@@ -1115,50 +1099,6 @@
                 </div>
             @endif
 
-            {{-- Inscripción anticipada (solo si activo y sin anticipada vigente) --}}
-            @if (
-                (auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) &&
-                $alumno->estado === 'activo' &&
-                ! $inscAnticipada
-            )
-                <div class="info-card" style="border-color:#fcd97d;">
-                    <div class="info-card-header" style="background:#fffbf0;">
-                        <span class="info-card-title" style="color:#b45309;">
-                            <i class="fa fa-calendar-plus-o" style="margin-right:5px;color:#f39c12;"></i>
-                            Inscripción anticipada
-                        </span>
-                    </div>
-                    <div style="padding:14px 16px;">
-                        <p style="font-size:12px;color:#6b7a8d;margin:0 0 12px;">
-                            Registra al alumno en el siguiente ciclo escolar con descuento anticipado.
-                        </p>
-                        <button type="button" class="btn btn-warning btn-sm btn-block btn-flat"
-                                data-toggle="modal" data-target="#modalAnticipada"
-                                style="border-radius:6px;">
-                            <i class="fa fa-plus"></i> Registrar inscripción anticipada
-                        </button>
-                    </div>
-                </div>
-            @elseif ($inscAnticipada)
-                <div class="info-card" style="border-color:#fcd97d;">
-                    <div class="info-card-header" style="background:#fffbf0;">
-                        <span class="info-card-title" style="color:#b45309;">
-                            <i class="fa fa-calendar-check-o" style="margin-right:5px;color:#f39c12;"></i>
-                            Inscripción anticipada
-                        </span>
-                    </div>
-                    <div style="padding:12px 16px;font-size:13px;color:#555;">
-                        <i class="fa fa-check-circle" style="color:#f39c12;"></i>
-                        Ya inscrito al ciclo <strong>{{ $inscAnticipada->ciclo->nombre ?? '—' }}</strong>
-                        @if ($inscAnticipada->grupo)
-                            · Grupo {{ $inscAnticipada->grupo->grado->numero }}{{ $inscAnticipada->grupo->nombre }}
-                        @else
-                            <br><small style="color:#b0bec5;">Grupo pendiente de asignar</small>
-                        @endif
-                    </div>
-                </div>
-            @endif
-
             {{-- Acciones rápidas --}}
             <div class="info-card">
                 <div class="info-card-header">
@@ -1201,6 +1141,16 @@
                                 <i class="fa fa-home" style="color:#4caf50;font-size:14px;"></i>
                             </div>
                             Ver familia
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </a>
+                    @endif
+
+                    @if (auth()->user()->esAdministrador())
+                        <a href="{{ route('planes.asignar.form', ['alumno_id' => $alumno->id]) }}" class="accion-btn">
+                            <div class="accion-icon" style="background:#f0fdf4;">
+                                <i class="fa fa-file-text-o" style="color:#16a34a;font-size:13px;"></i>
+                            </div>
+                            Asignar plan de pagos
                             <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                         </a>
                     @endif
@@ -1320,115 +1270,6 @@
             </div>
         </div>
     </div>
-    @endif
-
-    {{-- ══ MODAL INSCRIPCIÓN ANTICIPADA ══ --}}
-    @if (
-        (auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) &&
-        $alumno->estado === 'activo' &&
-        ! $inscAnticipada
-    )
-    @php
-        $ciclosAntic = \App\Models\CicloEscolar::where('estado', 'configuracion')
-            ->orderByDesc('fecha_inicio')->get();
-        $gruposPorCicloAntic = [];
-        foreach ($ciclosAntic as $cicloAntic) {
-            $gruposPorCicloAntic[$cicloAntic->id] = \App\Models\Grupo::with('grado.nivel')
-                ->where('ciclo_id', $cicloAntic->id)
-                ->where('activo', true)
-                ->orderBy('grado_id')
-                ->orderBy('nombre')
-                ->get()
-                ->map(fn($g) => [
-                        'id'    => $g->id,
-                        'label' => trim(($g->grado->nivel->nombre ?? '') . ' ' . ($g->grado->numero ?? '') . '° - Grupo ' . $g->nombre),
-                    ])
-                ->values()
-                ->toArray();
-        }
-    @endphp
-    <div class="modal fade" id="modalAnticipada" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header" style="background:#fffbf0;border-bottom:1px solid #fcd97d;">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title" style="color:#b45309;">
-                        <i class="fa fa-calendar-plus-o"></i> Inscripción anticipada
-                    </h4>
-                </div>
-                <form method="POST" action="{{ route('alumnos.inscripcion-anticipada', $alumno->id) }}">
-                    @csrf
-                    <div class="modal-body">
-                        <p style="font-size:13px;color:#6b7a8d;margin-bottom:16px;">
-                            Selecciona el ciclo escolar próximo y, si ya están configurados,
-                            el grupo al que ingresará <strong>{{ $alumno->nombre }} {{ $alumno->ap_paterno }}</strong>.
-                        </p>
-
-                        {{-- Ciclo destino --}}
-                        <div class="form-group">
-                            <label style="font-size:12px;font-weight:700;color:#555;">Ciclo escolar destino</label>
-                            <select name="ciclo_id" class="form-control" required id="selectCicloAntic">
-                                <option value="">— Selecciona ciclo —</option>
-                                @foreach ($ciclosAntic as $ciclo)
-                                    <option value="{{ $ciclo->id }}">{{ $ciclo->nombre }}</option>
-                                @endforeach
-                            </select>
-                            <small style="color:#9aa;">Solo aparecen ciclos en configuración (no el activo).</small>
-                        </div>
-
-                        {{-- Grupo (opcional) --}}
-                        <div class="form-group">
-                            <label style="font-size:12px;font-weight:700;color:#555;">
-                                Grupo <span style="font-weight:400;color:#9aa;">(opcional)</span>
-                            </label>
-                            <select name="grupo_id" class="form-control" id="selectGrupoAntic">
-                                <option value="">— Sin grupo asignado aún —</option>
-                            </select>
-                            <small style="color:#9aa;">Se carga según el ciclo seleccionado.</small>
-                        </div>
-
-                        {{-- Fecha --}}
-                        <div class="form-group">
-                            <label style="font-size:12px;font-weight:700;color:#555;">Fecha de inscripción anticipada</label>
-                            <input type="date" name="fecha" class="form-control"
-                                   value="{{ now()->format('Y-m-d') }}" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer" style="background:#fafbfc;">
-                        <button type="button" class="btn btn-default btn-flat" data-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-warning btn-flat">
-                            <i class="fa fa-check"></i> Confirmar inscripción anticipada
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        (function () {
-            const gruposPorCiclo = @json($gruposPorCicloAntic);
-
-            document.getElementById('selectCicloAntic').addEventListener('change', function () {
-                const cicloId = this.value;
-                const grupoSelect = document.getElementById('selectGrupoAntic');
-
-                if (!cicloId) {
-                    grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
-                    return;
-                }
-
-                const grupos = gruposPorCiclo[cicloId] ?? [];
-                grupoSelect.innerHTML = '<option value="">— Sin grupo asignado aún —</option>';
-                grupos.forEach(g => {
-                    grupoSelect.innerHTML += `<option value="${g.id}">${g.label}</option>`;
-                });
-                if (grupos.length === 0) {
-                    grupoSelect.innerHTML = '<option value="">— No hay grupos configurados aún —</option>';
-                }
-            });
-        })();
-    </script>
     @endif
 
 @endsection
