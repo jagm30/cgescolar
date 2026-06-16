@@ -10,80 +10,6 @@
 @push('styles')
     <style>
         /* ══════════════════════════════════════════
-                                                                                                                       ESTADÍSTICAS
-                                                                                                                    ══════════════════════════════════════════ */
-        .con-stats {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .con-stat-card {
-            flex: 1;
-            min-width: 130px;
-            background: #fff;
-            border: 1px solid #e4eaf0;
-            border-top: 3px solid #3c8dbc;
-            border-radius: 6px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
-        }
-
-        .con-stat-card.verde {
-            border-top-color: #00a65a;
-        }
-
-        .con-stat-card.rojo {
-            border-top-color: #dd4b39;
-        }
-
-        .con-stat-card.naranja {
-            border-top-color: #f39c12;
-        }
-
-        .con-stat-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #eaf3fb;
-            flex-shrink: 0;
-        }
-
-        .con-stat-icon.verde {
-            background: #e8f8f0;
-        }
-
-        .con-stat-icon.rojo {
-            background: #fdecea;
-        }
-
-        .con-stat-icon.naranja {
-            background: #fef6e7;
-        }
-
-        .con-stat-num {
-            font-size: 26px;
-            font-weight: 800;
-            line-height: 1;
-            color: #222;
-        }
-
-        .con-stat-lbl {
-            font-size: 11px;
-            color: #999;
-            margin-top: 2px;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-
-        /* ══════════════════════════════════════════
                                                                                                                        TOOLBAR
                                                                                                                     ══════════════════════════════════════════ */
         .con-toolbar {
@@ -331,44 +257,39 @@
 @endpush
 
 @section('content')
-    {{-- ══ ESTADÍSTICAS ══ --}}
-    <div class="con-stats">
-        <div class="con-stat-card">
-            <div class="con-stat-icon">
-                <i class="fa fa-tags" style="color:#3c8dbc;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="con-stat-num">{{ $totales->count() }}</div>
-                <div class="con-stat-lbl">Total conceptos</div>
-            </div>
-        </div>
-        <div class="con-stat-card verde">
-            <div class="con-stat-icon verde">
-                <i class="fa fa-check-circle" style="color:#00a65a;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="con-stat-num">{{ $totales->where('activo', true)->count() }}</div>
-                <div class="con-stat-lbl">Activos</div>
-            </div>
-        </div>
-        <div class="con-stat-card rojo">
-            <div class="con-stat-icon rojo">
-                <i class="fa fa-ban" style="color:#dd4b39;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="con-stat-num">{{ $totales->where('activo', false)->count() }}</div>
-                <div class="con-stat-lbl">Inactivos</div>
-            </div>
-        </div>
-        <div class="con-stat-card naranja">
-            <div class="con-stat-icon naranja">
-                <i class="fa fa-list-alt" style="color:#f39c12;font-size:18px;"></i>
-            </div>
-            <div>
-                <div class="con-stat-num">{{ $totales->pluck('tipo')->unique()->count() }}</div>
-                <div class="con-stat-lbl">Tipos distintos</div>
+
+    {{-- ══ ENCABEZADO + STATS ══ --}}
+    <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+                <i class="fa fa-tags text-blue"></i> Conceptos de cobro
+            </h4>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+                <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-tags"></i> {{ $totales->count() }} total
+                </span>
+                <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-check-circle"></i> {{ $totales->where('activo', true)->count() }} activos
+                </span>
+                <span style="background:#fdecea;color:#b91c1c;border:1px solid #fca5a5;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-ban"></i> {{ $totales->where('activo', false)->count() }} inactivos
+                </span>
+                <span style="background:#fef6e7;color:#b45309;border:1px solid #fcd97d;border-radius:20px;
+                             padding:2px 10px;font-size:12px;font-weight:600;">
+                    <i class="fa fa-list-alt"></i> {{ $totales->pluck('tipo')->unique()->count() }} tipos
+                </span>
             </div>
         </div>
+        <button type="button" class="btn btn-success btn-sm btn-flat"
+            style="border-radius:20px;white-space:nowrap;flex-shrink:0;"
+            data-toggle="modal" data-target="#modalNuevoConcepto">
+            <i class="fa fa-plus"></i> Nuevo concepto
+        </button>
     </div>
 
     {{-- ══ PANEL PRINCIPAL ══ --}}
@@ -430,13 +351,6 @@
                         <i class="fa fa-times"></i>
                     </a>
                 @endif
-
-                {{-- Nuevo concepto --}}
-                <button type="button" class="btn btn-success btn-flat btn-sm"
-                    style="border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;margin-left:auto;"
-                    data-toggle="modal" data-target="#modalNuevoConcepto">
-                    <i class="fa fa-plus"></i> Nuevo concepto
-                </button>
 
             </div>
         </form>

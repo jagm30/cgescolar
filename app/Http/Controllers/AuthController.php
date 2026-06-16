@@ -37,7 +37,7 @@ class AuthController extends Controller
 
         // 2. Verificamos el token de Turnstile con los servidores de Cloudflare
         $turnstileResponse = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
-            'secret' => env('TURNSTILE_SECRET_KEY'),
+            'secret' => config('services.turnstile.secret_key'),
             'response' => $request->input('cf-turnstile-response'),
             'remoteip' => $request->ip(),
         ]);

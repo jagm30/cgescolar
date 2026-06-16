@@ -373,7 +373,7 @@
                     {{-- WIDGET DE TURNSTILE (Corregido, alineado y sin divs rotos) --}}
                     <div class="form-group text-center"
                         style="margin-bottom: 20px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                        <div class="cf-turnstile" data-sitekey="{{ env('TURNSTILE_SITE_KEY') }}" data-theme="light">
+                        <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}" data-theme="light">
                         </div>
 
                         @error('cf-turnstile-response')

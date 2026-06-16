@@ -265,7 +265,7 @@ select.form-control option {
             const niveles = @json($niveles);
             const planes = @json($planesData);
             const oldOrigen = @json(old('origen', 'individual'));
-            const oldAlumnoId = @json(old('alumno_id'));
+            const oldAlumnoId = @json(old('alumno_id', $preAlumnoId ?? null));
             const oldGrupoId = @json(old('grupo_id'));
             const oldNivelId = @json(old('nivel_id'));
             const oldFechaInicio = @json(old('fecha_inicio'));

@@ -565,13 +565,16 @@ class PlanPagoController extends Controller
             ->orderBy('id', 'desc')
             ->paginate(10);
 
+        $preAlumnoId = (int) request('alumno_id') ?: null;
+
         return view('planes.asignar', compact(
             'planes',
             'planesData',
             'alumnos',
             'grupos',
             'niveles',
-            'asignaciones'
+            'asignaciones',
+            'preAlumnoId'
         ));
     }
 
