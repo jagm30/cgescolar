@@ -61,13 +61,13 @@
                      La foto es exclusiva de contacto_familiar (credenciales) y alumno. --}}
                 <li class="dropdown user user-menu">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                        <img src="{{ asset('dist/img/avatar5.png') }}" class="user-image" alt="Usuario">
+                        <img src="{{ auth()->user()->foto_url }}" class="user-image" alt="Usuario">
                         <span class="hidden-xs">{{ auth()->user()->nombre }}</span>
                     </a>
                     <ul class="dropdown-menu">
                         {{-- Encabezado del menú --}}
                         <li class="user-header">
-                            <img src="{{ asset('dist/img/avatar5.png') }}" class="img-circle" alt="Usuario">
+                            <img src="{{ auth()->user()->foto_url }}" class="img-circle" alt="Usuario">
                             <p>
                                 {{ auth()->user()->nombre }}
                                 <small>{{ auth()->user()->email }}</small>
