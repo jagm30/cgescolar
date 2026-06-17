@@ -237,6 +237,35 @@ class UsuarioController extends Controller
         return view('usuarios.perfil', compact('usuario'));
     }
 
+    /** POST /perfil/foto */
+    public function actualizarFoto(Request $request)
+    {
+        $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [
+            'foto.required' => 'Selecciona una imagen.',
+            'foto.image'    => 'El archivo debe ser una imagen.',
+            'foto.mimes'    => 'Solo se permiten formatos JPG, PNG o WEBP.',
+            'foto.max'      => 'La imagen no debe superar 2 MB.',
+        ]);
+
+        $usuario = auth()->user();
+
+        if ($usuario->foto_perfil) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($usuario->foto_perfil);
+        }
+
+        $ruta = $request->file('foto')->store('fotos-perfil', 'public');
+
+        $usuario->update(['foto_perfil' => $ruta]);
+
+        return $this->respuestaExito(
+            redirectRoute: 'usuarios.perfil',
+            jsonData: ['foto_url' => $usuario->foto_url],
+            mensaje: 'Foto de perfil actualizada correctamente.',
+        );
+    }
+
     /** POST /usuarios/generar-masivos */
     public function generarUsuariosMasivos(Request $request)
     {

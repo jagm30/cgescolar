@@ -20,11 +20,19 @@ class Usuario extends Authenticatable
         'ciclo_seleccionado_id',
         'nombre',
         'email',
+        'foto_perfil',
         'password_hash',
         'rol',
         'activo',
         'ultimo_acceso',
     ];
+
+    public function getFotoUrlAttribute(): string
+    {
+        return $this->foto_perfil
+            ? asset('storage/' . $this->foto_perfil)
+            : asset('dist/img/avatar5.png');
+    }
 
     protected $hidden = [
         'password_hash',

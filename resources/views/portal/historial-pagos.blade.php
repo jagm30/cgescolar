@@ -43,9 +43,23 @@
                             <td class="text-right">${{ number_format($pago['monto_total'], 2) }}</td>
                             <td class="text-center">
                                 @if ($pago['tiene_factura'])
-                                    <span class="portal-pill portal-pill-ok">
-                                        <i class="fa fa-check"></i> {{ $pago['cfdi_uuid'] ?: 'Emitida' }}
-                                    </span>
+                                    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                                        <span class="portal-pill portal-pill-ok" style="font-size:11px;">
+                                            <i class="fa fa-check"></i> Emitida
+                                        </span>
+                                        <div style="display:flex;gap:4px;">
+                                            <a href="{{ route('portal.cfdis.descargar', [$pago['cfdi_id'], 'pdf']) }}"
+                                               class="btn btn-xs btn-danger btn-flat"
+                                               title="Descargar PDF">
+                                                <i class="fa fa-file-pdf-o"></i> PDF
+                                            </a>
+                                            <a href="{{ route('portal.cfdis.descargar', [$pago['cfdi_id'], 'xml']) }}"
+                                               class="btn btn-xs btn-default btn-flat"
+                                               title="Descargar XML">
+                                                <i class="fa fa-code"></i> XML
+                                            </a>
+                                        </div>
+                                    </div>
                                 @else
                                     <span class="portal-pill portal-pill-warn">Sin factura</span>
                                 @endif

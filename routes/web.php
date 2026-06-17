@@ -351,6 +351,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/perfil', [UsuarioController::class, 'perfil'])
         ->name('usuarios.perfil');
 
+    Route::post('/perfil/foto', [UsuarioController::class, 'actualizarFoto'])
+        ->name('usuarios.perfil.foto');
+
     Route::resource('usuarios', UsuarioController::class)
         ->middleware('rol:administrador');
 
@@ -505,6 +508,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/hijos', [PortalPadreController::class, 'hijos'])->name('hijos');
         Route::get('/hijos/{alumnoId}/estado-cuenta', [PortalPadreController::class, 'estadoCuenta'])->name('estado-cuenta');
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
+        Route::get('/cfdis/{cfdiId}/descargar/{formato}', [PortalPadreController::class, 'descargarCfdi'])->name('cfdis.descargar');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
     });
 

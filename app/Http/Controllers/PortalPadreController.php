@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Cargo;
+use App\Models\Cfdi;
 use App\Models\Inscripcion;
 use App\Models\Pago;
+use App\Services\FacturaComService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 
 class PortalPadreController extends Controller
@@ -98,11 +101,12 @@ class PortalPadreController extends Controller
             ->map(fn (Pago $pago) => [
                 'id' => $pago->id,
                 'folio_recibo' => $pago->folio_recibo,
-                'conceptos' => $pago->detalles->map(fn ($detalle) => $detalle->cargo->concepto->nombre)->join(', '),
+                'conceptos' => $pago->detalles->map(fn ($detalle) => $detalle->cargo->etiqueta)->join(', '),
                 'monto_total' => $pago->monto_total,
                 'fecha_pago' => $pago->fecha_pago,
                 'forma_pago' => $pago->forma_pago,
                 'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                'cfdi_id' => $pago->cfdis->where('estado', 'vigente')->first()?->id,
                 'cfdi_uuid' => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
             ]);
 
@@ -130,6 +134,35 @@ class PortalPadreController extends Controller
         return view('portal.razones-sociales', compact('razonesSociales'));
     }
 
+    public function descargarCfdi(int $cfdiId, string $formato, FacturaComService $factura): Response|RedirectResponse
+    {
+        if (! in_array($formato, ['pdf', 'xml'], true)) {
+            abort(404);
+        }
+
+        $cfdi = Cfdi::with('pago.detalles.cargo.inscripcion')->findOrFail($cfdiId);
+
+        $this->verificarAccesoCfdi($cfdi);
+
+        if (! $cfdi->factura_uid) {
+            return back()->with('error', 'No se puede descargar: CFDI sin UID de factura.com.');
+        }
+
+        try {
+            $contenido = $factura->descargar($cfdi->factura_uid, $formato);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Error al descargar la factura: ' . $e->getMessage());
+        }
+
+        $nombre   = ($cfdi->folio ?? $cfdi->uuid_sat ?? "CFDI-{$cfdiId}") . ".{$formato}";
+        $mimeType = $formato === 'pdf' ? 'application/pdf' : 'application/xml';
+
+        return response($contenido, 200, [
+            'Content-Type'        => $mimeType,
+            'Content-Disposition' => "attachment; filename=\"{$nombre}\"",
+        ]);
+    }
+
     private function verificarAccesoAlumno(int $alumnoId): void
     {
         $contacto = auth()->user()->contactoFamiliar;
@@ -144,6 +177,25 @@ class PortalPadreController extends Controller
 
         if (! $perteneceAFamilia) {
             abort(403, 'No tiene acceso a la informacion de este alumno.');
+        }
+    }
+
+    private function verificarAccesoCfdi(Cfdi $cfdi): void
+    {
+        $contacto = auth()->user()->contactoFamiliar;
+
+        if (! $contacto?->familia_id) {
+            abort(403, 'No tiene acceso a esta factura.');
+        }
+
+        $alumnoIds = Alumno::where('familia_id', $contacto->familia_id)->pluck('id');
+
+        $perteneceAFamilia = $cfdi->pago?->detalles
+            ->filter(fn ($d) => $alumnoIds->contains($d->cargo?->inscripcion?->alumno_id))
+            ->isNotEmpty() ?? false;
+
+        if (! $perteneceAFamilia) {
+            abort(403, 'No tiene acceso a esta factura.');
         }
     }
 

@@ -564,3 +564,24 @@ body {
 .bg-kotan    { background-color: var(--kotan-accent) !important; color: #fff; }
 .bg-navy     { background-color: var(--kotan-sidebar) !important; color: #fff; }
 .border-kotan{ border-color: var(--kotan-accent) !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   18. AVATARES — object-fit para fotos de perfil
+   ══════════════════════════════════════════════════════════════ */
+.user-panel > .image > img {
+    width:      45px !important;
+    height:     45px !important;
+    object-fit: cover;
+}
+
+.navbar-nav .user-image {
+    width:      25px !important;
+    height:     25px !important;
+    object-fit: cover;
+}
+
+.user-header .img-circle {
+    width:      90px !important;
+    height:     90px !important;
+    object-fit: cover;
+}
