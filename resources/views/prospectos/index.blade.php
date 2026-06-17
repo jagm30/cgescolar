@@ -362,15 +362,16 @@
                         </td>
 
                         {{-- ACCIONES --}}
-                        <td class="text-center" onclick="event.stopPropagation()">
+                        <td class="text-center">
                             <div style="display:flex;gap:4px;justify-content:center;">
                                 <a href="{{ route('prospectos.show', $prospecto->id) }}"
+                                   onclick="event.stopPropagation()"
                                    class="btn btn-default btn-xs btn-flat" style="border-radius:4px;" title="Ver">
                                     <i class="fa fa-eye text-blue"></i>
                                 </a>
                                 <button type="button" class="btn btn-default btn-xs btn-flat"
                                         style="border-radius:4px;" title="Cambiar etapa"
-                                        data-toggle="modal" data-target="#modalEtapa"
+                                        onclick="event.stopPropagation(); abrirModalEtapa(this)"
                                         data-id="{{ $prospecto->id }}"
                                         data-nombre="{{ $prospecto->nombre_completo }}"
                                         data-etapa="{{ $prospecto->etapa }}"
@@ -471,8 +472,6 @@
 @push('scripts')
 <script>
 $(function () {
-    var modal       = $('#modalEtapa');
-    var form        = $('#formCambiarEtapa');
     var etapaSelect = $('#modal_etapa');
     var motivoGroup = $('#contenedorMotivoNoConcrecion');
     var motivoInput = $('#modal_motivo_no_concrecion');
@@ -483,17 +482,18 @@ $(function () {
         motivoInput.prop('required', mostrar);
     }
 
-    modal.on('show.bs.modal', function (event) {
-        var btn = $(event.relatedTarget);
-        form.attr('action', '{{ url('prospectos') }}/' + btn.data('id') + '/etapa');
-        $('#modalProspectoNombre').text(btn.data('nombre'));
-        etapaSelect.val(btn.data('etapa'));
-        motivoInput.val(btn.data('motivo') || '');
+    etapaSelect.on('change', toggleMotivo);
+
+    window.abrirModalEtapa = function (btn) {
+        var $btn = $(btn);
+        $('#formCambiarEtapa').attr('action', '{{ url('prospectos') }}/' + $btn.data('id') + '/etapa');
+        $('#modalProspectoNombre').text($btn.data('nombre'));
+        etapaSelect.val($btn.data('etapa'));
+        motivoInput.val($btn.data('motivo') || '');
         $('#modal_notas').val('');
         toggleMotivo();
-    });
-
-    etapaSelect.on('change', toggleMotivo);
+        $('#modalEtapa').modal('show');
+    };
 });
 </script>
 @endpush

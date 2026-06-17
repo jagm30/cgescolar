@@ -8,6 +8,7 @@ use App\Http\Requests\StoreAlumnoRequest;
 use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoContacto;
+use App\Models\AsignacionPlan;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
@@ -73,15 +74,35 @@ class AlumnoController extends Controller
             return response()->json($query->paginate($request->get('per_page', 20)));
         }
 
+        $alumnos = $query->paginate(20);
+
+        // Planes asignados por grupo (origen='grupo') en el ciclo actual
+        // Keyed por grupo_id para lookup O(1) en la vista
+        $planesPorGrupo = AsignacionPlan::where('origen', 'grupo')
+            ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->with('plan')
+            ->get()
+            ->keyBy('grupo_id');
+
+        // Planes asignados por nivel (origen='nivel') en el ciclo actual
+        // Keyed por nivel_id
+        $planesPorNivel = AsignacionPlan::where('origen', 'nivel')
+            ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->with('plan')
+            ->get()
+            ->keyBy('nivel_id');
+
         return view('alumnos.index', [
-            'alumnos'        => $query->paginate(20),
-            'niveles'        => NivelEscolar::activo()->get(),
-            'grupos'         => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
-            'cicloId'        => $cicloId,
-            'statsActivos'   => Alumno::where('estado', 'activo')->count(),
-            'statsTotal'     => Alumno::count(),
-            'statsInscritos' => Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id'),
-            'disenos'        => Credencial::all(),
+            'alumnos'         => $alumnos,
+            'niveles'         => NivelEscolar::activo()->get(),
+            'grupos'          => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
+            'cicloId'         => $cicloId,
+            'statsActivos'    => Alumno::where('estado', 'activo')->count(),
+            'statsTotal'      => Alumno::count(),
+            'statsInscritos'  => Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id'),
+            'disenos'         => Credencial::all(),
+            'planesPorGrupo'  => $planesPorGrupo,
+            'planesPorNivel'  => $planesPorNivel,
         ]);
     }
 

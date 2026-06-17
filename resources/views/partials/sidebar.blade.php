@@ -59,7 +59,7 @@
             @endif
 
             {{-- ── SECCIÓN: Configuración ───────────────── --}}
-            @if (auth()->user()->esAdministrador())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero() || auth()->user()->esRecepcion())
                 <li class="header">CONFIGURACIÓN</li>
 
                 <li
@@ -72,21 +72,23 @@
                         </span>
                     </a>
                     <ul class="treeview-menu">
-                        <li class="{{ request()->routeIs('ciclos.*') ? 'active' : '' }}">
-                            <a href="{{ route('ciclos.index') }}">
-                                <i class="fa fa-circle-o"></i> Ciclos escolares
-                            </a>
-                        </li>
-                        <li class="{{ request()->routeIs('niveles.*') ? 'active' : '' }}">
-                            <a href="{{ route('niveles.index') }}">
-                                <i class="fa fa-circle-o"></i> Niveles
-                            </a>
-                        </li>
-                        <li class="{{ request()->routeIs('grados.*') ? 'active' : '' }}">
-                            <a href="{{ route('grados.index') }}">
-                                <i class="fa fa-circle-o"></i> Grados
-                            </a>
-                        </li>
+                        @if (auth()->user()->esAdministrador())
+                            <li class="{{ request()->routeIs('ciclos.*') ? 'active' : '' }}">
+                                <a href="{{ route('ciclos.index') }}">
+                                    <i class="fa fa-circle-o"></i> Ciclos escolares
+                                </a>
+                            </li>
+                            <li class="{{ request()->routeIs('niveles.*') ? 'active' : '' }}">
+                                <a href="{{ route('niveles.index') }}">
+                                    <i class="fa fa-circle-o"></i> Niveles
+                                </a>
+                            </li>
+                            <li class="{{ request()->routeIs('grados.*') ? 'active' : '' }}">
+                                <a href="{{ route('grados.index') }}">
+                                    <i class="fa fa-circle-o"></i> Grados
+                                </a>
+                            </li>
+                        @endif
                         <li class="{{ request()->routeIs('grupos.*') ? 'active' : '' }}">
                             <a href="{{ route('grupos.index') }}">
                                 <i class="fa fa-circle-o"></i> Grupos
@@ -94,7 +96,9 @@
                         </li>
                     </ul>
                 </li>
+            @endif
 
+            @if (auth()->user()->esAdministrador())
                 <li
                     class="treeview {{ request()->routeIs(['conceptos.*', 'planes.*', 'becas.*']) ? 'active menu-open' : '' }}">
                     <a href="#">
@@ -122,7 +126,7 @@
                             </a>
                         </li>
                         <li class="{{ request()->routeIs('planes.asignar.*') ? 'active' : '' }}">
-                            <a href="{{ route('planes.asignar.index') }}">
+                            <a href="{{ route('planes.asignar.form') }}">
                                 <i class="fa fa-circle-o"></i> Asignar plan
                             </a>
                         </li>
@@ -189,23 +193,6 @@
                             </a>
                         </li>
                         @endif
-                    </ul>
-                </li>
-
-                <li class="treeview {{ request()->routeIs(['grupos.*']) ? 'active menu-open' : '' }}">
-                    <a href="#">
-                        <i class="fa fa-th-large"></i>
-                        <span>Grupos</span>
-                        <span class="pull-right-container">
-                            <i class="fa fa-angle-left pull-right"></i>
-                        </span>
-                    </a>
-                    <ul class="treeview-menu">
-                        <li class="{{ request()->routeIs('grupos.index') ? 'active' : '' }}">
-                            <a href="{{ route('grupos.index') }}">
-                                <i class="fa fa-circle-o"></i> Lista de grupos
-                            </a>
-                        </li>
                     </ul>
                 </li>
 

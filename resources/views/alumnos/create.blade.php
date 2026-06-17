@@ -35,14 +35,30 @@
 .wizard-progress-wrap { background: #edf1f5; border-radius: 999px; height: 6px; overflow: hidden; margin-bottom: 20px; }
 .wizard-progress-fill { background: linear-gradient(90deg,#3c8dbc,#2c6fad); height: 6px; transition: width .25s ease; }
 /* ══ Paneles de pasos ═════════════════════════════════════ */
-.form-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; margin-bottom: 20px; background: #fff; }
-.form-panel-header { background: #f4f6f8; border-bottom: 2px solid #e0e7ef; padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; }
-.form-panel-title { font-size: 13px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; margin: 0; }
-.form-panel-body { padding: 20px 20px 16px; }
+.form-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; margin-bottom: 14px; background: #fff; }
+.form-panel-header { background: #f4f6f8; border-bottom: 2px solid #e0e6ed; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.form-panel-title { font-size: 12px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; margin: 0; }
+.form-panel-body { padding: 14px 16px; }
+.form-panel-body .form-group { margin-bottom: 10px; }
+.form-panel-body label { font-size: 12px; color: #6b7a8d; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 3px; }
+.form-panel-body .form-control { border-radius: 6px !important; border: 1px solid #d0dbe6; box-shadow: none; height: 32px; font-size: 13px; padding: 4px 10px; color: #1a2634; }
+.form-panel-body textarea.form-control { height: auto; }
+.form-panel-body .form-control:focus { border-color: #3c8dbc; box-shadow: 0 0 0 3px rgba(60,141,188,.12); }
+.form-panel-body .help-block { font-size: 11px; margin-top: 3px; }
 /* ══ Sidebar ══════════════════════════════════════════════ */
-.sidebar-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; background: #fff; margin-bottom: 16px; }
-.sidebar-header { background: linear-gradient(135deg,#1e4d7b 0%,#3c8dbc 100%); padding: 14px 18px; color: #fff; font-size: 13px; font-weight: 700; }
-.sidebar-body { padding: 16px 18px; }
+.sidebar-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; background: #fff; margin-bottom: 14px; }
+.sidebar-header { background: #f4f6f8; border-bottom: 2px solid #e0e6ed; padding: 10px 16px; color: #6b7a8d; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sidebar-body { padding: 14px 16px; }
+/* ══ Contacto item ════════════════════════════════════════ */
+.contacto-item { border: 1px solid #e0e7ef; border-left: 3px solid #3c8dbc; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+.contacto-item-header { background: #f4f6f8; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0e6ed; }
+.contacto-item-header strong { font-size: 12px; font-weight: 700; color: #3c8dbc; text-transform: uppercase; letter-spacing: .04em; }
+.contacto-item-body { padding: 12px; }
+.contacto-item-body .form-group { margin-bottom: 8px; }
+.contacto-item-body label { font-size: 11px; color: #6b7a8d; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 2px; }
+.contacto-item-body .form-control { border-radius: 6px !important; border: 1px solid #d0dbe6; box-shadow: none; height: 30px; font-size: 12px; padding: 3px 9px; color: #1a2634; }
+.contacto-item-body textarea.form-control { height: auto; }
+.contacto-item-body .form-control:focus { border-color: #3c8dbc; box-shadow: 0 0 0 3px rgba(60,141,188,.12); }
 .wizard-summary-item { padding: 9px 0; border-bottom: 1px solid #f0f3f7; font-size: 13px; color: #4a5568; display: flex; align-items: center; gap: 10px; }
 .wizard-summary-item:last-child { border-bottom: none; }
 .wizard-summary-item.is-active { color: #3c8dbc; font-weight: 700; }
@@ -71,6 +87,19 @@
         $contactosPrecargados = old('contactos', $datosPrecargados['contactos'] ?? []);
         $prospectoIdInicial = old('prospecto_id', $alumnoPrecargado['prospecto_id'] ?? '');
     @endphp
+
+    {{-- ══ ENCABEZADO ══ --}}
+    <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-user-plus text-blue"></i> Registrar alumno
+        </h4>
+        <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-sm btn-flat"
+           style="border-radius:20px;flex-shrink:0;">
+            <i class="fa fa-arrow-left"></i> Cancelar
+        </a>
+    </div>
 
     <form method="POST" action="{{ route('alumnos.store') }}" enctype="multipart/form-data" id="form-alumno" novalidate>
         @csrf
@@ -323,7 +352,8 @@
                 <div class="form-panel wizard-step-panel" data-step="4" style="display:none;">
                     <div class="form-panel-header">
                         <h3 class="form-panel-title"><i class="fa fa-phone" style="color:#3c8dbc;"></i> Paso 4: Contactos familiares</h3>
-                        <button type="button" class="btn btn-success btn-sm btn-flat" id="btn-agregar-contacto">
+                        <button type="button" class="btn btn-success btn-xs btn-flat" id="btn-agregar-contacto"
+                                style="border-radius:20px;">
                             <i class="fa fa-plus"></i> Agregar
                         </button>
                     </div>
@@ -435,7 +465,9 @@
             <div class="col-md-4">
 
                 <div class="sidebar-panel">
-                    <div class="sidebar-header"><i class="fa fa-list-ol"></i> Progreso del registro</div>
+                    <div class="sidebar-header">
+                        <i class="fa fa-list-ol" style="color:#3c8dbc;"></i> Progreso del registro
+                    </div>
                     <div class="sidebar-body">
                         <p id="wizard-step-description"
                            style="font-size:12px;color:#6b7a8d;margin:0 0 14px;padding:8px 12px;background:#f4f6f8;border-radius:6px;border-left:3px solid #3c8dbc;">
@@ -453,36 +485,37 @@
                             @endforeach
                         </div>
                         <button type="button" class="btn btn-default btn-block btn-flat" id="btn-paso-anterior"
+                            style="border-radius:20px;margin-bottom:6px;"
                             onclick="window.alumnoWizardIrPaso(window.alumnoWizardPasoActual() - 1); return false;">
                             <i class="fa fa-arrow-left"></i> Anterior
                         </button>
                         <button type="button" class="btn btn-primary btn-block btn-flat" id="btn-paso-siguiente"
+                            style="border-radius:20px;margin-bottom:6px;"
                             onclick="window.alumnoWizardIrPaso(window.alumnoWizardPasoActual() + 1); return false;">
                             Siguiente <i class="fa fa-arrow-right"></i>
                         </button>
-                        <button type="submit" class="btn btn-success btn-block btn-flat btn-lg" id="btn-guardar"
-                            style="display:none;">
+                        <button type="submit" class="btn btn-success btn-block btn-flat" id="btn-guardar"
+                            style="display:none;border-radius:20px;margin-bottom:6px;">
                             <i class="fa fa-save"></i> Registrar alumno
                         </button>
-                        <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-block btn-flat" style="margin-top:6px;">
+                        <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-block btn-flat"
+                           style="border-radius:20px;">
                             <i class="fa fa-times"></i> Cancelar
                         </a>
                     </div>
                 </div>
 
                 @if (session('error'))
-                    <div class="alert alert-danger alert-dismissible" style="border-radius:8px;">
+                    <div class="alert alert-danger alert-dismissible" style="border-radius:6px;">
                         <button type="button" class="close" data-dismiss="alert">&times;</button>
                         <i class="fa fa-times-circle"></i> {{ session('error') }}
                     </div>
                 @endif
 
                 @if ($errors->any())
-                    <div class="sidebar-panel" style="border-top:3px solid #e74c3c;">
-                        <div class="form-panel-header" style="border-bottom-color:#fca5a5;background:#fdecea;">
-                            <h3 class="form-panel-title" style="color:#b91c1c;">
-                                <i class="fa fa-exclamation-triangle"></i> Corrige los errores
-                            </h3>
+                    <div class="sidebar-panel" style="border-left:3px solid #e74c3c;">
+                        <div class="sidebar-header" style="background:#fdecea;border-bottom-color:#fca5a5;color:#b91c1c;">
+                            <i class="fa fa-exclamation-triangle"></i> Corrige los errores
                         </div>
                         <div class="sidebar-body">
                             <ul style="padding-left:16px;margin:0;">
@@ -501,16 +534,15 @@
 
     {{-- -- Template oculto para contacto -- --}}
     <div id="template-contacto" style="display:none;">
-        <div class="contacto-item panel panel-default" data-index="__INDEX__">
-            <div class="panel-heading">
-                <h4 class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="contacto-titulo">Contacto #<span class="num-contacto">__NUM__</span></span>
-                    <button type="button" class="btn btn-danger btn-xs btn-eliminar-contacto">
-                        <i class="fa fa-trash"></i> Eliminar
-                    </button>
-                </h4>
+        <div class="contacto-item" data-index="__INDEX__">
+            <div class="contacto-item-header">
+                <strong><i class="fa fa-user"></i> Contacto #<span class="num-contacto">__NUM__</span></strong>
+                <button type="button" class="btn btn-danger btn-xs btn-flat btn-eliminar-contacto"
+                        style="border-radius:20px;">
+                    <i class="fa fa-trash"></i> Eliminar
+                </button>
             </div>
-            <div class="panel-body">
+            <div class="contacto-item-body">
                 <div class="row">
                     <div class="col-md-5">
                         <div class="form-group">
@@ -648,7 +680,7 @@
                         </div>
                     </div>
                 </div>
-            </div>{{-- /.panel-body --}}
+            </div>{{-- /.contacto-item-body --}}
         </div>{{-- /.contacto-item --}}
     </div>{{-- /#template-contacto --}}
 

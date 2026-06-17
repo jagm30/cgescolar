@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\AsignacionPlan;
+use App\Models\Cargo;
 use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\PlanPago;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAsignacionPlanRequest extends FormRequest
@@ -55,12 +56,6 @@ class StoreAsignacionPlanRequest extends FormRequest
                 $validator->errors()->add('origen', 'Para asignación por nivel solo debe especificar nivel_id.');
             }
 
-            $query = AsignacionPlan::query()
-                ->where('plan_id', $plan->id)
-                ->where('origen', $origen)
-                ->whereHas('plan', fn ($query) => $query->where('ciclo_id', $plan->ciclo_id))
-                ->whereHas('cargos');
-
             if ($origen === 'individual') {
                 // Inscripción en el ciclo exacto del plan (caso normal o anticipada con grupo).
                 $inscripcionEnCiclo = Inscripcion::with('grupo.grado')
@@ -89,8 +84,6 @@ class StoreAsignacionPlanRequest extends FormRequest
 
                     return;
                 }
-
-                $query->where('alumno_id', $alumnoId);
             }
 
             if ($origen === 'grupo') {
@@ -99,20 +92,44 @@ class StoreAsignacionPlanRequest extends FormRequest
                 if ((int) $grupo?->grado?->nivel_id !== (int) $plan->nivel_id) {
                     $validator->errors()->add('plan_id', 'El plan seleccionado no corresponde al nivel del grupo.');
                 }
-
-                $query->where('grupo_id', $grupoId);
             }
 
             if ($origen === 'nivel') {
                 if ((int) $nivelId !== (int) $plan->nivel_id) {
                     $validator->errors()->add('plan_id', 'El plan seleccionado no corresponde al nivel elegido.');
                 }
-
-                $query->where('nivel_id', $nivelId);
             }
 
-            if ($query->exists()) {
-                $validator->errors()->add('plan_id', 'Ya existe un plan asignado para este alcance en el ciclo del plan.');
+            // Calcular los períodos que generaría esta nueva asignación
+            $fi = $this->input('fecha_inicio') ?? $plan->fecha_inicio?->format('Y-m-d');
+            $ff = $this->input('fecha_fin')    ?? $plan->fecha_fin?->format('Y-m-d');
+
+            if ($fi && $ff) {
+                $nuevosPeriodos = $this->calcularPeriodos($fi, $ff, $plan->periodicidad);
+
+                // Bloquear solo si alguno de los nuevos períodos ya tiene un cargo cobrado
+                // (estado distinto a pendiente o con abono) para el mismo alcance y plan
+                $conceptoIds = $plan->planPagoConceptos->pluck('concepto_id');
+
+                $conflicto = Cargo::query()
+                    ->whereIn('periodo', $nuevosPeriodos)
+                    ->whereIn('concepto_id', $conceptoIds)
+                    ->whereIn('estado', ['parcial', 'pagado'])
+                    ->whereHas('inscripcion', function ($q) use ($plan, $origen, $alumnoId, $grupoId, $nivelId) {
+                        $q->where('ciclo_id', $plan->ciclo_id)->where('activo', true);
+                        if ($origen === 'individual') {
+                            $q->where('alumno_id', $alumnoId);
+                        } elseif ($origen === 'grupo') {
+                            $q->where('grupo_id', $grupoId);
+                        } elseif ($origen === 'nivel') {
+                            $q->whereHas('grupo.grado', fn ($g) => $g->where('nivel_id', $nivelId));
+                        }
+                    })
+                    ->exists();
+
+                if ($conflicto) {
+                    $validator->errors()->add('plan_id', 'Uno o más períodos del rango seleccionado ya tienen cargos cobrados. Ajusta las fechas para cubrir solo los meses pendientes.');
+                }
             }
 
             // Validar que los conceptos seleccionados pertenezcan al plan
@@ -126,6 +143,35 @@ class StoreAsignacionPlanRequest extends FormRequest
                 }
             }
         });
+    }
+
+    /** Calcula los identificadores de período (Y-m) entre dos fechas según la periodicidad. */
+    private function calcularPeriodos(string $fechaInicio, string $fechaFin, string $periodicidad): array
+    {
+        $inicio = Carbon::parse($fechaInicio);
+        $fin    = Carbon::parse($fechaFin);
+
+        if ($periodicidad === 'unico') {
+            return [$inicio->format('Y-m')];
+        }
+
+        $intervalo = match ($periodicidad) {
+            'mensual'   => '1 month',
+            'bimestral' => '2 months',
+            'semestral' => '6 months',
+            'anual'     => '1 year',
+            default     => '1 month',
+        };
+
+        $periodos = [];
+        $actual   = $inicio->copy();
+
+        while ($actual->lte($fin)) {
+            $periodos[] = $actual->format('Y-m');
+            $actual->add($intervalo);
+        }
+
+        return $periodos;
     }
 
     public function messages(): array

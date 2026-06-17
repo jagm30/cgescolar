@@ -52,33 +52,48 @@
 
         .bec-form-body,
         .bec-side-body {
-            padding: 20px;
+            padding: 14px 16px;
         }
 
         .bec-form-footer,
         .bec-side-footer {
-            padding: 14px 18px;
+            padding: 10px 16px;
             border-top: 1px solid #edf1f5;
             background: #f9fafb;
         }
 
         .bec-section-title {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 800;
             color: #3c8dbc;
             text-transform: uppercase;
             letter-spacing: .06em;
-            margin: 4px 0 14px;
+            margin: 2px 0 8px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+        }
+
+        .bec-form-body .form-group {
+            margin-bottom: 10px;
+        }
+
+        .bec-form-body label {
+            font-size: 12px;
+            margin-bottom: 3px;
         }
 
         .bec-form-panel .form-control {
             border-radius: 6px !important;
             border: 1px solid #d0dbe6;
             box-shadow: none;
-            min-height: 36px;
+            height: 32px;
+            font-size: 13px;
+            padding: 4px 10px;
+        }
+
+        .bec-form-panel textarea.form-control {
+            height: auto;
         }
 
         .bec-form-panel .form-control:focus {
@@ -105,12 +120,12 @@
             color: #999;
             text-transform: uppercase;
             letter-spacing: .06em;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .bec-side-main {
-            font-size: 18px;
-            font-weight: 800;
+            font-size: 14px;
+            font-weight: 700;
             color: #1a2634;
             line-height: 1.2;
         }
@@ -118,16 +133,16 @@
         .bec-student-empty,
         .bec-student-error {
             text-align: center;
-            padding: 26px 16px;
+            padding: 16px 12px;
             color: #9aa6b2;
         }
 
         .bec-student-empty i,
         .bec-student-error i {
             display: block;
-            font-size: 42px;
+            font-size: 30px;
             color: #dde4ea;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .bec-student-error {
@@ -205,6 +220,25 @@
         </div>
     @endif
 
+    {{-- ══ ENCABEZADO ══ --}}
+    <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-graduation-cap text-blue"></i> Asignar beca
+        </h4>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a href="{{ route('becas.catalogo') }}" class="btn btn-default btn-sm btn-flat"
+               style="border-radius:20px;">
+                <i class="fa fa-list"></i> Catálogo
+            </a>
+            <a href="{{ route('becas.index') }}" class="btn btn-default btn-sm btn-flat"
+               style="border-radius:20px;">
+                <i class="fa fa-arrow-left"></i> Asignaciones
+            </a>
+        </div>
+    </div>
+
     <form action="{{ route('becas.store') }}" method="POST">
         @csrf
 
@@ -215,16 +249,6 @@
                         <i class="fa fa-graduation-cap" style="color:#3c8dbc;"></i>
                         Datos de la beca
                     </h3>
-                    <div>
-                        <a href="{{ route('becas.index') }}" class="btn btn-default btn-flat btn-sm"
-                            style="border-radius:20px;padding:5px 14px;">
-                            <i class="fa fa-list"></i> Asignaciones
-                        </a>
-                        <a href="{{ route('becas.catalogo') }}" class="btn btn-default btn-flat btn-sm"
-                            style="border-radius:20px;padding:5px 14px;margin-left:6px;">
-                            <i class="fa fa-tags"></i> Catálogo
-                        </a>
-                    </div>
                 </div>
 
                 <div class="bec-form-body">
@@ -270,7 +294,7 @@
                         </div>
                     </div>
 
-                    <div class="bec-section-title" style="margin-top:14px;">
+                    <div class="bec-section-title" style="margin-top:10px;">
                         <i class="fa fa-percent"></i> Configuración
                     </div>
 
@@ -321,7 +345,7 @@
                         @enderror
                     </div>
 
-                    <div class="bec-section-title" style="margin-top:14px;">
+                    <div class="bec-section-title" style="margin-top:10px;">
                         <i class="fa fa-calendar"></i> Vigencia y motivo
                     </div>
 
@@ -351,7 +375,7 @@
 
                     <div class="form-group {{ $errors->has('motivo') ? 'has-error' : '' }}">
                         <label for="motivo">Motivo</label>
-                        <textarea name="motivo" id="motivo" class="form-control" rows="3">{{ old('motivo') }}</textarea>
+                        <textarea name="motivo" id="motivo" class="form-control" rows="2">{{ old('motivo') }}</textarea>
                         @error('motivo')
                             <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span>
                         @enderror
@@ -381,10 +405,7 @@
                 </div>
 
                 <div class="bec-side-body">
-                    <div class="bec-side-kicker">Estado actual</div>
-                    <div class="bec-side-main">Validación de becas</div>
-
-                    <div id="info-becas-alumno" style="margin-top:16px;">
+                    <div id="info-becas-alumno">
                         <div class="bec-student-empty">
                             <i class="fa fa-user-circle"></i>
                             Selecciona un alumno para ver su estado de becas.
