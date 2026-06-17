@@ -47,6 +47,7 @@ class StoreBecaAlumnoRequest extends FormRequest
                 ->where('alumno_id', $this->alumno_id)
                 ->where('ciclo_id', $this->ciclo_id)
                 ->where('activo', true)
+                ->orderByRaw('grupo_id IS NULL')
                 ->first();
 
             if (! $inscripcion) {

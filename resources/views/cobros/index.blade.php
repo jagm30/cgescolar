@@ -189,9 +189,10 @@
                         </code>
                         @if($ins)
                             &nbsp;·&nbsp;
-                            {{ $ins->grupo->grado->nivel->nombre ?? '' }}
-                            {{ $ins->grupo->grado->nombre }}° {{ $ins->grupo->nombre }}
-                            <small>({{ $ins->ciclo->nombre ?? '' }})</small>
+                            {{ $ins->grupo?->grado?->nivel?->nombre ?? '' }}
+                            {{ $ins->grupo?->grado?->nombre ?? '' }}{{ $ins->grupo ? '°' : '' }}
+                            {{ $ins->grupo?->nombre ?? '' }}
+                            <small>({{ $ins->ciclo?->nombre ?? '' }})</small>
                         @endif
                     </div>
                 </div>

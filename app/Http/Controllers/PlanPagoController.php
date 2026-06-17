@@ -434,13 +434,14 @@ class PlanPagoController extends Controller
             ->where('alumno_id', $alumnoId)
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
+            ->orderByRaw('grupo_id IS NULL')
             ->first();
 
         if (! $inscripcion) {
             return response()->json(['message' => 'Sin inscripción activa en este ciclo.'], 404);
         }
 
-        $nivelId = $inscripcion->grupo->grado->nivel_id;
+        $nivelId = $inscripcion->grupo?->grado?->nivel_id;
 
         $asignaciones = AsignacionPlan::with([
             'conceptosSeleccionados.concepto',
@@ -666,7 +667,10 @@ class PlanPagoController extends Controller
         return Inscripcion::query()
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
-            ->when($asignacion->origen === 'individual', fn ($query) => $query->where('alumno_id', $asignacion->alumno_id))
+            ->when($asignacion->origen === 'individual', fn ($query) => $query
+                ->where('alumno_id', $asignacion->alumno_id)
+                ->orderByRaw('grupo_id IS NULL')
+                ->limit(1))
             ->when($asignacion->origen === 'grupo', fn ($query) => $query->where('grupo_id', $asignacion->grupo_id))
             ->when($asignacion->origen === 'nivel', fn ($query) => $query->whereHas(
                 'grupo.grado',

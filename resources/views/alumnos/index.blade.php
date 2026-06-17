@@ -157,8 +157,10 @@
                 <tbody>
                     @forelse($alumnos as $alumno)
                         @php
-                            // Filtramos para que solo tome la inscripción activa
-                            $inscripcion = $alumno->inscripciones->where('activo', true)->first();
+                            // Solo muestra la inscripción del ciclo seleccionado; prefiere la que tenga grupo asignado
+                            $inscsDelCiclo = $alumno->inscripciones->where('ciclo_id', $cicloId);
+                            $inscripcion   = $inscsDelCiclo->whereNotNull('grupo_id')->first()
+                                ?? $inscsDelCiclo->first();
                             $inicial = mb_strtoupper(mb_substr($alumno->ap_paterno, 0, 1));
                             $estado = $alumno->estado;
                         @endphp
@@ -207,8 +209,8 @@
                                 @php
                                     // Prioridad: individual > grupo > nivel
                                     $plan = $alumno->asignacionesPlanes->first()?->plan
-                                        ?? $planesPorGrupo[$inscripcion?->grupo_id ?? 0]?->plan
-                                        ?? $planesPorNivel[$inscripcion?->grupo?->grado?->nivel_id ?? 0]?->plan;
+                                        ?? $planesPorGrupo->get($inscripcion?->grupo_id)?->plan
+                                        ?? $planesPorNivel->get($inscripcion?->grupo?->grado?->nivel_id)?->plan;
                                 @endphp
                                 @if ($plan)
                                     <span style="font-size:12px;font-weight:600;color:#2c5282;">

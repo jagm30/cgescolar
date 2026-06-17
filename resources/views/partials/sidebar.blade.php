@@ -281,7 +281,7 @@
                     </ul>
                 </li>
             @endif
-            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+            @if (auth()->user()->esAdministrador())
                 <li>
                     <a href="{{ route('settings.index') }}">
                         <i class="fa fa-gear"></i> <span>Configuración</span>
