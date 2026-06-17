@@ -105,9 +105,13 @@
     border-radius: 8px;
     overflow: hidden;
     margin-top: 12px;
-    transition: box-shadow .15s;
+    transition: box-shadow .15s, border-color .15s;
+    cursor: pointer;
 }
-.resultado-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.1); }
+.resultado-card:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,.1);
+    border-color: #3c8dbc;
+}
 .resultado-body {
     display: flex; align-items: center; gap: 14px;
     padding: 14px 18px;
@@ -160,7 +164,7 @@
         @php
             $ins = $alumno->inscripciones->first();
         @endphp
-        <div class="resultado-card">
+        <div class="resultado-card" onclick="window.location='{{ route('cobros.alumno', $alumno->id) }}'">
             <div class="resultado-body">
                 {{-- Avatar --}}
                 <div style="width:50px;height:50px;border-radius:50%;flex-shrink:0;
@@ -192,11 +196,10 @@
                     </div>
                 </div>
 
-                {{-- Acción --}}
-                <a href="{{ route('cobros.alumno', $alumno->id) }}"
-                   class="btn btn-success btn-flat" style="flex-shrink:0;">
-                    <i class="fa fa-dollar"></i> Cobrar
-                </a>
+                {{-- Indicador visual --}}
+                <div style="flex-shrink:0;color:#3c8dbc;font-size:18px;">
+                    <i class="fa fa-chevron-right"></i>
+                </div>
             </div>
         </div>
         @empty

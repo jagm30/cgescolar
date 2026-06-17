@@ -204,7 +204,12 @@
 
                             {{-- PLAN DE PAGOS --}}
                             <td>
-                                @php $plan = $alumno->asignacionesPlanes->first()?->plan; @endphp
+                                @php
+                                    // Prioridad: individual > grupo > nivel
+                                    $plan = $alumno->asignacionesPlanes->first()?->plan
+                                        ?? $planesPorGrupo[$inscripcion?->grupo_id ?? 0]?->plan
+                                        ?? $planesPorNivel[$inscripcion?->grupo?->grado?->nivel_id ?? 0]?->plan;
+                                @endphp
                                 @if ($plan)
                                     <span style="font-size:12px;font-weight:600;color:#2c5282;">
                                         <i class="fa fa-file-text-o" style="color:#3c8dbc;margin-right:4px;"></i>

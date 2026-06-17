@@ -540,17 +540,21 @@ class PlanPagoController extends Controller
             ->where('activo', true)
             ->get();
 
-        // Transformar planes a estructura simples para JavaScript
+        // Transformar planes a estructura simple para JavaScript
         $planesData = $planes->map(function ($p) {
             return [
-                'id' => $p->id,
-                'nombre' => $p->nombre,
-                'conceptos' => $p->planPagoConceptos->map(function ($c) {
+                'id'           => $p->id,
+                'nombre'       => $p->nombre,
+                'periodicidad' => $p->periodicidad,
+                'fecha_inicio' => $p->fecha_inicio?->format('Y-m-d'),
+                'fecha_fin'    => $p->fecha_fin?->format('Y-m-d'),
+                'conceptos'    => $p->planPagoConceptos->map(function ($c) {
                     return [
-                        'id' => $c->id, // plan_pago_concepto.id
-                        'concepto_id' => $c->concepto_id, // concepto_cobro.id
-                        'nombre' => $c->concepto->nombre,
-                        'monto' => (float) $c->monto,
+                        'id'          => $c->id,
+                        'concepto_id' => $c->concepto_id,
+                        'nombre'      => $c->concepto->nombre,
+                        'tipo'        => $c->concepto->tipo,
+                        'monto'       => (float) $c->monto,
                     ];
                 })->all(),
             ];
@@ -583,11 +587,12 @@ class PlanPagoController extends Controller
         $asignacion->loadMissing(['plan', 'conceptosSeleccionados']);
 
         $plan = $asignacion->plan;
-        $periodos = $this->calcularPeriodos(
-            $plan->fecha_inicio->format('Y-m-d'),
-            $plan->fecha_fin->format('Y-m-d'),
-            $plan->periodicidad
-        );
+
+        // Respetar fechas personalizadas de la asignación; caer a las del plan si no se proporcionaron
+        $fechaInicio = ($asignacion->fecha_inicio ?? $plan->fecha_inicio)->format('Y-m-d');
+        $fechaFin    = ($asignacion->fecha_fin    ?? $plan->fecha_fin)->format('Y-m-d');
+
+        $periodos = $this->calcularPeriodos($fechaInicio, $fechaFin, $plan->periodicidad);
         $inscripciones = $this->obtenerInscripcionesParaAsignacion($asignacion);
         $cargosAfectados = 0;
 

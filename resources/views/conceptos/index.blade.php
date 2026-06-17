@@ -224,7 +224,12 @@
         /* Acciones */
         .con-acciones {
             display: flex;
+            align-items: center;
             gap: 4px;
+        }
+
+        .con-acciones form {
+            display: contents;
         }
 
         /* ══════════════════════════════════════════
@@ -441,7 +446,7 @@
                                     </button>
                                     @if ($concepto->activo)
                                         <form action="{{ route('conceptos.destroy', $concepto->id) }}" method="POST"
-                                            style="display:inline-block;">
+                                            style="margin:0;">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger btn-xs btn-flat"
@@ -453,7 +458,7 @@
                                         </form>
                                     @else
                                         <form action="{{ route('conceptos.update', $concepto->id) }}" method="POST"
-                                            style="display:inline-block;">
+                                            style="margin:0;">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="activo" value="1">
