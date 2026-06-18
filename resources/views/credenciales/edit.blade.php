@@ -694,8 +694,8 @@
             </div>
 
             <div class="col-md-9">
-                @if (!isset($alumnos))
-                    <div class="text-center no-print" style="margin-bottom: 15px;">
+            @if (!isset($alumnos))
+                    <div class="text-center no-print" style="margin-bottom: 15px; display: flex; justify-content: center; gap: 20px; align-items: center;">
                         <div class="btn-group">
                             <button type="button" id="btn-show-anverso" class="btn btn-primary active"
                                 onclick="switchFace('anverso')">
@@ -705,6 +705,12 @@
                                 onclick="switchFace('reverso')">
                                 <i class="fa fa-refresh"></i> Diseño Reverso
                             </button>
+                        </div>
+
+                        <div class="btn-group" style="box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <button type="button" class="btn btn-default" onclick="changeZoom(-0.1)" title="Alejar"><i class="fa fa-search-minus"></i></button>
+                            <button type="button" class="btn btn-default" id="btn-zoom-label" onclick="resetZoom()" title="Restablecer" style="font-weight: bold; width: 65px;">100%</button>
+                            <button type="button" class="btn btn-default" onclick="changeZoom(0.1)" title="Acercar"><i class="fa fa-search-plus"></i></button>
                         </div>
                     </div>
                 @endif
@@ -1070,6 +1076,7 @@
         let imagenTemporalReverso = null;
         let unsavedChanges = false;
         let currentFace = 'anverso';
+
 
         const wrapperPrincipal = document.getElementById('wrapper-principal');
         const isModeVisual = wrapperPrincipal.classList.contains('modo-visualizacion');
