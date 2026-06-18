@@ -100,6 +100,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // ── Grupos ───────────────────────────────────────────
     // IMPORTANTE: ruta fija ANTES del resource
     Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
+    Route::get('descargar-reporte-pagos/{id}', [GrupoController::class, 'reportePagos'])->name('grupos.reporte-pagos');
 
     // Caja puede consultar grupos (solo lectura)
     Route::get('/grupos', [GrupoController::class, 'index'])

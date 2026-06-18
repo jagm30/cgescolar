@@ -395,6 +395,28 @@ public function gradosPorCiclo(Request $request)
 
         return $pdf->stream("Lista_{$grupo->nombre}.pdf");
     }
+
+    public function reportePagos(int $id)
+    {
+        $grupo = Grupo::with([
+            'grado.nivel',
+            'ciclo',
+            'inscripciones' => fn($q) => $q->where('activo', true)->with([
+                'alumno',
+                'cargos' => fn($q) => $q->with('concepto')->orderBy('fecha_vencimiento'),
+            ]),
+        ])->findOrFail($id);
+
+        if (ob_get_length()) ob_end_clean();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('grupos.reportes.pagos_pdf', compact('grupo'));
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'landscape');
+
+        return $pdf->stream("Pagos_{$grupo->nombre}.pdf");
+    }
     public function migrarEstructura(Request $request)
     {
         // Corregimos el nombre de la tabla a 'ciclo_escolar'

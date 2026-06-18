@@ -261,6 +261,9 @@
 
                             <a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"
                                 class="btn-flat-sm btn-flat-danger"><i class="fa fa-file-pdf-o"></i> Reporte (Activos)</a>
+
+                            <a href="{{ route('grupos.reporte-pagos', $grupo->id) }}" target="_blank"
+                                class="btn-flat-sm btn-flat-success"><i class="fa fa-money"></i> Reporte de Pagos</a>
                         </div>
                     </div>
                     <div class="box-body-flat" style="padding: 0;">
