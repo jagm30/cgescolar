@@ -71,10 +71,24 @@
         </div>
     </div>
     @if($deudores->isNotEmpty())
-    <button type="button" onclick="window.print()" class="btn btn-default btn-sm btn-flat no-print"
-            style="border-radius:20px;flex-shrink:0;">
-        <i class="fa fa-print"></i> Imprimir
-    </button>
+    <div class="no-print" style="display:flex;gap:6px;flex-shrink:0;">
+        <button type="button" onclick="window.print()" class="btn btn-default btn-sm btn-flat"
+                style="border-radius:20px;">
+            <i class="fa fa-print"></i> Imprimir
+        </button>
+        <a href="{{ route('reportes.deudores.pdf') }}?ciclo_id={{ $cicloId }}&{{ collect($estados)->map(fn($e) => 'estados[]='.$e)->implode('&') }}"
+           target="_blank"
+           class="btn btn-danger btn-sm btn-flat"
+           style="border-radius:20px;">
+            <i class="fa fa-file-pdf-o"></i> PDF
+        </a>
+        <a href="{{ route('reportes.deudores.pdf-detalle') }}?ciclo_id={{ $cicloId }}&{{ collect($estados)->map(fn($e) => 'estados[]='.$e)->implode('&') }}"
+           target="_blank"
+           class="btn btn-warning btn-sm btn-flat"
+           style="border-radius:20px;">
+            <i class="fa fa-file-pdf-o"></i> PDF Detallado
+        </a>
+    </div>
     @endif
 </div>
 

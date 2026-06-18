@@ -430,16 +430,19 @@
                             <div class="input-group">
                                 <span class="input-group-addon" style="background:#3c8dbc;color:#fff;font-weight:700;border:2px solid #3c8dbc;border-right:none;">$</span>
                                 <input type="number"
-                                       name="items[{{ $i }}][monto_abonado]"
                                        class="form-control monto-input item-monto"
-                                       value="{{ $cargo->pendiente }}"
+                                       value="{{ $cargo->monto_a_pagar_hoy }}"
                                        min="0.01"
-                                       max="{{ $cargo->pendiente }}"
                                        step="0.01"
                                        data-idx="{{ $i }}">
                             </div>
+                            {{-- Campo oculto: mantiene el saldo base para el seguimiento del estado del cargo --}}
+                            <input type="hidden"
+                                   name="items[{{ $i }}][monto_abonado]"
+                                   class="item-monto-oculto"
+                                   value="{{ $cargo->pendiente }}">
                             <div style="font-size:11px;color:#aaa;margin-top:4px;">
-                                Saldo base: ${{ number_format($cargo->pendiente, 2) }}
+                                Saldo pendiente: ${{ number_format($cargo->pendiente, 2) }}
                             </div>
                         </div>
 
@@ -804,10 +807,30 @@ $(function() {
 
     // ── Recalcular total de ítem al cambiar inputs ────
     $(document).on('input', '.item-monto, .item-desc', function() {
-        var idx   = $(this).data('idx');
+        var idx = $(this).data('idx');
+        // Si el cajero modificó el monto visible o el recargo, sincronizar el campo base oculto
+        if ($(this).hasClass('item-monto') || $(this).closest('.cargo-detalle').length) {
+            sincronizarBaseDesdeVisible(idx);
+        }
         recalcularItem(idx);
         actualizarResumen();
     });
+
+    /**
+     * Recalcula el campo oculto monto_abonado (base para el estado del cargo) a partir
+     * del monto visible ingresado por el cajero. Fórmula: base = visible + beca + pp - recargo
+     * Esto garantiza que al restar los descuentos y sumar el recargo en el backend
+     * se obtenga exactamente el monto visible como monto_final.
+     */
+    function sincronizarBaseDesdeVisible(idx) {
+        var $det = $('[data-idx="' + idx + '"].item-monto').closest('.cargo-detalle');
+        if (!$det.length) return; // solo aplica a cargos existentes, no a nuevos conceptos
+        var visible = parseFloat($det.find('.item-monto').val()) || 0;
+        var dBeca   = parseFloat($det.find('input[name*="[descuento_beca]"]').val())        || 0;
+        var dPP     = parseFloat($det.find('input[name*="[descuento_pronto_pago]"]').val()) || 0;
+        var recarg  = parseFloat($det.find('input[name*="[recargo]"]').val())                || 0;
+        $det.find('.item-monto-oculto').val(Math.max(0.01, visible + dBeca + dPP - recarg).toFixed(2));
+    }
 
     function recalcularItem(idx) {
         var $row   = $('[data-idx="' + idx + '"]').closest('.cargo-detalle, .nuevo-concepto-panel');

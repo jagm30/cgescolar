@@ -14,6 +14,7 @@ use App\Models\PagoDetalle;
 use App\Models\RazonSocialContacto;
 use App\Models\Usuario;
 use App\Traits\RespondsWithJson;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -333,6 +334,64 @@ class PagoController extends Controller
         }
 
         return view('pagos.corte', compact('resumen', 'pagos', 'fecha', 'esAdmin', 'porCajero', 'cajeros'));
+    }
+
+    /** GET /pagos/corte/pdf */
+    public function cortePdf(Request $request)
+    {
+        $fecha   = $request->get('fecha', now()->toDateString());
+        $usuario = auth()->user();
+        $esAdmin = $usuario->esAdministrador();
+
+        $baseVigente = Pago::query()
+            ->where('fecha_pago', $fecha)
+            ->where('estado', 'vigente')
+            ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
+            ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id));
+
+        $pagos = (clone $baseVigente)
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->orderBy('id')
+            ->get();
+
+        $totalAnulados = Pago::query()
+            ->where('fecha_pago', $fecha)
+            ->where('estado', 'anulado')
+            ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
+            ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id))
+            ->count();
+
+        $resumen = [
+            'fecha'          => $fecha,
+            'total_pagos'    => $pagos->count(),
+            'total_cargos'   => $pagos->sum(fn ($p) => $p->detalles->count()),
+            'total_cobrado'  => $pagos->sum('monto_total'),
+            'total_anulados' => $totalAnulados,
+            'por_forma_pago' => $pagos->groupBy('forma_pago')->map(fn ($g) => [
+                'cantidad' => $g->count(),
+                'total'    => $g->sum('monto_total'),
+            ]),
+        ];
+
+        $porCajero = $esAdmin
+            ? $pagos->groupBy('cajero_id')->map(fn ($g) => [
+                'cajero'   => $g->first()->cajero,
+                'cantidad' => $g->count(),
+                'total'    => $g->sum('monto_total'),
+                'pagos'    => $g,
+            ])->values()
+            : collect([['cajero' => $usuario, 'cantidad' => $pagos->count(), 'total' => $resumen['total_cobrado'], 'pagos' => $pagos]]);
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('pagos.reportes.corte_pdf', compact('resumen', 'pagos', 'fecha', 'esAdmin', 'porCajero'))
+            ->setPaper('letter', 'portrait');
+
+        $nombreArchivo = 'Corte_' . $fecha . '.pdf';
+
+        return $pdf->stream($nombreArchivo);
     }
 
     /** GET /pagos/detalle-ingresos */
