@@ -145,10 +145,8 @@
     <table class="header">
         <tr>
             <td style="width: 15%;">
-                @if (file_exists(public_path('imgs_escuela/' . $logoRuta)))
-                    <img src="{{ public_path('imgs_escuela/' . $logoRuta) }}" class="school-logo" alt="Logo">
-                @elseif (file_exists(public_path('imgs_escuela/reportes/logo-escuela.png')))
-                    <img src="{{ public_path('imgs_escuela/reportes/logo-escuela.png') }}" class="school-logo" alt="Logo">
+                @if (file_exists(public_path('imgs_escuela/reportes/' . $logoRuta)))
+                    <img src="{{ public_path('imgs_escuela/reportes/' . $logoRuta) }}" class="school-logo" alt="Logo">
                 @else
                     <div style="width:64px;height:64px;background:#e0e0e0;text-align:center;line-height:64px;color:#888;font-size:9px;">LOGO</div>
                 @endif

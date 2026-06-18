@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     @php
-        // $logoBase64 viene preparado desde CfdiController::enviarCorreo()
-        $logoUrl = $logoBase64 ?? null;
+        // $logoPath viene preparado desde CfdiController::enviarCorreo()
+        // Se usa CID (embed) para evitar que filtros antispam bloqueen el correo
+        $logoCid = (isset($logoPath) && file_exists($logoPath))
+            ? $message->embed($logoPath)
+            : null;
     @endphp
 
     <style>
@@ -235,8 +238,8 @@
     {{-- ── Cabecera institucional ── --}}
     <div class="inst-header">
         <div class="inst-header-logo">
-            @if($logoUrl)
-                <img src="{{ $logoUrl }}" alt="Logo">
+            @if($logoCid)
+                <img src="{{ $logoCid }}" alt="Logo">
             @else
                 <span class="logo-placeholder"></span>
             @endif
