@@ -32,7 +32,7 @@
             border-collapse: collapse;
         }
         .header td { vertical-align: middle; }
-        .school-logo { width: 64px; height: auto; display: block; }
+        .school-logo { width: 100px; height: auto; display: block; }
         .school-name {
             color: #1e4d7b;
             font-size: 17px;
@@ -189,11 +189,11 @@
     {{-- ── Encabezado institucional ── --}}
     <table class="header">
         <tr>
-            <td style="width:14%;">
+            <td style="width:18%;">
                 @if (file_exists(public_path('imgs_escuela/reportes/' . $logoRuta)))
                     <img src="{{ public_path('imgs_escuela/reportes/' . $logoRuta) }}" class="school-logo" alt="Logo">
                 @else
-                    <div style="width:64px;height:64px;background:#e0e0e0;text-align:center;line-height:64px;color:#888;font-size:9px;">LOGO</div>
+                    <div style="width:100px;height:100px;background:#e0e0e0;text-align:center;line-height:100px;color:#888;font-size:9px;">LOGO</div>
                 @endif
             </td>
             <td style="width:50%; padding-left:10px;">

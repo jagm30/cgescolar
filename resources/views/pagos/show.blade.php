@@ -114,6 +114,15 @@
             <i class="fa fa-check-circle"></i> Vigente
         </span>
         @endif
+        <a href="{{ route('cobros.pdf', $pago->id) }}" target="_blank"
+           style="background:rgba(255,255,255,.15);color:#fff;font-size:12px;font-weight:700;
+                  padding:6px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);
+                  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+                  transition:background .15s;"
+           onmouseover="this.style.background='rgba(255,255,255,.25)'"
+           onmouseout="this.style.background='rgba(255,255,255,.15)'">
+            <i class="fa fa-file-pdf-o"></i> Recibo PDF
+        </a>
     </div>
 </div>
 
@@ -575,6 +584,18 @@
             <span class="recibo-card-title">Acciones</span>
         </div>
         <div>
+            <a href="{{ route('cobros.pdf', $pago->id) }}" target="_blank"
+               style="display:flex;align-items:center;gap:10px;padding:11px 16px;
+                      border-bottom:1px solid #f4f6f8;text-decoration:none;color:#333;
+                      font-size:13px;font-weight:500;transition:background .12s;"
+               onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background=''">
+                <span style="width:32px;height:32px;border-radius:8px;background:#fdecea;
+                             display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fa fa-file-pdf-o" style="color:#e74c3c;font-size:13px;"></i>
+                </span>
+                Descargar recibo PDF
+                <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+            </a>
             @if($alumnos->count() === 1)
             <a href="{{ route('alumnos.estado-cuenta', $alumnos->first()->id) }}"
                style="display:flex;align-items:center;gap:10px;padding:11px 16px;

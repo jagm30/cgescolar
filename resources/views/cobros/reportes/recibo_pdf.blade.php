@@ -149,7 +149,7 @@
             }
 
             .school-logo {
-                width: 80px;
+                width: 120px;
                 height: auto;
                 display: block;
                 margin: 0 auto;
@@ -194,10 +194,8 @@
     <table class="header-table">
         <tr>
             <td style="width: 20%; text-align: left;">
-                @if (file_exists(public_path('imgs_escuela/' . $logoRuta)))
-                    <img src="{{ public_path('imgs_escuela/' . $logoRuta) }}" class="school-logo" alt="Logo">
-                @elseif (file_exists(public_path('imgs_escuela/reportes/logo-escuela.png')))
-                    <img src="{{ public_path('imgs_escuela/reportes/logo-escuela.png') }}" class="school-logo" alt="Logo">
+                @if (file_exists(public_path('imgs_escuela/reportes/' . $logoRuta)))
+                    <img src="{{ public_path('imgs_escuela/reportes/' . $logoRuta) }}" class="school-logo" alt="Logo">
                 @else
                     <div style="width: 80px; height: 80px; background: #e0e0e0; text-align:center; line-height:80px; color:#666; margin: 0 auto;">
                         LOGO
