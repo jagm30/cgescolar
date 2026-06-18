@@ -98,6 +98,62 @@ class DashboardController extends Controller
         ));
     }
 
+    public function recepcion(): \Illuminate\View\View
+    {
+        $usuario = auth()->user();
+        $cicloId = $usuario->ciclo_seleccionado_id
+                     ?? CicloEscolar::activo()->value('id');
+
+        // ── Alumnos ─────────────────────────────────────────
+        $alumnosActivos = Alumno::activo()->count();
+
+        // ── Inscritos activos en el ciclo actual, agrupados por nivel ──
+        $inscritosPorNivel = Inscripcion::query()
+            ->where('inscripcion.activo', true)
+            ->where('inscripcion.ciclo_id', $cicloId)
+            ->join('grupo', 'inscripcion.grupo_id', '=', 'grupo.id')
+            ->join('grado', 'grupo.grado_id', '=', 'grado.id')
+            ->join('nivel_escolar', 'grado.nivel_id', '=', 'nivel_escolar.id')
+            ->select('nivel_escolar.id', 'nivel_escolar.nombre', DB::raw('COUNT(*) as total'))
+            ->groupBy('nivel_escolar.id', 'nivel_escolar.nombre')
+            ->orderBy('nivel_escolar.orden')
+            ->get();
+
+        $totalInscritos = $inscritosPorNivel->sum('total');
+
+        // ── Familias ─────────────────────────────────────────
+        $totalFamilias = Familia::where('activo', true)->count();
+
+        // ── Prospectos activos ────────────────────────────────
+        $prospectosPorEtapa = Prospecto::where('ciclo_id', $cicloId)
+            ->whereNotIn('etapa', ['inscrito', 'no_concretado'])
+            ->select('etapa', DB::raw('COUNT(*) as total'))
+            ->groupBy('etapa')
+            ->pluck('total', 'etapa');
+
+        $totalProspectos = $prospectosPorEtapa->sum();
+
+        // ── Últimos alumnos registrados ───────────────────────
+        $ultimosAlumnos = Alumno::with(['inscripciones' => fn ($q) => $q
+                ->where('activo', true)
+                ->where('ciclo_id', $cicloId)
+                ->with('grupo.grado.nivel'),
+            ])
+            ->orderByDesc('id')
+            ->limit(8)
+            ->get();
+
+        return view('dashboards.recepcion', compact(
+            'alumnosActivos',
+            'totalInscritos',
+            'inscritosPorNivel',
+            'totalFamilias',
+            'prospectosPorEtapa',
+            'totalProspectos',
+            'ultimosAlumnos',
+        ));
+    }
+
     public function caja()
     {
         $hoy  = now()->toDateString();

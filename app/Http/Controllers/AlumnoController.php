@@ -46,7 +46,7 @@ class AlumnoController extends Controller
         $query = Alumno::with([
             'familia',
             'inscripciones' => fn($q) => $q
-                ->where('ciclo_id', $cicloId)
+                ->where('activo', true)
                 ->with('grupo.grado.nivel'),
             'asignacionesPlanes' => fn($q) => $q
                 ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId))

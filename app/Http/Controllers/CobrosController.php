@@ -30,6 +30,7 @@ class CobrosController extends Controller
             ? Alumno::with([
                 'inscripciones' => fn($q) => $q
                     ->where('activo', true)
+                    ->orderByRaw('grupo_id IS NULL')
                     ->with('grupo.grado.nivel', 'ciclo'),
             ])
                 ->where(fn($q) => $q
@@ -66,7 +67,14 @@ class CobrosController extends Controller
                 ->orderByDesc('id')
                 ->first();
 
-        $becasAlumno      = BecaAlumno::with('catalogoBeca')->where('alumno_id', $alumnoId)->vigenteHoy()->get();
+        $becasAlumno = BecaAlumno::with('catalogoBeca')
+            ->where('alumno_id', $alumnoId)
+            ->where('activo', true)
+            ->where(function ($q) {
+                $q->whereNull('vigencia_fin')
+                    ->orWhere('vigencia_fin', '>=', today());
+            })
+            ->get();
         $becasPorPlan     = $becasAlumno->whereNotNull('plan_id')->keyBy('plan_id');
         $becasPorConcepto = $becasAlumno->whereNotNull('concepto_id')->keyBy('concepto_id');
 
@@ -309,6 +317,11 @@ class CobrosController extends Controller
         $beca ??= $becasPorConcepto->get($cargo->concepto_id);
 
         if (! $beca) {
+            return [0.0, null];
+        }
+
+        // La beca aplica si la fecha de vencimiento del cargo está dentro de la vigencia
+        if ($beca->vigencia_inicio && $cargo->fecha_vencimiento->lt($beca->vigencia_inicio)) {
             return [0.0, null];
         }
 

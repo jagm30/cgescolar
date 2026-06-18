@@ -9,6 +9,8 @@
 @endsection
 
 @push('styles')
+    <link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
     <style>
         .bec-form-shell {
             display: grid;
@@ -260,7 +262,7 @@
                         <div class="col-md-8">
                             <div class="form-group {{ $errors->has('alumno_id') ? 'has-error' : '' }}">
                                 <label for="alumno-select">Alumno <span class="text-red">*</span></label>
-                                <select id="alumno-select" name="alumno_id" class="form-control" required>
+                                <select id="alumno-select" name="alumno_id" class="form-control select2" style="width:100%;" data-placeholder="Buscar alumno por nombre o matrícula..." required>
                                     <option value="">Selecciona un alumno</option>
                                     @foreach ($alumnos as $alumno)
                                         <option value="{{ $alumno->id }}"
@@ -431,6 +433,7 @@
 @endsection
 
 @push('scripts')
+    <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
         const becasAlumnoUrlTemplate = "{{ url('/becas/alumno') }}/:id/becas-activas";
         const planesAlumnoUrlTemplate = @json(route('planes.asignacion-alumno', ['alumnoId' => '__ALUMNO_ID__']));
@@ -556,9 +559,16 @@
                     option.textContent = plan.nivel && plan.nivel.nombre
                         ? `${plan.nombre} · ${plan.nivel.nombre}`
                         : plan.nombre;
+                    option.dataset.inicio = plan.fecha_inicio ? String(plan.fecha_inicio).substring(0, 10) : '';
+                    option.dataset.fin    = plan.fecha_fin    ? String(plan.fecha_fin).substring(0, 10)    : '';
                     option.selected = String(plan.id) === String(planSeleccionado);
                     planSelect.appendChild(option);
                 });
+
+            // Si hay un plan preseleccionado, rellenar fechas de vigencia
+            if (planSeleccionado) {
+                rellenarFechasVigencia();
+            }
         }
 
         function cargarPlanesAlumno(alumnoId, planSeleccionado = '') {
@@ -591,15 +601,32 @@
                 });
         }
 
+        function rellenarFechasVigencia() {
+            const opt = planSelect.options[planSelect.selectedIndex];
+            if (!opt || !opt.value) return;
+            const inicio = opt.dataset.inicio ?? '';
+            const fin    = opt.dataset.fin    ?? '';
+            if (inicio) document.getElementById('vigencia_inicio').value = inicio;
+            if (fin)    document.getElementById('vigencia_fin').value    = fin;
+        }
+
+        planSelect.addEventListener('change', rellenarFechasVigencia);
+
         catalogoBecaSelect.addEventListener('change', actualizarDescuentoDisplay);
 
-        alumnoSelect.addEventListener('change', function () {
+        $(alumnoSelect).on('change', function () {
             cargarBecasAlumno(this.value);
             cargarPlanesAlumno(this.value);
             planHelp.textContent = 'Solo se muestran los planes asignados al alumno seleccionado.';
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
+        $(function () {
+            $('#alumno-select').select2({
+                allowClear: true,
+                width: '100%',
+                language: { noResults: () => 'Sin resultados' },
+            });
+
             if (alumnoSelect.value) {
                 cargarBecasAlumno(alumnoSelect.value);
                 cargarPlanesAlumno(alumnoSelect.value, selectedPlanId);

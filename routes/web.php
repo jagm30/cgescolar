@@ -366,7 +366,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('caja.dashboard');
 
-    Route::get('/recepcion', fn() => view('dashboards.recepcion'))
+    Route::get('/recepcion', [DashboardController::class, 'recepcion'])
         ->middleware('rol:administrador,recepcion')
         ->name('recepcion.dashboard');
 
@@ -516,14 +516,14 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
 // Rutas para  configuración general (nombre del colegio, logo, etc.)
 // =======================================================
 // Agrupamos las rutas de configuración
-Route::middleware('rol:administrador,recepcion')->prefix('configuracion')->group(function () {
+Route::middleware('rol:administrador')->prefix('configuracion')->group(function () {
     Route::get('/', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
 });
 // =======================================================
 // Rutas para diseño de credenciales
 // =======================================================
-Route::middleware('rol:administrador,recepcion')->prefix('credenciales')->group(function () {
+Route::middleware('rol:administrador')->prefix('credenciales')->group(function () {
     Route::get('/', [CredencialController::class, 'index'])->name('credenciales.index');
 
     // RUTAS ESTÁTICAS Y DE MÚLTIPLES PARÁMETROS (Siempre van arriba)
