@@ -309,45 +309,80 @@
             font-weight: bold;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
-
         /* ==========================================================================
-                                            REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS
-                           ========================================================================== */
+           REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+           ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
-                size: {{ $diseno->orientacion == 'vertical' ? '54mm 85.6mm' : '85.6mm 54mm' }};
+                size: {{ $diseno->orientacion == 'vertical' ? '322px 502px' : '502px 322px' }};
             }
 
-            html,
-            body {
+            /* 1. RESTAURAMOS LA VISIBILIDAD DE ADMINLTE */
+            html, body {
                 margin: 0 !important;
                 padding: 0 !important;
                 background-color: white !important;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            #wrapper-principal,
-            .content-wrapper,
-            .content,
-            #canvas-container {
-                margin: 0 !important;
-                padding: 0 !important;
                 display: block !important;
             }
 
-            .modo-visualizacion .credencial-canvas-instance {
+            ::-webkit-scrollbar { display: none !important; }
+
+            /* 2. OCULTAMOS BASURA VISUAL DE LA PLANTILLA */
+            .main-header, .main-sidebar, .sidebar, .main-footer, .no-print, .col-md-3, #ctx-menu, .modal, .control-sidebar {
+                display: none !important;
+                width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important;
+            }
+
+            /* 3. LIMPIEZA DE CONTENEDORES PADRES */
+            .wrapper, .content-wrapper, .content, section.content, #wrapper-principal, .row, .col-md-9 {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                border: none !important;
+                min-height: 0 !important;
+                height: auto !important;
+                box-shadow: none !important;
+                display: block !important;
+            }
+
+            #canvas-container {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 0 !important;
+                line-height: 0 !important;
+            }
+
+            /* 4. ESPECIFICIDAD ABSOLUTA: Igualamos la tarjeta a la medida holgada de la hoja */
+            #wrapper-principal .credencial-canvas-instance {
                 margin: 0 !important;
                 padding: 0 !important;
                 border: none !important;
-                border-radius: 0 !important;
                 position: relative !important;
+                display: block !important;
+                overflow: hidden !important;
+
+                /* ¡EL TRUCO! Ahora la tarjeta mide los mismos 322px/502px que la hoja */
+                width: {{ $diseno->orientacion == 'vertical' ? '322px' : '502px' }} !important;
+                height: {{ $diseno->orientacion == 'vertical' ? '502px' : '322px' }} !important;
+
+                zoom: 1 !important;
+                transform: none !important;
+
                 page-break-after: always !important;
+                break-after: page !important;
                 page-break-inside: avoid !important;
-                zoom: 0.635 !important;
+                break-inside: avoid !important;
+            }
+
+            /* 5. ANIQUILAMOS LA HOJA BLANCA DEL FINAL CON MÁXIMA FUERZA */
+            #wrapper-principal #credencial-canvas-reverso,
+            #wrapper-principal #canvas-container > div:last-child,
+            #wrapper-principal .credencial-canvas-instance:last-child,
+            #wrapper-principal .credencial-canvas-instance:last-of-type {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
 
             * {
@@ -355,33 +390,6 @@
                 print-color-adjust: exact !important;
             }
         }
-
-        /* ── IMPRESIÓN DESDE EL EDITOR: fuerza ambas caras visibles ── */
-        @media print {
-            #credencial-canvas,
-            #credencial-canvas-reverso {
-                display: block !important;
-                page-break-before: always;
-            }
-            #credencial-canvas {
-                page-break-before: avoid;
-            }
-            .col-md-3,
-            #btn-show-anverso,
-            #btn-show-reverso,
-            .no-print {
-                display: none !important;
-            }
-            .col-md-9 {
-                width: 100% !important;
-            }
-            #canvas-container {
-                padding: 10px !important;
-                background: white !important;
-                gap: 0 !important;
-            }
-        }
-
         /* Menú contextual flotante */
         #ctx-menu {
             position: fixed;
