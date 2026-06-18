@@ -271,14 +271,11 @@ class CfdiController extends Controller
             $setting     = Setting::find(1);
             $escuela     = $setting?->nombre_escuela ?? config('app.name');
             $logoRuta    = $setting?->logo_ruta ?? 'logo-escuela.png';
-            $logoPath    = public_path('imgs_escuela/' . $logoRuta);
-            $logoBase64  = file_exists($logoPath)
-                ? 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . base64_encode(file_get_contents($logoPath))
-                : null;
+            $logoPath    = public_path('imgs_escuela/reportes/' . $logoRuta);
 
             Mail::send(
                 'emails.cfdi',
-                ['folio' => $folio, 'nombreEscuela' => $escuela, 'logoBase64' => $logoBase64],
+                ['folio' => $folio, 'nombreEscuela' => $escuela, 'logoPath' => $logoPath],
                 function ($msg) use ($request, $folio, $escuela, $pdf, $xml) {
                     $msg->to($request->email)
                         ->subject("Factura electrónica {$folio} — {$escuela}")
