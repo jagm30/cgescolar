@@ -249,6 +249,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('pagos.corte');
 
+    Route::get('/pagos/corte/pdf', [PagoController::class, 'cortePdf'])
+        ->middleware('rol:administrador,caja')
+        ->name('pagos.corte.pdf');
+
     Route::get('/pagos/detalle-ingresos', [PagoController::class, 'detalleIngresos'])
         ->middleware('rol:administrador,caja')
         ->name('pagos.detalle-ingresos');
@@ -548,6 +552,14 @@ Route::middleware('rol:administrador')->prefix('credenciales')->group(function (
 Route::get('/reportes/deudores', [ReporteDeudoresController::class, 'index'])
     ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador,caja'])
     ->name('reportes.deudores');
+
+Route::get('/reportes/deudores/pdf', [ReporteDeudoresController::class, 'pdf'])
+    ->middleware(['auth', 'rol:administrador,caja'])
+    ->name('reportes.deudores.pdf');
+
+Route::get('/reportes/deudores/pdf-detalle', [ReporteDeudoresController::class, 'pdfDetalle'])
+    ->middleware(['auth', 'rol:administrador,caja'])
+    ->name('reportes.deudores.pdf-detalle');
 
 // Configuración fiscal (datos del emisor para CFDI)
 Route::post('/fiscal', [SettingController::class, 'updateFiscal'])

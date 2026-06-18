@@ -281,6 +281,15 @@
                        title="Descargar XML">
                         <i class="fa fa-code"></i>
                     </a>
+                    @if($cfdi->estado === 'vigente')
+                    <button type="button"
+                            class="btn btn-xs btn-flat btn-enviar-correo"
+                            style="background:#e8f5ee;color:#00875a;border:1px solid #b3e8d0;border-radius:5px;margin-right:2px;"
+                            data-cfdi-id="{{ $cfdi->id }}"
+                            title="Enviar por correo">
+                        <i class="fa fa-envelope-o"></i>
+                    </button>
+                    @endif
                     @endif
 
                     @if($cfdi->estado === 'vigente' && auth()->user()->esAdministrador())
@@ -317,6 +326,183 @@
     @endif
 
 </div>
+
+{{-- ══ MODAL ENVIAR CORREO ══ --}}
+<div class="modal fade" id="modalEnviarCorreo" tabindex="-1" role="dialog" aria-labelledby="modalEnviarCorreoLabel">
+    <div class="modal-dialog" role="document" style="max-width:460px;">
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;">
+
+            <div class="modal-header" style="background:linear-gradient(135deg,#0a7d49 0%,#27a05a 100%);border-bottom:none;padding:16px 20px;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.8;">
+                    <span>&times;</span>
+                </button>
+                <h4 class="modal-title" id="modalEnviarCorreoLabel" style="color:#fff;font-size:15px;font-weight:700;">
+                    <i class="fa fa-envelope-o"></i> Enviar factura por correo
+                </h4>
+            </div>
+
+            <div class="modal-body" style="padding:20px;">
+                <div id="mec-loading" style="text-align:center;padding:30px 0;color:#b0bec5;">
+                    <i class="fa fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top:10px;font-size:13px;">Cargando contactos…</p>
+                </div>
+
+                <div id="mec-content" style="display:none;">
+                    <form id="form-enviar-correo" method="POST">
+                        @csrf
+
+                        {{-- Contactos familiares --}}
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:11px;font-weight:700;color:#4a5568;
+                                          display:block;margin-bottom:6px;">
+                                Contactos familiares
+                            </label>
+                            <div id="mec-contactos"></div>
+                            <div id="mec-sin-contactos"
+                                 style="display:none;font-size:12px;color:#b0bec5;
+                                        padding:8px 0;font-style:italic;">
+                                <i class="fa fa-info-circle"></i>
+                                No hay contactos con correo registrado.
+                            </div>
+                        </div>
+
+                        {{-- Correo destino (editable) --}}
+                        <div style="margin-bottom:16px;">
+                            <label for="mec-email-destino"
+                                   style="font-size:11px;font-weight:700;color:#4a5568;
+                                          display:block;margin-bottom:4px;">
+                                Correo destino
+                                <span style="font-weight:400;color:#8a9ab0;">
+                                    — selecciona un contacto o escribe otro
+                                </span>
+                            </label>
+                            <input type="email" id="mec-email-destino" name="email"
+                                   class="form-control input-sm"
+                                   placeholder="correo@ejemplo.com"
+                                   style="border-radius:5px;"
+                                   required>
+                        </div>
+
+                        <div id="mec-error"
+                             style="display:none;background:#fdecea;color:#b91c1c;
+                                    padding:9px 12px;border-radius:6px;font-size:12px;
+                                    margin-bottom:12px;"></div>
+
+                        <button type="submit" id="mec-submit"
+                                class="btn btn-sm btn-flat btn-block"
+                                style="background:#00875a;color:#fff;border-radius:6px;font-weight:600;">
+                            <i class="fa fa-paper-plane"></i> Enviar
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    var formCorreoBase   = '{{ route('cfdis.form-correo', '__ID__') }}';
+    var enviarCorreoBase = '{{ route('cfdis.enviar-correo', '__ID__') }}';
+
+    $(document).on('click', '.btn-enviar-correo', function () {
+        var cfdiId = $(this).data('cfdi-id');
+
+        // Reset
+        $('#mec-loading').show();
+        $('#mec-content').hide();
+        $('#mec-error').hide().text('');
+        $('#mec-contactos').html('');
+        $('#mec-email-destino').val('');
+        $('#mec-submit').prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Enviar');
+        $('#modalEnviarCorreo').modal('show');
+
+        $.getJSON(formCorreoBase.replace('__ID__', cfdiId))
+            .done(function (data) {
+                // Renderizar contactos
+                if (data.contactos && data.contactos.length > 0) {
+                    var html = '';
+                    $.each(data.contactos, function (i, c) {
+                        var checked = c.es_defecto ? 'checked' : '';
+                        var borde   = c.es_defecto ? '#b3e8d0' : '#e0e7ef';
+                        var fondo   = c.es_defecto ? '#f0faf5' : '#fafbfc';
+                        html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;' +
+                            'border:1px solid ' + borde + ';background:' + fondo + ';' +
+                            'border-radius:6px;margin-bottom:4px;cursor:pointer;font-weight:400;">' +
+                            '<input type="radio" class="mec-radio" value="' + $('<span>').text(c.email).html() + '" ' +
+                            checked + ' style="margin-top:3px;flex-shrink:0;">' +
+                            '<span style="min-width:0;">' +
+                            '<span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">' +
+                            $('<span>').text(c.nombre).html() + '</span>' +
+                            '<span style="display:block;font-size:11px;color:#4a5568;word-break:break-all;">' +
+                            $('<span>').text(c.email).html() + '</span>' +
+                            (c.es_defecto
+                                ? '<span style="font-size:10px;background:#d1fae5;color:#065f46;' +
+                                  'padding:1px 7px;border-radius:8px;margin-top:2px;display:inline-block;">' +
+                                  'Receptor del CFDI</span>'
+                                : '') +
+                            '</span></label>';
+                    });
+                    $('#mec-contactos').html(html).show();
+                    $('#mec-sin-contactos').hide();
+
+                    // Precargar correo del radio seleccionado
+                    var defecto = $('#mec-contactos .mec-radio:checked').val();
+                    if (defecto) $('#mec-email-destino').val(defecto);
+                } else {
+                    $('#mec-contactos').hide();
+                    $('#mec-sin-contactos').show();
+                    if (data.email_defecto) $('#mec-email-destino').val(data.email_defecto);
+                }
+
+                // Clic en radio → actualiza el campo de correo
+                $('#mec-contactos').off('change').on('change', '.mec-radio', function () {
+                    $('#mec-email-destino').val($(this).val());
+                });
+
+                $('#form-enviar-correo').attr('action', enviarCorreoBase.replace('__ID__', cfdiId));
+                $('#mec-loading').hide();
+                $('#mec-content').show();
+            })
+            .fail(function () {
+                $('#mec-loading').html(
+                    '<div style="color:#b91c1c;font-size:13px;padding:20px 0;text-align:center;">' +
+                    '<i class="fa fa-exclamation-circle"></i> No se pudieron cargar los datos.</div>'
+                );
+            });
+    });
+
+    $('#form-enviar-correo').on('submit', function (e) {
+        e.preventDefault();
+        var $btn = $('#mec-submit');
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Enviando…');
+        $('#mec-error').hide().text('');
+
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: $(this).serialize(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .done(function (resp) {
+            $('#modalEnviarCorreo').modal('hide');
+            $('<div class="alert alert-success alert-dismissible" style="border-radius:8px;margin-bottom:16px;">' +
+              '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
+              '<i class="fa fa-check-circle"></i> ' + (resp.message || 'Factura enviada correctamente.') +
+              '</div>').prependTo('.content').hide().slideDown(200);
+        })
+        .fail(function (xhr) {
+            var msg = 'Error al enviar.';
+            try { msg = JSON.parse(xhr.responseText).message || msg; } catch (ex) {}
+            $('#mec-error').text(msg).show();
+            $btn.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Enviar');
+        });
+    });
+}());
+</script>
+@endpush
 
 {{-- ══ MODAL CANCELAR CFDI ══ --}}
 @if(auth()->user()->esAdministrador())
