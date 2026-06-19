@@ -212,7 +212,7 @@
             </td>
             <td style="width:20%;">
                 <span class="info-lbl">Grado y Grupo</span>
-                <span class="info-badge">{{ $grupo->grado->nombre }} {{ $grupo->nombre }}</span>
+                <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
             </td>
             <td style="width:20%;">
                 <span class="info-lbl">Total alumnos</span>

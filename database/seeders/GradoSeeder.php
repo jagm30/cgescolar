@@ -11,8 +11,9 @@ class GradoSeeder extends Seeder
     {
         // nivel_id: 1=Maternal, 2=Preescolar, 3=Primaria, 4=Secundaria
         $grados = [
-            // Maternal (1 grado)
+            // Maternal (2 grados)
             ['nivel_id' => 1, 'numero' => 1],
+            ['nivel_id' => 1, 'numero' => 2],
 
             // Preescolar (3 grados)
             ['nivel_id' => 2, 'numero' => 1],
