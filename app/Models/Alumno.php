@@ -5,8 +5,9 @@ namespace App\Models;
 use App\Enums\TipoInscripcion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Alumno extends Model
 {
@@ -156,5 +157,22 @@ class Alumno extends Model
     public function responsablePago(): BelongsToMany
     {
         return $this->contactos()->wherePivot('es_responsable_pago', true);
+    }
+
+    // ── Expediente médico ────────────────────────────────
+
+    public function fichaMedica(): HasOne
+    {
+        return $this->hasOne(FichaMedica::class, 'alumno_id');
+    }
+
+    public function condicionesMedicas(): HasMany
+    {
+        return $this->hasMany(CondicionMedica::class, 'alumno_id')->where('activo', true);
+    }
+
+    public function medicamentosAutorizados(): HasMany
+    {
+        return $this->hasMany(MedicamentoAutorizado::class, 'alumno_id')->where('activo', true);
     }
 }

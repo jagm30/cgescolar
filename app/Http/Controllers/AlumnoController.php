@@ -48,9 +48,6 @@ class AlumnoController extends Controller
             'inscripciones' => fn($q) => $q
                 ->where('activo', true)
                 ->with('grupo.grado.nivel'),
-            'asignacionesPlanes' => fn($q) => $q
-                ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId))
-                ->with('plan'),
         ])
             ->when($request->filled('estado'),   fn($q) => $q->where('estado', $request->estado))
             ->when($request->filled('nivel_id'), fn($q) => $q->whereHas('inscripciones', fn($q) => $q
@@ -76,33 +73,40 @@ class AlumnoController extends Controller
 
         $alumnos = $query->paginate(20);
 
-        // Planes asignados por grupo (origen='grupo') en el ciclo actual
-        // Keyed por grupo_id para lookup O(1) en la vista
-        $planesPorGrupo = AsignacionPlan::where('origen', 'grupo')
-            ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId))
-            ->with('plan')
-            ->get()
-            ->keyBy('grupo_id');
+        // Determina el plan efectivo por alumno a partir de sus cargos reales del ciclo actual.
+        // Mapea inscripcion_id → alumno_id. Se usa un loop explícito para preservar claves
+        // enteras (flatMap/collapse usa array_merge internamente y las re-indexaría a 0).
+        $inscIdAAlumnoId = [];
+        foreach ($alumnos as $a) {
+            foreach ($a->inscripciones as $i) {
+                $inscIdAAlumnoId[$i->id] = $a->id;
+            }
+        }
 
-        // Planes asignados por nivel (origen='nivel') en el ciclo actual
-        // Keyed por nivel_id
-        $planesPorNivel = AsignacionPlan::where('origen', 'nivel')
-            ->whereHas('plan', fn($q) => $q->where('ciclo_id', $cicloId))
-            ->with('plan')
-            ->get()
-            ->keyBy('nivel_id');
+        $planPorAlumno = collect();
+
+        if (!empty($inscIdAAlumnoId)) {
+            $planPorAlumno = Cargo::whereIn('inscripcion_id', array_keys($inscIdAAlumnoId))
+                ->whereNotNull('asignacion_id')
+                ->whereHas('asignacion.plan', fn($q) => $q->where('ciclo_id', $cicloId))
+                ->with('asignacion.plan')
+                ->get()
+                ->unique('inscripcion_id')
+                ->mapWithKeys(fn($c) => [
+                    $inscIdAAlumnoId[$c->inscripcion_id] => $c->asignacion?->plan,
+                ]);
+        }
 
         return view('alumnos.index', [
-            'alumnos'         => $alumnos,
-            'niveles'         => NivelEscolar::activo()->get(),
-            'grupos'          => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
-            'cicloId'         => $cicloId,
-            'statsActivos'    => Alumno::where('estado', 'activo')->count(),
-            'statsTotal'      => Alumno::count(),
-            'statsInscritos'  => Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id'),
-            'disenos'         => Credencial::all(),
-            'planesPorGrupo'  => $planesPorGrupo,
-            'planesPorNivel'  => $planesPorNivel,
+            'alumnos'        => $alumnos,
+            'planPorAlumno'  => $planPorAlumno,
+            'niveles'        => NivelEscolar::activo()->get(),
+            'grupos'         => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
+            'cicloId'        => $cicloId,
+            'statsActivos'   => Alumno::where('estado', 'activo')->count(),
+            'statsTotal'     => Alumno::count(),
+            'statsInscritos' => Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id'),
+            'disenos'        => Credencial::all(),
         ]);
     }
 
@@ -119,6 +123,9 @@ class AlumnoController extends Controller
             'becas.concepto',
             'historialBajas.ciclo',
             'historialBajas.registradoPor',
+            'fichaMedica',
+            'condicionesMedicas',
+            'medicamentosAutorizados.contactoAutoriza',
         ])->findOrFail($id);
 
         if (request()->ajax()) {

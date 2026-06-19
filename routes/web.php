@@ -101,6 +101,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // IMPORTANTE: ruta fija ANTES del resource
     Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
     Route::get('descargar-reporte-pagos/{id}', [GrupoController::class, 'reportePagos'])->name('grupos.reporte-pagos');
+    Route::get('descargar-expediente-medico/{id}', [GrupoController::class, 'reporteExpedienteMedico'])->name('grupos.reporte-medico');
 
     // Caja puede consultar grupos (solo lectura)
     Route::get('/grupos', [GrupoController::class, 'index'])
@@ -150,6 +151,23 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
+
+    // ── Expediente médico ────────────────────────────────
+    Route::post('/alumnos/{id}/ficha-medica', [\App\Http\Controllers\FichaMedicaController::class, 'storeOrUpdate'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('ficha-medica.storeOrUpdate');
+    Route::post('/alumnos/{id}/condiciones-medicas', [\App\Http\Controllers\FichaMedicaController::class, 'storeCondicion'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('condiciones-medicas.store');
+    Route::delete('/condiciones-medicas/{id}', [\App\Http\Controllers\FichaMedicaController::class, 'destroyCondicion'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('condiciones-medicas.destroy');
+    Route::post('/alumnos/{id}/medicamentos-autorizados', [\App\Http\Controllers\FichaMedicaController::class, 'storeMedicamento'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('medicamentos-autorizados.store');
+    Route::delete('/medicamentos-autorizados/{id}', [\App\Http\Controllers\FichaMedicaController::class, 'destroyMedicamento'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('medicamentos-autorizados.destroy');
     Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
     Route::get('/alumnos-bajas', [AlumnoController::class, 'reporteBajas'])
         ->middleware('rol:administrador,recepcion')

@@ -264,6 +264,12 @@
 
                             <a href="{{ route('grupos.reporte-pagos', $grupo->id) }}" target="_blank"
                                 class="btn-flat-sm btn-flat-success"><i class="fa fa-money"></i> Reporte de Pagos</a>
+
+                            <a href="{{ route('grupos.reporte-medico', $grupo->id) }}" target="_blank"
+                                class="btn-flat-sm"
+                                style="background:#fdecea;color:#c0392b;border:1px solid #f5b7b1;">
+                                <i class="fa fa-heartbeat"></i> Expediente Médico
+                            </a>
                         </div>
                     </div>
                     <div class="box-body-flat" style="padding: 0;">

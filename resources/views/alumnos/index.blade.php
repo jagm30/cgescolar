@@ -204,14 +204,9 @@
                                 @endif
                             </td>
 
-                            {{-- PLAN DE PAGOS --}}
+                            {{-- PLAN DE PAGOS — plan efectivo según cargos generados en el ciclo actual --}}
                             <td>
-                                @php
-                                    // Prioridad: individual > grupo > nivel
-                                    $plan = $alumno->asignacionesPlanes->first()?->plan
-                                        ?? $planesPorGrupo->get($inscripcion?->grupo_id)?->plan
-                                        ?? $planesPorNivel->get($inscripcion?->grupo?->grado?->nivel_id)?->plan;
-                                @endphp
+                                @php $plan = $planPorAlumno->get($alumno->id); @endphp
                                 @if ($plan)
                                     <span style="font-size:12px;font-weight:600;color:#2c5282;">
                                         <i class="fa fa-file-text-o" style="color:#3c8dbc;margin-right:4px;"></i>
