@@ -381,8 +381,9 @@ public function gradosPorCiclo(Request $request)
     {
         // Filtramos las inscripciones para traer solo las ACTIVAS en el reporte
         $grupo = Grupo::with([
-            'grado',
-            'inscripciones' => fn($q) => $q->where('activo', true)->with('alumno')
+            'grado.nivel',
+            'ciclo',
+            'inscripciones' => fn($q) => $q->where('activo', true)->with('alumno'),
         ])->findOrFail($id);
 
         if (ob_get_length()) ob_end_clean();

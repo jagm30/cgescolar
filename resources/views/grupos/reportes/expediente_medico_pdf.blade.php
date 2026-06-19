@@ -16,7 +16,7 @@
         $conCondicion = $inscripciones->filter(fn($i) => $i->alumno->condicionesMedicas->isNotEmpty());
     @endphp
 
-    <title>Expediente Médico — {{ $grupo->grado->nivel->nombre }} {{ $grupo->grado->nombre }}° {{ $grupo->nombre }}</title>
+    <title>Expediente Médico — {{ $grupo->grado->nivel->nombre }} {{ $grupo->grado->numero }}° {{ $grupo->nombre }}</title>
 
     <style>
         @page { margin: 8mm 10mm; }
@@ -232,7 +232,7 @@
             </td>
             <td style="width:22%;">
                 <span class="info-lbl">Grado y Grupo</span>
-                <span class="info-badge">{{ $grupo->grado->nombre }}° {{ $grupo->nombre }}</span>
+                <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
             </td>
             <td style="width:30%;">
                 <span class="info-lbl">Docente</span>
