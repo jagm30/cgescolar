@@ -196,10 +196,16 @@
                         <a href="{{ route('pagos.detalle-ingresos') }}" class="btn btn-sm btn-default btn-flat" style="border-radius:6px;">
                             <i class="fa fa-times"></i> Limpiar
                         </a>
-                        <div style="margin-left:auto;">
+                        <div style="margin-left:auto;display:flex;gap:6px;">
                             <button type="button" onclick="window.print()" class="btn btn-sm btn-default btn-flat" style="border-radius:6px;">
                                 <i class="fa fa-print"></i> Imprimir
                             </button>
+                            <a id="btn-pdf"
+                               href="{{ route('pagos.detalle-ingresos.pdf') }}"
+                               target="_blank"
+                               class="btn btn-sm btn-danger btn-flat" style="border-radius:6px;">
+                                <i class="fa fa-file-pdf-o"></i> Descargar PDF
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -468,3 +474,33 @@
 @endif{{-- /total_cobrado > 0 --}}
 
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var baseUrl = '{{ route('pagos.detalle-ingresos.pdf') }}';
+
+    function actualizarBtnPdf() {
+        var params = new URLSearchParams({
+            fecha_desde: document.querySelector('[name="fecha_desde"]').value || '',
+            fecha_hasta: document.querySelector('[name="fecha_hasta"]').value  || '',
+            concepto_id: document.querySelector('[name="concepto_id"]').value || '',
+            nivel_id:    document.querySelector('[name="nivel_id"]').value     || '',
+            periodo:     document.querySelector('[name="periodo"]').value       || '',
+            forma_pago:  document.querySelector('[name="forma_pago"]').value   || '',
+        });
+
+        ['fecha_desde','fecha_hasta','concepto_id','nivel_id','periodo','forma_pago'].forEach(function (k) {
+            if (!params.get(k)) params.delete(k);
+        });
+
+        document.getElementById('btn-pdf').href = baseUrl + '?' + params.toString();
+    }
+
+    document.querySelectorAll('[name="fecha_desde"],[name="fecha_hasta"],[name="concepto_id"],[name="nivel_id"],[name="periodo"],[name="forma_pago"]')
+        .forEach(function (el) { el.addEventListener('change', actualizarBtnPdf); });
+
+    actualizarBtnPdf();
+})();
+</script>
+@endpush

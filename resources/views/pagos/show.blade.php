@@ -75,7 +75,7 @@
     $cfdiVigente    = $pago->cfdis->where('estado', 'vigente')->first();
     $cfdiGlobal     = $pago->cfdiGlobal->where('estado', 'vigente')->first();
     $tieneFactura   = $cfdiVigente || $cfdiGlobal;
-    $totalDesc      = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_otros);
+    $totalDesc      = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_pronto_pago + (float)$d->descuento_otros);
     $totalRecarg    = $pago->detalles->sum(fn($d) => (float)$d->recargo_aplicado);
     $alumnos        = $pago->detalles
         ->map(fn($d) => $d->cargo?->inscripcion?->alumno)
@@ -212,7 +212,7 @@
                         @endif
                     </td>
                     <td style="text-align:right;font-weight:700;color:#1a2634;">
-                        ${{ number_format($detalle->monto_abonado, 2) }}
+                        ${{ number_format($detalle->monto_final, 2) }}
                     </td>
                 </tr>
                 @endforeach

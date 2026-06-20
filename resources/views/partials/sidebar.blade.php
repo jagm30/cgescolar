@@ -100,7 +100,7 @@
 
             @if (auth()->user()->esAdministrador())
                 <li
-                    class="treeview {{ request()->routeIs(['conceptos.*', 'planes.*', 'becas.*']) ? 'active menu-open' : '' }}">
+                    class="treeview {{ request()->routeIs(['conceptos.*', 'planes.*', 'becas.*', 'condonaciones.*']) ? 'active menu-open' : '' }}">
                     <a href="#">
                         <i class="fa fa-money"></i>
                         <span>Planes y conceptos</span>
@@ -123,6 +123,11 @@
                         <li class="{{ request()->routeIs('becas.*') ? 'active' : '' }}">
                             <a href="{{ route('becas.index') }}">
                                 <i class="fa fa-circle-o"></i> Becas
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('condonaciones.*') ? 'active' : '' }}">
+                            <a href="{{ route('condonaciones.index') }}">
+                                <i class="fa fa-circle-o"></i> Condonaciones
                             </a>
                         </li>
                         <li class="{{ request()->routeIs('planes.asignar.*') ? 'active' : '' }}">

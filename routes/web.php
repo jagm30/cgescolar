@@ -8,9 +8,11 @@ use App\Http\Controllers\CfdiController;
 use App\Http\Controllers\CicloEscolarController;
 use App\Http\Controllers\CobrosController;
 use App\Http\Controllers\ConceptoCobroController;
+use App\Http\Controllers\CondonacionController;
 use App\Http\Controllers\CredencialController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FamiliaController;
+use App\Http\Controllers\FichaMedicaController;
 use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\NivelEscolarController;
@@ -21,8 +23,8 @@ use App\Http\Controllers\PoliticaController;
 use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
-use App\Http\Controllers\ReporteDeudoresController;
 use App\Http\Controllers\ReinscripcionController;
+use App\Http\Controllers\ReporteDeudoresController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -54,8 +56,8 @@ Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::middleware('guest')->group(function () {
 
     Route::post('/login', [AuthController::class, 'login'])
-    ->name('login.submit')
-    ->middleware('throttle:5,1');
+        ->name('login.submit')
+        ->middleware('throttle:5,1');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -90,9 +92,8 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador');
 
     // ── Grados ───────────────────────────────────────────
-    Route::get('grupos/grados-por-ciclo',      [GrupoController::class, 'gradosPorCiclo'])->name('grupos.gradosPorCiclo');
+    Route::get('grupos/grados-por-ciclo', [GrupoController::class, 'gradosPorCiclo'])->name('grupos.gradosPorCiclo');
     Route::get('grupos/grupos-por-ciclo-grado', [GrupoController::class, 'gruposPorCicloGrado'])->name('grupos.gruposPorCicloGrado');
-
 
     Route::resource('grados', GradoController::class)
         ->middleware('rol:administrador');
@@ -124,7 +125,6 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('grupos/promocionar-masivo', [GrupoController::class, 'promocionarMasivo'])
         ->name('grupos.promocionar-masivo');
 
-
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
     Route::get('/alumnos/{id}/hermanos', [AlumnoController::class, 'hermanos'])
@@ -153,19 +153,19 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])->name('alumnos.darBaja');
 
     // ── Expediente médico ────────────────────────────────
-    Route::post('/alumnos/{id}/ficha-medica', [\App\Http\Controllers\FichaMedicaController::class, 'storeOrUpdate'])
+    Route::post('/alumnos/{id}/ficha-medica', [FichaMedicaController::class, 'storeOrUpdate'])
         ->middleware('rol:administrador,recepcion')
         ->name('ficha-medica.storeOrUpdate');
-    Route::post('/alumnos/{id}/condiciones-medicas', [\App\Http\Controllers\FichaMedicaController::class, 'storeCondicion'])
+    Route::post('/alumnos/{id}/condiciones-medicas', [FichaMedicaController::class, 'storeCondicion'])
         ->middleware('rol:administrador,recepcion')
         ->name('condiciones-medicas.store');
-    Route::delete('/condiciones-medicas/{id}', [\App\Http\Controllers\FichaMedicaController::class, 'destroyCondicion'])
+    Route::delete('/condiciones-medicas/{id}', [FichaMedicaController::class, 'destroyCondicion'])
         ->middleware('rol:administrador,recepcion')
         ->name('condiciones-medicas.destroy');
-    Route::post('/alumnos/{id}/medicamentos-autorizados', [\App\Http\Controllers\FichaMedicaController::class, 'storeMedicamento'])
+    Route::post('/alumnos/{id}/medicamentos-autorizados', [FichaMedicaController::class, 'storeMedicamento'])
         ->middleware('rol:administrador,recepcion')
         ->name('medicamentos-autorizados.store');
-    Route::delete('/medicamentos-autorizados/{id}', [\App\Http\Controllers\FichaMedicaController::class, 'destroyMedicamento'])
+    Route::delete('/medicamentos-autorizados/{id}', [FichaMedicaController::class, 'destroyMedicamento'])
         ->middleware('rol:administrador,recepcion')
         ->name('medicamentos-autorizados.destroy');
     Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
@@ -178,9 +178,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Reinscripciones ──────────────────────────────────
     Route::middleware('rol:administrador,recepcion')->prefix('reinscripciones')->name('reinscripciones.')->group(function () {
-        Route::get('/',       [ReinscripcionController::class, 'index'])->name('index');
+        Route::get('/', [ReinscripcionController::class, 'index'])->name('index');
         Route::get('/buscar', [ReinscripcionController::class, 'buscar'])->name('buscar');
-        Route::post('/',      [ReinscripcionController::class, 'store'])->name('store');
+        Route::post('/', [ReinscripcionController::class, 'store'])->name('store');
     });
 
     // conceptos de cobro
@@ -276,6 +276,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('pagos.detalle-ingresos');
 
+    Route::get('/pagos/detalle-ingresos/pdf', [PagoController::class, 'detalleIngresosPdf'])
+        ->middleware('rol:administrador,caja')
+        ->name('pagos.detalle-ingresos.pdf');
+
     Route::post('/pagos/{id}/anular', [PagoController::class, 'anular'])
         ->middleware('rol:administrador')
         ->name('pagos.anular');
@@ -319,6 +323,19 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::resource('becas', BecaController::class)
         ->only(['index', 'store', 'destroy'])
+        ->middleware('rol:administrador');
+
+    // ── Condonaciones ────────────────────────────────────
+    Route::get('/condonaciones/cargos-alumno/{alumnoId}', [CondonacionController::class, 'cargosAlumno'])
+        ->middleware('rol:administrador')
+        ->name('condonaciones.cargos-alumno');
+
+    Route::get('/condonaciones/crear', [CondonacionController::class, 'create'])
+        ->middleware('rol:administrador')
+        ->name('condonaciones.create');
+
+    Route::resource('condonaciones', CondonacionController::class)
+        ->only(['index', 'store', 'show', 'destroy'])
         ->middleware('rol:administrador');
 
     // ── Prospectos ───────────────────────────────────────

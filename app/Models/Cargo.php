@@ -72,7 +72,7 @@ class Cargo extends Model
 
         $fecha = Carbon::createFromFormat('Y-m', $this->periodo)->locale('es');
 
-        return ucfirst($fecha->monthName) . ' ' . $fecha->year;
+        return ucfirst($fecha->monthName).' '.$fecha->year;
     }
 
     /**
@@ -208,5 +208,10 @@ class Cargo extends Model
     public function descuentos(): HasMany
     {
         return $this->hasMany(DescuentoCargo::class, 'cargo_id');
+    }
+
+    public function condonacionDetalles(): HasMany
+    {
+        return $this->hasMany(CondonacionDetalle::class, 'cargo_id');
     }
 }

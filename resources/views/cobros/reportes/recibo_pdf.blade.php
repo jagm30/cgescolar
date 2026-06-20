@@ -254,9 +254,9 @@
                 <th style="width: 35%; text-align: left;">Concepto</th>
                 <th style="width: 15%; text-align: center;">Periodo</th>
                 <th style="width: 15%;" class="text-right">Monto Base</th>
-                <th style="width: 10%;" class="text-right">Desc.</th>
-                <th style="width: 10%;" class="text-right">Recargo</th>
-                <th style="width: 15%;" class="text-right">Subtotal</th>
+                <th style="width: 20%;" class="text-right">Descuentos</th>
+                <th style="width: 5%;" class="text-right">Recargo</th>
+                <th style="width: 10%;" class="text-right">Subtotal</th>
             </tr>
         </thead>
         <tbody>
@@ -267,7 +267,17 @@
                         [$anio, $mes] = explode('-', $detalle->cargo->periodo);
                         $periodoLabel = ($mesesEs[(int) $mes] ?? '') . ' ' . $anio;
                     }
-                    $total_descuento = $detalle->descuento_beca + $detalle->descuento_otros;
+
+                    $dBeca       = (float) $detalle->descuento_beca;
+                    $dProntoPago = (float) $detalle->descuento_pronto_pago;
+                    $dOtros      = (float) $detalle->descuento_otros;
+
+                    // Identificar cuánto de descuento_otros proviene de condonaciones
+                    $dCondonacion = min(
+                        $dOtros,
+                        (float) $detalle->cargo->condonacionDetalles->sum('monto_aplicado')
+                    );
+                    $dManual = max(0, $dOtros - $dCondonacion);
                 @endphp
                 <tr>
                     <td>
@@ -278,10 +288,20 @@
                     </td>
                     <td class="text-center">{{ $periodoLabel ?? '—' }}</td>
                     <td class="text-right">${{ number_format($detalle->monto_abonado, 2) }}</td>
-                    <td class="text-right text-green">
-                        @if ($total_descuento > 0)
-                            -${{ number_format($total_descuento, 2) }}
-                        @else
+                    <td class="text-right text-green" style="font-size:11px; line-height:1.6;">
+                        @if ($dBeca > 0)
+                            <span>Beca: -${{ number_format($dBeca, 2) }}</span><br>
+                        @endif
+                        @if ($dProntoPago > 0)
+                            <span>Pronto pago: -${{ number_format($dProntoPago, 2) }}</span><br>
+                        @endif
+                        @if ($dCondonacion > 0)
+                            <span>Condonación: -${{ number_format($dCondonacion, 2) }}</span><br>
+                        @endif
+                        @if ($dManual > 0)
+                            <span>Descuento: -${{ number_format($dManual, 2) }}</span><br>
+                        @endif
+                        @if ($dBeca + $dProntoPago + $dOtros === 0.0)
                             $0.00
                         @endif
                     </td>
