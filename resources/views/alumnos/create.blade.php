@@ -281,6 +281,68 @@
                                 placeholder="Notas adicionales sobre el alumno (opcional)" maxlength="1000">{{ old('observaciones', $alumnoPrecargado['observaciones'] ?? '') }}</textarea>
                         </div>
 
+                        {{-- Domicilio --}}
+                        <hr style="margin:12px 0 10px;">
+                        <p style="font-size:11px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                            <i class="fa fa-map-marker" style="color:#3c8dbc;"></i> Domicilio
+                            <span style="font-weight:400;color:#b0bec5;text-transform:none;font-size:10px;"> — Opcional</span>
+                        </p>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group {{ $errors->has('calle') ? 'has-error' : '' }}">
+                                    <label for="calle">Calle y número</label>
+                                    <input type="text" name="calle" id="calle" class="form-control"
+                                        placeholder="Ej: Av. Reforma 123 Int. 4"
+                                        value="{{ old('calle') }}" maxlength="200">
+                                    @error('calle') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group {{ $errors->has('colonia') ? 'has-error' : '' }}">
+                                    <label for="colonia">Colonia</label>
+                                    <input type="text" name="colonia" id="colonia" class="form-control"
+                                        placeholder="Colonia" value="{{ old('colonia') }}" maxlength="200">
+                                    @error('colonia') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group {{ $errors->has('codigo_postal') ? 'has-error' : '' }}">
+                                    <label for="codigo_postal">C.P.</label>
+                                    <input type="text" name="codigo_postal" id="codigo_postal" class="form-control"
+                                        placeholder="00000" value="{{ old('codigo_postal') }}" maxlength="10">
+                                    @error('codigo_postal') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group {{ $errors->has('ciudad') ? 'has-error' : '' }}">
+                                    <label for="ciudad">Ciudad</label>
+                                    <input type="text" name="ciudad" id="ciudad" class="form-control"
+                                        placeholder="Ciudad" value="{{ old('ciudad') }}" maxlength="100">
+                                    @error('ciudad') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group {{ $errors->has('estado_residencia') ? 'has-error' : '' }}">
+                                    <label for="estado_residencia">Estado</label>
+                                    <input type="text" name="estado_residencia" id="estado_residencia" class="form-control"
+                                        placeholder="Estado" value="{{ old('estado_residencia') }}" maxlength="100">
+                                    @error('estado_residencia') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group {{ $errors->has('religion') ? 'has-error' : '' }}">
+                                    <label for="religion">Religión</label>
+                                    <input type="text" name="religion" id="religion" class="form-control"
+                                        placeholder="Ej: Católica" value="{{ old('religion') }}" maxlength="100">
+                                    @error('religion') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+
                     </div>{{-- /.form-panel-body --}}
                 </div>
 
@@ -660,7 +722,82 @@
                     </div>
                 </div>
 
-                <div class="row">
+                {{-- Datos adicionales del contacto (opcionales) --}}
+                <div style="margin-top:6px;">
+                    <a href="#datos-extra-__INDEX__" data-toggle="collapse"
+                       style="font-size:11px;color:#3c8dbc;display:inline-block;margin-bottom:6px;">
+                        <i class="fa fa-plus-circle"></i> Datos adicionales del contacto <span style="color:#b0bec5;">(opcional)</span>
+                    </a>
+                    <div id="datos-extra-__INDEX__" class="collapse">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Teléfono 2</label>
+                                    <input type="tel" name="contactos[__INDEX__][telefono_2]" class="form-control"
+                                        placeholder="10 dígitos" maxlength="20">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Fecha de nacimiento</label>
+                                    <input type="date" name="contactos[__INDEX__][fecha_nacimiento]" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Nivel de estudios</label>
+                                    <select name="contactos[__INDEX__][nivel_estudios]" class="form-control">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="Sin estudios">Sin estudios</option>
+                                        <option value="Primaria">Primaria</option>
+                                        <option value="Secundaria">Secundaria</option>
+                                        <option value="Preparatoria">Preparatoria / Bachillerato</option>
+                                        <option value="Técnico">Técnico / Carrera técnica</option>
+                                        <option value="Licenciatura">Licenciatura / Universidad</option>
+                                        <option value="Posgrado">Posgrado (Maestría / Doctorado)</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Profesión</label>
+                                    <input type="text" name="contactos[__INDEX__][profesion]" class="form-control"
+                                        placeholder="Ej: Ingeniero" maxlength="100">
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label>Lugar de trabajo</label>
+                                    <input type="text" name="contactos[__INDEX__][lugar_trabajo]" class="form-control"
+                                        placeholder="Nombre de la empresa" maxlength="200">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Puesto</label>
+                                    <input type="text" name="contactos[__INDEX__][puesto]" class="form-control"
+                                        placeholder="Ej: Gerente" maxlength="100">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="hidden" name="contactos[__INDEX__][vive]" value="0">
+                                        <input type="checkbox" name="contactos[__INDEX__][vive]" value="1" __VIVE__>
+                                        El contacto está vivo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:8px;">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Foto del contacto</label>
@@ -993,6 +1130,7 @@
             template = template.replace('__ORDEN3__', num === 3 ? 'selected' : '');
             template = template.replace('__RECOGER__', num === 1 ? 'checked' : '');
             template = template.replace('__PAGO__', num === 1 ? 'checked' : '');
+            template = template.replace('__VIVE__', 'checked'); // vive=true por defecto
 
             $contacto = $(template);
 
