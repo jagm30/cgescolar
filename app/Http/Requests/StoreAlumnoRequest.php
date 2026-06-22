@@ -19,7 +19,7 @@ class StoreAlumnoRequest extends FormRequest
                     return $contacto;
                 }
 
-                foreach (['autorizado_recoger', 'es_responsable_pago', 'tiene_acceso_portal'] as $campoBooleano) {
+                foreach (['autorizado_recoger', 'es_responsable_pago', 'tiene_acceso_portal', 'vive'] as $campoBooleano) {
                     if (array_key_exists($campoBooleano, $contacto)) {
                         $contacto[$campoBooleano] = filter_var(
                             $contacto[$campoBooleano],
@@ -50,6 +50,13 @@ class StoreAlumnoRequest extends FormRequest
             'genero' => ['nullable', 'in:M,F,Otro'],
             'foto_url' => ['nullable', 'string', 'max:500'],
             'observaciones' => ['nullable', 'string', 'max:1000'],
+            // Domicilio
+            'calle' => ['nullable', 'string', 'max:200'],
+            'colonia' => ['nullable', 'string', 'max:200'],
+            'codigo_postal' => ['nullable', 'string', 'max:10'],
+            'ciudad' => ['nullable', 'string', 'max:100'],
+            'estado_residencia' => ['nullable', 'string', 'max:100'],
+            'religion' => ['nullable', 'string', 'max:100'],
             'fecha_inscripcion' => ['required', 'date'],
             'ciclo_id' => ['required', 'exists:ciclo_escolar,id'],
             'grupo_id' => ['required', 'exists:grupo,id'],
@@ -60,14 +67,21 @@ class StoreAlumnoRequest extends FormRequest
             'contactos.*.ap_materno' => ['nullable', 'string', 'max:100'],
             'contactos.*.telefono_celular' => ['required', 'string', 'max:20'],
             'contactos.*.telefono_trabajo' => ['nullable', 'string', 'max:20'],
+            'contactos.*.telefono_2' => ['nullable', 'string', 'max:20'],
             'contactos.*.email' => ['nullable', 'email', 'max:200'],
             'contactos.*.curp' => ['nullable', 'string', 'size:18'],
+            'contactos.*.fecha_nacimiento' => ['nullable', 'date'],
+            'contactos.*.lugar_trabajo' => ['nullable', 'string', 'max:200'],
+            'contactos.*.puesto' => ['nullable', 'string', 'max:100'],
+            'contactos.*.nivel_estudios' => ['nullable', 'string', 'max:100'],
+            'contactos.*.profesion' => ['nullable', 'string', 'max:100'],
             'contactos.*.parentesco' => ['required', 'in:padre,madre,abuelo,tio,otro'],
             'contactos.*.tipo' => ['required', 'in:padre,madre,tutor,tercero_autorizado'],
             'contactos.*.orden' => ['required', 'integer', 'min:1', 'max:3'],
             'contactos.*.autorizado_recoger' => ['boolean'],
             'contactos.*.es_responsable_pago' => ['boolean'],
             'contactos.*.tiene_acceso_portal' => ['boolean'],
+            'contactos.*.vive' => ['boolean'],
             'fotos_contacto' => ['nullable', 'array'],
             'fotos_contacto.*' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
             'prospecto_id' => ['nullable', 'exists:prospecto,id'],

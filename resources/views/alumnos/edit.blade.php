@@ -239,6 +239,68 @@
                     </div>
                 </div>
 
+                {{-- Domicilio --}}
+                <hr style="margin:10px 0 12px;">
+                <p style="font-size:11px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">
+                    <i class="fa fa-map-marker" style="color:#3c8dbc;"></i> Domicilio
+                    <span style="font-weight:400;color:#b0bec5;text-transform:none;font-size:10px;"> — Opcional</span>
+                </p>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group {{ $errors->has('calle') ? 'has-error' : '' }}">
+                            <label for="calle">Calle y número</label>
+                            <input type="text" name="calle" id="calle" class="form-control"
+                                placeholder="Ej: Av. Reforma 123 Int. 4"
+                                value="{{ old('calle', $alumno->calle) }}" maxlength="200">
+                            @error('calle') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('colonia') ? 'has-error' : '' }}">
+                            <label for="colonia">Colonia</label>
+                            <input type="text" name="colonia" id="colonia" class="form-control"
+                                placeholder="Colonia" value="{{ old('colonia', $alumno->colonia) }}" maxlength="200">
+                            @error('colonia') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group {{ $errors->has('codigo_postal') ? 'has-error' : '' }}">
+                            <label for="codigo_postal">C.P.</label>
+                            <input type="text" name="codigo_postal" id="codigo_postal" class="form-control"
+                                placeholder="00000" value="{{ old('codigo_postal', $alumno->codigo_postal) }}" maxlength="10">
+                            @error('codigo_postal') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group {{ $errors->has('ciudad') ? 'has-error' : '' }}">
+                            <label for="ciudad">Ciudad</label>
+                            <input type="text" name="ciudad" id="ciudad" class="form-control"
+                                placeholder="Ciudad" value="{{ old('ciudad', $alumno->ciudad) }}" maxlength="100">
+                            @error('ciudad') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group {{ $errors->has('estado_residencia') ? 'has-error' : '' }}">
+                            <label for="estado_residencia">Estado</label>
+                            <input type="text" name="estado_residencia" id="estado_residencia" class="form-control"
+                                placeholder="Estado" value="{{ old('estado_residencia', $alumno->estado_residencia) }}" maxlength="100">
+                            @error('estado_residencia') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group {{ $errors->has('religion') ? 'has-error' : '' }}">
+                            <label for="religion">Religión</label>
+                            <input type="text" name="religion" id="religion" class="form-control"
+                                placeholder="Ej: Católica" value="{{ old('religion', $alumno->religion) }}" maxlength="100">
+                            @error('religion') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+
             </div>{{-- /.box-body --}}
         </div>{{-- /paso 1 --}}
 
@@ -699,6 +761,74 @@
                                     </label>
                                 </div>
                             </div>
+                            {{-- Datos adicionales del contacto --}}
+                            <div style="margin-top:8px;">
+                                <a href="#ctc-extra-{{ $contacto->id }}" data-toggle="collapse"
+                                   style="font-size:11px;color:#3c8dbc;display:inline-block;margin-bottom:6px;">
+                                    <i class="fa fa-plus-circle"></i> Datos adicionales
+                                    <span style="color:#b0bec5;">(opcional)</span>
+                                </a>
+                                <div id="ctc-extra-{{ $contacto->id }}" class="{{ $contacto->telefono_2 || $contacto->fecha_nacimiento || $contacto->lugar_trabajo || $contacto->profesion ? 'collapse in' : 'collapse' }}">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px;">Teléfono 2</label>
+                                                <input type="tel" class="form-control input-sm ctc-telefono2"
+                                                    value="{{ $contacto->telefono_2 }}" maxlength="20">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px;">Fecha de nacimiento</label>
+                                                <input type="date" class="form-control input-sm ctc-fecha-nacimiento"
+                                                    value="{{ $contacto->fecha_nacimiento?->format('Y-m-d') }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px;">Nivel de estudios</label>
+                                                <select class="form-control input-sm ctc-nivel-estudios">
+                                                    <option value="">-- Seleccionar --</option>
+                                                    @foreach(['Sin estudios','Primaria','Secundaria','Preparatoria','Técnico','Licenciatura','Posgrado','Otro'] as $nivel)
+                                                        <option value="{{ $nivel }}" {{ $contacto->nivel_estudios === $nivel ? 'selected' : '' }}>{{ $nivel }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px;">Profesión</label>
+                                                <input type="text" class="form-control input-sm ctc-profesion"
+                                                    value="{{ $contacto->profesion }}" maxlength="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label style="font-size:12px;">Lugar de trabajo</label>
+                                                <input type="text" class="form-control input-sm ctc-lugar-trabajo"
+                                                    value="{{ $contacto->lugar_trabajo }}" maxlength="200">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px;">Puesto</label>
+                                                <input type="text" class="form-control input-sm ctc-puesto"
+                                                    value="{{ $contacto->puesto }}" maxlength="100">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2" style="padding-top:22px;">
+                                            <label class="checkbox-inline" style="font-size:12px;">
+                                                <input type="checkbox" class="ctc-vive"
+                                                    {{ $contacto->vive !== false ? 'checked' : '' }}>
+                                                Vive
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;">
                                 <div class="ctc-foto-preview" style="width:52px;height:52px;border-radius:50%;border:2px solid #ddd;overflow:hidden;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                     @if($contacto->foto_url)
@@ -840,6 +970,68 @@
                                 </label>
                             </div>
                         </div>
+
+                        {{-- Datos adicionales del nuevo contacto --}}
+                        <p style="font-size:11px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.04em;margin:8px 0 6px;">
+                            <i class="fa fa-info-circle" style="color:#3c8dbc;"></i> Datos adicionales
+                            <span style="font-weight:400;color:#b0bec5;text-transform:none;"> — Opcional</span>
+                        </p>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Teléfono 2</label>
+                                    <input type="tel" id="nctc-telefono2" class="form-control input-sm" maxlength="20">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Fecha de nacimiento</label>
+                                    <input type="date" id="nctc-fecha-nacimiento" class="form-control input-sm">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Nivel de estudios</label>
+                                    <select id="nctc-nivel-estudios" class="form-control input-sm">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="Sin estudios">Sin estudios</option>
+                                        <option value="Primaria">Primaria</option>
+                                        <option value="Secundaria">Secundaria</option>
+                                        <option value="Preparatoria">Preparatoria / Bachillerato</option>
+                                        <option value="Técnico">Técnico / Carrera técnica</option>
+                                        <option value="Licenciatura">Licenciatura / Universidad</option>
+                                        <option value="Posgrado">Posgrado (Maestría / Doctorado)</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Profesión</label>
+                                    <input type="text" id="nctc-profesion" class="form-control input-sm" maxlength="100">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Lugar de trabajo</label>
+                                    <input type="text" id="nctc-lugar-trabajo" class="form-control input-sm" maxlength="200">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label style="font-size:12px;">Puesto</label>
+                                    <input type="text" id="nctc-puesto" class="form-control input-sm" maxlength="100">
+                                </div>
+                            </div>
+                            <div class="col-md-3" style="padding-top:22px;">
+                                <label class="checkbox-inline" style="font-size:12px;">
+                                    <input type="checkbox" id="nctc-vive" checked> Vive
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="row" style="margin-top:4px;">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -1285,6 +1477,15 @@
                             ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
                             telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
                             email:               $panel.find('.ctc-email').val().trim(),
+                            // Datos adicionales
+                            telefono_2:          $panel.find('.ctc-telefono2').val().trim(),
+                            fecha_nacimiento:    $panel.find('.ctc-fecha-nacimiento').val() || null,
+                            lugar_trabajo:       $panel.find('.ctc-lugar-trabajo').val().trim(),
+                            puesto:              $panel.find('.ctc-puesto').val().trim(),
+                            nivel_estudios:      $panel.find('.ctc-nivel-estudios').val(),
+                            profesion:           $panel.find('.ctc-profesion').val().trim(),
+                            vive:                $panel.find('.ctc-vive').is(':checked'),
+                            // Permisos y pivot
                             parentesco:          $panel.find('.ctc-parentesco').val(),
                             tipo:                $panel.find('.ctc-tipo').val(),
                             orden:               parseInt($panel.find('.ctc-orden').val()),
@@ -1325,6 +1526,15 @@
                         ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
                         telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
                         email:               $panel.find('.ctc-email').val().trim(),
+                        // Datos adicionales
+                        telefono_2:          $panel.find('.ctc-telefono2').val().trim(),
+                        fecha_nacimiento:    $panel.find('.ctc-fecha-nacimiento').val() || null,
+                        lugar_trabajo:       $panel.find('.ctc-lugar-trabajo').val().trim(),
+                        puesto:              $panel.find('.ctc-puesto').val().trim(),
+                        nivel_estudios:      $panel.find('.ctc-nivel-estudios').val(),
+                        profesion:           $panel.find('.ctc-profesion').val().trim(),
+                        vive:                $panel.find('.ctc-vive').is(':checked'),
+                        // Permisos y pivot
                         parentesco:          $panel.find('.ctc-parentesco').val(),
                         tipo:                $panel.find('.ctc-tipo').val(),
                         orden:               parseInt($panel.find('.ctc-orden').val()),
@@ -1428,6 +1638,15 @@
                 fd.append('telefono_celular',     $('#nctc-telefono').val().trim());
                 fd.append('email',                $('#nctc-email').val().trim());
                 fd.append('curp',                 $('#nctc-curp').val().trim().toUpperCase());
+                // Datos adicionales
+                fd.append('telefono_2',           $('#nctc-telefono2').val().trim());
+                fd.append('fecha_nacimiento',     $('#nctc-fecha-nacimiento').val());
+                fd.append('lugar_trabajo',        $('#nctc-lugar-trabajo').val().trim());
+                fd.append('puesto',               $('#nctc-puesto').val().trim());
+                fd.append('nivel_estudios',       $('#nctc-nivel-estudios').val());
+                fd.append('profesion',            $('#nctc-profesion').val().trim());
+                fd.append('vive',                 $('#nctc-vive').is(':checked') ? '1' : '0');
+                // Permisos y pivot
                 fd.append('parentesco',           $('#nctc-parentesco').val());
                 fd.append('tipo',                 $('#nctc-tipo').val());
                 fd.append('orden',                $('#nctc-orden').val());
@@ -1464,6 +1683,11 @@
                         '<option value="2"' + (datos.orden === 2 ? ' selected' : '') + '>2 — Secundario</option>' +
                         '<option value="3"' + (datos.orden === 3 ? ' selected' : '') + '>3 — Tercero</option>';
 
+                    var nivelOpts = ['', 'Sin estudios', 'Primaria', 'Secundaria', 'Preparatoria', 'Técnico', 'Licenciatura', 'Posgrado', 'Otro']
+                        .map(function(n) {
+                            return '<option value="' + n + '"' + (datos.nivel_estudios === n ? ' selected' : '') + '>' + (n || '-- Seleccionar --') + '</option>';
+                        }).join('');
+
                     var html =
                         '<div class="panel panel-default ctc-panel" style="margin-bottom:10px;" data-id="' + c.id + '">' +
                         '<div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">' +
@@ -1490,6 +1714,23 @@
                         '<label class="checkbox-inline"><input type="checkbox" class="ctc-recoger"' + (piv.autorizado_recoger ? ' checked' : '') + '>  Autorizado recoger</label>' +
                         '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-pago"' + (piv.es_responsable_pago ? ' checked' : '') + '>  Resp. pagos</label>' +
                         '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' + (c.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
+                        '</div></div>' +
+                        // Datos adicionales colapsables
+                        '<div style="margin-top:6px;">' +
+                        '<a href="#ctc-extra-' + c.id + '" data-toggle="collapse" style="font-size:11px;color:#3c8dbc;display:inline-block;margin-bottom:6px;">' +
+                        '<i class="fa fa-plus-circle"></i> Datos adicionales <span style="color:#b0bec5;">(opcional)</span></a>' +
+                        '<div id="ctc-extra-' + c.id + '" class="collapse">' +
+                        '<div class="row">' +
+                        '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Teléfono 2</label><input type="tel" class="form-control input-sm ctc-telefono2" value="' + (datos.telefono_2 || '') + '" maxlength="20"></div></div>' +
+                        '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Fecha nacimiento</label><input type="date" class="form-control input-sm ctc-fecha-nacimiento" value="' + (datos.fecha_nacimiento || '') + '"></div></div>' +
+                        '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Nivel de estudios</label><select class="form-control input-sm ctc-nivel-estudios">' + nivelOpts + '</select></div></div>' +
+                        '<div class="col-md-3"><div class="form-group"><label style="font-size:12px;">Profesión</label><input type="text" class="form-control input-sm ctc-profesion" value="' + (datos.profesion || '') + '" maxlength="100"></div></div>' +
+                        '</div>' +
+                        '<div class="row">' +
+                        '<div class="col-md-5"><div class="form-group"><label style="font-size:12px;">Lugar de trabajo</label><input type="text" class="form-control input-sm ctc-lugar-trabajo" value="' + (datos.lugar_trabajo || '') + '" maxlength="200"></div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label style="font-size:12px;">Puesto</label><input type="text" class="form-control input-sm ctc-puesto" value="' + (datos.puesto || '') + '" maxlength="100"></div></div>' +
+                        '<div class="col-md-3" style="padding-top:22px;"><label class="checkbox-inline" style="font-size:12px;"><input type="checkbox" class="ctc-vive" checked>  Vive</label></div>' +
+                        '</div>' +
                         '</div></div>' +
                         '<div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;">' +
                         '<div class="ctc-foto-preview" style="width:52px;height:52px;border-radius:50%;border:2px solid #ddd;overflow:hidden;background:#f5f5f5;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
@@ -1527,9 +1768,12 @@
             // ══════════════════════════════════════════════════
             function limpiarCtc() {
                 $('#nctc-nombre,#nctc-ap-paterno,#nctc-ap-materno,#nctc-telefono,#nctc-email,#nctc-curp').val('');
+                $('#nctc-telefono2,#nctc-fecha-nacimiento,#nctc-lugar-trabajo,#nctc-puesto,#nctc-profesion').val('');
+                $('#nctc-nivel-estudios').val('');
                 $('#nctc-parentesco,#nctc-tipo').val('');
                 $('#nctc-orden').val('1');
                 $('#nctc-recoger,#nctc-pago,#nctc-portal').prop('checked', false);
+                $('#nctc-vive').prop('checked', true); // vive=true por defecto
                 $('#nctc-foto').val('');
                 $('#nctc-foto-nombre').val('');
             }

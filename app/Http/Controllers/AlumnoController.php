@@ -8,7 +8,6 @@ use App\Http\Requests\StoreAlumnoRequest;
 use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\AlumnoContacto;
-use App\Models\AsignacionPlan;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
@@ -45,24 +44,24 @@ class AlumnoController extends Controller
 
         $query = Alumno::with([
             'familia',
-            'inscripciones' => fn($q) => $q
+            'inscripciones' => fn ($q) => $q
                 ->where('activo', true)
                 ->with('grupo.grado.nivel'),
         ])
-            ->when($request->filled('estado'),   fn($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas('inscripciones', fn($q) => $q
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
-                ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id))
+                ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
             ))
-            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas('inscripciones', fn($q) => $q
+            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->where('grupo_id', $request->grupo_id)
             ))
-            ->when($request->filled('buscar'), fn($q) => $q->where(fn($q) => $q
-                ->where('nombre',     'like', "%{$request->buscar}%")
+            ->when($request->filled('buscar'), fn ($q) => $q->where(fn ($q) => $q
+                ->where('nombre', 'like', "%{$request->buscar}%")
                 ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
-                ->orWhere('matricula',  'like', "%{$request->buscar}%")
-                ->orWhere('curp',       'like', "%{$request->buscar}%")
+                ->orWhere('matricula', 'like', "%{$request->buscar}%")
+                ->orWhere('curp', 'like', "%{$request->buscar}%")
             ))
             ->orderBy('ap_paterno')
             ->orderBy('nombre');
@@ -85,28 +84,28 @@ class AlumnoController extends Controller
 
         $planPorAlumno = collect();
 
-        if (!empty($inscIdAAlumnoId)) {
+        if (! empty($inscIdAAlumnoId)) {
             $planPorAlumno = Cargo::whereIn('inscripcion_id', array_keys($inscIdAAlumnoId))
                 ->whereNotNull('asignacion_id')
-                ->whereHas('asignacion.plan', fn($q) => $q->where('ciclo_id', $cicloId))
+                ->whereHas('asignacion.plan', fn ($q) => $q->where('ciclo_id', $cicloId))
                 ->with('asignacion.plan')
                 ->get()
                 ->unique('inscripcion_id')
-                ->mapWithKeys(fn($c) => [
+                ->mapWithKeys(fn ($c) => [
                     $inscIdAAlumnoId[$c->inscripcion_id] => $c->asignacion?->plan,
                 ]);
         }
 
         return view('alumnos.index', [
-            'alumnos'        => $alumnos,
-            'planPorAlumno'  => $planPorAlumno,
-            'niveles'        => NivelEscolar::activo()->get(),
-            'grupos'         => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
-            'cicloId'        => $cicloId,
-            'statsActivos'   => Alumno::where('estado', 'activo')->count(),
-            'statsTotal'     => Alumno::count(),
+            'alumnos' => $alumnos,
+            'planPorAlumno' => $planPorAlumno,
+            'niveles' => NivelEscolar::activo()->get(),
+            'grupos' => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
+            'cicloId' => $cicloId,
+            'statsActivos' => Alumno::where('estado', 'activo')->count(),
+            'statsTotal' => Alumno::count(),
             'statsInscritos' => Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id'),
-            'disenos'        => Credencial::all(),
+            'disenos' => Credencial::all(),
         ]);
     }
 
@@ -138,16 +137,16 @@ class AlumnoController extends Controller
     /** GET /alumnos/create */
     public function create(Request $request): View
     {
-        $cicloId         = $this->cicloActualId();
+        $cicloId = $this->cicloActualId();
         $prospectoOrigen = $request->filled('prospecto_id')
             ? Prospecto::find($request->integer('prospecto_id'))
             : null;
 
         return view('alumnos.create', [
-            'niveles'          => NivelEscolar::activo()->get(),
-            'grupos'           => Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get(),
-            'familias'         => Familia::where('activo', true)->orderBy('apellido_familia')->get(),
-            'prospectoOrigen'  => $prospectoOrigen,
+            'niveles' => NivelEscolar::activo()->get(),
+            'grupos' => Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get(),
+            'familias' => Familia::where('activo', true)->orderBy('apellido_familia')->get(),
+            'prospectoOrigen' => $prospectoOrigen,
             'datosPrecargados' => $this->obtenerDatosPrecargados($prospectoOrigen, $cicloId),
         ]);
     }
@@ -168,18 +167,25 @@ class AlumnoController extends Controller
                     : Familia::create(['apellido_familia' => $data['apellido_familia']])->id;
 
                 $alumno = Alumno::create([
-                    'familia_id'        => $familiaId,
-                    'matricula'         => $this->generarMatricula($data['ciclo_id']),
-                    'nombre'            => $data['nombre'],
-                    'ap_paterno'        => $data['ap_paterno'],
-                    'ap_materno'        => $data['ap_materno'] ?? null,
-                    'fecha_nacimiento'  => $data['fecha_nacimiento'],
-                    'curp'              => $data['curp'] ?? null,
-                    'genero'            => $data['genero'] ?? null,
-                    'foto_url'          => null,
-                    'observaciones'     => $data['observaciones'] ?? null,
+                    'familia_id' => $familiaId,
+                    'matricula' => $this->generarMatricula($data['ciclo_id']),
+                    'nombre' => $data['nombre'],
+                    'ap_paterno' => $data['ap_paterno'],
+                    'ap_materno' => $data['ap_materno'] ?? null,
+                    'fecha_nacimiento' => $data['fecha_nacimiento'],
+                    'curp' => $data['curp'] ?? null,
+                    'genero' => $data['genero'] ?? null,
+                    'foto_url' => null,
+                    'observaciones' => $data['observaciones'] ?? null,
                     'fecha_inscripcion' => $data['fecha_inscripcion'],
-                    'estado'            => 'activo',
+                    'estado' => 'activo',
+                    // Domicilio
+                    'calle' => $data['calle'] ?? null,
+                    'colonia' => $data['colonia'] ?? null,
+                    'codigo_postal' => $data['codigo_postal'] ?? null,
+                    'ciudad' => $data['ciudad'] ?? null,
+                    'estado_residencia' => $data['estado_residencia'] ?? null,
+                    'religion' => $data['religion'] ?? null,
                 ]);
 
                 if ($request->hasFile('foto')) {
@@ -188,19 +194,19 @@ class AlumnoController extends Controller
 
                 Inscripcion::create([
                     'alumno_id' => $alumno->id,
-                    'ciclo_id'  => $data['ciclo_id'],
-                    'grupo_id'  => $data['grupo_id'],
-                    'fecha'     => $data['fecha_inscripcion'],
-                    'activo'    => true,
+                    'ciclo_id' => $data['ciclo_id'],
+                    'grupo_id' => $data['grupo_id'],
+                    'fecha' => $data['fecha_inscripcion'],
+                    'activo' => true,
                 ]);
 
                 $this->procesarContactos($data['contactos'], $alumno->id, $familiaId, $request);
 
                 foreach ($this->documentosPorGrupo($data['grupo_id']) as $doc) {
                     DocumentoAlumno::create([
-                        'alumno_id'      => $alumno->id,
+                        'alumno_id' => $alumno->id,
                         'tipo_documento' => $doc,
-                        'estado'         => 'pendiente',
+                        'estado' => 'pendiente',
                     ]);
                 }
 
@@ -214,7 +220,7 @@ class AlumnoController extends Controller
                 return $alumno;
             });
         } catch (\Throwable $e) {
-            return $this->respuestaError('Error al registrar el alumno: ' . $e->getMessage());
+            return $this->respuestaError('Error al registrar el alumno: '.$e->getMessage());
         }
 
         $mensaje = "Alumno '{$alumno->nombre} {$alumno->ap_paterno}' registrado. Matrícula: {$alumno->matricula}";
@@ -222,7 +228,7 @@ class AlumnoController extends Controller
         if (request()->ajax()) {
             return response()->json([
                 'message' => $mensaje,
-                'alumno'  => $alumno->load(['familia', 'inscripciones.grupo', 'contactos']),
+                'alumno' => $alumno->load(['familia', 'inscripciones.grupo', 'contactos']),
             ], 201);
         }
 
@@ -239,18 +245,18 @@ class AlumnoController extends Controller
         }
 
         return view('alumnos.edit', [
-            'alumno'        => $alumno,
+            'alumno' => $alumno,
             'inscripciones' => $alumno->inscripciones()->with('ciclo', 'grupo.ciclo', 'grupo.grado.nivel')->get(),
-            'niveles'       => NivelEscolar::activo()->get(),
+            'niveles' => NivelEscolar::activo()->get(),
         ]);
     }
 
     /** PUT /alumnos/{id} */
     public function update(UpdateAlumnoRequest $request, int $id): RedirectResponse|JsonResponse
     {
-        $alumno   = Alumno::findOrFail($id);
+        $alumno = Alumno::findOrFail($id);
         $anterior = $alumno->toArray();
-        $campos   = $request->validated();
+        $campos = $request->validated();
 
         // Separar campos de inscripción — viven en tabla aparte
         $grupoId = $campos['grupo_id'] ?? null;
@@ -332,7 +338,7 @@ class AlumnoController extends Controller
 
         $hermanos = Alumno::where('familia_id', $alumno->familia_id)
             ->where('id', '!=', $alumno->id)
-            ->with(['inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
+            ->with(['inscripciones' => fn ($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
             ->get();
 
         return response()->json($hermanos);
@@ -352,10 +358,10 @@ class AlumnoController extends Controller
         $inscripcionActual = $alumno->inscripciones
             ->where('activo', true)
             ->sortByDesc('id')
-            ->first(fn($i) => $i->grupo_id !== null)
+            ->first(fn ($i) => $i->grupo_id !== null)
             ?? $alumno->inscripciones->where('activo', true)->sortByDesc('id')->first();
 
-        $ciclos = CicloEscolar::whereHas('inscripciones', fn($q) => $q->where('alumno_id', $alumno->id))
+        $ciclos = CicloEscolar::whereHas('inscripciones', fn ($q) => $q->where('alumno_id', $alumno->id))
             ->orderByDesc('fecha_inicio')
             ->get();
 
@@ -365,10 +371,10 @@ class AlumnoController extends Controller
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
         ])
-            ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
+            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
-            ->when($request->filled('ciclo_id'), fn($q) => $q->whereHas(
-                'inscripcion', fn($sq) => $sq->where('ciclo_id', $request->ciclo_id)
+            ->when($request->filled('ciclo_id'), fn ($q) => $q->whereHas(
+                'inscripcion', fn ($sq) => $sq->where('ciclo_id', $request->ciclo_id)
             ))
             ->orderBy('fecha_vencimiento')
             ->get();
@@ -376,11 +382,11 @@ class AlumnoController extends Controller
         $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
             ->where('alumno_id', $alumno->id)
             ->where('activo', true)
-            ->when($inscripcionActual, fn($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id))
-            ->where(fn($q) => $q->whereNull('vigencia_fin')->orWhere('vigencia_fin', '>=', now()))
+            ->when($inscripcionActual, fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id))
+            ->where(fn ($q) => $q->whereNull('vigencia_fin')->orWhere('vigencia_fin', '>=', now()))
             ->get();
 
-        $becasPorPlan     = $becas->whereNotNull('plan_id')->keyBy('plan_id');
+        $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
         $becasPorConcepto = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
 
         $resumen = $this->calcularResumenCargos($cargos, $becasPorPlan, $becasPorConcepto);
@@ -399,7 +405,7 @@ class AlumnoController extends Controller
         $request->validate([
             'ciclo_id' => 'required|exists:ciclo_escolar,id',
             'grupo_id' => 'nullable|exists:grupo,id',
-            'fecha'    => 'required|date',
+            'fecha' => 'required|date',
         ]);
 
         $alumno = Alumno::findOrFail($id);
@@ -421,11 +427,11 @@ class AlumnoController extends Controller
 
         $inscripcion = Inscripcion::create([
             'alumno_id' => $alumno->id,
-            'ciclo_id'  => $request->ciclo_id,
-            'grupo_id'  => $request->grupo_id ?: null,
-            'fecha'     => $request->fecha,
-            'activo'    => true,
-            'tipo'      => TipoInscripcion::Anticipada,
+            'ciclo_id' => $request->ciclo_id,
+            'grupo_id' => $request->grupo_id ?: null,
+            'fecha' => $request->fecha,
+            'activo' => true,
+            'tipo' => TipoInscripcion::Anticipada,
         ]);
 
         Auditoria::registrar('inscripcion', $inscripcion->id, 'insert', null, $inscripcion->toArray());
@@ -434,7 +440,7 @@ class AlumnoController extends Controller
 
         if (request()->ajax()) {
             return response()->json([
-                'message'     => $mensaje,
+                'message' => $mensaje,
                 'inscripcion' => $inscripcion->load('ciclo', 'grupo.grado.nivel'),
             ], 201);
         }
@@ -460,12 +466,12 @@ class AlumnoController extends Controller
     public function darBaja(Request $request, int $id): RedirectResponse
     {
         $request->validate([
-            'tipo_baja'        => 'required|in:baja_temporal,baja_definitiva',
+            'tipo_baja' => 'required|in:baja_temporal,baja_definitiva',
             'motivo_categoria' => 'required|in:cambio_escuela,traslado,economico,familiar,salud,conducta,rendimiento,otro',
-            'motivo_detalle'   => 'nullable|string|max:1000',
+            'motivo_detalle' => 'nullable|string|max:1000',
         ]);
 
-        $alumno      = Alumno::findOrFail($id);
+        $alumno = Alumno::findOrFail($id);
         $cicloActual = CicloEscolar::where('estado', 'activo')->first();
 
         DB::transaction(function () use ($request, $alumno, $cicloActual) {
@@ -473,13 +479,13 @@ class AlumnoController extends Controller
             $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
 
             HistorialBaja::create([
-                'alumno_id'        => $alumno->id,
-                'ciclo_id'         => $cicloActual?->id,
-                'registrado_por'   => auth()->id(),
-                'tipo'             => $request->tipo_baja,
+                'alumno_id' => $alumno->id,
+                'ciclo_id' => $cicloActual?->id,
+                'registrado_por' => auth()->id(),
+                'tipo' => $request->tipo_baja,
                 'motivo_categoria' => $request->motivo_categoria,
-                'motivo_detalle'   => $request->motivo_detalle,
-                'fecha_baja'       => today(),
+                'motivo_detalle' => $request->motivo_detalle,
+                'fecha_baja' => today(),
             ]);
         });
 
@@ -494,21 +500,21 @@ class AlumnoController extends Controller
     {
         $bajas = HistorialBaja::with(['alumno', 'ciclo', 'registradoPor'])
             ->whereNull('fecha_reactivacion')
-            ->when($request->filled('tipo'),             fn($q) => $q->where('tipo', $request->tipo))
-            ->when($request->filled('motivo_categoria'), fn($q) => $q->where('motivo_categoria', $request->motivo_categoria))
-            ->when($request->filled('ciclo_id'),         fn($q) => $q->where('ciclo_id', $request->ciclo_id))
-            ->when($request->filled('buscar'), fn($q) => $q->whereHas('alumno', fn($sq) => $sq
-                ->where('nombre',       'like', "%{$request->buscar}%")
+            ->when($request->filled('tipo'), fn ($q) => $q->where('tipo', $request->tipo))
+            ->when($request->filled('motivo_categoria'), fn ($q) => $q->where('motivo_categoria', $request->motivo_categoria))
+            ->when($request->filled('ciclo_id'), fn ($q) => $q->where('ciclo_id', $request->ciclo_id))
+            ->when($request->filled('buscar'), fn ($q) => $q->whereHas('alumno', fn ($sq) => $sq
+                ->where('nombre', 'like', "%{$request->buscar}%")
                 ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
-                ->orWhere('matricula',  'like', "%{$request->buscar}%")
+                ->orWhere('matricula', 'like', "%{$request->buscar}%")
             ))
             ->orderByDesc('fecha_baja')
             ->paginate(25)
             ->withQueryString();
 
         return view('alumnos.bajas', [
-            'bajas'   => $bajas,
-            'ciclos'  => CicloEscolar::orderByDesc('fecha_inicio')->get(),
+            'bajas' => $bajas,
+            'ciclos' => CicloEscolar::orderByDesc('fecha_inicio')->get(),
             'motivos' => MotivoBaja::cases(),
         ]);
     }
@@ -518,9 +524,9 @@ class AlumnoController extends Controller
     {
         $request->validate([
             'inscripciones_ids' => 'required|array',
-            'ciclo_destino_id'  => 'required|exists:ciclo_escolar,id',
-            'grado_destino_id'  => 'required|exists:grados,id',
-            'grupo_origen_id'   => 'required',
+            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
+            'grado_destino_id' => 'required|exists:grados,id',
+            'grupo_origen_id' => 'required',
         ]);
 
         $contador = 0;
@@ -529,7 +535,7 @@ class AlumnoController extends Controller
             DB::transaction(function () use ($request, &$contador) {
                 foreach ($request->inscripciones_ids as $inscripcionId) {
                     $inscripcionActual = Inscripcion::findOrFail($inscripcionId);
-                    $alumno            = $inscripcionActual->alumno;
+                    $alumno = $inscripcionActual->alumno;
 
                     $inscripcionActual->update(['activo' => false]);
 
@@ -554,7 +560,7 @@ class AlumnoController extends Controller
                 ->route('grupos.show', $request->grupo_origen_id)
                 ->with('success', "¡Éxito! Se han promocionado {$contador} alumnos correctamente.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Hubo un error al promocionar: ' . $e->getMessage());
+            return back()->with('error', 'Hubo un error al promocionar: '.$e->getMessage());
         }
     }
 
@@ -583,9 +589,9 @@ class AlumnoController extends Controller
                     });
             });
 
-            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
+            return back()->with('success', '¡Proceso completado! Se actualizaron '.count($ids).' alumnos.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
+            return back()->with('error', 'Error al procesar: '.$e->getMessage());
         }
     }
 
@@ -605,9 +611,9 @@ class AlumnoController extends Controller
         }
 
         $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
-            'alumno'        => $alumno,
-            'base64'        => $this->logoBase64(),
-            'setting'       => Setting::first(),
+            'alumno' => $alumno,
+            'base64' => $this->logoBase64(),
+            'setting' => Setting::first(),
             'cicloActualId' => $this->cicloActualId(),
         ]);
 
@@ -630,11 +636,11 @@ class AlumnoController extends Controller
     {
         return Inscripcion::create([
             'alumno_id' => $alumnoId,
-            'ciclo_id'  => $cicloId,
-            'grupo_id'  => $grupoId,
-            'fecha'     => now()->toDateString(),
-            'activo'    => true,
-            'tipo'      => TipoInscripcion::Regular,
+            'ciclo_id' => $cicloId,
+            'grupo_id' => $grupoId,
+            'fecha' => now()->toDateString(),
+            'activo' => true,
+            'tipo' => TipoInscripcion::Regular,
         ]);
     }
 
@@ -658,16 +664,23 @@ class AlumnoController extends Controller
                 }
             } else {
                 $contacto = ContactoFamiliar::create([
-                    'familia_id'          => $familiaId,
+                    'familia_id' => $familiaId,
                     'tiene_acceso_portal' => $datos['tiene_acceso_portal'] ?? false,
-                    'usuario_id'          => null,
-                    'nombre'              => $datos['nombre'],
-                    'ap_paterno'          => $datos['ap_paterno'] ?? null,
-                    'ap_materno'          => $datos['ap_materno'] ?? null,
-                    'telefono_celular'    => $datos['telefono_celular'],
-                    'telefono_trabajo'    => $datos['telefono_trabajo'] ?? null,
-                    'email'               => $datos['email'] ?? null,
-                    'curp'                => $datos['curp'] ?? null,
+                    'usuario_id' => null,
+                    'nombre' => $datos['nombre'],
+                    'ap_paterno' => $datos['ap_paterno'] ?? null,
+                    'ap_materno' => $datos['ap_materno'] ?? null,
+                    'telefono_celular' => $datos['telefono_celular'],
+                    'telefono_trabajo' => $datos['telefono_trabajo'] ?? null,
+                    'telefono_2' => $datos['telefono_2'] ?? null,
+                    'fecha_nacimiento' => $datos['fecha_nacimiento'] ?? null,
+                    'email' => $datos['email'] ?? null,
+                    'curp' => $datos['curp'] ?? null,
+                    'lugar_trabajo' => $datos['lugar_trabajo'] ?? null,
+                    'puesto' => $datos['puesto'] ?? null,
+                    'nivel_estudios' => $datos['nivel_estudios'] ?? null,
+                    'profesion' => $datos['profesion'] ?? null,
+                    'vive' => $datos['vive'] ?? true,
                 ]);
             }
 
@@ -682,14 +695,14 @@ class AlumnoController extends Controller
             }
 
             AlumnoContacto::create([
-                'alumno_id'           => $alumnoId,
-                'contacto_id'         => $contacto->id,
-                'parentesco'          => $datos['parentesco'],
-                'tipo'                => $datos['tipo'],
-                'orden'               => $datos['orden'],
-                'autorizado_recoger'  => $datos['autorizado_recoger'] ?? false,
+                'alumno_id' => $alumnoId,
+                'contacto_id' => $contacto->id,
+                'parentesco' => $datos['parentesco'],
+                'tipo' => $datos['tipo'],
+                'orden' => $datos['orden'],
+                'autorizado_recoger' => $datos['autorizado_recoger'] ?? false,
                 'es_responsable_pago' => $datos['es_responsable_pago'] ?? false,
-                'activo'              => true,
+                'activo' => true,
             ]);
 
             $vinculados[] = $contacto->id;
@@ -707,23 +720,23 @@ class AlumnoController extends Controller
         Collection $becasPorConcepto,
     ): array {
         $hoyFecha = today();
-        $totales  = [
-            'total_cargado'     => 0.0,
-            'total_pagado'      => 0.0,
-            'total_condonado'   => 0.0,
-            'total_vencido'     => 0.0,
-            'total_recargos'    => 0.0,
-            'total_descuentos'  => 0.0,
-            'total_becas'       => 0.0,
-            'total_cargos'      => $cargos->count(),
+        $totales = [
+            'total_cargado' => 0.0,
+            'total_pagado' => 0.0,
+            'total_condonado' => 0.0,
+            'total_vencido' => 0.0,
+            'total_recargos' => 0.0,
+            'total_descuentos' => 0.0,
+            'total_becas' => 0.0,
+            'total_cargos' => $cargos->count(),
             'cargos_pendientes' => 0,
-            'cargos_vencidos'   => 0,
+            'cargos_vencidos' => 0,
         ];
 
         foreach ($cargos as $cargo) {
-            $abonado     = (float) ($cargo->total_abonado ?? 0);
-            $saldoBase   = max(0, (float) $cargo->monto_original - (float) $cargo->monto_cubierto);
-            $vencido     = $hoyFecha->gt($cargo->fecha_vencimiento);
+            $abonado = (float) ($cargo->total_abonado ?? 0);
+            $saldoBase = max(0, (float) $cargo->monto_original - (float) $cargo->monto_cubierto);
+            $vencido = $hoyFecha->gt($cargo->fecha_vencimiento);
             $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
 
             [$becaDescuento, $becaPorcentaje] = $esPendiente
@@ -736,14 +749,14 @@ class AlumnoController extends Controller
 
             // Anotar en el modelo para la vista
             $cargo->beca_descuento_calc = $becaDescuento;
-            $cargo->beca_porcentaje     = $becaPorcentaje;
-            $cargo->descuento_calc      = $descuento;
-            $cargo->recargo_calc        = $recargo;
-            $cargo->meses_retraso       = $mesesRetraso;
-            $cargo->monto_a_pagar_hoy   = max(0, $saldoBase - $becaDescuento - $descuento + $recargo);
+            $cargo->beca_porcentaje = $becaPorcentaje;
+            $cargo->descuento_calc = $descuento;
+            $cargo->recargo_calc = $recargo;
+            $cargo->meses_retraso = $mesesRetraso;
+            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento + $recargo);
 
             $totales['total_cargado'] += (float) $cargo->monto_original;
-            $totales['total_pagado']  += $abonado;
+            $totales['total_pagado'] += $abonado;
 
             if ($cargo->estado === 'condonado') {
                 $totales['total_condonado'] += (float) $cargo->monto_original;
@@ -752,7 +765,7 @@ class AlumnoController extends Controller
             if ($esPendiente) {
                 $totales['total_becas'] += $becaDescuento;
                 if ($vencido) {
-                    $totales['total_vencido']  += $cargo->monto_a_pagar_hoy;
+                    $totales['total_vencido'] += $cargo->monto_a_pagar_hoy;
                     $totales['total_recargos'] += $recargo;
                     $totales['cargos_vencidos']++;
                 } else {
@@ -762,11 +775,11 @@ class AlumnoController extends Controller
             }
         }
 
-        $totalCubierto      = $cargos->sum(fn(Cargo $c) => min((float) $c->monto_original, (float) $c->monto_cubierto));
+        $totalCubierto = $cargos->sum(fn (Cargo $c) => min((float) $c->monto_original, (float) $c->monto_cubierto));
         $saldoPendienteBase = max(0, $totales['total_cargado'] - $totalCubierto - $totales['total_condonado']);
 
         return array_merge($totales, [
-            'saldo_pendiente'   => $saldoPendienteBase,
+            'saldo_pendiente' => $saldoPendienteBase,
             'total_a_pagar_hoy' => max(0, $saldoPendienteBase - $totales['total_becas'] + $totales['total_recargos'] - $totales['total_descuentos']),
         ]);
     }
@@ -783,7 +796,7 @@ class AlumnoController extends Controller
             return [0.0, null];
         }
 
-        $descuento  = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
+        $descuento = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
         $porcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
             ? (float) $becaItem->catalogoBeca->valor
             : null;
@@ -798,12 +811,12 @@ class AlumnoController extends Controller
 
         if ($vencido) {
             $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
-            $pr           = $plan->politicasRecargo->firstWhere('activo', true);
+            $pr = $plan->politicasRecargo->firstWhere('activo', true);
 
             return [0.0, $pr ? $pr->calcular($saldoBase, $mesesRetraso) : 0.0, $mesesRetraso];
         }
 
-        $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
+        $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
 
         return [$pd ? $pd->calcular($saldoBase) : 0.0, 0.0, 0];
     }
@@ -819,19 +832,19 @@ class AlumnoController extends Controller
 
         $type = pathinfo($path, PATHINFO_EXTENSION);
 
-        return 'data:image/' . $type . ';base64,' . base64_encode(file_get_contents($path));
+        return 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
     }
 
     private function generarMatricula(int $cicloId): string
     {
-        $ciclo  = CicloEscolar::find($cicloId);
-        $año    = substr($ciclo->nombre, 0, 4);
+        $ciclo = CicloEscolar::find($cicloId);
+        $año = substr($ciclo->nombre, 0, 4);
         $ultimo = Alumno::where('matricula', 'like', "{$año}-%")
             ->orderByDesc('matricula')
             ->value('matricula');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $año . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $año.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 
     private function documentosPorGrupo(int $grupoId): array
@@ -842,9 +855,9 @@ class AlumnoController extends Controller
 
         return match (true) {
             in_array($nivel, ['Maternal', 'Preescolar']) => array_merge($base, ['Cartilla de vacunación']),
-            $nivel === 'Primaria'                        => array_merge($base, ['Boletas ciclo anterior']),
-            $nivel === 'Secundaria'                      => array_merge($base, ['Boletas ciclo anterior', 'Certificado de estudios primaria']),
-            default                                      => $base,
+            $nivel === 'Primaria' => array_merge($base, ['Boletas ciclo anterior']),
+            $nivel === 'Secundaria' => array_merge($base, ['Boletas ciclo anterior', 'Certificado de estudios primaria']),
+            default => $base,
         };
     }
 
@@ -854,7 +867,7 @@ class AlumnoController extends Controller
             return ['alumno' => [], 'apellido_familia' => '', 'contactos' => []];
         }
 
-        $nombre    = $prospecto->nombre;
+        $nombre = $prospecto->nombre;
         $apPaterno = $prospecto->ap_paterno;
         $apMaterno = $prospecto->ap_materno;
 
@@ -868,28 +881,28 @@ class AlumnoController extends Controller
 
         return [
             'alumno' => [
-                'nombre'            => $nombre,
-                'ap_paterno'        => $apPaterno,
-                'ap_materno'        => $apMaterno,
-                'fecha_nacimiento'  => $prospecto->fecha_nacimiento?->format('Y-m-d'),
+                'nombre' => $nombre,
+                'ap_paterno' => $apPaterno,
+                'ap_materno' => $apMaterno,
+                'fecha_nacimiento' => $prospecto->fecha_nacimiento?->format('Y-m-d'),
                 'fecha_inscripcion' => now()->format('Y-m-d'),
-                'ciclo_id'          => $prospecto->ciclo_id ?: $cicloId,
-                'nivel_id'          => $prospecto->nivel_interes_id,
-                'prospecto_id'      => $prospecto->id,
+                'ciclo_id' => $prospecto->ciclo_id ?: $cicloId,
+                'nivel_id' => $prospecto->nivel_interes_id,
+                'prospecto_id' => $prospecto->id,
             ],
-            'apellido_familia' => $apellidoFamilia ? 'Familia ' . $apellidoFamilia : '',
-            'contactos'        => [[
-                'nombre'              => $contactoNombre,
-                'ap_paterno'          => $contactoApPaterno,
-                'ap_materno'          => $contactoApMaterno,
-                'telefono_celular'    => $prospecto->contacto_telefono,
-                'telefono_trabajo'    => '',
-                'email'               => $prospecto->contacto_email,
-                'curp'                => '',
-                'parentesco'          => 'otro',
-                'tipo'                => 'tutor',
-                'orden'               => 1,
-                'autorizado_recoger'  => true,
+            'apellido_familia' => $apellidoFamilia ? 'Familia '.$apellidoFamilia : '',
+            'contactos' => [[
+                'nombre' => $contactoNombre,
+                'ap_paterno' => $contactoApPaterno,
+                'ap_materno' => $contactoApMaterno,
+                'telefono_celular' => $prospecto->contacto_telefono,
+                'telefono_trabajo' => '',
+                'email' => $prospecto->contacto_email,
+                'curp' => '',
+                'parentesco' => 'otro',
+                'tipo' => 'tutor',
+                'orden' => 1,
+                'autorizado_recoger' => true,
                 'es_responsable_pago' => true,
                 'tiene_acceso_portal' => false,
             ]],
@@ -900,9 +913,15 @@ class AlumnoController extends Controller
     {
         $partes = preg_split('/\s+/', trim((string) $nombreCompleto), -1, PREG_SPLIT_NO_EMPTY);
 
-        if (empty($partes))       return ['', '', ''];
-        if (count($partes) === 1) return [$partes[0], '', ''];
-        if (count($partes) === 2) return [$partes[0], $partes[1], ''];
+        if (empty($partes)) {
+            return ['', '', ''];
+        }
+        if (count($partes) === 1) {
+            return [$partes[0], '', ''];
+        }
+        if (count($partes) === 2) {
+            return [$partes[0], $partes[1], ''];
+        }
 
         $apMaterno = array_pop($partes);
         $apPaterno = array_pop($partes);
