@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlumnoController;
+use App\Http\Controllers\PersonalController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
@@ -396,6 +397,16 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::resource('usuarios', UsuarioController::class)
         ->middleware('rol:administrador');
+
+    // ── Personal ─────────────────────────────────────────
+    // Recepción puede consultar, solo administrador gestiona
+    Route::get('/personal', [PersonalController::class, 'index'])
+        ->middleware('rol:administrador,recepcion')
+        ->name('personal.index');
+
+    Route::resource('personal', PersonalController::class)
+        ->middleware('rol:administrador')
+        ->except(['index']);
 
     // ── Dashboards por rol ───────────────────────────────
     Route::get('/admin', [DashboardController::class, 'admin'])

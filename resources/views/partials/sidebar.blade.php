@@ -260,9 +260,17 @@
             @endif
 
             {{-- ── SECCIÓN: Administración ──────────────── --}}
-            @if (auth()->user()->esAdministrador())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
                 <li class="header">ADMINISTRACIÓN</li>
 
+                <li class="{{ request()->routeIs('personal.*') ? 'active' : '' }}">
+                    <a href="{{ route('personal.index') }}">
+                        <i class="fa fa-id-badge"></i> <span>Personal</span>
+                    </a>
+                </li>
+            @endif
+
+            @if (auth()->user()->esAdministrador())
                 <li class="treeview {{ request()->routeIs(['usuarios.*']) ? 'active menu-open' : '' }}">
                     <a href="#">
                         <i class="fa fa-lock"></i>
