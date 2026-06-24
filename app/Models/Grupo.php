@@ -19,6 +19,7 @@ class Grupo extends Model
         'cupo_maximo',
         'docente',
         'activo',
+        'icono',
     ];
 
     protected $casts = [

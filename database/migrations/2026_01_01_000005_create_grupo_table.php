@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('grupo', function (Blueprint $table) {
             $table->id();
+            $table->string("icono")->nullable();
             $table->foreignId('ciclo_id')->constrained('ciclo_escolar')->restrictOnDelete();
             $table->foreignId('grado_id')->constrained('grado')->restrictOnDelete();
             $table->string('nombre')->comment('A, B, C...');
