@@ -563,7 +563,13 @@ class PlanPagoController extends Controller
 
         $alumnos = Alumno::where('estado', 'activo')->orderBy('ap_paterno')->orderBy('nombre')->get();
 
-        $grupos = Grupo::with(['grado.nivel'])->get();
+        $grupos = Grupo::with(['grado.nivel'])
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('grado_id')
+            ->orderBy('nombre')
+            ->get();
         $niveles = NivelEscolar::activo()->get();
 
         $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel'])

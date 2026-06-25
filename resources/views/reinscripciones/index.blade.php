@@ -90,8 +90,8 @@
     <div class="col-md-5">
 
         {{-- Buscador de alumno --}}
-        <div class="ri-panel">
-            <div class="ri-panel-header">
+        <div class="ri-panel" style="overflow:visible;">
+            <div class="ri-panel-header" style="border-radius:10px 10px 0 0;overflow:hidden;">
                 <i class="fa fa-search" style="color:#3c8dbc;font-size:13px;"></i>
                 <span class="ri-panel-title">Buscar alumno</span>
             </div>

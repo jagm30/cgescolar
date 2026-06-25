@@ -113,7 +113,7 @@ class AlumnoController extends Controller
     public function show(int $id): View|JsonResponse
     {
         $alumno = Alumno::with([
-            'familia',
+            'familia.contactos.razonesSociales',
             'inscripciones.grupo.grado.nivel',
             'contactos',
             'documentos',
@@ -367,6 +367,7 @@ class AlumnoController extends Controller
 
         $cargos = Cargo::with([
             'concepto',
+            'inscripcion:id,ciclo_id',
             'detallesPagosVigentes.pago:id,folio_recibo,fecha_pago,forma_pago,referencia,estado',
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
@@ -379,17 +380,21 @@ class AlumnoController extends Controller
             ->orderBy('fecha_vencimiento')
             ->get();
 
+        // Cargar todas las becas vigentes del alumno sin filtrar por ciclo de inscripción.
+        // El matching correcto ocurre en calcularBecaCargo via plan_id/concepto_id,
+        // ya que un plan de pago ya pertenece a un ciclo específico.
         $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
             ->where('alumno_id', $alumno->id)
             ->where('activo', true)
-            ->when($inscripcionActual, fn ($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id))
             ->where(fn ($q) => $q->whereNull('vigencia_fin')->orWhere('vigencia_fin', '>=', now()))
             ->get();
 
-        $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
-        $becasPorConcepto = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
+        $becasPorPlan      = $becas->whereNotNull('plan_id')->keyBy('plan_id');
+        $becasPorConcepto  = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
+        // Becas globales: sin plan ni concepto específico, aplican a todos los cargos del ciclo
+        $becasGlobales     = $becas->filter(fn ($b) => $b->plan_id === null && $b->concepto_id === null);
 
-        $resumen = $this->calcularResumenCargos($cargos, $becasPorPlan, $becasPorConcepto);
+        $resumen = $this->calcularResumenCargos($cargos, $becasPorPlan, $becasPorConcepto, $becasGlobales);
 
         return view('alumnos.estado-cuenta', compact(
             'alumno', 'inscripcionActual', 'ciclos', 'cargos', 'resumen', 'becas'
@@ -600,21 +605,25 @@ class AlumnoController extends Controller
     {
         $alumno = Alumno::with([
             'familia.alumnos',
-            'familia.contactos',
             'inscripciones.grupo.grado.nivel',
             'inscripciones.ciclo',
-            'contactos',
+            'contactos.razonesSociales',
+            'fichaMedica',
+            'condicionesMedicas',
+            'medicamentosAutorizados.contactoAutoriza',
         ])->findOrFail($id);
 
         if (ob_get_length()) {
             ob_end_clean();
         }
 
+        $setting = Setting::first();
+
         $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
-            'alumno' => $alumno,
-            'base64' => $this->logoBase64(),
-            'setting' => Setting::first(),
-            'cicloActualId' => $this->cicloActualId(),
+            'alumno'       => $alumno,
+            'base64'       => $this->logoBase64($setting),
+            'setting'      => $setting,
+            'cicloActualId'=> $this->cicloActualId(),
         ]);
 
         $pdf->setOption('isPhpEnabled', true);
@@ -718,6 +727,7 @@ class AlumnoController extends Controller
         Collection $cargos,
         Collection $becasPorPlan,
         Collection $becasPorConcepto,
+        Collection $becasGlobales = new Collection,
     ): array {
         $hoyFecha = today();
         $totales = [
@@ -740,7 +750,7 @@ class AlumnoController extends Controller
             $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
 
             [$becaDescuento, $becaPorcentaje] = $esPendiente
-                ? $this->calcularBecaCargo($cargo, $saldoBase, $becasPorPlan, $becasPorConcepto)
+                ? $this->calcularBecaCargo($cargo, $saldoBase, $becasPorPlan, $becasPorConcepto, $becasGlobales)
                 : [0.0, null];
 
             [$descuento, $recargo, $mesesRetraso] = ($esPendiente && $cargo->asignacion?->plan)
@@ -784,19 +794,36 @@ class AlumnoController extends Controller
         ]);
     }
 
-    /** Resuelve el descuento de beca aplicable a un cargo. */
-    private function calcularBecaCargo(Cargo $cargo, float $saldoBase, Collection $becasPorPlan, Collection $becasPorConcepto): array
-    {
+    /** Resuelve el descuento de beca aplicable a un cargo (plan → concepto → global). */
+    private function calcularBecaCargo(
+        Cargo $cargo,
+        float $saldoBase,
+        Collection $becasPorPlan,
+        Collection $becasPorConcepto,
+        Collection $becasGlobales = new Collection,
+    ): array {
+        // 1. Beca asociada al plan de pago del cargo
         $becaItem = $cargo->asignacion?->plan_id
             ? $becasPorPlan->get($cargo->asignacion->plan_id)
             : null;
+
+        // 2. Beca asociada al concepto específico
         $becaItem ??= $becasPorConcepto->get($cargo->concepto_id);
+
+        // 3. Beca global del alumno (sin plan ni concepto específico)
+        //    Se aplica solo si pertenece al mismo ciclo del cargo (via inscripcion)
+        if (! $becaItem && $becasGlobales->isNotEmpty()) {
+            $cicloDelCargo = $cargo->inscripcion?->ciclo_id;
+            $becaItem = $becasGlobales->first(
+                fn ($b) => $cicloDelCargo && $b->ciclo_id === $cicloDelCargo
+            );
+        }
 
         if (! $becaItem) {
             return [0.0, null];
         }
 
-        $descuento = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
+        $descuento  = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
         $porcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
             ? (float) $becaItem->catalogoBeca->valor
             : null;
@@ -821,18 +848,28 @@ class AlumnoController extends Controller
         return [$pd ? $pd->calcular($saldoBase) : 0.0, 0.0, 0];
     }
 
-    /** Devuelve el logo de reportes codificado en base64, o cadena vacía si no existe. */
-    private function logoBase64(): string
+    /** Devuelve el logo codificado en base64.
+     *  Usa el logo de configuración (imgs_escuela/reportes/{logo_ruta}),
+     *  con fallback al archivo estático logo_reportes.png.
+     */
+    private function logoBase64(?Setting $setting = null): string
     {
-        $path = public_path('imgs_escuela/reportes/logo_reportes.png');
+        $candidatos = array_filter([
+            $setting?->logo_ruta
+                ? public_path('imgs_escuela/reportes/'.$setting->logo_ruta)
+                : null,
+            public_path('imgs_escuela/reportes/logo_reportes.png'),
+        ]);
 
-        if (! file_exists($path)) {
-            return '';
+        foreach ($candidatos as $path) {
+            if (file_exists($path)) {
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+
+                return 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
+            }
         }
 
-        $type = pathinfo($path, PATHINFO_EXTENSION);
-
-        return 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
+        return '';
     }
 
     private function generarMatricula(int $cicloId): string

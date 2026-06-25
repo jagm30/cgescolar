@@ -16,18 +16,18 @@
         .alm-hero {
             background: linear-gradient(135deg, #1e4d7b 0%, #3c8dbc 100%);
             border-radius: 8px;
-            padding: 22px 28px;
-            margin-bottom: 22px;
+            padding: 14px 20px;
+            margin-bottom: 14px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 14px;
             flex-wrap: wrap;
             box-shadow: 0 4px 16px rgba(60, 141, 188, .25);
         }
 
         .alm-hero-foto {
-            width: 80px;
-            height: 80px;
+            width: 62px;
+            height: 62px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid rgba(255, 255, 255, .55);
@@ -35,8 +35,8 @@
         }
 
         .alm-hero-placeholder {
-            width: 80px;
-            height: 80px;
+            width: 62px;
+            height: 62px;
             border-radius: 50%;
             background: rgba(255, 255, 255, .18);
             border: 3px solid rgba(255, 255, 255, .35);
@@ -47,15 +47,15 @@
         }
 
         .alm-hero-nombre {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 400;
             color: rgba(255, 255, 255, .75);
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .alm-hero-apellidos {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 800;
             color: #fff;
             line-height: 1.1;
@@ -66,20 +66,20 @@
             background: rgba(0, 0, 0, .25);
             color: rgba(255, 255, 255, .9);
             font-family: monospace;
-            font-size: 12px;
-            padding: 2px 10px;
+            font-size: 11px;
+            padding: 1px 8px;
             border-radius: 12px;
-            margin-top: 7px;
+            margin-top: 4px;
             letter-spacing: .08em;
         }
 
         .alm-hero-estado {
-            margin-top: 8px;
+            margin-top: 5px;
         }
 
         .alm-hero-stats {
             display: flex;
-            gap: 18px;
+            gap: 12px;
             margin-left: auto;
             flex-wrap: wrap;
             align-items: center;
@@ -90,14 +90,14 @@
         }
 
         .alm-hero-stat-num {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 800;
             color: #fff;
             line-height: 1;
         }
 
         .alm-hero-stat-lbl {
-            font-size: 10px;
+            font-size: 9px;
             color: rgba(255, 255, 255, .65);
             margin-top: 2px;
             text-transform: uppercase;
@@ -113,12 +113,12 @@
                                         SECCIÓN TÍTULOS
                                        ════════════════════════════════════════════ */
         .sec-title {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .07em;
             color: #6b7a8d;
-            margin: 0 0 14px;
+            margin: 0 0 8px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -136,8 +136,8 @@
                                        ════════════════════════════════════════════ */
         .ins-card {
             border: 1px solid #e4eaf0;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            border-radius: 8px;
+            margin-bottom: 5px;
             background: #fff;
             display: flex;
             align-items: stretch;
@@ -161,16 +161,16 @@
 
         .ins-card-body {
             flex: 1;
-            padding: 13px 16px;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 10px;
         }
 
         .ins-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
@@ -183,17 +183,17 @@
         }
 
         .ins-ciclo {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #1a2634;
         }
 
         .ins-detalle {
-            font-size: 12px;
+            font-size: 11px;
             color: #8a9ab0;
-            margin-top: 4px;
+            margin-top: 2px;
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
 
@@ -216,8 +216,8 @@
                                        ════════════════════════════════════════════ */
         .ctc-card {
             border: 1px solid #e4eaf0;
-            border-radius: 10px;
-            margin-bottom: 12px;
+            border-radius: 8px;
+            margin-bottom: 7px;
             background: #fff;
             overflow: hidden;
             transition: box-shadow .15s, transform .1s;
@@ -234,10 +234,10 @@
         }
 
         .ctc-head {
-            padding: 13px 16px;
+            padding: 9px 12px;
             display: flex;
             align-items: center;
-            gap: 13px;
+            gap: 10px;
             background: #fff;
         }
 
@@ -246,14 +246,14 @@
         }
 
         .ctc-avatar {
-            width: 46px;
-            height: 46px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 17px;
+            font-size: 14px;
             font-weight: 800;
             color: #fff;
             background: linear-gradient(135deg, #3c8dbc, #2c6fad);
@@ -266,7 +266,7 @@
         }
 
         .ctc-nombre {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             color: #1a2634;
             line-height: 1.2;
@@ -274,9 +274,9 @@
 
         .ctc-badges {
             display: flex;
-            gap: 5px;
+            gap: 4px;
             flex-wrap: wrap;
-            margin-top: 5px;
+            margin-top: 3px;
         }
 
         .ctc-badge {
@@ -322,8 +322,8 @@
         .ctc-contacto-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            padding: 10px 14px;
+            gap: 6px;
+            padding: 6px 10px;
             border-top: 1px solid #f0f3f7;
             background: #fafbfc;
         }
@@ -337,9 +337,9 @@
         .ctc-dato {
             display: flex;
             align-items: center;
-            gap: 10px;
-            border-radius: 8px;
-            padding: 8px 12px;
+            gap: 7px;
+            border-radius: 6px;
+            padding: 5px 8px;
             border: 1px solid #e8ecf0;
             background: #fff;
             text-decoration: none;
@@ -362,8 +362,8 @@
         }
 
         .ctc-dato-icon {
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -372,7 +372,7 @@
         }
 
         .ctc-dato-val {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             line-height: 1.1;
             white-space: nowrap;
@@ -381,7 +381,7 @@
         }
 
         .ctc-dato-lbl {
-            font-size: 10px;
+            font-size: 9px;
             color: #9aa;
             margin-top: 1px;
         }
@@ -417,15 +417,15 @@
                                      ════════════════════════════════════════════ */
         .info-card {
             border: 1px solid #e4eaf0;
-            border-radius: 10px;
+            border-radius: 8px;
             background: #fff;
-            margin-bottom: 18px;
+            margin-bottom: 12px;
             overflow: hidden;
             box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
         }
 
         .info-card-header {
-            padding: 11px 16px;
+            padding: 8px 14px;
             border-bottom: 1px solid #f0f3f7;
             display: flex;
             align-items: center;
@@ -445,9 +445,9 @@
             display: flex;
             align-items: baseline;
             justify-content: space-between;
-            padding: 10px 16px;
+            padding: 7px 14px;
             border-bottom: 1px solid #f5f7fa;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .info-row:last-child {
@@ -471,12 +471,12 @@
         .accion-btn {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 11px 16px;
+            gap: 8px;
+            padding: 8px 14px;
             border-bottom: 1px solid #f4f6f8;
             text-decoration: none;
             color: #333;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             transition: background .12s;
         }
@@ -492,9 +492,9 @@
         }
 
         .accion-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -505,8 +505,8 @@
         .beca-row {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 16px;
+            gap: 10px;
+            padding: 7px 14px;
             border-bottom: 1px solid #f5f7fa;
         }
 
@@ -571,7 +571,7 @@
             <img src="{{ asset('storage/' . $alumno->foto_url) }}" class="alm-hero-foto" alt="Foto">
         @else
             <div class="alm-hero-placeholder">
-                <i class="fa fa-user" style="font-size:36px;color:rgba(255,255,255,.55);"></i>
+                <i class="fa fa-user" style="font-size:26px;color:rgba(255,255,255,.55);"></i>
             </div>
         @endif
 
@@ -639,6 +639,10 @@
                         <i class="fa fa-dollar"></i> Cuenta
                     </a>
                 @endif
+                <a href="{{ route('alumnos.reporte', $alumno->id) }}" target="_blank" class="btn btn-sm btn-flat"
+                   style="background:rgba(231,76,60,.35);color:#fff;border:1px solid rgba(231,76,60,.5);border-radius:6px;">
+                    <i class="fa fa-file-pdf-o"></i> Ficha PDF
+                </a>
             </div>
         </div>
     </div>
@@ -651,7 +655,7 @@
         <div class="col-md-8">
 
             {{-- ── INSCRIPCIONES ── --}}
-            <div style="margin-bottom:24px;">
+            <div style="margin-bottom:14px;">
                 <p class="sec-title">
                     <i class="fa fa-graduation-cap" style="color:#3c8dbc;"></i>
                     Inscripciones
@@ -716,16 +720,16 @@
                         </div>
                     </div>
                 @empty
-                    <div style="padding:48px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:10px;">
+                    <div style="padding:22px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:8px;">
                         <i class="fa fa-graduation-cap"
-                            style="font-size:40px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+                            style="font-size:28px;color:#dde4ea;display:block;margin-bottom:8px;"></i>
                         <p style="color:#b0bec5;margin:0;">Sin inscripciones registradas.</p>
                     </div>
                 @endforelse
             </div>
 
             {{-- ── CONTACTOS FAMILIARES ── --}}
-            <div style="margin-bottom:24px;">
+            <div style="margin-bottom:14px;">
                 <p class="sec-title">
                     <i class="fa fa-phone" style="color:#3c8dbc;"></i>
                     Contactos familiares
@@ -745,7 +749,7 @@
                         <div class="ctc-head">
                             @if ($contacto->foto_url)
                                 <img src="{{ asset('storage/' . $contacto->foto_url) }}"
-                                    style="width:46px;height:46px;border-radius:50%;object-fit:cover;
+                                    style="width:36px;height:36px;border-radius:50%;object-fit:cover;
                                 border:2px solid {{ $esPrincipal ? '#3c8dbc' : '#e0e0e0' }};flex-shrink:0;">
                             @else
                                 <div class="ctc-avatar">{{ $inicial }}</div>
@@ -843,18 +847,25 @@
                         @endif
                     </div>
                 @empty
-                    <div style="padding:48px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:10px;">
-                        <i class="fa fa-phone" style="font-size:40px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+                    <div style="padding:22px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:8px;">
+                        <i class="fa fa-phone" style="font-size:28px;color:#dde4ea;display:block;margin-bottom:8px;"></i>
                         <p style="color:#b0bec5;margin:0;">Sin contactos registrados.</p>
                     </div>
                 @endforelse
             </div>
 
+            {{-- ── DATOS FISCALES ── --}}
+            @if($alumno->familia)
+            <div style="margin-bottom:14px;">
+                @include('familias._razon_social', ['familia' => $alumno->familia])
+            </div>
+            @endif
+
             {{-- ── EXPEDIENTE MÉDICO ── --}}
-            <div style="margin-bottom:24px;">
+            <div style="margin-bottom:14px;">
 
                 {{-- Ficha médica general --}}
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                     <p class="sec-title" style="flex:1;margin:0;">
                         <i class="fa fa-heartbeat" style="color:#e74c3c;"></i>
                         Expediente médico
@@ -885,21 +896,21 @@
 
                         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid #f5f7fa;">
                             @if ($fm->tipo_sangre)
-                                <div style="padding:12px 16px;border-right:1px solid #f5f7fa;text-align:center;">
-                                    <div style="font-size:20px;font-weight:800;color:#e74c3c;">{{ $fm->tipo_sangre }}</div>
-                                    <div style="font-size:10px;color:#9aa5b4;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;">Tipo sangre</div>
+                                <div style="padding:8px 12px;border-right:1px solid #f5f7fa;text-align:center;">
+                                    <div style="font-size:16px;font-weight:800;color:#e74c3c;">{{ $fm->tipo_sangre }}</div>
+                                    <div style="font-size:9px;color:#9aa5b4;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;">Tipo sangre</div>
                                 </div>
                             @endif
                             @if ($fm->peso_kg)
-                                <div style="padding:12px 16px;border-right:1px solid #f5f7fa;text-align:center;">
-                                    <div style="font-size:20px;font-weight:800;color:#2c3e50;">{{ $fm->peso_kg }} <span style="font-size:11px;font-weight:400;color:#9aa5b4;">kg</span></div>
-                                    <div style="font-size:10px;color:#9aa5b4;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;">Peso</div>
+                                <div style="padding:8px 12px;border-right:1px solid #f5f7fa;text-align:center;">
+                                    <div style="font-size:16px;font-weight:800;color:#2c3e50;">{{ $fm->peso_kg }} <span style="font-size:10px;font-weight:400;color:#9aa5b4;">kg</span></div>
+                                    <div style="font-size:9px;color:#9aa5b4;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;">Peso</div>
                                 </div>
                             @endif
                             @if ($fm->talla_cm)
-                                <div style="padding:12px 16px;text-align:center;">
-                                    <div style="font-size:20px;font-weight:800;color:#2c3e50;">{{ $fm->talla_cm }} <span style="font-size:11px;font-weight:400;color:#9aa5b4;">cm</span></div>
-                                    <div style="font-size:10px;color:#9aa5b4;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;">Talla</div>
+                                <div style="padding:8px 12px;text-align:center;">
+                                    <div style="font-size:16px;font-weight:800;color:#2c3e50;">{{ $fm->talla_cm }} <span style="font-size:10px;font-weight:400;color:#9aa5b4;">cm</span></div>
+                                    <div style="font-size:9px;color:#9aa5b4;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;">Talla</div>
                                 </div>
                             @endif
                         </div>
@@ -952,7 +963,7 @@
                 @endif
 
                 {{-- Condiciones médicas --}}
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7a8d;">
                         <i class="fa fa-exclamation-triangle" style="color:#e67e22;margin-right:5px;"></i>
                         Condiciones médicas
@@ -975,9 +986,9 @@
                 @if ($alumno->condicionesMedicas->count())
                     <div class="info-card" style="margin-bottom:14px;">
                         @foreach ($alumno->condicionesMedicas as $condicion)
-                            <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 16px;
+                            <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;
                                          border-bottom:1px solid #f5f7fa;">
-                                <div style="width:34px;height:34px;border-radius:8px;flex-shrink:0;
+                                <div style="width:28px;height:28px;border-radius:6px;flex-shrink:0;
                                              display:flex;align-items:center;justify-content:center;
                                              background:{{ $condicion->nivel_riesgo === 'leve' ? '#e8f8f0' : ($condicion->nivel_riesgo === 'moderado' ? '#fff8e1' : '#fdecea') }};">
                                     <i class="fa fa-exclamation"
@@ -1033,7 +1044,7 @@
                 @endif
 
                 {{-- Medicamentos autorizados --}}
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7a8d;">
                         <i class="fa fa-pills" style="color:#8e44ad;margin-right:5px;"></i>
                         Medicamentos autorizados
@@ -1056,9 +1067,9 @@
                 @if ($alumno->medicamentosAutorizados->count())
                     <div class="info-card">
                         @foreach ($alumno->medicamentosAutorizados as $med)
-                            <div style="display:flex;align-items:flex-start;gap:12px;padding:11px 16px;
+                            <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 12px;
                                          border-bottom:1px solid #f5f7fa;">
-                                <div style="width:34px;height:34px;border-radius:8px;flex-shrink:0;
+                                <div style="width:28px;height:28px;border-radius:6px;flex-shrink:0;
                                              background:#f3e8fd;display:flex;align-items:center;justify-content:center;">
                                     <i class="fa fa-medkit" style="color:#8e44ad;font-size:13px;"></i>
                                 </div>
@@ -1119,7 +1130,7 @@
 
             {{-- ── DOCUMENTOS ── --}}
             <div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                     <p class="sec-title" style="flex:1;margin:0;">
                         <i class="fa fa-file-text-o" style="color:#3c8dbc;"></i>
                         Documentos
@@ -1188,9 +1199,9 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="padding:48px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:10px;">
+                    <div style="padding:22px 20px;text-align:center;border:2px dashed #e8ecf0;border-radius:8px;">
                         <i class="fa fa-folder-open-o"
-                            style="font-size:40px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+                            style="font-size:28px;color:#dde4ea;display:block;margin-bottom:8px;"></i>
                         <p style="color:#b0bec5;margin:0;">Sin documentos registrados.</p>
                     </div>
                 @endif
@@ -1291,9 +1302,9 @@
                             <i class="fa fa-eye"></i> Ver
                         </a>
                     </div>
-                    <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;">
+                    <div style="padding:10px 14px;display:flex;align-items:center;gap:10px;">
                         <div
-                            style="width:40px;height:40px;border-radius:50%;background:#e8f5e9;
+                            style="width:32px;height:32px;border-radius:50%;background:#e8f5e9;
                         display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                             <i class="fa fa-home" style="color:#4caf50;font-size:16px;"></i>
                         </div>
@@ -1339,7 +1350,7 @@
                     @foreach ($alumno->becas->where('activo', true) as $beca)
                         <div class="beca-row">
                             <div
-                                style="width:34px;height:34px;border-radius:8px;background:#fff8e1;
+                                style="width:28px;height:28px;border-radius:6px;background:#fff8e1;
                         display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <i class="fa fa-percent" style="color:#f39c12;font-size:13px;"></i>
                             </div>

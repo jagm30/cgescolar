@@ -724,11 +724,11 @@
 
                 {{-- Datos adicionales del contacto (opcionales) --}}
                 <div style="margin-top:6px;">
-                    <a href="#datos-extra-__INDEX__" data-toggle="collapse"
-                       style="font-size:11px;color:#3c8dbc;display:inline-block;margin-bottom:6px;">
-                        <i class="fa fa-plus-circle"></i> Datos adicionales del contacto <span style="color:#b0bec5;">(opcional)</span>
-                    </a>
-                    <div id="datos-extra-__INDEX__" class="collapse">
+                    <p style="font-size:11px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">
+                        <i class="fa fa-info-circle" style="color:#3c8dbc;"></i> Datos adicionales
+                        <span style="font-weight:400;color:#b0bec5;text-transform:none;">(opcional)</span>
+                    </p>
+                    <div>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">

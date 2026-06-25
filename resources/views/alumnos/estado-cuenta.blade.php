@@ -310,12 +310,12 @@
                     <tr>
                         <th style="width:30px;"></th>
                         <th>Concepto</th>
-                        <th>Periodo</th>
                         <th>Vencimiento</th>
-                        <th style="text-align:right;">Monto</th>
+                        <th style="text-align:right;">Original</th>
+                        <th style="text-align:right;">Descuentos</th>
+                        <th style="text-align:right;">Recargo</th>
                         <th style="text-align:right;">Pagado</th>
-                        <th style="text-align:right;">Pendiente</th>
-                        <th style="text-align:right;">Recargo / Dto.</th>
+                        <th style="text-align:right;">A pagar</th>
                         <th style="text-align:center;">Estado</th>
                         <th style="width:50px;"></th>
                     </tr>
@@ -334,9 +334,11 @@
                     $becaDesc       = (float) ($cargo->beca_descuento_calc ?? 0);
                     $becaPct        = $cargo->beca_porcentaje ?? null;
                     $mesesRetraso   = (int)   ($cargo->meses_retraso       ?? 0);
-                    $estadoReal = $cargo->estado_real;
-                    $tieneAjuste    = ($descuentoCalc > 0 || $recargoCalc > 0 || $becaDesc > 0)
-                                      && !in_array($estadoReal, ['pagado', 'condonado']);
+                    $estadoReal     = $cargo->estado_real;
+                    $esPendienteReal = !in_array($estadoReal, ['pagado', 'condonado']);
+                    $totalDescuentos = $becaDesc + $descuentoCalc;
+                    $montoAPagar    = $esPendienteReal ? max(0, $cargo->monto_a_pagar_hoy) : 0;
+                    $tieneAjuste    = ($totalDescuentos > 0 || $recargoCalc > 0) && $esPendienteReal;
                     $estadoClass = match($estadoReal) {
                         'pagado'    => 'ec-pagado',
                         'parcial', 'parcial_vencido' => 'ec-parcial',
@@ -353,6 +355,13 @@
                         default     => 'Pendiente',
                     };
                     $tienePagos = $cargo->detallesPagosVigentes->count() > 0;
+                    // Buscar la beca que aplica a este cargo para mostrar su nombre
+                    $becaAplicada = null;
+                    if ($becaDesc > 0) {
+                        $becaAplicada = $cargo->asignacion?->plan_id
+                            ? $becas->firstWhere('plan_id', $cargo->asignacion->plan_id)
+                            : $becas->firstWhere('concepto_id', $cargo->concepto_id);
+                    }
                 @endphp
 
                 <tr class="cargo-row"
@@ -379,12 +388,6 @@
                     </td>
 
                     <td>
-                        <code style="font-size:11px;background:#f0f3f7;padding:2px 7px;border-radius:4px;color:#4a5568;">
-                            {{ $cargo->periodo }}
-                        </code>
-                    </td>
-
-                    <td>
                         <span style="{{ $vencido && !in_array($estadoReal,['pagado','condonado']) ? 'color:#b91c1c;font-weight:600;' : 'color:#4a5568;' }}">
                             {{ $cargo->fecha_vencimiento->format('d/m/Y') }}
                         </span>
@@ -395,10 +398,51 @@
                         @endif
                     </td>
 
+                    {{-- Original --}}
                     <td style="text-align:right;font-weight:600;color:#1a2634;">
                         ${{ number_format($cargo->monto_original, 2) }}
                     </td>
 
+                    {{-- Descuentos (beca + pronto pago) --}}
+                    <td style="text-align:right;">
+                        @if($esPendienteReal && $totalDescuentos > 0)
+                            @if($becaDesc > 0)
+                                <div>
+                                    <span style="color:#e67e22;font-weight:700;">-${{ number_format($becaDesc, 2) }}</span>
+                                    <div style="font-size:9px;color:#e67e22;margin-top:1px;">
+                                        <i class="fa fa-star"></i>
+                                        {{ $becaAplicada?->catalogoBeca?->nombre ?? 'Beca' }}
+                                        @if($becaPct) · {{ $becaPct }}% @endif
+                                    </div>
+                                </div>
+                            @endif
+                            @if($descuentoCalc > 0)
+                                <div style="{{ $becaDesc > 0 ? 'margin-top:5px;padding-top:4px;border-top:1px dashed #e8ecf0;' : '' }}">
+                                    <span style="color:#00875a;font-weight:700;">-${{ number_format($descuentoCalc, 2) }}</span>
+                                    <div style="font-size:9px;color:#00875a;margin-top:1px;">
+                                        <i class="fa fa-tag"></i> Pronto pago
+                                    </div>
+                                </div>
+                            @endif
+                        @else
+                            <span style="color:#dde4eb;">—</span>
+                        @endif
+                    </td>
+
+                    {{-- Recargo --}}
+                    <td style="text-align:right;">
+                        @if($esPendienteReal && $recargoCalc > 0)
+                            <span style="color:#b91c1c;font-weight:700;">+${{ number_format($recargoCalc, 2) }}</span>
+                            <div style="font-size:9px;color:#b91c1c;margin-top:1px;">
+                                <i class="fa fa-exclamation-triangle"></i> Recargo
+                                @if($mesesRetraso > 1) · {{ $mesesRetraso }} mes @endif
+                            </div>
+                        @else
+                            <span style="color:#dde4eb;">—</span>
+                        @endif
+                    </td>
+
+                    {{-- Pagado --}}
                     <td style="text-align:right;">
                         @if($saldoAbonado > 0)
                             <span style="color:#00875a;font-weight:600;">${{ number_format($saldoAbonado, 2) }}</span>
@@ -407,39 +451,15 @@
                         @endif
                     </td>
 
+                    {{-- A pagar (efectivo con descuentos aplicados) --}}
                     <td style="text-align:right;">
-                        @if($saldoPendiente > 0)
-                            <span style="color:#b91c1c;font-weight:700;">${{ number_format($saldoPendiente, 2) }}</span>
-                        @else
+                        @if(!$esPendienteReal)
                             <span style="color:#dde4eb;">—</span>
-                        @endif
-                    </td>
-
-                    <td style="text-align:right;">
-                        @if($tieneAjuste)
-                            @if($recargoCalc > 0)
-                                <span style="color:#b91c1c;font-weight:700;">
-                                    +${{ number_format($recargoCalc, 2) }}
-                                </span>
-                                <div style="font-size:10px;color:#b91c1c;margin-top:2px;">
-                                    <i class="fa fa-exclamation-triangle"></i> recargo
-                                    @if($mesesRetraso > 1) × {{ $mesesRetraso }} meses @endif
-                                </div>
-                            @elseif($descuentoCalc > 0)
-                                <span style="color:#00875a;font-weight:700;">
-                                    -${{ number_format($descuentoCalc, 2) }}
-                                </span>
-                                <div style="font-size:10px;color:#00875a;margin-top:2px;">
-                                    <i class="fa fa-tag"></i> pronto pago
-                                </div>
-                            @endif
-                            @if($becaDesc > 0)
-                                <span style="color:#e67e22;font-weight:700;{{ ($recargoCalc > 0 || $descuentoCalc > 0) ? 'display:block;margin-top:4px;' : '' }}">
-                                    -${{ number_format($becaDesc, 2) }}
-                                </span>
-                                <div style="font-size:10px;color:#e67e22;margin-top:2px;">
-                                    <i class="fa fa-star"></i> beca
-                                    @if($becaPct) ({{ $becaPct }}%) @endif
+                        @elseif($montoAPagar > 0)
+                            <span style="color:#b91c1c;font-weight:800;font-size:14px;">${{ number_format($montoAPagar, 2) }}</span>
+                            @if($tieneAjuste)
+                                <div style="font-size:9px;color:#b0bec5;margin-top:1px;text-decoration:line-through;">
+                                    ${{ number_format($saldoPendiente, 2) }}
                                 </div>
                             @endif
                         @else
@@ -557,6 +577,20 @@
 ════════════════════════════════════════════════════ --}}
 <div class="col-md-3">
 
+    @php
+        // Calcular descuento total por beca para el sidebar
+        $totalPorBeca = [];
+        foreach ($cargos as $_c) {
+            $bd = (float) ($_c->beca_descuento_calc ?? 0);
+            if ($bd <= 0) continue;
+            $bi = $_c->asignacion?->plan_id
+                ? $becas->firstWhere('plan_id', $_c->asignacion->plan_id)
+                : $becas->firstWhere('concepto_id', $_c->concepto_id);
+            $nombre = $bi?->catalogoBeca?->nombre ?? 'Beca';
+            $totalPorBeca[$nombre] = ($totalPorBeca[$nombre] ?? 0) + $bd;
+        }
+    @endphp
+
     {{-- Balance --}}
     <div class="info-card">
         <div class="info-card-header">
@@ -565,9 +599,7 @@
             </span>
             @if($resumen['saldo_pendiente'] > 0)
             <span style="background:#fdecea;color:#b91c1c;font-size:11px;font-weight:700;
-                         padding:2px 9px;border-radius:10px;">
-                Deuda
-            </span>
+                         padding:2px 9px;border-radius:10px;">Deuda</span>
             @else
             <span style="background:#e8f8f0;color:#00875a;font-size:11px;font-weight:700;
                          padding:2px 9px;border-radius:10px;">
@@ -576,70 +608,91 @@
             @endif
         </div>
 
+        {{-- Total cargado --}}
         <div class="balance-row">
             <span class="balance-row-label">Total cargado</span>
             <span class="balance-row-value">${{ number_format($resumen['total_cargado'], 2) }}</span>
         </div>
-        <div class="balance-row">
-            <span class="balance-row-label">Total pagado</span>
-            <span class="balance-row-value" style="color:#00875a;">${{ number_format($resumen['total_pagado'], 2) }}</span>
-        </div>
-        @if($resumen['total_condonado'] > 0)
-        <div class="balance-row">
-            <span class="balance-row-label">Condonado</span>
-            <span class="balance-row-value" style="color:#6b7a8d;">${{ number_format($resumen['total_condonado'], 2) }}</span>
-        </div>
-        @endif
-        <div class="balance-row" style="background:#f8fafc;">
-            <span class="balance-row-label" style="font-weight:700;color:#1a2634;">Saldo pendiente</span>
-            <span class="balance-row-value" style="color:{{ $resumen['saldo_pendiente'] > 0 ? '#b91c1c' : '#00875a' }};font-size:15px;">
-                ${{ number_format($resumen['saldo_pendiente'], 2) }}
+
+        {{-- Descuentos por beca (desglosados por nombre) --}}
+        @foreach($totalPorBeca as $nombreBeca => $montoBeca)
+        <div class="balance-row" style="background:#fffbf2;">
+            <span class="balance-row-label" style="color:#b45309;font-size:11px;">
+                <i class="fa fa-star" style="color:#f39c12;"></i> {{ $nombreBeca }}
+            </span>
+            <span style="color:#e67e22;font-weight:700;font-size:12px;">
+                -${{ number_format($montoBeca, 2) }}
             </span>
         </div>
-        @if($resumen['total_recargos'] > 0)
-        <div class="balance-row" style="border-top:1px dashed #f0f3f7;">
-            <span class="balance-row-label" style="color:#b91c1c;font-size:11px;">
-                <i class="fa fa-exclamation-triangle"></i> + Recargos
-            </span>
-            <span style="color:#b91c1c;font-weight:700;font-size:12px;">
-                +${{ number_format($resumen['total_recargos'], 2) }}
-            </span>
-        </div>
-        @endif
+        @endforeach
+
+        {{-- Descuento pronto pago --}}
         @if($resumen['total_descuentos'] > 0)
-        <div class="balance-row">
+        <div class="balance-row" style="background:#f2fbf5;">
             <span class="balance-row-label" style="color:#00875a;font-size:11px;">
-                <i class="fa fa-tag"></i> − Pronto pago
+                <i class="fa fa-tag"></i> Pronto pago
             </span>
             <span style="color:#00875a;font-weight:700;font-size:12px;">
                 -${{ number_format($resumen['total_descuentos'], 2) }}
             </span>
         </div>
         @endif
-        @if($resumen['total_becas'] > 0)
-        <div class="balance-row">
-            <span class="balance-row-label" style="color:#e67e22;font-size:11px;">
-                <i class="fa fa-star"></i> − Descuento becas
+
+        {{-- Recargos por mora --}}
+        @if($resumen['total_recargos'] > 0)
+        <div class="balance-row" style="background:#fff8f8;">
+            <span class="balance-row-label" style="color:#b91c1c;font-size:11px;">
+                <i class="fa fa-exclamation-triangle"></i> Recargos por mora
             </span>
-            <span style="color:#e67e22;font-weight:700;font-size:12px;">
-                -${{ number_format($resumen['total_becas'], 2) }}
+            <span style="color:#b91c1c;font-weight:700;font-size:12px;">
+                +${{ number_format($resumen['total_recargos'], 2) }}
             </span>
         </div>
         @endif
+
+        {{-- Condonaciones --}}
+        @if($resumen['total_condonado'] > 0)
+        <div class="balance-row">
+            <span class="balance-row-label" style="color:#6b7a8d;font-size:11px;">
+                <i class="fa fa-times-circle"></i> Condonado
+            </span>
+            <span style="color:#6b7a8d;font-weight:700;font-size:12px;">
+                -${{ number_format($resumen['total_condonado'], 2) }}
+            </span>
+        </div>
+        @endif
+
+        {{-- Separador "A pagar hoy" --}}
         @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0 || $resumen['total_becas'] > 0)
         <div class="balance-row" style="background:#fff8e1;border-top:2px solid #f39c12;">
             <span class="balance-row-label" style="color:#b45309;font-weight:700;">
-                <i class="fa fa-calculator"></i> A pagar hoy
+                <i class="fa fa-bolt"></i> Neto a pagar hoy
             </span>
-            <span style="color:{{ $resumen['total_a_pagar_hoy'] > 0 ? '#b91c1c' : '#00875a' }};font-weight:800;font-size:15px;">
+            <span style="color:{{ $resumen['total_a_pagar_hoy'] > 0 ? '#b91c1c' : '#00875a' }};font-weight:800;font-size:14px;">
                 ${{ number_format($resumen['total_a_pagar_hoy'], 2) }}
             </span>
         </div>
         @endif
+
+        {{-- Ya pagado --}}
+        <div class="balance-row">
+            <span class="balance-row-label">Ya pagado</span>
+            <span class="balance-row-value" style="color:#00875a;">${{ number_format($resumen['total_pagado'], 2) }}</span>
+        </div>
+
+        {{-- Saldo pendiente final --}}
+        <div class="balance-row" style="background:#f8fafc;border-top:2px solid #e4eaf0;">
+            <span class="balance-row-label" style="font-weight:700;color:#1a2634;">Saldo pendiente</span>
+            <span class="balance-row-value" style="color:{{ $resumen['saldo_pendiente'] > 0 ? '#b91c1c' : '#00875a' }};font-size:16px;">
+                ${{ number_format($resumen['saldo_pendiente'], 2) }}
+            </span>
+        </div>
+
+        {{-- Vencidos (sub-nota) --}}
         @if($resumen['total_vencido'] > 0)
         <div class="balance-row" style="background:#fdecea;">
             <span class="balance-row-label" style="color:#b91c1c;font-size:11px;">
-                <i class="fa fa-exclamation-circle"></i> De los cuales vencidos
+                <i class="fa fa-exclamation-circle"></i> Vencidos
             </span>
             <span style="color:#b91c1c;font-weight:700;font-size:12px;">
                 ${{ number_format($resumen['total_vencido'], 2) }}
@@ -659,23 +712,40 @@
                          padding:2px 9px;border-radius:10px;">{{ $becas->count() }}</span>
         </div>
         @foreach($becas as $beca)
-        <div style="padding:10px 16px;border-bottom:1px solid #f5f7fa;display:flex;align-items:center;gap:10px;">
-            <div style="width:30px;height:30px;border-radius:8px;background:#fff8e1;
-                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fa fa-percent" style="color:#f39c12;font-size:12px;"></i>
+        <div style="padding:10px 16px;border-bottom:1px solid #f5f7fa;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:30px;height:30px;border-radius:8px;background:#fff8e1;
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fa fa-star" style="color:#f39c12;font-size:11px;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:12px;font-weight:700;color:#1a2634;">{{ $beca->catalogoBeca->nombre }}</div>
+                    <div style="font-size:11px;color:#8a9ab0;margin-top:1px;">
+                        {{ $beca->concepto?->nombre ?? 'Todos los conceptos' }}
+                    </div>
+                </div>
+                <span style="background:#fff3cd;color:#856404;font-size:11px;font-weight:700;
+                             padding:2px 8px;border-radius:8px;white-space:nowrap;flex-shrink:0;">
+                    @if($beca->catalogoBeca->tipo === 'porcentaje')
+                        {{ $beca->catalogoBeca->valor }}%
+                    @else
+                        ${{ number_format($beca->catalogoBeca->valor, 2) }}
+                    @endif
+                </span>
             </div>
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;font-weight:700;color:#1a2634;">{{ $beca->catalogoBeca->nombre }}</div>
-                <div style="font-size:11px;color:#8a9ab0;margin-top:1px;">{{ $beca->concepto->nombre }}</div>
+            {{-- Monto total descontado por esta beca --}}
+            @php $descBeca = $totalPorBeca[$beca->catalogoBeca->nombre] ?? 0; @endphp
+            @if($descBeca > 0)
+            <div style="margin-top:6px;padding:5px 10px;border-radius:6px;background:#fffbf2;
+                        border:1px solid #fde68a;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:10px;color:#b45309;">
+                    <i class="fa fa-arrow-down"></i> Descuento aplicado (cargos pendientes)
+                </span>
+                <span style="font-size:11px;font-weight:700;color:#e67e22;">
+                    -${{ number_format($descBeca, 2) }}
+                </span>
             </div>
-            <span style="background:#fff3cd;color:#856404;font-size:11px;font-weight:700;
-                         padding:2px 8px;border-radius:8px;white-space:nowrap;flex-shrink:0;">
-                @if($beca->catalogoBeca->tipo === 'porcentaje')
-                    {{ $beca->catalogoBeca->valor }}%
-                @else
-                    ${{ number_format($beca->catalogoBeca->valor, 2) }}
-                @endif
-            </span>
+            @endif
         </div>
         @endforeach
     </div>
