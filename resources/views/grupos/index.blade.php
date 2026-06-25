@@ -49,7 +49,7 @@
 
         .grp-search-wrap .form-control:focus {
             border-color: #3c8dbc;
-            box-shadow: 0 0 0 3px rgba(60,141,188,.12);
+            box-shadow: 0 0 0 3px rgba(60, 141, 188, .12);
         }
 
         .grp-search-icon {
@@ -67,11 +67,16 @@
             background: #fff;
             border-radius: 8px;
             border: 1px solid #e0e7ef;
-            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
             overflow: hidden;
         }
 
-        .grp-table { margin: 0; width: 100%; border-collapse: separate; border-spacing: 0; }
+        .grp-table {
+            margin: 0;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
 
         .grp-table thead th {
             background: #f4f6f8;
@@ -86,9 +91,18 @@
             white-space: nowrap;
         }
 
-        .grp-table tbody tr { border-bottom: 1px solid #f0f3f7; cursor: pointer; }
-        .grp-table tbody tr:last-child { border-bottom: none; }
-        .grp-table tbody tr:hover td { background: #f0f7ff !important; }
+        .grp-table tbody tr {
+            border-bottom: 1px solid #f0f3f7;
+            cursor: pointer;
+        }
+
+        .grp-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .grp-table tbody tr:hover td {
+            background: #f0f7ff !important;
+        }
 
         .grp-table td {
             padding: 9px 14px;
@@ -117,7 +131,9 @@
             justify-content: center;
         }
 
-        .grp-acciones form { display: contents; }
+        .grp-acciones form {
+            display: contents;
+        }
 
         /* Footer paginación */
         .grp-footer {
@@ -131,14 +147,17 @@
             gap: 8px;
         }
 
-        .grp-footer-info { font-size: 13px; color: #6b7a8d; }
+        .grp-footer-info {
+            font-size: 13px;
+            color: #6b7a8d;
+        }
 
         /* Panel de ayuda */
         .grp-help {
             background: #fff;
             border: 1px solid #e0e7ef;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
             overflow: hidden;
         }
 
@@ -164,8 +183,81 @@
             line-height: 1.7;
         }
 
-        .grp-help-body p { margin-bottom: 4px; }
-        .grp-help-body hr { margin: 8px 0; border-color: #e0e7ef; }
+        /* Diseño perfecto para iconos en la tabla */
+        .grp-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            /* Lo hace un círculo perfecto */
+            object-fit: cover;
+            /* Evita que la foto se apachurre o deforme */
+            border: 2px solid #e0e7ef;
+            /* Un bordecito elegante */
+            background-color: #f4f6f8;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            /* Sombreado sutil */
+        }
+
+        .grp-help-body p {
+            margin-bottom: 4px;
+        }
+
+        .grp-help-body hr {
+            margin: 8px 0;
+            border-color: #e0e7ef;
+        }
+
+/* ══ CAJA DE SUBIDA DE ICONO (FULL WIDTH) ══ */
+        .upload-preview-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%; /* <--- EL TRUCO: Ancho completo igual que los otros inputs */
+            height: 130px; /* <--- Altura ideal para darle respiro al diseño */
+            border: 2px dashed #d0dbe6;
+            border-radius: 6px; /* Para que coincida con los bordes de tus inputs */
+            background-color: #f8fafc;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            margin: 0;
+        }
+
+        .upload-preview-box:hover {
+            border-color: #3c8dbc;
+            background-color: #f0f7ff;
+        }
+
+        .upload-preview-box .icon-placeholder {
+            margin-bottom: 5px;
+            color: #aab !important;
+            transition: all 0.3s ease;
+        }
+
+        .upload-preview-box:hover .icon-placeholder {
+            color: #3c8dbc !important;
+            transform: scale(1.1);
+        }
+
+        .upload-preview-box .text-placeholder {
+            font-size: 12px;
+            color: #6b7a8d;
+            font-weight: 600;
+        }
+
+        /* ── EL ICONO CIRCULAR CENTRADO ── */
+        .upload-preview-box img {
+            /* Quitamos el position: absolute para que el flexbox lo centre naturalmente */
+            width: 80px;      /* Tamaño fijo para el círculo */
+            height: 80px;
+            object-fit: cover;
+            border-radius: 50%; /* Lo hacemos un círculo perfecto */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Sombra elegante */
+            border: 3px solid white; /* Borde blanco estilo perfil */
+            z-index: 10;
+        }
+
 
         /* Suprimir flechas DataTables */
         table.dataTable thead .sorting::before,
@@ -183,7 +275,8 @@
 @section('content')
 
     {{-- ══ ENCABEZADO + STATS ══ --}}
-    <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+    <div
+        style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
                 display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
                 box-shadow:0 1px 3px rgba(0,0,0,0.04);">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -191,19 +284,23 @@
                 <i class="fa fa-users text-blue"></i> Grupos Escolares
             </h4>
             <div style="display:flex;gap:7px;flex-wrap:wrap;">
-                <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                <span
+                    style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
                              padding:2px 10px;font-size:12px;font-weight:600;">
                     <i class="fa fa-th-large"></i> {{ $grupos->total() }} grupos
                 </span>
-                <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                <span
+                    style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
                              padding:2px 10px;font-size:12px;font-weight:600;">
                     <i class="fa fa-check-circle"></i> {{ $grupos->where('activo', true)->count() }} activos
                 </span>
-                <span style="background:#fef6e7;color:#b45309;border:1px solid #fcd97d;border-radius:20px;
+                <span
+                    style="background:#fef6e7;color:#b45309;border:1px solid #fcd97d;border-radius:20px;
                              padding:2px 10px;font-size:12px;font-weight:600;">
                     <i class="fa fa-graduation-cap"></i> {{ $grados->count() }} grados
                 </span>
-                <span style="background:#f5eef8;color:#7d3c98;border:1px solid #ebdef0;border-radius:20px;
+                <span
+                    style="background:#f5eef8;color:#7d3c98;border:1px solid #ebdef0;border-radius:20px;
                              padding:2px 10px;font-size:12px;font-weight:600;">
                     <i class="fa fa-calendar"></i> {{ $ciclo->nombre }}
                 </span>
@@ -216,8 +313,8 @@
                     <i class="fa fa-copy"></i> Migrar estructura
                 </button>
             @endif
-            <button type="button" class="btn btn-success btn-sm btn-flat" style="border-radius:20px;"
-                data-toggle="modal" data-target="#modalNuevoGrupo">
+            <button type="button" class="btn btn-success btn-sm btn-flat" style="border-radius:20px;" data-toggle="modal"
+                data-target="#modalNuevoGrupo">
                 <i class="fa fa-plus"></i> Nuevo grupo
             </button>
         </div>
@@ -244,7 +341,8 @@
                             <option value="">Todos los grados</option>
                             @foreach ($grados as $g)
                                 @if (!request('nivel_id') || $g->nivel_id == request('nivel_id'))
-                                    <option value="{{ $g->id }}" {{ request('grado_id') == $g->id ? 'selected' : '' }}>
+                                    <option value="{{ $g->id }}"
+                                        {{ request('grado_id') == $g->id ? 'selected' : '' }}>
                                         {{ $g->numero }}°
                                     </option>
                                 @endif
@@ -252,20 +350,22 @@
                         </select>
 
                         <select name="estatus" class="grp-select" onchange="this.form.submit()" title="Estatus">
-                            <option value="activos"  {{ request('estatus') != 'inactivos' && request('estatus') != 'todos' ? 'selected' : '' }}>Activos</option>
-                            <option value="inactivos" {{ request('estatus') == 'inactivos' ? 'selected' : '' }}>Inactivos</option>
-                            <option value="todos"     {{ request('estatus') == 'todos'     ? 'selected' : '' }}>Todos</option>
+                            <option value="activos"
+                                {{ request('estatus') != 'inactivos' && request('estatus') != 'todos' ? 'selected' : '' }}>
+                                Activos</option>
+                            <option value="inactivos" {{ request('estatus') == 'inactivos' ? 'selected' : '' }}>Inactivos
+                            </option>
+                            <option value="todos" {{ request('estatus') == 'todos' ? 'selected' : '' }}>Todos</option>
                         </select>
 
                         <div class="grp-search-wrap">
                             <i class="fa fa-search grp-search-icon"></i>
-                            <input type="text" id="buscador-manual" class="form-control"
-                                   placeholder="Buscar grupo…">
+                            <input type="text" id="buscador-manual" class="form-control" placeholder="Buscar grupo…">
                         </div>
 
                         @if (request()->anyFilled(['nivel_id', 'grado_id', 'estatus']))
                             <a href="{{ route('grupos.index') }}" class="btn btn-default btn-sm btn-flat"
-                               style="border-radius:20px;padding:4px 12px;flex-shrink:0;" title="Limpiar filtros">
+                                style="border-radius:20px;padding:4px 12px;flex-shrink:0;" title="Limpiar filtros">
                                 <i class="fa fa-times"></i>
                             </a>
                         @endif
@@ -276,6 +376,7 @@
                 <table id="tabla-grupos" class="grp-table">
                     <thead>
                         <tr>
+                            <th style="width:150px;">Icono</th>
                             <th>Nivel / Grado</th>
                             <th>Identificador</th>
                             <th class="text-center">Cupo</th>
@@ -288,7 +389,18 @@
                         @forelse($grupos as $g)
                             <tr data-href="{{ route('grupos.show', $g['id']) }}">
                                 <td>
-                                    <span style="font-weight:700;color:#1a2634;">{{ $g['grado']['nivel']['nombre'] }}</span><br>
+                                    @if (!empty($g['icono']))
+                                        <img src="{{ asset('storage/' . $g['icono']) }}" alt="Icono" class="grp-icon">
+                                    @else
+                                        <div
+                                            style="width: 35px; height: 35px; border-radius: 50%; background: #e8ecf0; display: flex; align-items: center; justify-content: center; border: 1px solid #d0dbe6;">
+                                            <i class="fa fa-users" style="color: #aab;"></i>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span
+                                        style="font-weight:700;color:#1a2634;">{{ $g['grado']['nivel']['nombre'] }}</span><br>
                                     <small class="text-muted">{{ $g['grado']['numero'] }}°</small>
                                 </td>
                                 <td>
@@ -306,7 +418,8 @@
                                 </td>
                                 <td class="text-center">
                                     @if ($g['disponibles'] !== null)
-                                        <b class="text-{{ $g['disponibles'] <= 5 ? 'red' : 'green' }}">{{ $g['disponibles'] }}</b>
+                                        <b
+                                            class="text-{{ $g['disponibles'] <= 5 ? 'red' : 'green' }}">{{ $g['disponibles'] }}</b>
                                     @else
                                         <span class="text-muted">∞</span>
                                     @endif
@@ -329,7 +442,8 @@
                                             @csrf @method('PATCH')
                                             <button type="submit" class="btn btn-default btn-xs"
                                                 title="{{ $g['activo'] ? 'Desactivar' : 'Activar' }}">
-                                                <i class="fa fa-power-off {{ $g['activo'] ? 'text-green' : 'text-red' }}"></i>
+                                                <i
+                                                    class="fa fa-power-off {{ $g['activo'] ? 'text-green' : 'text-red' }}"></i>
                                             </button>
                                         </form>
                                         @if ($g['alumnos_inscritos'] == 0)
@@ -353,7 +467,8 @@
                         @empty
                             <tr>
                                 <td colspan="6" style="text-align:center;padding:50px 20px;color:#aab;">
-                                    <i class="fa fa-folder-open-o" style="font-size:36px;display:block;margin-bottom:10px;color:#dde4ea;"></i>
+                                    <i class="fa fa-folder-open-o"
+                                        style="font-size:36px;display:block;margin-bottom:10px;color:#dde4ea;"></i>
                                     No hay grupos registrados.
                                 </td>
                             </tr>
@@ -364,7 +479,8 @@
                 @if ($grupos->hasPages())
                     <div class="grp-footer">
                         <span class="grp-footer-info">
-                            Mostrando <strong>{{ $grupos->firstItem() }}</strong>–<strong>{{ $grupos->lastItem() }}</strong>
+                            Mostrando
+                            <strong>{{ $grupos->firstItem() }}</strong>–<strong>{{ $grupos->lastItem() }}</strong>
                             de <strong>{{ $grupos->total() }}</strong> grupos
                         </span>
                         <div>{{ $grupos->appends(request()->query())->links() }}</div>
@@ -434,8 +550,8 @@
 
             <div class="form-group">
                 <label>Nombre <span class="text-red">*</span></label>
-                <input type="text" name="nombre" class="form-control" maxlength="10"
-                       placeholder="Ej: A, B, UNICO" required>
+                <input type="text" name="nombre" class="form-control" maxlength="10" placeholder="Ej: A, B, UNICO"
+                    required>
             </div>
 
             <div class="form-group">
@@ -448,7 +564,23 @@
 
             <div class="form-group">
                 <label>Cupo Máximo <small class="text-muted">(Opcional)</small></label>
-                <input type="number" name="cupo_maximo" class="form-control" min="1" max="100" placeholder="Ej: 35">
+                <input type="number" name="cupo_maximo" class="form-control" min="1" max="100"
+                    placeholder="Ej: 35">
+            </div>
+            <div class="form-group">
+                <label>Icono del Grupo <small class="text-muted">(Opcional)</small></label>
+                <div class="upload-box-container">
+                    <input type="file" name="icono" id="input-icono-nuevo" accept="image/png, image/jpeg"
+                        style="display: none;">
+
+                    <label for="input-icono-nuevo" class="upload-preview-box" id="box-icono-nuevo"
+                        title="Haz clic para seleccionar una imagen">
+                        <i class="fa fa-camera fa-2x text-muted icon-placeholder"></i>
+                        <span class="text-placeholder">Subir icono</span>
+                        <span class="text-muted" style="font-size:11px;">(PNG o JPG, máx. 2MB)</span>
+                        <img id="preview-img-nuevo" src="" alt="Previsualización" style="display: none;">
+                    </label>
+                </div>
             </div>
 
             <div class="text-right">
@@ -503,16 +635,48 @@
     {{-- ══ MODALES EDITAR GRUPO ══ --}}
     @foreach ($grupos as $g)
         <x-modal id="modalEditarGrupo{{ $g['id'] }}" title="Editar Grupo" size="modal-sm">
-            <form action="{{ route('grupos.update', $g['id']) }}" method="POST">
+            <form action="{{ route('grupos.update', $g['id']) }}" method="POST" enctype="multipart/form-data">
                 @csrf @method('PUT')
+
                 <div class="form-group">
                     <label>Nombre del Grupo</label>
                     <input type="text" name="nombre" class="form-control" value="{{ $g['nombre'] }}" required>
                 </div>
+
                 <div class="form-group">
                     <label>Cupo Máximo</label>
                     <input type="number" name="cupo_maximo" class="form-control" value="{{ $g['cupo_maximo'] }}">
                 </div>
+
+                <div class="form-group">
+                    <label>Icono del Grupo <small class="text-muted">(Opcional)</small></label>
+                    <div class="upload-box-container">
+
+                        <input type="file" name="icono" id="input-icono-edicion-{{ $g['id'] }}"
+                            class="input-icono-edicion" data-id="{{ $g['id'] }}" accept="image/*"
+                            style="display: none;">
+
+                        <label for="input-icono-edicion-{{ $g['id'] }}" class="upload-preview-box"
+                            id="box-icono-edicion-{{ $g['id'] }}" title="Haz clic para cambiar la imagen">
+                            @if (!empty($g['icono']))
+                                <i class="fa fa-camera fa-2x text-muted icon-placeholder" style="display: none;"></i>
+                                <span class="text-placeholder" style="display: none;">Cambiar icono</span>
+                                <img id="preview-img-edicion-{{ $g['id'] }}"
+                                    src="{{ asset('storage/' . $g['icono']) }}" alt="Previsualización"
+                                    style="display: block;">
+                            @else
+                                <i class="fa fa-camera fa-2x text-muted icon-placeholder"></i>
+                                <span class="text-placeholder">Subir icono</span>
+                                <img id="preview-img-edicion-{{ $g['id'] }}" src="" alt="Previsualización"
+                                    style="display: none;">
+                            @endif
+                        </label>
+
+                    </div>
+                    <small class="text-muted">Haz clic en el recuadro para cambiar la foto. Déjalo igual para conservar la
+                        actual. JPG o PNG, máx. 2MB</small>
+                </div>
+
                 <div class="text-right">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-warning"><i class="fa fa-refresh"></i> Actualizar</button>
@@ -582,8 +746,8 @@
         $(document).ready(function() {
 
             // ── 1. SELECTS EN CASCADA (NIVEL -> GRADO) ──
-            const $selectNivel   = $('#filtro_nivel');
-            const $selectGrado   = $('#filtro_grado');
+            const $selectNivel = $('#filtro_nivel');
+            const $selectGrado = $('#filtro_grado');
             const $opcionesGrado = $selectGrado.find('option[data-nivel]');
 
             $selectNivel.on('change', function() {
@@ -609,8 +773,14 @@
 
             // ── 2. DATATABLES ──
             var table = $('#tabla-grupos').DataTable({
-                paging: false, info: false, searching: true, dom: 't', ordering: false,
-                language: { url: '//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json' }
+                paging: false,
+                info: false,
+                searching: true,
+                dom: 't',
+                ordering: false,
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.20/i18n/Spanish.json'
+                }
             });
 
             $('#buscador-manual').on('keyup', function() {
@@ -627,16 +797,22 @@
 
             $('#btn-confirmar-eliminar-ok').on('click', function() {
                 if (!formularioAEliminar) return;
-                let btn   = $(this);
+                let btn = $(this);
                 let token = formularioAEliminar.find('input[name="_token"]').val();
 
                 $.ajax({
                     url: formularioAEliminar.attr('action'),
                     type: 'DELETE',
-                    data: { _token: token },
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    data: {
+                        _token: token
+                    },
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
                     beforeSend: function() {
-                        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Eliminando...');
+                        btn.prop('disabled', true).html(
+                            '<i class="fa fa-spinner fa-spin"></i> Eliminando...');
                     },
                     success: function() {
                         $('#modalConfirmEliminar').modal('hide');
@@ -650,23 +826,24 @@
                 });
             });
 
-            // ── 4. CREACIÓN AJAX ──
+// ── 4. CREACIÓN AJAX (SOPORTE PARA ARCHIVOS) ──
             $('#form-nuevo-grupo').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
                 let btn  = $('#btn-guardar-grupo');
-                let datosLimpios = {};
-                form.serializeArray().forEach(item => { datosLimpios[item.name] = item.value; });
+
+                // LA CORRECCIÓN MÁGICA: Usar FormData en lugar de JSON
+                let formData = new FormData(this);
 
                 $.ajax({
                     url: form.attr('action'),
                     method: 'POST',
-                    data: JSON.stringify(datosLimpios),
-                    contentType: 'application/json',
+                    data: formData,
+                    processData: false, // <--- VITAL: Evita que jQuery convierta el archivo en texto
+                    contentType: false, // <--- VITAL: Permite que el navegador ponga el 'multipart/form-data' automático
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': datosLimpios._token
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     beforeSend: function() {
                         btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
@@ -680,10 +857,11 @@
             });
 
             // ── 5. CREDENCIALES ──
-            let printId = null, printTipo = null;
+            let printId = null,
+                printTipo = null;
 
             $(document).on('click', '.btn-abrir-modal-credencial', function() {
-                printId   = $(this).data('id');
+                printId = $(this).data('id');
                 printTipo = $(this).data('tipo');
                 $('#select-diseno-credencial').val('');
                 $('#modalElegirDiseno').modal('show');
@@ -691,10 +869,15 @@
 
             $('#btn-procesar-impresion').click(function() {
                 let disenoId = $('#select-diseno-credencial').val();
-                if (!disenoId) { alert('Por favor, selecciona un diseño válido.'); return; }
+                if (!disenoId) {
+                    alert('Por favor, selecciona un diseño válido.');
+                    return;
+                }
 
-                let urlLote       = "{{ route('credenciales.imprimirLote', ['credencial_id' => 'DISENO_ID', 'grupo_id' => 'TARGET_ID']) }}";
-                let urlIndividual = "{{ route('credenciales.imprimirIndividual', ['credencial' => 'DISENO_ID', 'alumno' => 'TARGET_ID']) }}";
+                let urlLote =
+                    "{{ route('credenciales.imprimirLote', ['credencial_id' => 'DISENO_ID', 'grupo_id' => 'TARGET_ID']) }}";
+                let urlIndividual =
+                    "{{ route('credenciales.imprimirIndividual', ['credencial' => 'DISENO_ID', 'alumno' => 'TARGET_ID']) }}";
                 let urlFinal = (printTipo === 'lote') ? urlLote : urlIndividual;
                 urlFinal = urlFinal.replace('DISENO_ID', disenoId).replace('TARGET_ID', printId);
 
@@ -705,8 +888,9 @@
             // ── 6. TOAST DE ERROR ──
             function mostrarToastError(xhr) {
                 let msg = 'Ocurrió un error inesperado.';
-                if (xhr.responseJSON?.mensaje)  msg = xhr.responseJSON.mensaje;
-                else if (xhr.responseJSON?.errors)  msg = Object.values(xhr.responseJSON.errors).map(e => e[0]).join('<br>');
+                if (xhr.responseJSON?.mensaje) msg = xhr.responseJSON.mensaje;
+                else if (xhr.responseJSON?.errors) msg = Object.values(xhr.responseJSON.errors).map(e => e[0]).join(
+                    '<br>');
                 else if (xhr.responseJSON?.message) msg = xhr.responseJSON.message;
 
                 $('#toast-dinamico-js').remove();
@@ -722,6 +906,61 @@
                 if ($(e.target).closest('button, a, input, form').length > 0) return;
                 window.location.href = $(this).data('href');
             });
+
+            // ── PREVISUALIZACIÓN DEL ICONO AL CREAR GRUPO ──
+            $('#input-icono-nuevo').on('change', function(e) {
+                const file = e.target.files[0];
+                const $previewImg = $('#preview-img-nuevo');
+                const $iconPlaceholder = $('#box-icono-nuevo .icon-placeholder');
+                const $textPlaceholder = $('#box-icono-nuevo .text-placeholder');
+
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        $previewImg.attr('src', event.target.result).show();
+                        // Ocultamos la camarita y el texto
+                        $iconPlaceholder.hide();
+                        $textPlaceholder.hide();
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    // Si el usuario cancela, regresamos al estado original
+                    $previewImg.attr('src', '').hide();
+                    $iconPlaceholder.show();
+                    $textPlaceholder.show();
+                }
+            });
+
+            // Limpiar la imagen si el modal se cierra sin guardar
+            $('#modalNuevoGrupo').on('hidden.bs.modal', function() {
+                $('#input-icono-nuevo').val(''); // Limpiamos el input
+                $('#preview-img-nuevo').attr('src', '').hide();
+                $('#box-icono-nuevo .icon-placeholder').show();
+                $('#box-icono-nuevo .text-placeholder').show();
+            });
+
+            // ── PREVISUALIZACIÓN DEL ICONO AL EDITAR GRUPO ──
+            $('.input-icono-edicion').on('change', function(e) {
+                // Obtenemos el ID único de este grupo
+                const id = $(this).data('id');
+                const file = e.target.files[0];
+
+                // Apuntamos específicamente a la caja y elementos de ESTE modal
+                const $previewImg = $('#preview-img-edicion-' + id);
+                const $iconPlaceholder = $('#box-icono-edicion-' + id + ' .icon-placeholder');
+                const $textPlaceholder = $('#box-icono-edicion-' + id + ' .text-placeholder');
+
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        $previewImg.attr('src', event.target.result).show();
+                        $iconPlaceholder.hide();
+                        $textPlaceholder.hide();
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
         });
     </script>
 @endpush

@@ -191,6 +191,7 @@ public function gradosPorCiclo(Request $request)
             ?? CicloEscolar::activo()->value('id');
 
         $data = $request->validate([
+            'icono'         => ['nullable', 'image', 'max:2048'],
             'grado_id'    => ['required', 'exists:grado,id'],
             'nombre'      => ['required', 'string', 'max:10'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -204,6 +205,13 @@ public function gradosPorCiclo(Request $request)
         $data['ciclo_id'] = $cicloId;
         $data['activo']   = true;
         $data['nombre']   = strtoupper($data['nombre']);
+        // Guardar el archivo en el disco 'public'
+        if ($request->hasFile('icono')) {
+            $data['icono'] = $request->file('icono')->store('iconos_grupos', 'public');
+        } else {
+            // Si no suben imagen, nos aseguramos de que no intente guardar un array vacío
+            unset($data['icono']);
+        }
 
         $existe = Grupo::where('ciclo_id', $data['ciclo_id'])
             ->where('grado_id', $data['grado_id'])
@@ -258,11 +266,24 @@ public function gradosPorCiclo(Request $request)
         $anterior = $grupo->toArray();
 
         $data = $request->validate([
+            'icono' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'nombre'      => ['sometimes', 'required', 'string', 'max:10'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
             'docente'     => ['nullable', 'string', 'max:200'],
             'activo'      => ['boolean'],
         ]);
+
+        if ($request->hasFile('icono')) {
+            // Si el grupo ya tenía un icono viejo, lo borramos del disco para no ocupar espacio basura
+            if ($grupo->icono) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($grupo->icono);
+            }
+            // Guardamos el nuevo
+            $data['icono'] = $request->file('icono')->store('iconos_grupos', 'public');
+        } else {
+            // Evitamos que sobreescriba con un nulo si el usuario no subió nada nuevo
+            unset($data['icono']);
+        }
 
         // 1. Validación de nombre duplicado
         if (isset($data['nombre'])) {
