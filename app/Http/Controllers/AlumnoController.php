@@ -373,7 +373,7 @@ class AlumnoController extends Controller
             'asignacion.plan.politicasRecargo',
         ])
             ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
-            ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
+            ->withSum('detallesPagosVigentes as total_abonado', 'monto_final')
             ->when($request->filled('ciclo_id'), fn ($q) => $q->whereHas(
                 'inscripcion', fn ($sq) => $sq->where('ciclo_id', $request->ciclo_id)
             ))
