@@ -536,7 +536,7 @@
                                         @else <span style="color:#dde4eb;">—</span> @endif
                                     </td>
                                     <td style="padding:6px 8px;text-align:right;font-weight:700;color:#1a2634;">
-                                        ${{ number_format($detalle->monto_abonado, 2) }}
+                                        ${{ number_format($detalle->monto_final, 2) }}
                                     </td>
                                     <td style="padding:6px 8px;text-align:center;">
                                         <span class="ec-estado {{ $pago->estado === 'vigente' ? 'ec-pagado' : 'ec-condonado' }}"

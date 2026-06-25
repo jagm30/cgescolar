@@ -281,6 +281,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('pagos.detalle-ingresos.pdf');
 
+    Route::get('/pagos/exportar', [PagoController::class, 'exportarExcel'])
+        ->middleware('rol:administrador,caja')
+        ->name('pagos.exportar');
+
     Route::post('/pagos/{id}/anular', [PagoController::class, 'anular'])
         ->middleware('rol:administrador')
         ->name('pagos.anular');

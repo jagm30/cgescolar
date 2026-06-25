@@ -531,6 +531,69 @@ class PagoController extends Controller
         return $pdf->stream($nombreArchivo);
     }
 
+    /** GET /pagos/exportar */
+    public function exportarExcel(Request $request)
+    {
+        $pagos = Pago::query()
+            ->when($request->filled('folio'), fn ($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"))
+            ->when($request->filled('fecha_desde'), fn ($q) => $q->where('fecha_pago', '>=', $request->fecha_desde))
+            ->when($request->filled('fecha_hasta'), fn ($q) => $q->where('fecha_pago', '<=', $request->fecha_hasta))
+            ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->orderByDesc('fecha_pago')
+            ->orderByDesc('id')
+            ->get();
+
+        $nombreArchivo = 'Pagos_'.now()->format('Y-m-d').'.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$nombreArchivo}\"",
+        ];
+
+        $callback = function () use ($pagos) {
+            $handle = fopen('php://output', 'w');
+
+            // BOM para que Excel reconozca UTF-8
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, [
+                'Folio', 'Fecha', 'Alumno(s)', 'Cajero',
+                'Forma de pago', 'Referencia', 'Monto total', 'Estado',
+                'Conceptos',
+            ]);
+
+            foreach ($pagos as $pago) {
+                $alumnos = $pago->detalles
+                    ->map(fn ($d) => $d->cargo?->inscripcion?->alumno)
+                    ->filter()->unique('id')
+                    ->map(fn ($a) => trim("{$a->ap_paterno} {$a->ap_materno}, {$a->nombre}"))
+                    ->implode(' | ');
+
+                $conceptos = $pago->detalles
+                    ->map(fn ($d) => $d->cargo?->etiqueta)
+                    ->filter()->unique()->implode(' | ');
+
+                fputcsv($handle, [
+                    $pago->folio_recibo,
+                    $pago->fecha_pago->format('d/m/Y'),
+                    $alumnos ?: '—',
+                    $pago->cajero?->nombre ?? '—',
+                    ucfirst($pago->forma_pago),
+                    $pago->referencia ?? '',
+                    number_format($pago->monto_total, 2, '.', ''),
+                    ucfirst($pago->estado),
+                    $conceptos ?: '—',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     // ── Helper ───────────────────────────────────────────
 
     private function generarFolioRecibo(): string
