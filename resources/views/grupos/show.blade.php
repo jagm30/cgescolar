@@ -223,7 +223,7 @@
                         </tr>
                         <tr>
                             <th>Docente</th>
-                            <td>{{ $grupo->docente ?? 'No asignado' }}</td>
+                            <td>{{ $grupo->docente ? $grupo->docente->nombre_completo : 'Sin asignar' }}</td>
                         </tr>
                         <tr>
                             <th>Ciclo Escolar</th>

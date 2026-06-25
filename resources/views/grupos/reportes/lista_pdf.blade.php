@@ -220,10 +220,12 @@
             <td style="width:22%;">
                 <span class="info-lbl">Grado y Grupo</span>
                 <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
+                <img src="{{ public_path('storage/' . $grupo->icono) }}" alt="Icono del grupo" style="width:28px;height:28px;vertical-align:middle;margin-left:4px;border-radius:50%;border:1px solid #ccc;">
             </td>
             <td style="width:30%;">
                 <span class="info-lbl">Docente</span>
-                <span class="info-val">{{ $grupo->docente ?? 'Sin docente asignado' }}</span>
+                <span class="info-val">{{ $grupo->docente ? $grupo->docente->nombre_completo : 'Sin asignar' }}</span>
+
             </td>
             <td style="width:14%;">
                 <span class="info-lbl">Ciclo escolar</span>
