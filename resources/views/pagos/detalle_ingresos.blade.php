@@ -243,11 +243,26 @@
 @endif
 
 {{-- ══ HERO STATS ══ --}}
+@php
+    $totalDescuentosHero = $resumen['total_descuento_beca'] + $resumen['total_descuento_pp'] + $resumen['total_descuento_otros'];
+@endphp
 <div class="di-hero no-print">
     <div class="di-stat">
         <div class="di-stat-num">${{ number_format($resumen['total_cobrado'], 2) }}</div>
-        <div class="di-stat-lbl">Total ingresado</div>
+        <div class="di-stat-lbl">Total cobrado</div>
     </div>
+    @if($totalDescuentosHero > 0)
+    <div class="di-stat">
+        <div class="di-stat-num" style="color:#ffd966;">-${{ number_format($totalDescuentosHero, 2) }}</div>
+        <div class="di-stat-lbl">Descuentos aplicados</div>
+    </div>
+    @endif
+    @if($resumen['total_recargo'] > 0)
+    <div class="di-stat">
+        <div class="di-stat-num" style="color:#ff8f8f;">+${{ number_format($resumen['total_recargo'], 2) }}</div>
+        <div class="di-stat-lbl">Recargos</div>
+    </div>
+    @endif
     <div class="di-stat">
         <div class="di-stat-num">{{ $resumen['total_pagos'] }}</div>
         <div class="di-stat-lbl">Recibos vigentes</div>
@@ -292,9 +307,14 @@
                     <th>Concepto</th>
                     <th>Tipo</th>
                     <th>Período del cargo</th>
-                    <th style="text-align:center;">Cargos cobrados</th>
-                    <th style="text-align:right;">Total ingresado</th>
-                    <th style="text-align:right;">% del total</th>
+                    <th style="text-align:center;">Cant.</th>
+                    <th style="text-align:right;">Cargo cubierto</th>
+                    <th style="text-align:right;color:#2c6fad;">(-) Dto. beca</th>
+                    <th style="text-align:right;color:#2c6fad;">(-) Dto. PP</th>
+                    <th style="text-align:right;color:#6b7a8d;">(-) Condonación</th>
+                    <th style="text-align:right;color:#b45309;">(+) Recargo</th>
+                    <th style="text-align:right;">Total cobrado</th>
+                    <th style="text-align:right;">%</th>
                 </tr>
             </thead>
             <tbody>
@@ -337,15 +357,46 @@
                         {{ $fila['cantidad'] }}
                     </span>
                 </td>
+                <td style="text-align:right;color:#4a5568;font-size:13px;">
+                    ${{ number_format($fila['total_cargo'], 2) }}
+                </td>
+                <td style="text-align:right;font-size:13px;color:{{ $fila['descuento_beca'] > 0 ? '#2c6fad' : '#c8d4e0' }};">
+                    @if($fila['descuento_beca'] > 0)
+                        -${{ number_format($fila['descuento_beca'], 2) }}
+                    @else
+                        —
+                    @endif
+                </td>
+                <td style="text-align:right;font-size:13px;color:{{ $fila['descuento_pp'] > 0 ? '#2c6fad' : '#c8d4e0' }};">
+                    @if($fila['descuento_pp'] > 0)
+                        -${{ number_format($fila['descuento_pp'], 2) }}
+                    @else
+                        —
+                    @endif
+                </td>
+                <td style="text-align:right;font-size:13px;color:{{ $fila['descuento_otros'] > 0 ? '#6b7a8d' : '#c8d4e0' }};">
+                    @if($fila['descuento_otros'] > 0)
+                        -${{ number_format($fila['descuento_otros'], 2) }}
+                    @else
+                        —
+                    @endif
+                </td>
+                <td style="text-align:right;font-size:13px;color:{{ $fila['recargo'] > 0 ? '#b45309' : '#c8d4e0' }};">
+                    @if($fila['recargo'] > 0)
+                        +${{ number_format($fila['recargo'], 2) }}
+                    @else
+                        —
+                    @endif
+                </td>
                 <td style="text-align:right;font-weight:700;color:#1a2634;font-size:14px;">
                     ${{ number_format($fila['total'], 2) }}
                 </td>
                 <td style="text-align:right;">
-                    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
-                        <div style="flex:1;max-width:80px;height:6px;background:#f0f3f7;border-radius:3px;overflow:hidden;">
+                    <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">
+                        <div style="flex:1;max-width:60px;height:6px;background:#f0f3f7;border-radius:3px;overflow:hidden;">
                             <div style="width:{{ $pct }}%;height:100%;background:#27ae60;border-radius:3px;"></div>
                         </div>
-                        <span style="font-size:12px;color:#6b7a8d;min-width:36px;text-align:right;">{{ $pct }}%</span>
+                        <span style="font-size:12px;color:#6b7a8d;min-width:32px;text-align:right;">{{ $pct }}%</span>
                     </div>
                 </td>
             </tr>
@@ -356,6 +407,33 @@
                     <td colspan="3" style="font-weight:700;color:#1a2634;">Total</td>
                     <td style="text-align:center;font-weight:700;color:#1a2634;">
                         {{ $porConcepto->sum('cantidad') }}
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:#4a5568;">
+                        ${{ number_format($resumen['total_cargo'], 2) }}
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:{{ $resumen['total_descuento_beca'] > 0 ? '#2c6fad' : '#c8d4e0' }};">
+                        @if($resumen['total_descuento_beca'] > 0)
+                            -${{ number_format($resumen['total_descuento_beca'], 2) }}
+                        @else —
+                        @endif
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:{{ $resumen['total_descuento_pp'] > 0 ? '#2c6fad' : '#c8d4e0' }};">
+                        @if($resumen['total_descuento_pp'] > 0)
+                            -${{ number_format($resumen['total_descuento_pp'], 2) }}
+                        @else —
+                        @endif
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:{{ $resumen['total_descuento_otros'] > 0 ? '#6b7a8d' : '#c8d4e0' }};">
+                        @if($resumen['total_descuento_otros'] > 0)
+                            -${{ number_format($resumen['total_descuento_otros'], 2) }}
+                        @else —
+                        @endif
+                    </td>
+                    <td style="text-align:right;font-weight:700;color:{{ $resumen['total_recargo'] > 0 ? '#b45309' : '#c8d4e0' }};">
+                        @if($resumen['total_recargo'] > 0)
+                            +${{ number_format($resumen['total_recargo'], 2) }}
+                        @else —
+                        @endif
                     </td>
                     <td style="text-align:right;font-size:15px;font-weight:800;color:#1a2634;">
                         ${{ number_format($resumen['total_cobrado'], 2) }}
@@ -401,6 +479,12 @@
                     ->map(fn($d) => $d->cargo?->inscripcion?->alumno)
                     ->filter()->unique('id')->values();
                 $fi = $formaConfig[$pago->forma_pago] ?? ['icon'=>'fa-question','bg'=>'#f0f3f7','color'=>'#6b7a8d','label'=>ucfirst($pago->forma_pago)];
+                $pagoDetalles    = $detalles->where('pago_id', $pago->id);
+                $pagoDtoBeca     = $pagoDetalles->sum('descuento_beca');
+                $pagoDtoPP       = $pagoDetalles->sum('descuento_pronto_pago');
+                $pagoDtoOtros    = $pagoDetalles->sum('descuento_otros');
+                $pagoRecargo     = $pagoDetalles->sum('recargo_aplicado');
+                $pagoTieneAjuste = ($pagoDtoBeca + $pagoDtoPP + $pagoDtoOtros + $pagoRecargo) > 0;
             @endphp
             <tr>
                 <td style="white-space:nowrap;font-size:12px;color:#4a5568;">
@@ -446,8 +530,34 @@
                         <span style="font-size:12px;color:#4a5568;">{{ $fi['label'] }}</span>
                     </span>
                 </td>
-                <td style="text-align:right;font-weight:700;color:#1a2634;font-size:13px;">
-                    ${{ number_format($pago->monto_total, 2) }}
+                <td style="text-align:right;">
+                    <div style="font-weight:700;color:#1a2634;font-size:13px;">
+                        ${{ number_format($pago->monto_total, 2) }}
+                    </div>
+                    @if($pagoTieneAjuste)
+                    <div style="margin-top:4px;font-size:10px;line-height:1.6;color:#8a9ab0;">
+                        @if($pagoDtoBeca > 0)
+                        <div style="color:#2c6fad;">
+                            <i class="fa fa-graduation-cap"></i> Beca: -${{ number_format($pagoDtoBeca, 2) }}
+                        </div>
+                        @endif
+                        @if($pagoDtoPP > 0)
+                        <div style="color:#2c6fad;">
+                            <i class="fa fa-clock-o"></i> Pronto pago: -${{ number_format($pagoDtoPP, 2) }}
+                        </div>
+                        @endif
+                        @if($pagoDtoOtros > 0)
+                        <div style="color:#6b7a8d;">
+                            <i class="fa fa-times-circle"></i> Condonación: -${{ number_format($pagoDtoOtros, 2) }}
+                        </div>
+                        @endif
+                        @if($pagoRecargo > 0)
+                        <div style="color:#b45309;">
+                            <i class="fa fa-exclamation-circle"></i> Recargo: +${{ number_format($pagoRecargo, 2) }}
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </td>
                 <td class="no-print" style="text-align:center;">
                     <a href="{{ route('pagos.show', $pago->id) }}"

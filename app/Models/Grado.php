@@ -13,7 +13,6 @@ class Grado extends Model
 
     protected $fillable = [
         'nivel_id',
-        'nombre',
         'numero',
     ];
 
