@@ -329,16 +329,17 @@
                     $saldoPendiente = max(0, (float) $cargo->monto_original - $montoCubierto);
                     $hoy            = now();
                     $vencido        = $hoy->isAfter($cargo->fecha_vencimiento);
-                    $descuentoCalc  = (float) ($cargo->descuento_calc      ?? 0);
-                    $recargoCalc    = (float) ($cargo->recargo_calc        ?? 0);
-                    $becaDesc       = (float) ($cargo->beca_descuento_calc ?? 0);
-                    $becaPct        = $cargo->beca_porcentaje ?? null;
-                    $mesesRetraso   = (int)   ($cargo->meses_retraso       ?? 0);
-                    $estadoReal     = $cargo->estado_real;
-                    $esPendienteReal = !in_array($estadoReal, ['pagado', 'condonado']);
-                    $totalDescuentos = $becaDesc + $descuentoCalc;
-                    $montoAPagar    = $esPendienteReal ? max(0, $cargo->monto_a_pagar_hoy) : 0;
-                    $tieneAjuste    = ($totalDescuentos > 0 || $recargoCalc > 0) && $esPendienteReal;
+                    $descuentoCalc      = (float) ($cargo->descuento_calc             ?? 0);
+                    $recargoCalc        = (float) ($cargo->recargo_calc               ?? 0);
+                    $becaDesc           = (float) ($cargo->beca_descuento_calc        ?? 0);
+                    $condonacionDesc    = (float) ($cargo->descuento_condonacion_calc ?? 0);
+                    $becaPct            = $cargo->beca_porcentaje ?? null;
+                    $mesesRetraso       = (int)   ($cargo->meses_retraso              ?? 0);
+                    $estadoReal         = $cargo->estado_real;
+                    $esPendienteReal    = !in_array($estadoReal, ['pagado', 'condonado']);
+                    $totalDescuentos    = $becaDesc + $descuentoCalc + $condonacionDesc;
+                    $montoAPagar        = $esPendienteReal ? max(0, $cargo->monto_a_pagar_hoy) : 0;
+                    $tieneAjuste        = ($totalDescuentos > 0 || $recargoCalc > 0) && $esPendienteReal;
                     $estadoClass = match($estadoReal) {
                         'pagado'    => 'ec-pagado',
                         'parcial', 'parcial_vencido' => 'ec-parcial',
@@ -361,6 +362,25 @@
                         $becaAplicada = $cargo->asignacion?->plan_id
                             ? $becas->firstWhere('plan_id', $cargo->asignacion->plan_id)
                             : $becas->firstWhere('concepto_id', $cargo->concepto_id);
+                    }
+                    // Descuentos reales aplicados en el momento del pago (solo para cargos ya pagados)
+                    $becaDescPagado  = 0.0;
+                    $otrosDescPagado = 0.0;
+                    $condonadoMonto  = 0.0;
+                    $condonadoMotivo = null;
+                    if (!$esPendienteReal) {
+                        foreach ($cargo->detallesPagosVigentes as $_det) {
+                            $becaDescPagado  += (float) $_det->descuento_beca;
+                            $otrosDescPagado += (float) $_det->descuento_pronto_pago + (float) $_det->descuento_otros;
+                        }
+                        if ($estadoReal === 'condonado') {
+                            $_cond = $cargo->condonacionDetalles
+                                ->first(fn ($_d) => $_d->condonacion?->estado === 'activa');
+                            if ($_cond) {
+                                $condonadoMonto  = (float) $_cond->monto_aplicado;
+                                $condonadoMotivo = $_cond->condonacion?->motivo;
+                            }
+                        }
                     }
                 @endphp
 
@@ -403,7 +423,7 @@
                         ${{ number_format($cargo->monto_original, 2) }}
                     </td>
 
-                    {{-- Descuentos (beca + pronto pago) --}}
+                    {{-- Descuentos (beca + pronto pago para pendientes; reales para pagados) --}}
                     <td style="text-align:right;">
                         @if($esPendienteReal && $totalDescuentos > 0)
                             @if($becaDesc > 0)
@@ -421,6 +441,50 @@
                                     <span style="color:#00875a;font-weight:700;">-${{ number_format($descuentoCalc, 2) }}</span>
                                     <div style="font-size:9px;color:#00875a;margin-top:1px;">
                                         <i class="fa fa-tag"></i> Pronto pago
+                                    </div>
+                                </div>
+                            @endif
+                            @if($condonacionDesc > 0)
+                                @php
+                                    $_condMotivo = $cargo->condonacionDetalles
+                                        ->first(fn($_d) => $_d->condonacion?->estado === 'activa')
+                                        ?->condonacion?->motivo;
+                                @endphp
+                                <div style="{{ ($becaDesc > 0 || $descuentoCalc > 0) ? 'margin-top:5px;padding-top:4px;border-top:1px dashed #e8ecf0;' : '' }}">
+                                    <span style="color:#6b7a8d;font-weight:700;">-${{ number_format($condonacionDesc, 2) }}</span>
+                                    <div style="font-size:9px;color:#6b7a8d;margin-top:1px;">
+                                        <i class="fa fa-times-circle"></i> Condonación
+                                        @if($_condMotivo)
+                                            <span title="{{ $_condMotivo }}"> · {{ Str::limit($_condMotivo, 18) }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+                        @elseif(!$esPendienteReal && ($becaDescPagado > 0 || $otrosDescPagado > 0 || $condonadoMonto > 0))
+                            @if($becaDescPagado > 0)
+                                <div>
+                                    <span style="color:#e67e22;font-weight:700;">-${{ number_format($becaDescPagado, 2) }}</span>
+                                    <div style="font-size:9px;color:#e67e22;margin-top:1px;">
+                                        <i class="fa fa-star"></i> Beca
+                                    </div>
+                                </div>
+                            @endif
+                            @if($otrosDescPagado > 0)
+                                <div style="{{ $becaDescPagado > 0 ? 'margin-top:5px;padding-top:4px;border-top:1px dashed #e8ecf0;' : '' }}">
+                                    <span style="color:#00875a;font-weight:700;">-${{ number_format($otrosDescPagado, 2) }}</span>
+                                    <div style="font-size:9px;color:#00875a;margin-top:1px;">
+                                        <i class="fa fa-tag"></i> Pronto pago
+                                    </div>
+                                </div>
+                            @endif
+                            @if($condonadoMonto > 0)
+                                <div style="{{ ($becaDescPagado > 0 || $otrosDescPagado > 0) ? 'margin-top:5px;padding-top:4px;border-top:1px dashed #e8ecf0;' : '' }}">
+                                    <span style="color:#6b7a8d;font-weight:700;">-${{ number_format($condonadoMonto, 2) }}</span>
+                                    <div style="font-size:9px;color:#6b7a8d;margin-top:1px;">
+                                        <i class="fa fa-times-circle"></i> Condonación
+                                        @if($condonadoMotivo)
+                                            <span title="{{ $condonadoMotivo }}">· {{ Str::limit($condonadoMotivo, 20) }}</span>
+                                        @endif
                                     </div>
                                 </div>
                             @endif
@@ -501,7 +565,7 @@
                                         <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Fecha</th>
                                         <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Forma pago</th>
                                         <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Referencia</th>
-                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Dto. beca</th>
+                                        <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Descuentos</th>
                                         <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Recargo</th>
                                         <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:right;">Abonado</th>
                                         <th style="padding:4px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:center;">Estado</th>
@@ -526,9 +590,26 @@
                                     <td style="padding:6px 8px;color:#4a5568;">{{ ucfirst($pago->forma_pago ?? '') }}</td>
                                     <td style="padding:6px 8px;color:#8a9ab0;">{{ $pago->referencia ?? '—' }}</td>
                                     <td style="padding:6px 8px;text-align:right;">
-                                        @if($detalle->descuento_beca > 0)
-                                            <span style="color:#00875a;font-weight:600;">-${{ number_format($detalle->descuento_beca, 2) }}</span>
-                                        @else <span style="color:#dde4eb;">—</span> @endif
+                                        @php
+                                            $_dtoBeca   = (float) $detalle->descuento_beca;
+                                            $_dtoOtros  = (float) $detalle->descuento_pronto_pago + (float) $detalle->descuento_otros;
+                                            $_dtoTotal  = $_dtoBeca + $_dtoOtros;
+                                        @endphp
+                                        @if($_dtoTotal > 0)
+                                            <span style="color:#e67e22;font-weight:600;">-${{ number_format($_dtoTotal, 2) }}</span>
+                                            @if($_dtoBeca > 0 && $_dtoOtros > 0)
+                                                <div style="font-size:9px;color:#8a9ab0;margin-top:1px;">
+                                                    <i class="fa fa-star"></i> ${{ number_format($_dtoBeca,2) }} beca
+                                                    · <i class="fa fa-tag"></i> ${{ number_format($_dtoOtros,2) }} pp
+                                                </div>
+                                            @elseif($_dtoBeca > 0)
+                                                <div style="font-size:9px;color:#e67e22;margin-top:1px;"><i class="fa fa-star"></i> Beca</div>
+                                            @else
+                                                <div style="font-size:9px;color:#00875a;margin-top:1px;"><i class="fa fa-tag"></i> Pronto pago</div>
+                                            @endif
+                                        @else
+                                            <span style="color:#dde4eb;">—</span>
+                                        @endif
                                     </td>
                                     <td style="padding:6px 8px;text-align:right;">
                                         @if($detalle->recargo_aplicado > 0)
@@ -650,11 +731,23 @@
         </div>
         @endif
 
-        {{-- Condonaciones --}}
+        {{-- Descuentos por condonación sobre cargos pendientes --}}
+        @if($resumen['total_condonaciones'] > 0)
+        <div class="balance-row" style="background:#f5f5f5;">
+            <span class="balance-row-label" style="color:#6b7a8d;font-size:11px;">
+                <i class="fa fa-times-circle"></i> Condonaciones
+            </span>
+            <span style="color:#6b7a8d;font-weight:700;font-size:12px;">
+                -${{ number_format($resumen['total_condonaciones'], 2) }}
+            </span>
+        </div>
+        @endif
+
+        {{-- Cargos con estado condonado (cargo completo dado de baja) --}}
         @if($resumen['total_condonado'] > 0)
         <div class="balance-row">
             <span class="balance-row-label" style="color:#6b7a8d;font-size:11px;">
-                <i class="fa fa-times-circle"></i> Condonado
+                <i class="fa fa-ban"></i> Cargo condonado
             </span>
             <span style="color:#6b7a8d;font-weight:700;font-size:12px;">
                 -${{ number_format($resumen['total_condonado'], 2) }}
@@ -663,7 +756,7 @@
         @endif
 
         {{-- Separador "A pagar hoy" --}}
-        @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0 || $resumen['total_becas'] > 0)
+        @if($resumen['total_recargos'] > 0 || $resumen['total_descuentos'] > 0 || $resumen['total_becas'] > 0 || $resumen['total_condonaciones'] > 0)
         <div class="balance-row" style="background:#fff8e1;border-top:2px solid #f39c12;">
             <span class="balance-row-label" style="color:#b45309;font-weight:700;">
                 <i class="fa fa-bolt"></i> Neto a pagar hoy
