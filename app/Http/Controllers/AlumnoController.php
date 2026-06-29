@@ -371,9 +371,11 @@ class AlumnoController extends Controller
             'detallesPagosVigentes.pago:id,folio_recibo,fecha_pago,forma_pago,referencia,estado',
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
+            'condonacionDetalles.condonacion:id,motivo,estado',
+            'descuentos',
         ])
             ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
-            ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
+            ->withSum('detallesPagosVigentes as total_abonado', 'monto_final')
             ->when($request->filled('ciclo_id'), fn ($q) => $q->whereHas(
                 'inscripcion', fn ($sq) => $sq->where('ciclo_id', $request->ciclo_id)
             ))
@@ -731,16 +733,17 @@ class AlumnoController extends Controller
     ): array {
         $hoyFecha = today();
         $totales = [
-            'total_cargado' => 0.0,
-            'total_pagado' => 0.0,
-            'total_condonado' => 0.0,
-            'total_vencido' => 0.0,
-            'total_recargos' => 0.0,
-            'total_descuentos' => 0.0,
-            'total_becas' => 0.0,
-            'total_cargos' => $cargos->count(),
-            'cargos_pendientes' => 0,
-            'cargos_vencidos' => 0,
+            'total_cargado'      => 0.0,
+            'total_pagado'       => 0.0,
+            'total_condonado'    => 0.0,
+            'total_vencido'      => 0.0,
+            'total_recargos'     => 0.0,
+            'total_descuentos'   => 0.0,
+            'total_becas'        => 0.0,
+            'total_condonaciones'=> 0.0,
+            'total_cargos'       => $cargos->count(),
+            'cargos_pendientes'  => 0,
+            'cargos_vencidos'    => 0,
         ];
 
         foreach ($cargos as $cargo) {
@@ -757,13 +760,19 @@ class AlumnoController extends Controller
                 ? $this->calcularPoliticaCargo($cargo, $saldoBase, $vencido, $hoyFecha)
                 : [0.0, 0.0, 0];
 
+            // Descuento por condonación (misma lógica que CobrosController::enriquecerCargo)
+            $condonacionDesc = $esPendiente
+                ? (float) $cargo->descuentos->sum('monto_aplicado')
+                : 0.0;
+
             // Anotar en el modelo para la vista
-            $cargo->beca_descuento_calc = $becaDescuento;
-            $cargo->beca_porcentaje = $becaPorcentaje;
-            $cargo->descuento_calc = $descuento;
-            $cargo->recargo_calc = $recargo;
-            $cargo->meses_retraso = $mesesRetraso;
-            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento + $recargo);
+            $cargo->beca_descuento_calc        = $becaDescuento;
+            $cargo->beca_porcentaje            = $becaPorcentaje;
+            $cargo->descuento_calc             = $descuento;
+            $cargo->recargo_calc               = $recargo;
+            $cargo->meses_retraso              = $mesesRetraso;
+            $cargo->descuento_condonacion_calc = $condonacionDesc;
+            $cargo->monto_a_pagar_hoy          = max(0, $saldoBase - $becaDescuento - $descuento - $condonacionDesc + $recargo);
 
             $totales['total_cargado'] += (float) $cargo->monto_original;
             $totales['total_pagado'] += $abonado;
@@ -773,10 +782,11 @@ class AlumnoController extends Controller
             }
 
             if ($esPendiente) {
-                $totales['total_becas'] += $becaDescuento;
+                $totales['total_becas']        += $becaDescuento;
+                $totales['total_condonaciones'] += $condonacionDesc;
                 if ($vencido) {
-                    $totales['total_vencido'] += $cargo->monto_a_pagar_hoy;
-                    $totales['total_recargos'] += $recargo;
+                    $totales['total_vencido']   += $cargo->monto_a_pagar_hoy;
+                    $totales['total_recargos']  += $recargo;
                     $totales['cargos_vencidos']++;
                 } else {
                     $totales['total_descuentos'] += $descuento;
@@ -790,7 +800,7 @@ class AlumnoController extends Controller
 
         return array_merge($totales, [
             'saldo_pendiente' => $saldoPendienteBase,
-            'total_a_pagar_hoy' => max(0, $saldoPendienteBase - $totales['total_becas'] + $totales['total_recargos'] - $totales['total_descuentos']),
+            'total_a_pagar_hoy' => max(0, $saldoPendienteBase - $totales['total_becas'] - $totales['total_condonaciones'] + $totales['total_recargos'] - $totales['total_descuentos']),
         ]);
     }
 

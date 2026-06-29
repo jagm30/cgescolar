@@ -165,6 +165,13 @@
         </a>
         @endif
 
+        <a href="{{ route('pagos.exportar', request()->only(['folio','fecha_desde','fecha_hasta','forma_pago','estado'])) }}"
+           class="btn btn-success btn-sm btn-flat"
+           style="border-radius:20px;padding:4px 14px;height:32px;"
+           title="Exportar resultados filtrados a Excel">
+            <i class="fa fa-file-excel-o"></i> Excel
+        </a>
+
         <span style="background:#e8f5ee;color:#27a05a;font-size:12px;font-weight:600;
                      padding:3px 12px;border-radius:12px;white-space:nowrap;margin-left:auto;">
             <i class="fa fa-history"></i> {{ $pagos->total() }} resultado(s)
@@ -178,6 +185,7 @@
                     <th>Folio</th>
                     <th>Fecha</th>
                     <th>Alumno(s)</th>
+                    <th>Conceptos</th>
                     <th>Cajero</th>
                     <th>Forma de pago</th>
                     <th style="text-align:right;">Monto</th>
@@ -227,6 +235,26 @@
                         </div>
                         @endif
                     @endif
+                </td>
+                <td>
+                    @php
+                        $cargosPago = $pago->detalles
+                            ->map(fn ($d) => $d->cargo)
+                            ->filter()
+                            ->unique('id')
+                            ->values();
+                    @endphp
+                    @forelse($cargosPago as $cargo)
+                        <div style="display:flex;align-items:baseline;gap:5px;margin-bottom:2px;">
+                            <span style="background:#eef2f7;color:#3d566e;font-size:11px;
+                                         font-weight:600;padding:2px 8px;border-radius:8px;
+                                         white-space:nowrap;">
+                                {{ $cargo->etiqueta }}
+                            </span>
+                        </div>
+                    @empty
+                        <span style="color:#b0bec5;">—</span>
+                    @endforelse
                 </td>
                 <td style="color:#4a5568;">
                     <div>{{ $pago->cajero?->nombre ?? '—' }}</div>
@@ -330,7 +358,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" style="padding:56px 20px;text-align:center;">
+                <td colspan="9" style="padding:56px 20px;text-align:center;">
                     <i class="fa fa-inbox" style="font-size:42px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
                     <p style="color:#b0bec5;margin:0;font-weight:600;">Sin pagos registrados</p>
                     @if(request()->hasAny(['folio','fecha_desde','fecha_hasta','forma_pago','estado']))

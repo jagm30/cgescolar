@@ -45,11 +45,14 @@ class CondonacionController extends Controller
     /** GET /condonaciones/crear */
     public function create()
     {
-        $cicloActual = CicloEscolar::activo()->first()
-            ?? CicloEscolar::orderByDesc('fecha_inicio')->first();
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id')
+            ?? CicloEscolar::orderByDesc('fecha_inicio')->value('id');
+
+        $cicloActual = $cicloId ? CicloEscolar::find($cicloId) : null;
 
         $alumnos = Alumno::query()
-            ->whereHas('inscripciones', fn ($q) => $q->where('ciclo_id', $cicloActual?->id)->where('activo', true))
+            ->whereHas('inscripciones', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
             ->orderBy('ap_paterno')->orderBy('nombre')
             ->get();
 
