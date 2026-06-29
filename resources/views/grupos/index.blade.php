@@ -6,6 +6,7 @@
 @endsection
 
 @push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         /* ══ TOOLBAR ══ */
         .grp-toolbar {
@@ -207,16 +208,19 @@
             border-color: #e0e7ef;
         }
 
-/* ══ CAJA DE SUBIDA DE ICONO (FULL WIDTH) ══ */
+        /* ══ CAJA DE SUBIDA DE ICONO (FULL WIDTH) ══ */
         .upload-preview-box {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            width: 100%; /* <--- EL TRUCO: Ancho completo igual que los otros inputs */
-            height: 130px; /* <--- Altura ideal para darle respiro al diseño */
+            width: 100%;
+            /* <--- EL TRUCO: Ancho completo igual que los otros inputs */
+            height: 130px;
+            /* <--- Altura ideal para darle respiro al diseño */
             border: 2px dashed #d0dbe6;
-            border-radius: 6px; /* Para que coincida con los bordes de tus inputs */
+            border-radius: 6px;
+            /* Para que coincida con los bordes de tus inputs */
             background-color: #f8fafc;
             cursor: pointer;
             position: relative;
@@ -249,13 +253,38 @@
         /* ── EL ICONO CIRCULAR CENTRADO ── */
         .upload-preview-box img {
             /* Quitamos el position: absolute para que el flexbox lo centre naturalmente */
-            width: 80px;      /* Tamaño fijo para el círculo */
+            width: 80px;
+            /* Tamaño fijo para el círculo */
             height: 80px;
             object-fit: cover;
-            border-radius: 50%; /* Lo hacemos un círculo perfecto */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Sombra elegante */
-            border: 3px solid white; /* Borde blanco estilo perfil */
+            border-radius: 50%;
+            /* Lo hacemos un círculo perfecto */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            /* Sombra elegante */
+            border: 3px solid white;
+            /* Borde blanco estilo perfil */
             z-index: 10;
+        }
+
+        /* ══ CORRECCIÓN VISUAL SELECT2 (BOOTSTRAP) ══ */
+        .select2-container .select2-selection--single {
+            height: 34px !important; /* Obliga a tener la altura de Bootstrap */
+            border: 1px solid #d2d6de !important;
+            border-radius: 4px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 32px !important; /* Centra el texto verticalmente */
+            padding-left: 12px !important;
+            color: #555 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 32px !important; /* Centra la flecha desplegable */
+        }
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            margin-right: 15px !important; /* Despega la 'x' para que no choque con la flecha */
+            line-height: 32px !important;
+            color: #dd4b39 !important; /* Le da un tono rojo elegante a la 'x' */
+            font-size: 16px !important;
         }
 
 
@@ -556,10 +585,14 @@
 
             <div class="form-group">
                 <label>Docente Asignado <small class="text-muted">(Opcional)</small></label>
-                <div class="input-group">
-                    <span class="input-group-addon"><i class="fa fa-user"></i></span>
-                    <input type="text" name="docente" class="form-control" placeholder="Nombre completo del maestro">
-                </div>
+                <select name="docente_id" class="form-control select2" style="width: 100%;">
+                    <option value="">— Seleccione un docente —</option>
+                    @foreach ($docentes as $d)
+                        <option value="{{ $d->id }}">
+                            {{ $d->nombre }} {{ $d->ap_paterno }} {{ $d->ap_materno }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="form-group">
@@ -577,7 +610,8 @@
                         title="Haz clic para seleccionar una imagen">
                         <i class="fa fa-camera fa-2x text-muted icon-placeholder"></i>
                         <span class="text-placeholder">Subir icono</span>
-                        <span class="text-muted" style="font-size:11px;">(PNG o JPG, máx. 2MB)</span>
+                        <span class="text-muted" style="font-size:11px;">Tamaño recomendado: 512px × 512px, 1024px x
+                            1024px o equivalentes (PNG o JPG, máx. 2MB)</span>
                         <img id="preview-img-nuevo" src="" alt="Previsualización" style="display: none;">
                     </label>
                 </div>
@@ -591,6 +625,32 @@
             </div>
         </form>
     </x-modal>
+
+    {{-- ══ MODAL PARA RECORTAR IMAGEN ══ --}}
+    <div class="modal fade" id="modalCropper" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Ajustar Icono</h4>
+                </div>
+                <div class="modal-body" style="padding: 0;">
+                    <div
+                        style="height: 60vh; width: 100%; background-color: #333; display: flex; align-items: center; justify-content: center;">
+                        <img id="imageToCrop" src="" style="max-width: 100%; max-height: 100%; display: block;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnAplicarRecorte">
+                        <i class="fa fa-crop"></i> Recortar y Aplicar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {{-- ══ MODAL MIGRAR GRUPOS ══ --}}
     <div class="modal fade" id="modalMigrarGrupos" tabindex="-1" role="dialog">
@@ -635,7 +695,8 @@
     {{-- ══ MODALES EDITAR GRUPO ══ --}}
     @foreach ($grupos as $g)
         <x-modal id="modalEditarGrupo{{ $g['id'] }}" title="Editar Grupo" size="modal-sm">
-            <form action="{{ route('grupos.update', $g['id']) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('grupos.update', $g['id']) }}" method="POST" class="form-editar-grupo"
+                enctype="multipart/form-data">
                 @csrf @method('PUT')
 
                 <div class="form-group">
@@ -646,6 +707,18 @@
                 <div class="form-group">
                     <label>Cupo Máximo</label>
                     <input type="number" name="cupo_maximo" class="form-control" value="{{ $g['cupo_maximo'] }}">
+                </div>
+
+                <div class="form-group">
+                    <label>Docente Asignado <small class="text-muted">(Opcional)</small></label>
+                    <select name="docente_id" class="form-control select2" style="width: 100%;">
+                        <option value="">— Sin asignar —</option>
+                        @foreach ($docentes as $d)
+                            <option value="{{ $d->id }}" {{ (isset($g['docente_id']) && $g['docente_id'] == $d->id) ? 'selected' : '' }}>
+                                {{ $d->nombre }} {{ $d->ap_paterno }} {{ $d->ap_materno }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -673,8 +746,11 @@
                         </label>
 
                     </div>
-                    <small class="text-muted">Haz clic en el recuadro para cambiar la foto. Déjalo igual para conservar la
-                        actual. JPG o PNG, máx. 2MB</small>
+                    <small class="text-muted"
+                        style="display: block; margin-top: 8px; line-height: 1.4; text-align: justify;">
+                        Haz clic en el recuadro para cambiar la foto. Déjalo igual para conservar la actual. Tamaño
+                        recomendado: 512px × 512px, 1024px x 1024px o equivalentes (PNG o JPG, máx. 2MB)
+                    </small>
                 </div>
 
                 <div class="text-right">
@@ -741,6 +817,9 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap.min.css">
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 
     <script>
         $(document).ready(function() {
@@ -826,14 +905,20 @@
                 });
             });
 
-// ── 4. CREACIÓN AJAX (SOPORTE PARA ARCHIVOS) ──
+            // ── 4. CREACIÓN AJAX (SOPORTE PARA ARCHIVOS) ──
             $('#form-nuevo-grupo').on('submit', function(e) {
                 e.preventDefault();
                 let form = $(this);
-                let btn  = $('#btn-guardar-grupo');
+                let btn = $('#btn-guardar-grupo');
 
                 // LA CORRECCIÓN MÁGICA: Usar FormData en lugar de JSON
                 let formData = new FormData(this);
+
+                // LA MAGIA: Si el usuario recortó una foto, metemos ESA foto al formulario
+                // y sobrescribimos el archivo original antes de viajar a Laravel
+                if (croppedFileBlob) {
+                    formData.set('icono', croppedFileBlob, 'icono_recortado.png');
+                }
 
                 $.ajax({
                     url: form.attr('action'),
@@ -846,11 +931,15 @@
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     beforeSend: function() {
-                        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
+                        btn.prop('disabled', true).html(
+                            '<i class="fa fa-spinner fa-spin"></i> Guardando...');
                     },
-                    success: function() { location.reload(); },
+                    success: function() {
+                        location.reload();
+                    },
                     error: function(xhr) {
-                        btn.prop('disabled', false).html('<i class="fa fa-save"></i> Guardar grupo');
+                        btn.prop('disabled', false).html(
+                            '<i class="fa fa-save"></i> Guardar grupo');
                         mostrarToastError(xhr);
                     }
                 });
@@ -899,6 +988,16 @@
                     <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                     <h4><i class="icon fa fa-ban"></i> Error</h4>${msg}</div>`);
                 $('#toast-dinamico-js').fadeIn('fast').delay(5000).fadeOut('slow');
+            }
+
+            // ── TOAST DE ÉXITO ──
+            function mostrarToastExito(mensaje) {
+                $('#toast-exito-js').remove();
+                $('body').append(`<div id="toast-exito-js" class="alert alert-success alert-dismissible"
+                    style="position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;box-shadow:0 4px 8px rgba(0,0,0,.2);border-radius:6px;">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h4><i class="icon fa fa-check"></i> ¡Hecho!</h4>${mensaje}</div>`);
+                $('#toast-exito-js').fadeIn('fast');
             }
 
             // ── 7. FILAS CLICKEABLES ──
@@ -959,6 +1058,181 @@
                     }
                     reader.readAsDataURL(file);
                 }
+            });
+
+            // ── CROPPER.JS GLOBAL ──
+            let cropper;
+            let croppedFileBlob = null;
+            let accionActual = null; // Guardará 'nuevo' o el ID del grupo que estamos editando
+
+            // 1.5 Cuando el usuario selecciona una imagen EN EDICIÓN...
+            $('.input-icono-edicion').on('change', function(e) {
+                const files = e.target.files;
+                accionActual = $(this).data('id'); // Guardamos el ID del grupo (ej. 5, 12, etc.)
+
+                if (files && files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        $('#imageToCrop').attr('src', event.target.result);
+                        $('#modalCropper').modal('show');
+                    };
+                    reader.readAsDataURL(files[0]);
+                }
+            });
+
+            // (Asegúrate de que al crear uno nuevo, tu código actual diga: accionActual = 'nuevo';)
+            $('#input-icono-nuevo').on('change', function(e) {
+                const files = e.target.files;
+                accionActual = 'nuevo'; // Le decimos que estamos en el modal de crear
+                if (files && files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        $('#imageToCrop').attr('src', event.target
+                            .result); // Ponemos la foto en el modal
+                        $('#modalCropper').modal('show'); // Abrimos el modal de recorte
+                    };
+                    reader.readAsDataURL(files[0]);
+                }
+            });
+
+
+            // 2. Al abrirse el modal, encendemos Cropper.js y ARREGLAMOS LAS CAPAS
+            $('#modalCropper').on('show.bs.modal', function() {
+                $(this).css('z-index', 1060); // Empujamos el modal de recorte hacia adelante
+            });
+
+            $('#modalCropper').on('shown.bs.modal', function() {
+                // Empujamos el fondo oscuro de ESTE modal hacia adelante
+                $('.modal-backdrop').last().css('z-index', 1059);
+
+                const image = document.getElementById('imageToCrop');
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 0.9,
+                    background: true,
+                    dragMode: 'move',
+                    zoomable: true,
+                });
+            }).on('hidden.bs.modal', function() {
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                $('#input-icono-nuevo').val('');
+            });
+            // 3. Cuando le dan a "Recortar y Aplicar"
+            $('#btnAplicarRecorte').on('click', function() {
+                const canvas = cropper.getCroppedCanvas({
+                    width: 256,
+                    height: 256
+                });
+
+                canvas.toBlob(function(blob) {
+                    // Magia pura: Creamos un archivo físico virtual con el recorte
+                    const archivoRecortado = new File([blob], 'icono_perfecto.png', {
+                        type: 'image/png'
+                    });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(archivoRecortado);
+
+                    // Verificamos de dónde venimos para saber a quién actualizar
+                    if (accionActual === 'nuevo') {
+                        // Inyectamos el archivo al input de CREAR
+                        document.getElementById('input-icono-nuevo').files = dataTransfer.files;
+                        croppedFileBlob = blob; // Lo mantenemos por si usas el AJAX de crear
+
+                        // Actualizamos la caja visual de crear
+                        $('#preview-img-nuevo').attr('src', URL.createObjectURL(blob)).show();
+                        $('#box-icono-nuevo .icon-placeholder').hide();
+                        $('#box-icono-nuevo .text-placeholder').hide();
+
+                    } else {
+                        // Inyectamos el archivo al input de EDICIÓN específico usando su ID
+                        document.getElementById('input-icono-edicion-' + accionActual).files =
+                            dataTransfer.files;
+
+                        // Actualizamos la caja visual de ese modal de edición en particular
+                        $('#preview-img-edicion-' + accionActual).attr('src', URL.createObjectURL(
+                            blob)).show();
+                        $('#box-icono-edicion-' + accionActual + ' .icon-placeholder').hide();
+                        $('#box-icono-edicion-' + accionActual + ' .text-placeholder').hide();
+                    }
+
+                    $('#modalCropper').modal('hide');
+                }, 'image/png');
+            });
+
+            // ── EDICIÓN AJAX CON SOPORTE PARA CROPPER ──
+            $('.form-editar-grupo').on('submit', function(e) {
+                e.preventDefault();
+                let form = $(this);
+                let btn = form.find('button[type="submit"]');
+
+                // Empaquetamos los datos del formulario (Nombre, cupo, etc)
+                let formData = new FormData(this);
+
+                // LA MAGIA: Si el usuario recortó una foto y estamos editando...
+                if (croppedFileBlob && accionActual !== 'nuevo') {
+                    // Verificamos que este formulario coincida con el grupo que recortamos
+                    if (form.attr('action').includes('/' + accionActual)) {
+                        formData.set('icono', croppedFileBlob, 'icono_recortado.png');
+                    }
+                }
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST', // Laravel recibe POST y el @method('PUT') hace el trabajo interno
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    beforeSend: function() {
+                        btn.prop('disabled', true).html(
+                            '<i class="fa fa-spinner fa-spin"></i> Actualizando...');
+                    },
+                    success: function() {
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        btn.prop('disabled', false).html(
+                            '<i class="fa fa-refresh"></i> Actualizar');
+                        mostrarToastError(xhr);
+                    }
+                });
+            });
+
+            // ── INICIALIZAR SELECT2 CON SOPORTE PARA MODALES ──
+            $('.select2-busqueda').each(function() {
+                $(this).select2({
+                    // Le decimos a Select2 que se ancle al modal más cercano para que no se esconda
+                    dropdownParent: $(this).closest('.modal'),
+                    width: '100%',
+                    placeholder: "— Seleccione un docente —",
+                    allowClear: true,
+                    language: {
+                        noResults: function() {
+                            return "No se encontró ningún docente";
+                        }
+                    }
+                });
+            });
+
+// ── ROMPER BLOQUEO DE BOOTSTRAP PARA PODER ESCRIBIR ──
+            $.fn.modal.Constructor.prototype.enforceFocus = function() {};
+
+            // ── ENCENDER SELECT2 (PARA CREAR Y EDITAR) ──
+            $('.select2').each(function() {
+                $(this).select2({
+                    // LA MAGIA: Esto hace que busque su propio modal, ya sea el de crear o el de editar
+                    dropdownParent: $(this).closest('.modal'),
+                    width: '100%',
+                    placeholder: "— Seleccione un docente —",
+                    allowClear: true
+                });
             });
 
         });

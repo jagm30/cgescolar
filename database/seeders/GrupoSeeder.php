@@ -53,7 +53,7 @@ class GrupoSeeder extends Seeder
             'grado_id'    => $gradoMap["{$def['nivel_id']}-{$def['numero']}"],
             'nombre'      => $def['nombre'],
             'cupo_maximo' => 25,
-            'docente'     => null,
+            'docente_id'     => null,
             'activo'      => true,
         ], $definicion);
 

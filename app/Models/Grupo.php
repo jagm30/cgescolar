@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Personal;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -17,7 +18,7 @@ class Grupo extends Model
         'grado_id',
         'nombre',
         'cupo_maximo',
-        'docente',
+        'docente_id',
         'activo',
         'icono',
     ];
@@ -62,5 +63,11 @@ class Grupo extends Model
         $grupo = $this->nombre;
 
         return "$nivel $grado $grupo";
+    }
+
+    public function docente(): BelongsTo
+    {
+        // Esto vincula el campo docente_id con el modelo Personal
+        return $this->belongsTo(Personal::class, 'docente_id');
     }
 }

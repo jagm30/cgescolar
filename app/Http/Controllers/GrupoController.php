@@ -8,9 +8,11 @@ use App\Models\Grado;
 use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
+use App\Models\Personal;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class GrupoController extends Controller
 {
@@ -68,18 +70,21 @@ class GrupoController extends Controller
             return response()->json($grupos);
         }
 
-        // 5. Variables para la vista
+// 5. Variables para la vista
         $niveles = NivelEscolar::activo()->get();
         $grados  = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
         $ciclo   = CicloEscolar::find($cicloId);
-
-        // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
-        // Traemos todos los ciclos para que el Modal de Migración pueda mostrarlos
         $ciclosDisponibles = CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
-
         $disenos = \App\Models\Credencial::all();
 
-        return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo', 'ciclosDisponibles', 'disenos'));
+        // Corrección: Solo traemos a los que son docentes
+        $docentes = \App\Models\Personal::where('activo', true)
+                                ->where('tipo', 'docente')
+                                ->get();
+
+        // Agregamos 'docentes' al compact
+        return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo', 'ciclosDisponibles', 'disenos', 'docentes'));
+
     }
     /** GET /grupos/{id} */
     public function show(int $id)
@@ -120,38 +125,38 @@ class GrupoController extends Controller
         return view('grupos.show', compact('grupo', 'gruposDisponibles', 'grados', 'ciclosDisponibles'));
     }
     /** GET /grupos/grados-por-ciclo?ciclo_id=X */
-public function gradosPorCiclo(Request $request)
-{
-    $query = Grado::with('nivel')
-        ->whereHas('grupos', fn($q) => $q->where('ciclo_id', $request->ciclo_id));
+    public function gradosPorCiclo(Request $request)
+    {
+        $query = Grado::with('nivel')
+            ->whereHas('grupos', fn($q) => $q->where('ciclo_id', $request->ciclo_id));
 
-    // LÓGICA INTELIGENTE: Filtramos a partir del grado de origen
-    if ($request->filled('grado_origen_id')) {
-        $gradoOrigen = Grado::find($request->grado_origen_id);
+        // LÓGICA INTELIGENTE: Filtramos a partir del grado de origen
+        if ($request->filled('grado_origen_id')) {
+            $gradoOrigen = Grado::find($request->grado_origen_id);
 
-        if ($gradoOrigen) {
-            $query->where(function($q) use ($gradoOrigen) {
-                // Opción A: Es un nivel educativo superior (ej. de Preescolar a Primaria)
-                $q->where('nivel_id', '>', $gradoOrigen->nivel_id)
-                  // Opción B: Es el mismo nivel, pero un año superior o igual (ej. 1° a 2°)
-                  ->orWhere(function($sub) use ($gradoOrigen) {
-                      $sub->where('nivel_id', $gradoOrigen->nivel_id)
-                          ->where('numero', '>=', $gradoOrigen->numero);
-                  });
-            });
+            if ($gradoOrigen) {
+                $query->where(function ($q) use ($gradoOrigen) {
+                    // Opción A: Es un nivel educativo superior (ej. de Preescolar a Primaria)
+                    $q->where('nivel_id', '>', $gradoOrigen->nivel_id)
+                        // Opción B: Es el mismo nivel, pero un año superior o igual (ej. 1° a 2°)
+                        ->orWhere(function ($sub) use ($gradoOrigen) {
+                            $sub->where('nivel_id', $gradoOrigen->nivel_id)
+                                ->where('numero', '>=', $gradoOrigen->numero);
+                        });
+                });
+            }
         }
+
+        $grados = $query->orderBy('nivel_id')
+            ->orderBy('numero')
+            ->get()
+            ->map(fn($gr) => [
+                'id'    => $gr->id,
+                'label' => $gr->nivel->nombre . ' - ' . $gr->numero . '°',
+            ]);
+
+        return response()->json($grados);
     }
-
-    $grados = $query->orderBy('nivel_id')
-        ->orderBy('numero')
-        ->get()
-        ->map(fn($gr) => [
-            'id'    => $gr->id,
-            'label' => $gr->nivel->nombre . ' - ' . $gr->numero . '°',
-        ]);
-
-    return response()->json($grados);
-}
 
     /** GET /grupos/grupos-por-ciclo-grado?ciclo_id=X&grado_id=Y */
     public function gruposPorCicloGrado(Request $request)
@@ -195,7 +200,7 @@ public function gradosPorCiclo(Request $request)
             'grado_id'    => ['required', 'exists:grado,id'],
             'nombre'      => ['required', 'string', 'max:10'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'docente'     => ['nullable', 'string', 'max:200'],
+            'docente_id'  => ['nullable', 'integer', 'exists:personal,id'],
             'ciclo_id'    => ['nullable', 'exists:ciclo_escolar,id'],
         ], [
             'grado_id.required' => 'Debe seleccionar el grado.',
@@ -269,7 +274,7 @@ public function gradosPorCiclo(Request $request)
             'icono' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'nombre'      => ['sometimes', 'required', 'string', 'max:10'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'docente'     => ['nullable', 'string', 'max:200'],
+            'docente_id'  => ['nullable', 'integer', 'exists:personal,id'],
             'activo'      => ['boolean'],
         ]);
 
@@ -331,6 +336,11 @@ public function gradosPorCiclo(Request $request)
             return request()->ajax()
                 ? response()->json(['status' => 'error', 'mensaje' => $msj], 422)
                 : back()->with('error', $msj);
+        }
+
+        // LA CORRECCIÓN: Destruir la imagen antes de borrar el grupo
+        if ($grupo->icono) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($grupo->icono);
         }
 
         $grupo->delete();
@@ -495,7 +505,7 @@ public function gradosPorCiclo(Request $request)
                     'nombre'      => $grupo->nombre,
                     'grado_id'    => $grupo->grado_id,
                     'ciclo_id'    => $request->ciclo_destino_id,
-                    'docente'     => $grupo->docente, // Puedes dejarlo null si prefieres maestros nuevos
+                    'docente_id'  => $grupo->docente_id, // Puedes dejarlo null si prefieres maestros nuevos
                     'cupo_maximo' => $grupo->cupo_maximo,
                     'activo'      => true
                 ]);

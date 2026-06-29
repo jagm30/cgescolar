@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('grado_id')->constrained('grado')->restrictOnDelete();
             $table->string('nombre')->comment('A, B, C...');
             $table->unsignedSmallInteger('cupo_maximo')->nullable();
-            $table->string('docente')->nullable();
+            $table->foreignId('docente_id')->nullable()->constrained('personal')->nullOnDelete();
             $table->boolean('activo')->default(true);
         });
     }
