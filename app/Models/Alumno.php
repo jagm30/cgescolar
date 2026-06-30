@@ -153,6 +153,7 @@ class Alumno extends Model
             'orden',
             'autorizado_recoger',
             'es_responsable_pago',
+            'tiene_acceso_portal',
             'activo',
         ])->orderByPivot('orden');
     }

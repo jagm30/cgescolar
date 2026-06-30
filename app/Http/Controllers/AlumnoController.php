@@ -245,9 +245,10 @@ class AlumnoController extends Controller
         }
 
         return view('alumnos.edit', [
-            'alumno' => $alumno,
+            'alumno'        => $alumno,
             'inscripciones' => $alumno->inscripciones()->with('ciclo', 'grupo.ciclo', 'grupo.grado.nivel')->get(),
-            'niveles' => NivelEscolar::activo()->get(),
+            'niveles'       => NivelEscolar::activo()->get(),
+            'familias'      => \App\Models\Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']),
         ]);
     }
 

@@ -4,7 +4,13 @@
       "Bash(php artisan:*)",
       "Bash(php -l app/Http/Controllers/PagoController.php)",
       "Bash(git checkout:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(where php:*)",
+      "Bash(php --version)",
+      "Bash(php:*)",
+      "Bash(composer show:*)",
+      "Bash(composer require:*)"
     ]
   }
 }
