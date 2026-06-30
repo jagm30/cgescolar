@@ -61,7 +61,7 @@ class Usuario extends Authenticatable
 
     public function scopeInternos($query)
     {
-        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion']);
+        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion', 'admisiones']);
     }
 
     // ── Helpers de rol ───────────────────────────────────
@@ -81,6 +81,11 @@ class Usuario extends Authenticatable
         return $this->rol === 'recepcion';
     }
 
+    public function esAdmisiones(): bool
+    {
+        return $this->rol === 'admisiones';
+    }
+
     public function esPadre(): bool
     {
         return $this->rol === 'padre';
@@ -88,7 +93,7 @@ class Usuario extends Authenticatable
 
     public function esInterno(): bool
     {
-        return in_array($this->rol, ['administrador', 'caja', 'recepcion']);
+        return in_array($this->rol, ['administrador', 'caja', 'recepcion', 'admisiones']);
     }
 
     public function rutaDashboard(): string
@@ -96,8 +101,9 @@ class Usuario extends Authenticatable
         return match ($this->rol) {
             'administrador' => route('admin.dashboard'),
             'caja' => route('caja.dashboard'),
-            'recepcion' => route('recepcion.dashboard'),
-            'padre' => route('portal.dashboard'),
+            'recepcion'  => route('recepcion.dashboard'),
+            'admisiones' => route('prospectos.metricas'),
+            'padre'      => route('portal.dashboard'),
             default => route('login'),
         };
     }

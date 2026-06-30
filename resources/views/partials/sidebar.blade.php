@@ -146,6 +146,12 @@
                         <i class="fa fa-dashboard"></i> <span>Dashboard</span>
                     </a>
                 </li>
+            @elseif(auth()->user()->esAdmisiones())
+                <li class="{{ request()->routeIs('prospectos.metricas') ? 'active' : '' }}">
+                    <a href="{{ route('prospectos.metricas') }}">
+                        <i class="fa fa-dashboard"></i> <span>Dashboard</span>
+                    </a>
+                </li>
             @elseif(auth()->user()->esPadre())
                 <li class="{{ request()->routeIs('portal.dashboard') ? 'active' : '' }}">
                     <a href="{{ route('portal.dashboard') }}">
@@ -417,6 +423,25 @@
                 <li>
                     <a href="{{ route('credenciales.index') }}">
                         <i class="fa fa-id-card"></i> <span>Editor de Credenciales</span>
+                    </a>
+                </li>
+            @endif
+
+            {{-- ── SECCIÓN: Admisiones (rol admisiones) ─── --}}
+            @if (auth()->user()->esAdmisiones())
+                <li class="header">ADMISIONES</li>
+
+                <li class="{{ request()->routeIs('prospectos.*') ? 'active' : '' }}">
+                    <a href="{{ route('prospectos.index') }}">
+                        <i class="fa fa-user-plus"></i> <span>Prospectos</span>
+                    </a>
+                </li>
+
+                <li class="header">ALUMNOS</li>
+
+                <li class="{{ request()->routeIs('alumnos.index', 'alumnos.show') ? 'active' : '' }}">
+                    <a href="{{ route('alumnos.index') }}">
+                        <i class="fa fa-users"></i> <span>Lista de alumnos</span>
                     </a>
                 </li>
             @endif

@@ -9,7 +9,7 @@ class UpdateProspectoEtapaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array(auth()->user()->rol, ['administrador', 'recepcion']);
+        return in_array(auth()->user()->rol, ['administrador', 'recepcion', 'admisiones']);
     }
 
     public function rules(): array

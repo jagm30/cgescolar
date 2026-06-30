@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDocAdmisionRequest;
 use App\Http\Requests\StoreProspectoRequest;
 use App\Http\Requests\UpdateProspectoEtapaRequest;
+use App\Jobs\NotificarEventoAdmisionJob;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\DocAdmision;
@@ -92,9 +93,23 @@ class ProspectoController extends Controller
             'notas' => 'Registro inicial del prospecto.',
         ]);
 
+        $prospecto->load(['nivelInteres', 'responsable']);
+
+        NotificarEventoAdmisionJob::dispatch('nuevo_prospecto', [
+            'asunto'          => "Nuevo prospecto: {$prospecto->nombre_completo}",
+            'prospecto_nombre' => $prospecto->nombre_completo,
+            'nivel'           => $prospecto->nivelInteres?->nombre,
+            'canal'           => $prospecto->canal_contacto,
+            'contacto'        => $prospecto->contacto_nombre,
+            'telefono'        => $prospecto->contacto_telefono,
+            'email_contacto'  => $prospecto->contacto_email,
+            'responsable'     => auth()->user()->nombre,
+            'fecha'           => now()->format('d/m/Y H:i'),
+        ]);
+
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
-            jsonData: ['prospecto' => $prospecto->load(['nivelInteres', 'responsable'])],
+            jsonData: ['prospecto' => $prospecto],
             mensaje: "Prospecto '{$prospecto->nombre_completo}' registrado correctamente.",
             jsonStatus: 201,
             routeParams: ['prospecto' => $prospecto->id]
@@ -121,6 +136,16 @@ class ProspectoController extends Controller
 
         Auditoria::registrar('prospecto', $prospecto->id, 'update', $anterior, $prospecto->fresh()->toArray());
 
+        NotificarEventoAdmisionJob::dispatch('cambio_etapa', [
+            'asunto'           => "Cambio de etapa: {$prospecto->nombre_completo}",
+            'prospecto_nombre' => $prospecto->nombre_completo,
+            'etapa_anterior'   => $anterior['etapa'],
+            'etapa_nueva'      => $request->etapa,
+            'notas'            => $request->notas ?? '',
+            'responsable'      => auth()->user()->nombre,
+            'fecha'            => now()->format('d/m/Y H:i'),
+        ]);
+
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
             jsonData: ['prospecto' => $prospecto->fresh()->load(['nivelInteres', 'seguimientos.usuario'])],
@@ -143,6 +168,19 @@ class ProspectoController extends Controller
             'prospecto_id' => $prospecto->id,
             'usuario_id' => auth()->id(),
         ]));
+
+        // No notificar cambios de etapa: ya se notificó en cambiarEtapa()
+        if ($data['tipo_accion'] !== 'cambio_etapa') {
+            NotificarEventoAdmisionJob::dispatch('seguimiento', [
+                'asunto'            => "Seguimiento en {$prospecto->nombre_completo}: " . ucfirst(str_replace('_', ' ', $data['tipo_accion'])),
+                'prospecto_nombre'  => $prospecto->nombre_completo,
+                'tipo_accion'       => $data['tipo_accion'],
+                'notas'             => $data['notas'],
+                'fecha_seguimiento' => $data['fecha'],
+                'responsable'       => auth()->user()->nombre,
+                'fecha'             => now()->format('d/m/Y H:i'),
+            ]);
+        }
 
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',

@@ -18,7 +18,7 @@ class StoreUsuarioRequest extends FormRequest
             'nombre'       => ['required', 'string', 'max:200'],
             'email'        => ['required', 'email', 'max:200', 'unique:usuario,email'],
             'password'     => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
-            'rol'          => ['required', 'in:administrador,caja,recepcion,padre'],
+            'rol'          => ['required', 'in:administrador,caja,recepcion,admisiones,padre'],
             'activo'       => ['boolean'],
             // Solo si es padre — debe vincularse a un contacto existente
             'contacto_id'  => ['required_if:rol,padre', 'nullable', 'exists:contacto_familiar,id'],
@@ -53,7 +53,7 @@ class StoreUsuarioRequest extends FormRequest
             'password.required'     => 'La contraseña es obligatoria.',
             'password.confirmed'    => 'La confirmación de contraseña no coincide.',
             'rol.required'          => 'Debe seleccionar el rol del usuario.',
-            'rol.in'                => 'El rol debe ser: administrador, caja, recepcion o padre.',
+            'rol.in'                => 'El rol debe ser: administrador, caja, recepcion, admisiones o padre.',
             'contacto_id.required_if' => 'Para usuarios con rol padre debe seleccionar el contacto familiar.',
         ];
     }
