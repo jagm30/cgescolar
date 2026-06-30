@@ -10,6 +10,12 @@
 @endsection
 
 @push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .select2-container .select2-selection--single { height:34px !important; border:1px solid #d2d6de !important; border-radius:4px !important; }
+        .select2-container--default .select2-selection--single .select2-selection__rendered { line-height:32px !important; padding-left:12px !important; color:#555 !important; }
+        .select2-container--default .select2-selection--single .select2-selection__arrow { height:32px !important; }
+    </style>
 <style>
 /* ══ Wizard nav ═══════════════════════════════════════════ */
 .wizard-step-trigger {
@@ -103,6 +109,7 @@
       novalidate>
 @csrf
 @method('PUT')
+<input type="hidden" name="familia_id" id="input-familia-id" value="{{ $alumno->familia_id }}">
 
 {{-- ══ BARRA DE PROGRESO + NAV WIZARD ══ --}}
 <div class="wizard-progress-wrap">
@@ -644,6 +651,51 @@
                     <span id="ctc-alerta-msg"></span>
                 </div>
 
+                {{-- ── Cambiar familia ── --}}
+                <div class="panel panel-default" style="margin-bottom:16px;border-color:#d2d6de;">
+                    <div class="panel-heading" id="toggle-cambiar-familia"
+                         style="cursor:pointer;padding:10px 14px;background:#f5f5f5;display:flex;justify-content:space-between;align-items:center;">
+                        <span>
+                            <i class="fa fa-users" style="margin-right:6px;color:#777;"></i>
+                            <span style="font-size:12px;color:#777;">Familia asignada:</span>
+                            <strong id="label-familia-actual" style="margin-left:4px;">
+                                {{ $alumno->familia?->apellido_familia ?? '—' }}
+                            </strong>
+                        </span>
+                        <span style="font-size:12px;color:#3c8dbc;">
+                            <i class="fa fa-pencil"></i> Cambiar familia
+                            <i class="fa fa-chevron-down" id="ico-toggle-familia" style="margin-left:4px;"></i>
+                        </span>
+                    </div>
+                    <div class="panel-body" id="panel-cambiar-familia" style="display:none;padding:14px;">
+                        <div class="row">
+                            <div class="col-sm-8">
+                                <div class="form-group" style="margin-bottom:8px;">
+                                    <label style="font-size:12px;">Selecciona la familia</label>
+                                    <select id="select-familia" style="width:100%;">
+                                        @foreach($familias as $fam)
+                                            <option value="{{ $fam->id }}"
+                                                {{ $fam->id == $alumno->familia_id ? 'selected' : '' }}>
+                                                {{ $fam->apellido_familia }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-4" style="display:flex;align-items:flex-end;padding-bottom:8px;">
+                                <button type="button" class="btn btn-warning btn-block btn-sm" id="btn-aplicar-familia">
+                                    <i class="fa fa-check"></i> Aplicar
+                                </button>
+                            </div>
+                        </div>
+                        <p style="font-size:11px;color:#888;margin:4px 0 0;">
+                            <i class="fa fa-info-circle"></i>
+                            Cambiar la familia actualiza el vínculo del alumno y los nuevos contactos que agregues quedarán asociados a ella.
+                            Guarda el formulario para confirmar.
+                        </p>
+                    </div>
+                </div>
+
                 {{-- Contactos existentes --}}
                 @forelse($alumno->contactos as $contacto)
                     <div class="panel panel-default ctc-panel" style="margin-bottom:10px;"
@@ -756,7 +808,7 @@
                                     </label>
                                     <label class="checkbox-inline" style="margin-left:16px;">
                                         <input type="checkbox" class="ctc-portal"
-                                            {{ $contacto->tiene_acceso_portal ? 'checked' : '' }}>
+                                            {{ $contacto->pivot->tiene_acceso_portal ? 'checked' : '' }}>
                                         Acceso al portal
                                     </label>
                                 </div>
@@ -1138,7 +1190,7 @@
                     </tr>
                     <tr>
                         <th style="color:#999;font-weight:400;padding:8px 14px;">Familia</th>
-                        <td style="padding:8px 14px;">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
+                        <td style="padding:8px 14px;" id="sidebar-familia-nombre">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
                     </tr>
                     @if($inscActual)
                     <tr>
@@ -1166,6 +1218,7 @@
 @endsection
 
 @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(function() {
 
@@ -1472,6 +1525,7 @@
                         method: 'PUT',
                         contentType: 'application/json',
                         data: JSON.stringify({
+                            alumno_id:           ALUMNO_ID,
                             nombre:              $panel.find('.ctc-nombre').val().trim(),
                             ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
                             ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
@@ -1485,7 +1539,7 @@
                             nivel_estudios:      $panel.find('.ctc-nivel-estudios').val(),
                             profesion:           $panel.find('.ctc-profesion').val().trim(),
                             vive:                $panel.find('.ctc-vive').is(':checked'),
-                            // Permisos y pivot
+                            // Permisos y pivot — independientes por alumno
                             parentesco:          $panel.find('.ctc-parentesco').val(),
                             tipo:                $panel.find('.ctc-tipo').val(),
                             orden:               parseInt($panel.find('.ctc-orden').val()),
@@ -1594,6 +1648,30 @@
             // ══════════════════════════════════════════════════
             var ALUMNO_ID = {{ $alumno->id }};
             var FAMILIA_ID = {{ $alumno->familia_id ?? 'null' }};
+
+            // ══════════════════════════════════════════════════
+            // CAMBIAR FAMILIA
+            // ══════════════════════════════════════════════════
+            $('#select-familia').select2({ width: '100%', language: { noResults: function() { return 'Sin resultados'; } } });
+
+            $('#toggle-cambiar-familia').on('click', function () {
+                $('#panel-cambiar-familia').slideToggle(200);
+                $('#ico-toggle-familia').toggleClass('fa-chevron-down fa-chevron-up');
+            });
+
+            $('#btn-aplicar-familia').on('click', function () {
+                var id    = $('#select-familia').val();
+                var texto = $('#select-familia option:selected').text().trim();
+                if (!id) return;
+
+                FAMILIA_ID = parseInt(id);
+                $('#input-familia-id').val(id);
+                $('#label-familia-actual').text(texto);
+                $('#sidebar-familia-nombre').text(texto);
+                $('#panel-cambiar-familia').slideUp(200);
+                $('#ico-toggle-familia').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                alertaCtc('Familia cambiada a "' + texto + '". Guarda el formulario para confirmar el cambio.', 'warning');
+            });
 
             $('#btn-cancelar-ctc').on('click', function() {
                 limpiarCtc();
@@ -1713,7 +1791,7 @@
                         '<div class="row"><div class="col-md-12">' +
                         '<label class="checkbox-inline"><input type="checkbox" class="ctc-recoger"' + (piv.autorizado_recoger ? ' checked' : '') + '>  Autorizado recoger</label>' +
                         '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-pago"' + (piv.es_responsable_pago ? ' checked' : '') + '>  Resp. pagos</label>' +
-                        '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' + (c.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
+                        '<label class="checkbox-inline" style="margin-left:12px;"><input type="checkbox" class="ctc-portal"' + (piv.tiene_acceso_portal ? ' checked' : '') + '>  Portal</label>' +
                         '</div></div>' +
                         // Datos adicionales colapsables
                         '<div style="margin-top:6px;">' +

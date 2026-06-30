@@ -257,6 +257,7 @@ class FamiliaController extends Controller
         $anterior = $contacto->toArray();
 
         $data = $request->validate([
+            'alumno_id' => ['required', 'integer', 'exists:alumno,id'],
             'nombre' => ['required', 'string', 'max:100'],
             'ap_paterno' => ['nullable', 'string', 'max:100'],
             'ap_materno' => ['nullable', 'string', 'max:100'],
@@ -277,25 +278,26 @@ class FamiliaController extends Controller
             'tiene_acceso_portal' => ['boolean'],
             'foto' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
         ], [
+            'alumno_id.required' => 'El alumno es obligatorio.',
+            'alumno_id.exists'   => 'El alumno no existe.',
             'nombre.required' => 'El nombre del contacto es obligatorio.',
             'telefono_celular.required' => 'El teléfono es obligatorio.',
             'email.email' => 'El formato del correo no es válido.',
         ]);
 
         $campos = [
-            'nombre' => $data['nombre'],
-            'ap_paterno' => $data['ap_paterno'] ?? null,
-            'ap_materno' => $data['ap_materno'] ?? null,
+            'nombre'          => $data['nombre'],
+            'ap_paterno'      => $data['ap_paterno'] ?? null,
+            'ap_materno'      => $data['ap_materno'] ?? null,
             'telefono_celular' => $data['telefono_celular'],
-            'telefono_2' => $data['telefono_2'] ?? null,
+            'telefono_2'      => $data['telefono_2'] ?? null,
             'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
-            'email' => $data['email'] ?? null,
-            'lugar_trabajo' => $data['lugar_trabajo'] ?? null,
-            'puesto' => $data['puesto'] ?? null,
-            'nivel_estudios' => $data['nivel_estudios'] ?? null,
-            'profesion' => $data['profesion'] ?? null,
-            'vive' => $data['vive'] ?? true,
-            'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
+            'email'           => $data['email'] ?? null,
+            'lugar_trabajo'   => $data['lugar_trabajo'] ?? null,
+            'puesto'          => $data['puesto'] ?? null,
+            'nivel_estudios'  => $data['nivel_estudios'] ?? null,
+            'profesion'       => $data['profesion'] ?? null,
+            'vive'            => $data['vive'] ?? true,
         ];
 
         if ($request->hasFile('foto')) {
@@ -307,13 +309,17 @@ class FamiliaController extends Controller
 
         $contacto->update($campos);
 
-        AlumnoContacto::where('contacto_id', $contacto->id)->update([
-            'parentesco' => $data['parentesco'] ?? null,
-            'tipo' => $data['tipo'] ?? null,
-            'orden' => $data['orden'] ?? null,
-            'autorizado_recoger' => $data['autorizado_recoger'] ?? false,
-            'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
-        ]);
+        // Actualizar solo el pivot de ESTE alumno (no el de sus hermanos)
+        AlumnoContacto::where('contacto_id', $contacto->id)
+            ->where('alumno_id', $data['alumno_id'])
+            ->update([
+                'parentesco'          => $data['parentesco'] ?? null,
+                'tipo'                => $data['tipo'] ?? null,
+                'orden'               => $data['orden'] ?? null,
+                'autorizado_recoger'  => $data['autorizado_recoger'] ?? false,
+                'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
+                'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
+            ]);
 
         Auditoria::registrar('contacto_familiar', $contacto->id, 'update', $anterior, $contacto->fresh()->toArray());
 
@@ -419,14 +425,15 @@ class FamiliaController extends Controller
         }
 
         $pivot = AlumnoContacto::create([
-            'alumno_id' => $alumno->id,
-            'contacto_id' => $contacto->id,
-            'parentesco' => $data['parentesco'],
-            'tipo' => $data['tipo'],
-            'orden' => $data['orden'] ?? 2,
-            'autorizado_recoger' => $data['autorizado_recoger'] ?? false,
+            'alumno_id'           => $alumno->id,
+            'contacto_id'         => $contacto->id,
+            'parentesco'          => $data['parentesco'],
+            'tipo'                => $data['tipo'],
+            'orden'               => $data['orden'] ?? 2,
+            'autorizado_recoger'  => $data['autorizado_recoger'] ?? false,
             'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
-            'activo' => true,
+            'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
+            'activo'              => true,
         ]);
 
         Auditoria::registrar('contacto_familiar', $contacto->id, 'insert', null, $contacto->toArray());

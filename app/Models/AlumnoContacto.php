@@ -18,13 +18,15 @@ class AlumnoContacto extends Model
         'orden',
         'autorizado_recoger',
         'es_responsable_pago',
+        'tiene_acceso_portal',
         'activo',
     ];
 
     protected $casts = [
-        'autorizado_recoger'  => 'boolean',
-        'es_responsable_pago' => 'boolean',
-        'activo'              => 'boolean',
+        'autorizado_recoger'   => 'boolean',
+        'es_responsable_pago'  => 'boolean',
+        'tiene_acceso_portal'  => 'boolean',
+        'activo'               => 'boolean',
     ];
 
     public function alumno(): BelongsTo
