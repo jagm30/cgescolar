@@ -104,6 +104,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
     Route::get('descargar-reporte-pagos/{id}', [GrupoController::class, 'reportePagos'])->name('grupos.reporte-pagos');
     Route::get('descargar-expediente-medico/{id}', [GrupoController::class, 'reporteExpedienteMedico'])->name('grupos.reporte-medico');
+    Route::get('album-fotografico/{id}', [GrupoController::class, 'albumFotografico'])->name('grupos.album-fotografico');
 
     // Caja puede consultar grupos (solo lectura)
     Route::get('/grupos', [GrupoController::class, 'index'])

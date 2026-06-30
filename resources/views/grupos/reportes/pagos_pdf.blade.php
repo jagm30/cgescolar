@@ -1,37 +1,40 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
 
     @php
-        $escuelaInfo   = \App\Models\Setting::find(1);
+        $escuelaInfo = \App\Models\Setting::find(1);
         $nombreEscuela = $escuelaInfo->nombre_escuela ?? config('app.school_name');
-        $logoRuta      = $escuelaInfo->logo_ruta      ?? 'logo-escuela.png';
+        $logoRuta = $escuelaInfo->logo_ruta ?? 'logo-escuela.png';
 
         $inscripciones = $grupo->inscripciones->sortBy(fn($i) => $i->alumno->ap_paterno);
 
         $estadoColor = [
-            'pagado'          => '#16a34a',
-            'pendiente'       => '#dc2626',
-            'parcial'         => '#d97706',
-            'vencido'         => '#b91c1c',
+            'pagado' => '#16a34a',
+            'pendiente' => '#dc2626',
+            'parcial' => '#d97706',
+            'vencido' => '#b91c1c',
             'parcial_vencido' => '#b45309',
-            'condonado'       => '#6b7280',
+            'condonado' => '#6b7280',
         ];
         $estadoLabel = [
-            'pagado'          => 'Pagado',
-            'pendiente'       => 'Pendiente',
-            'parcial'         => 'Parcial',
-            'vencido'         => 'Vencido',
+            'pagado' => 'Pagado',
+            'pendiente' => 'Pendiente',
+            'parcial' => 'Parcial',
+            'vencido' => 'Vencido',
             'parcial_vencido' => 'Parcial/Vencido',
-            'condonado'       => 'Condonado',
+            'condonado' => 'Condonado',
         ];
     @endphp
 
     <title>Reporte de Pagos — {{ $grupo->nombre }}</title>
 
     <style>
-        @page { margin: 8mm 10mm; }
+        @page {
+            margin: 8mm 10mm;
+        }
 
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -49,8 +52,17 @@
             margin-bottom: 12px;
             border-collapse: collapse;
         }
-        .header td { vertical-align: middle; }
-        .school-logo { width: 100px; height: auto; display: block; }
+
+        .header td {
+            vertical-align: middle;
+        }
+
+        .school-logo {
+            width: 100px;
+            height: auto;
+            display: block;
+        }
+
         .school-name {
             color: #1e4d7b;
             font-size: 17px;
@@ -58,10 +70,30 @@
             text-transform: uppercase;
             letter-spacing: .5px;
         }
-        .school-sub { color: #777; font-size: 10px; margin-top: 2px; text-transform: uppercase; }
-        .report-title { text-align: right; }
-        .report-title-main { color: #1e4d7b; font-size: 15px; font-weight: bold; text-transform: uppercase; }
-        .report-title-sub { color: #666; font-size: 10px; margin-top: 3px; }
+
+        .school-sub {
+            color: #777;
+            font-size: 10px;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+
+        .report-title {
+            text-align: right;
+        }
+
+        .report-title-main {
+            color: #1e4d7b;
+            font-size: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .report-title-sub {
+            color: #666;
+            font-size: 10px;
+            margin-top: 3px;
+        }
 
         /* ── Info del grupo ── */
         .info-box {
@@ -70,12 +102,17 @@
             margin-bottom: 12px;
             border: 1px solid #dde4eb;
         }
+
         .info-box td {
             padding: 7px 14px;
             border-right: 1px solid #dde4eb;
             vertical-align: middle;
         }
-        .info-box td:last-child { border-right: none; }
+
+        .info-box td:last-child {
+            border-right: none;
+        }
+
         .info-lbl {
             font-size: 9px;
             font-weight: bold;
@@ -85,7 +122,13 @@
             display: block;
             margin-bottom: 2px;
         }
-        .info-val { font-size: 12px; font-weight: bold; color: #1a2634; }
+
+        .info-val {
+            font-size: 12px;
+            font-weight: bold;
+            color: #1a2634;
+        }
+
         .info-badge {
             display: inline-block;
             background: #e8f0fb;
@@ -103,6 +146,7 @@
             border-collapse: collapse;
             margin-bottom: 16px;
         }
+
         .main-table thead th {
             background: #1e4d7b;
             color: #fff;
@@ -113,13 +157,17 @@
             border: 1px solid #1a4570;
             letter-spacing: .04em;
         }
+
         .main-table tbody td {
             padding: 5px 8px;
             border: 1px solid #e0e6ed;
             vertical-align: middle;
             font-size: 10px;
         }
-        .main-table tbody tr:nth-child(even) td { background: #f9fafb; }
+
+        .main-table tbody tr:nth-child(even) td {
+            background: #f9fafb;
+        }
 
         /* ── Tabla de cargos (interna) ── */
         .cargos-table {
@@ -127,13 +175,22 @@
             border-collapse: collapse;
             margin-top: 4px;
         }
+
         .cargos-table td {
             padding: 2px 5px;
             font-size: 9px;
             border: none;
         }
-        .cargo-concepto { color: #374151; }
-        .cargo-monto { text-align: right; font-family: monospace; white-space: nowrap; }
+
+        .cargo-concepto {
+            color: #374151;
+        }
+
+        .cargo-monto {
+            text-align: right;
+            font-family: monospace;
+            white-space: nowrap;
+        }
 
         /* ── Badges de estado ── */
         .badge {
@@ -146,12 +203,26 @@
         }
 
         /* ── Montos ── */
-        .monto { text-align: right; font-family: monospace; white-space: nowrap; }
-        .monto-rojo { color: #dc2626; }
-        .monto-verde { color: #16a34a; }
+        .monto {
+            text-align: right;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        .monto-rojo {
+            color: #dc2626;
+        }
+
+        .monto-verde {
+            color: #16a34a;
+        }
 
         /* ── Número de fila ── */
-        .num-td { text-align: center; color: #94a3b8; font-size: 9px; }
+        .num-td {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 9px;
+        }
 
         /* ── Pie ── */
         .pie {
@@ -165,11 +236,20 @@
             color: #bbb;
         }
 
-        .text-center { text-align: center; }
-        .text-right  { text-align: right; }
-        .bold        { font-weight: bold; }
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
     </style>
 </head>
+
 <body>
 
     {{-- ── Encabezado ── --}}
@@ -179,7 +259,9 @@
                 @if (file_exists(public_path('imgs_escuela/reportes/' . $logoRuta)))
                     <img src="{{ public_path('imgs_escuela/reportes/' . $logoRuta) }}" class="school-logo" alt="Logo">
                 @else
-                    <div style="width:100px;height:100px;background:#e0e0e0;text-align:center;line-height:100px;color:#888;font-size:9px;">LOGO</div>
+                    <div
+                        style="width:100px;height:100px;background:#e0e0e0;text-align:center;line-height:100px;color:#888;font-size:9px;">
+                        LOGO</div>
                 @endif
             </td>
             <td style="width:46%; padding-left:10px;">
@@ -198,9 +280,9 @@
 
     {{-- ── Datos del grupo ── --}}
     @php
-        $totalAlumnos  = $inscripciones->count();
-        $totalCargado  = $inscripciones->sum(fn($i) => $i->cargos->sum('monto_original'));
-        $totalPagado   = $inscripciones->sum(fn($i) => $i->cargos->sum(fn($c) => $c->monto_cubierto));
+        $totalAlumnos = $inscripciones->count();
+        $totalCargado = $inscripciones->sum(fn($i) => $i->cargos->sum('monto_original'));
+        $totalPagado = $inscripciones->sum(fn($i) => $i->cargos->sum(fn($c) => $c->monto_cubierto));
         $totalPendiente = max(0, $totalCargado - $totalPagado);
     @endphp
 
@@ -212,7 +294,15 @@
             </td>
             <td style="width:20%;">
                 <span class="info-lbl">Grado y Grupo</span>
-                <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
+                <!-- Usamos un contenedor para mantenerlos juntos -->
+                <div style="display: flex; align-items: center; white-space: nowrap;">
+                    <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
+
+                    @if (!empty($grupo->icono) && \Illuminate\Support\Facades\Storage::disk('public')->exists($grupo->icono))
+                        <img src="{{ public_path('storage/' . $grupo->icono) }}" alt="Icono"
+                            style="width:28px; height:28px; border-radius:50%; border:1px solid #ccc; margin-left:6px; flex-shrink: 0;">
+                    @endif
+                </div>
             </td>
             <td style="width:20%;">
                 <span class="info-lbl">Total alumnos</span>
@@ -252,7 +342,7 @@
             @forelse ($inscripciones as $index => $ins)
                 @php
                     $cargos = $ins->cargos->sortBy('fecha_vencimiento');
-                    $filas  = $cargos->count();
+                    $filas = $cargos->count();
                 @endphp
 
                 @if ($filas === 0)
@@ -270,16 +360,17 @@
                 @else
                     @foreach ($cargos as $ci => $cargo)
                         @php
-                            $cubierto  = $cargo->monto_cubierto;
+                            $cubierto = $cargo->monto_cubierto;
                             $pendiente = max(0, (float) $cargo->monto_original - $cubierto);
-                            $estado    = $cargo->estado_real;
-                            $color     = $estadoColor[$estado] ?? '#6b7280';
-                            $label     = $estadoLabel[$estado] ?? $estado;
+                            $estado = $cargo->estado_real;
+                            $color = $estadoColor[$estado] ?? '#6b7280';
+                            $label = $estadoLabel[$estado] ?? $estado;
                         @endphp
                         <tr>
                             @if ($ci === 0)
                                 <td class="num-td" rowspan="{{ $filas }}">{{ $index + 1 }}</td>
-                                <td style="text-align:center;font-family:monospace;font-size:9px;color:#4a5568;" rowspan="{{ $filas }}">
+                                <td style="text-align:center;font-family:monospace;font-size:9px;color:#4a5568;"
+                                    rowspan="{{ $filas }}">
                                     {{ $ins->alumno->matricula ?? '—' }}
                                 </td>
                                 <td class="bold" style="text-transform:uppercase;" rowspan="{{ $filas }}">
@@ -290,9 +381,11 @@
                             <td class="cargo-concepto">{{ $cargo->etiqueta }}</td>
                             <td class="monto">${{ number_format($cargo->monto_original, 2) }}</td>
                             <td class="monto monto-verde">${{ number_format($cubierto, 2) }}</td>
-                            <td class="monto {{ $pendiente > 0 ? 'monto-rojo' : '' }}">${{ number_format($pendiente, 2) }}</td>
+                            <td class="monto {{ $pendiente > 0 ? 'monto-rojo' : '' }}">
+                                ${{ number_format($pendiente, 2) }}</td>
                             <td class="text-center">
-                                <span class="badge" style="background:{{ $color }}1a;color:{{ $color }};border:1px solid {{ $color }}44;">
+                                <span class="badge"
+                                    style="background:{{ $color }}1a;color:{{ $color }};border:1px solid {{ $color }}44;">
                                     {{ $label }}
                                 </span>
                             </td>
@@ -314,8 +407,10 @@
 
     {{-- ── Pie de página ── --}}
     <div class="pie">
-        Documento interno &mdash; {{ $nombreEscuela }} &mdash; Este documento no tiene validez oficial fuera de la institución.
+        Documento interno &mdash; {{ $nombreEscuela }} &mdash; Este documento no tiene validez oficial fuera de la
+        institución.
     </div>
 
 </body>
+
 </html>

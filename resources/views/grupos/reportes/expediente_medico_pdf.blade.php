@@ -232,7 +232,15 @@
             </td>
             <td style="width:22%;">
                 <span class="info-lbl">Grado y Grupo</span>
-                <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
+                <!-- Usamos un contenedor para mantenerlos juntos -->
+                <div style="display: flex; align-items: center; white-space: nowrap;">
+                    <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
+
+                    @if (!empty($grupo->icono) && \Illuminate\Support\Facades\Storage::disk('public')->exists($grupo->icono))
+                        <img src="{{ public_path('storage/' . $grupo->icono) }}" alt="Icono"
+                            style="width:28px; height:28px; border-radius:50%; border:1px solid #ccc; margin-left:6px; flex-shrink: 0;">
+                    @endif
+                </div>
             </td>
             <td style="width:30%;">
                 <span class="info-lbl">Docente</span>

@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
 
     @php
-        $escuelaInfo   = \App\Models\Setting::find(1);
+        $escuelaInfo = \App\Models\Setting::find(1);
         $nombreEscuela = $escuelaInfo->nombre_escuela ?? config('app.school_name');
-        $logoRuta      = $escuelaInfo->logo_ruta      ?? 'logo-escuela.png';
-        $totalAlumnos  = $grupo->inscripciones->count();
+        $logoRuta = $escuelaInfo->logo_ruta ?? 'logo-escuela.png';
+        $totalAlumnos = $grupo->inscripciones->count();
     @endphp
 
     <title>Lista de Asistencia — {{ $grupo->nombre }}</title>
 
     <style>
-        @page { margin: 8mm 10mm; }
+        @page {
+            margin: 8mm 10mm;
+        }
 
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -31,8 +34,17 @@
             margin-bottom: 12px;
             border-collapse: collapse;
         }
-        .header td { vertical-align: middle; }
-        .school-logo { width: 100px; height: auto; display: block; }
+
+        .header td {
+            vertical-align: middle;
+        }
+
+        .school-logo {
+            width: 100px;
+            height: auto;
+            display: block;
+        }
+
         .school-name {
             color: #1e4d7b;
             font-size: 17px;
@@ -40,20 +52,30 @@
             text-transform: uppercase;
             letter-spacing: .5px;
         }
+
         .school-sub {
             color: #777;
             font-size: 10px;
             margin-top: 2px;
             text-transform: uppercase;
         }
-        .report-title { text-align: right; }
+
+        .report-title {
+            text-align: right;
+        }
+
         .report-title-main {
             color: #1e4d7b;
             font-size: 15px;
             font-weight: bold;
             text-transform: uppercase;
         }
-        .report-title-sub { color: #666; font-size: 10px; margin-top: 3px; }
+
+        .report-title-sub {
+            color: #666;
+            font-size: 10px;
+            margin-top: 3px;
+        }
 
         /* ── Caja de datos del grupo ── */
         .info-box {
@@ -62,12 +84,17 @@
             margin-bottom: 12px;
             border: 1px solid #dde4eb;
         }
+
         .info-box td {
             padding: 7px 14px;
             border-right: 1px solid #dde4eb;
             vertical-align: middle;
         }
-        .info-box td:last-child { border-right: none; }
+
+        .info-box td:last-child {
+            border-right: none;
+        }
+
         .info-lbl {
             font-size: 9px;
             font-weight: bold;
@@ -77,11 +104,13 @@
             display: block;
             margin-bottom: 2px;
         }
+
         .info-val {
             font-size: 12px;
             font-weight: bold;
             color: #1a2634;
         }
+
         .info-badge {
             display: inline-block;
             background: #e8f0fb;
@@ -92,6 +121,7 @@
             border-radius: 4px;
             border: 1px solid #b3d0f0;
         }
+
         .info-count {
             display: inline-block;
             background: #fdecea;
@@ -109,6 +139,7 @@
             border-collapse: collapse;
             margin-bottom: 16px;
         }
+
         .main-table thead th {
             background: #1e4d7b;
             color: #fff;
@@ -119,12 +150,14 @@
             border: 1px solid #1a4570;
             letter-spacing: .04em;
         }
+
         .main-table tbody td {
             padding: 5px 8px;
             border: 1px solid #e0e6ed;
             vertical-align: middle;
             font-size: 11px;
         }
+
         .main-table tbody tr:nth-child(even) td {
             background: #f9fafb;
         }
@@ -135,6 +168,7 @@
             width: 28px;
             background: #2e6da4;
         }
+
         .check-td {
             text-align: center;
             width: 28px;
@@ -154,6 +188,7 @@
             border-collapse: collapse;
             margin-top: 28px;
         }
+
         .firma-table td {
             width: 33%;
             text-align: center;
@@ -162,6 +197,7 @@
             padding-top: 14px;
             border-top: 1px solid #999;
         }
+
         .firma-table .firma-lbl {
             font-size: 9px;
             color: #8a9ab0;
@@ -181,9 +217,12 @@
             color: #bbb;
         }
 
-        .text-center { text-align: center; }
+        .text-center {
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
 
     {{-- ── Encabezado institucional ── --}}
@@ -193,7 +232,9 @@
                 @if (file_exists(public_path('imgs_escuela/reportes/' . $logoRuta)))
                     <img src="{{ public_path('imgs_escuela/reportes/' . $logoRuta) }}" class="school-logo" alt="Logo">
                 @else
-                    <div style="width:100px;height:100px;background:#e0e0e0;text-align:center;line-height:100px;color:#888;font-size:9px;">LOGO</div>
+                    <div
+                        style="width:100px;height:100px;background:#e0e0e0;text-align:center;line-height:100px;color:#888;font-size:9px;">
+                        LOGO</div>
                 @endif
             </td>
             <td style="width:50%; padding-left:10px;">
@@ -219,8 +260,15 @@
             </td>
             <td style="width:22%;">
                 <span class="info-lbl">Grado y Grupo</span>
-                <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
-                <img src="{{ public_path('storage/' . $grupo->icono) }}" alt="Icono del grupo" style="width:28px;height:28px;vertical-align:middle;margin-left:4px;border-radius:50%;border:1px solid #ccc;">
+                <!-- Usamos un contenedor para mantenerlos juntos -->
+                <div style="display: flex; align-items: center; white-space: nowrap;">
+                    <span class="info-badge">{{ $grupo->grado->numero }}° {{ $grupo->nombre }}</span>
+
+                    @if (!empty($grupo->icono) && \Illuminate\Support\Facades\Storage::disk('public')->exists($grupo->icono))
+                        <img src="{{ public_path('storage/' . $grupo->icono) }}" alt="Icono"
+                            style="width:28px; height:28px; border-radius:50%; border:1px solid #ccc; margin-left:6px; flex-shrink: 0;">
+                    @endif
+                </div>
             </td>
             <td style="width:30%;">
                 <span class="info-lbl">Docente</span>
@@ -257,24 +305,24 @@
         </thead>
         <tbody>
             @foreach ($grupo->inscripciones->sortBy(fn($i) => $i->alumno->ap_paterno) as $index => $ins)
-            <tr>
-                <td class="num-td">{{ $index + 1 }}</td>
-                <td style="text-align:center;font-family:monospace;font-size:10px;color:#4a5568;">
-                    {{ $ins->alumno->matricula ?? '—' }}
-                </td>
-                <td style="font-weight:bold;text-transform:uppercase;">
-                    {{ $ins->alumno->ap_paterno }} {{ $ins->alumno->ap_materno }},
-                    {{ $ins->alumno->nombre }}
-                </td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-                <td class="check-td"></td>
-            </tr>
+                <tr>
+                    <td class="num-td">{{ $index + 1 }}</td>
+                    <td style="text-align:center;font-family:monospace;font-size:10px;color:#4a5568;">
+                        {{ $ins->alumno->matricula ?? '—' }}
+                    </td>
+                    <td style="font-weight:bold;text-transform:uppercase;">
+                        {{ $ins->alumno->ap_paterno }} {{ $ins->alumno->ap_materno }},
+                        {{ $ins->alumno->nombre }}
+                    </td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                    <td class="check-td"></td>
+                </tr>
             @endforeach
         </tbody>
     </table>
@@ -296,8 +344,10 @@
 
     {{-- ── Pie de página ── --}}
     <div class="pie">
-        Documento interno &mdash; {{ $nombreEscuela }} &mdash; Este documento no tiene validez oficial fuera de la institución.
+        Documento interno &mdash; {{ $nombreEscuela }} &mdash; Este documento no tiene validez oficial fuera de la
+        institución.
     </div>
 
 </body>
+
 </html>

@@ -254,37 +254,51 @@
                     @csrf
                     <div class="box-header-flat">
                         <h3 class="box-title-flat"><i class="fa fa-users"></i> Alumnos del Grupo</h3>
-                        <div class="box-tools" style="display: flex; gap: 8px; align-items: center;">
+                        <div class="box-tools" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 
                             {{-- BOTÓN 1: PROMOCIÓN --}}
-                            <button type="button" id="btn-trigger-promocion" disabled
-                                style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                            <button type="button" id="btn-trigger-promocion" disabled class="btn btn-default btn-sm"
+                                style="cursor: not-allowed; opacity: 0.7;">
                                 <i class="fa fa-arrow-circle-up"></i> Promocionar / Reinscribir
                             </button>
 
-                            {{-- BOTÓN 2: EGRESO (Dinámico) --}}
+                            {{-- BOTÓN 2: EGRESO --}}
                             @php
                                 $esGradoFinal =
-                                    $grupo->grado->nivel->nombre == 'Preparatoria' && $grupo->grado->nombre == '6';
+                                    $grupo->grado->nivel->nombre == 'Preparatoria' && $grupo->grado->numero == 6;
                             @endphp
 
                             @if ($esGradoFinal)
-                                <button type="button" id="btn-trigger-modal-egreso" disabled
-                                    style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                                <button type="button" id="btn-trigger-modal-egreso" disabled class="btn btn-default btn-sm"
+                                    style="cursor: not-allowed; opacity: 0.7;">
                                     <i class="fa fa-graduation-cap"></i> Egresar (Fin)
                                 </button>
                             @endif
 
-                            <a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"
-                                class="btn-flat-sm btn-flat-danger"><i class="fa fa-file-pdf-o"></i> Reporte (Activos)</a>
+                            {{-- BOTÓN 3: DROPDOWN (Estilizado para coincidir) --}}
+                            <div class="dropdown">
+                                <button class="btn btn-default btn-sm dropdown-toggle" type="button"
+                                    data-toggle="dropdown">
+                                    <i class="fa fa-print"></i>
+                                    Formatos impresos (Grupales) <i class="fa fa-caret-down"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 4px; margin-top: 5px;">
+                                    <li class="dropdown-header">Opciones de reporte</li>
+                                    <li><a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-file-pdf-o text-danger"></i> Reporte (Activos)</a></li>
+                                    <li><a href="{{ route('grupos.reporte-pagos', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-money text-success"></i> Reporte de Pagos</a></li>
+                                    <li><a href="{{ route('grupos.reporte-medico', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-heartbeat text-danger"></i> Expediente Médico</a></li>
 
-                            <a href="{{ route('grupos.reporte-pagos', $grupo->id) }}" target="_blank"
-                                class="btn-flat-sm btn-flat-success"><i class="fa fa-money"></i> Reporte de Pagos</a>
-
-                            <a href="{{ route('grupos.reporte-medico', $grupo->id) }}" target="_blank" class="btn-flat-sm"
-                                style="background:#fdecea;color:#c0392b;border:1px solid #f5b7b1;">
-                                <i class="fa fa-heartbeat"></i> Expediente Médico
-                            </a>
+                                    {{-- CORRECCIÓN AQUÍ: Eliminamos el li vacío y cerramos el li correctamente --}}
+                                    <li>
+                                        <a href="{{ route('grupos.album-fotografico', $grupo->id) }}" target="_blank">
+                                            <i class="fa fa-history text-muted"></i> Álbum fotográfico de Alumnos
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                     <div class="box-body-flat" style="padding: 0;">
