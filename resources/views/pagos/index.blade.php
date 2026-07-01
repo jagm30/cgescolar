@@ -446,6 +446,20 @@
                             </select>
                         </div>
 
+                        <div style="margin-bottom:16px;">
+                            <label for="mf-fecha-emision"
+                                   style="font-size:11px;font-weight:700;color:#4a5568;
+                                          display:block;margin-bottom:4px;">
+                                Fecha del CFDI
+                                <span style="font-weight:400;color:#8a9ab0;">(máx. 72 h atrás · SAT)</span>
+                            </label>
+                            <input type="datetime-local" id="mf-fecha-emision" name="fecha_emision"
+                                   class="form-control input-sm" style="border-radius:5px;">
+                            <span style="font-size:10px;color:#8a9ab0;margin-top:3px;display:block;">
+                                Regla 2.7.1.44 RMF — la fecha no puede exceder 72 horas antes del timbrado.
+                            </span>
+                        </div>
+
                         <div id="mf-error"
                              style="display:none;background:#fdecea;color:#b91c1c;
                                     padding:9px 12px;border-radius:6px;font-size:12px;
@@ -899,8 +913,21 @@
     var emitirBase     = '{{ route('cfdis.emitir', '__ID__') }}';
     var formFacturaBase = '{{ route('pagos.form-factura', '__ID__') }}';
 
+    function toLocalDatetimeValue(date) {
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) +
+               'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    }
+
     $(document).on('click', '.btn-facturar', function () {
         var pagoId = $(this).data('pago-id');
+        var ahora  = new Date();
+        var minimo = new Date(ahora.getTime() - 72 * 60 * 60 * 1000);
+
+        $('#mf-fecha-emision')
+            .attr('min', toLocalDatetimeValue(minimo))
+            .attr('max', toLocalDatetimeValue(ahora))
+            .val(toLocalDatetimeValue(ahora));
 
         $('#mf-loading').show();
         $('#mf-content').hide();

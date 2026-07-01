@@ -82,6 +82,7 @@ class CfdiController extends Controller
         $request->validate([
             'razon_social_id' => ['nullable', 'exists:razon_social_contacto,id'],
             'uso_cfdi'        => ['required', 'string', 'max:10'],
+            'fecha_emision'   => ['nullable', 'date', 'before_or_equal:now', 'after:' . now()->subHours(72)->toDateTimeString()],
         ]);
 
         $pago = Pago::with([
@@ -116,10 +117,14 @@ class CfdiController extends Controller
             ? $this->receptorDesdeRazonSocial(RazonSocialContacto::with('contacto')->findOrFail($razonSocialId), $factura)
             : $this->receptorPublicoGeneral($config, $factura);
 
+        $fechaEmision = $request->filled('fecha_emision')
+            ? Carbon::parse($request->fecha_emision, config('app.timezone'))
+            : now();
+
         try {
-            $resultado = DB::transaction(function () use ($pago, $config, $receptor, $request, $razonSocialId, $factura): array {
+            $resultado = DB::transaction(function () use ($pago, $config, $receptor, $request, $razonSocialId, $factura, $fechaEmision): array {
                 $folio   = $config->siguienteFolio();
-                $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi, $razonSocialId === null);
+                $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi, $razonSocialId === null, $fechaEmision);
 
                 $respuesta = $factura->emitir($payload);
 
@@ -131,7 +136,7 @@ class CfdiController extends Controller
                     'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
                     'factura_uid'      => $respuesta['UID'] ?? null,
                     'folio'            => $folio,
-                    'fecha_timbrado'   => now(),
+                    'fecha_timbrado'   => $fechaEmision,
                     'estado'           => 'vigente',
                 ]);
 
@@ -525,7 +530,9 @@ class CfdiController extends Controller
         string       $folio,
         string       $usoCfdi,
         bool         $esPublicoGeneral = false,
+        ?Carbon      $fechaEmision = null,
     ): array {
+        $fechaEmision ??= now();
         $conceptos = $pago->detalles->map(function ($detalle) {
             $alumno      = $detalle->cargo?->inscripcion?->alumno;
             $descripcion = $detalle->cargo?->etiqueta ?? 'Servicio educativo';
@@ -549,6 +556,7 @@ class CfdiController extends Controller
             'TipoDocumento'   => 'factura',
             'Serie'           => $config->serie_id ?? $config->serie,
             'Folio'           => (string) $config->folio_actual,
+            'Fecha'           => $fechaEmision->format('Y-m-d\TH:i:s'),
             'UsoCFDI'         => $usoCfdi,
             'FormaPago'       => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
             'MetodoPago'      => 'PUE',
@@ -562,9 +570,9 @@ class CfdiController extends Controller
 
         if ($esPublicoGeneral) {
             $payload['InformacionGlobal'] = [
-                'Periodicidad' => '04',                // Mensual
-                'Meses'        => now()->format('m'),  // Mes actual (01–12)
-                'Año'          => (string) now()->year,
+                'Periodicidad' => '04',
+                'Meses'        => $fechaEmision->format('m'),  // Mes de la fecha del CFDI (SAT valida coherencia)
+                'Año'          => (string) $fechaEmision->year,
             ];
         }
 
