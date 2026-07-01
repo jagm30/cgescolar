@@ -123,6 +123,11 @@
             color: #d97706;
         }
 
+        .rol-admisiones {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
         /* Nuevos Estilos para el Estado (Cápsula Ovalada) */
         .badge-status {
             padding: 5px 12px;
@@ -300,6 +305,7 @@
                             Administrador</option>
                         <option value="caja" {{ request('rol') == 'caja' ? 'selected' : '' }}>Caja</option>
                         <option value="recepcion" {{ request('rol') == 'recepcion' ? 'selected' : '' }}>Recepción</option>
+                        <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones</option>
                         <option value="padre" {{ request('rol') == 'padre' ? 'selected' : '' }}>Padre de Familia</option>
                     </select>
 
@@ -350,7 +356,7 @@
                                     </td>
                                     <td>
                                         <span
-                                            class="badge-rol {{ $usuario->rol == 'administrador' ? 'rol-admin' : ($usuario->rol == 'it' ? 'rol-it' : 'rol-padre') }}">
+                                            class="badge-rol @if($usuario->rol == 'administrador') rol-admin @elseif($usuario->rol == 'admisiones') rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
                                             {{ $usuario->rol }}
                                         </span>
                                     </td>
@@ -566,6 +572,7 @@
                     <option value="padre">Padre de Familia</option>
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
+                    <option value="admisiones">Admisiones</option>
                     <option value="administrador">Administrador</option>
                 </select>
             </div>
@@ -611,6 +618,7 @@
                     <option value="padre">Padre de Familia</option>
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
+                    <option value="admisiones">Admisiones</option>
                     <option value="administrador">Administrador</option>
                 </select>
             </div>

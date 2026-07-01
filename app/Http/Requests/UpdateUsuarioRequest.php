@@ -22,7 +22,7 @@ class UpdateUsuarioRequest extends FormRequest
             'email'    => ['sometimes', 'required', 'email', 'max:200',
                            Rule::unique('usuario', 'email')->ignore($usuarioId)],
             'password' => ['nullable', 'confirmed', Password::min(8)->letters()->numbers()],
-            'rol'      => ['sometimes', 'required', 'in:administrador,caja,recepcion,padre'],
+            'rol'      => ['sometimes', 'required', 'in:administrador,caja,recepcion,admisiones,padre'],
             'activo'   => ['boolean'],
             'ciclo_seleccionado_id' => ['nullable', 'exists:ciclo_escolar,id'],
         ];
@@ -33,7 +33,7 @@ class UpdateUsuarioRequest extends FormRequest
         return [
             'email.unique'           => 'Ya existe otro usuario con este correo electrónico.',
             'password.confirmed'     => 'La confirmación de contraseña no coincide.',
-            'rol.in'                 => 'El rol debe ser: administrador, caja, recepcion o padre.',
+            'rol.in'                 => 'El rol debe ser: administrador, caja, recepcion, admisiones o padre.',
         ];
     }
 }

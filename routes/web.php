@@ -73,7 +73,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // ── Ciclos ───────────────────────────────────────────
     // IMPORTANTE: rutas con segmento fijo ANTES del resource
     Route::post('/ciclos/{id}/seleccionar', [CicloEscolarController::class, 'seleccionar'])
-        ->middleware('rol:administrador,caja,recepcion')
+        ->middleware('rol:administrador,caja,recepcion,admisiones')
         ->name('ciclos.seleccionar');
     Route::delete('ciclos/{id}/force', [CicloEscolarController::class, 'forceDelete'])
         ->middleware('rol:administrador,caja,recepcion')
@@ -136,9 +136,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja,recepcion')
         ->name('alumnos.estado-cuenta');
 
-    // Caja puede ver el índice y perfil de alumnos (solo lectura)
+    // Caja y admisiones pueden ver el índice y perfil de alumnos (solo lectura)
     Route::get('/alumnos', [AlumnoController::class, 'index'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,admisiones')
         ->name('alumnos.index');
     // Operaciones de escritura — solo admin y recepción
     // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
@@ -147,7 +147,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion')
         ->except(['index', 'show']);
     Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,admisiones')
         ->name('alumnos.show');
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
@@ -345,28 +345,28 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Prospectos ───────────────────────────────────────
     Route::get('/prospectos/metricas', [ProspectoController::class, 'metricas'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.metricas');
 
     Route::post('/prospectos/{id}/etapa', [ProspectoController::class, 'cambiarEtapa'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.etapa');
 
     Route::post('/prospectos/{id}/seguimiento', [ProspectoController::class, 'agregarSeguimiento'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.seguimiento');
 
     Route::post('/prospectos/{id}/documentos', [ProspectoController::class, 'agregarDocumento'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.documentos.store');
 
     Route::get('/prospectos/{id}/documentos/{documentoId}/archivo', [ProspectoController::class, 'descargarDocumento'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.documentos.archivo');
 
     Route::resource('prospectos', ProspectoController::class)
         ->only(['index', 'show', 'create', 'store'])
-        ->middleware('rol:administrador,recepcion');
+        ->middleware('rol:administrador,recepcion,admisiones');
 
     // ── Usuarios ─────────────────────────────────────────
     Route::post('usuarios/generar-masivos', [UsuarioController::class, 'generarUsuariosMasivos'])
