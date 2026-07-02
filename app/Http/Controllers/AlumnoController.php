@@ -238,7 +238,7 @@ class AlumnoController extends Controller
     /** GET /alumnos/{id}/edit */
     public function edit(int $id): View|JsonResponse
     {
-        $alumno = Alumno::with(['familia', 'contactos'])->findOrFail($id);
+        $alumno = Alumno::with(['familia', 'contactos.usuario'])->findOrFail($id);
 
         if (request()->ajax()) {
             return response()->json($alumno);

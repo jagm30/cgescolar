@@ -259,7 +259,7 @@
 
     {{-- ── Aviso de confidencialidad ── --}}
     <div class="confidencial">
-        &#9888; DOCUMENTO CONFIDENCIAL — Uso exclusivo del personal autorizado de la institución. Protegido bajo legislación de datos personales.
+        &#33;&#33; DOCUMENTO CONFIDENCIAL — Uso exclusivo del personal autorizado de la institución. Protegido bajo legislación de datos personales.
     </div>
 
     {{-- ══════════════════════════════════════════════════════
@@ -320,7 +320,7 @@
          SECCIÓN 2 — PADECIMIENTOS, ALERGIAS Y CONDICIONES
     ══════════════════════════════════════════════════════ --}}
     <div class="section-title section-title-red" style="margin-top:16px;">
-        2. Padecimientos, alergias y condiciones médicas
+        2. Padecimientos, alergias, neurodivergencias y condiciones médicas
     </div>
 
     @if ($conCondicion->isEmpty())

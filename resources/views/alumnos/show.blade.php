@@ -1689,6 +1689,7 @@
                                         <option value="alergia_medicamento">Alergia a medicamento</option>
                                         <option value="alergia_ambiental">Alergia ambiental</option>
                                         <option value="discapacidad">Discapacidad</option>
+                                        <option value="neurodivergencia">Neurodivergencia</option>
                                         <option value="otro">Otro</option>
                                     </select>
                                 </div>

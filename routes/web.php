@@ -566,6 +566,14 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/cfdis/{cfdiId}/descargar/{formato}', [PortalPadreController::class, 'descargarCfdi'])->name('cfdis.descargar');
         Route::get('/razones-sociales', [PortalPadreController::class, 'razonesSociales'])->name('razones-sociales');
+        Route::post('/razones-sociales', [PortalPadreController::class, 'storeRazonSocial'])->name('razones-sociales.store');
+        Route::put('/razones-sociales/{id}', [PortalPadreController::class, 'updateRazonSocial'])->name('razones-sociales.update');
+        Route::delete('/razones-sociales/{id}', [PortalPadreController::class, 'destroyRazonSocial'])->name('razones-sociales.destroy');
+        Route::post('/razones-sociales/{id}/principal', [PortalPadreController::class, 'setPrincipalRazonSocial'])->name('razones-sociales.principal');
+        Route::get('/fotos', [PortalPadreController::class, 'fotos'])->name('fotos');
+        Route::post('/fotos/alumno/{alumnoId}', [PortalPadreController::class, 'subirFotoAlumno'])->name('fotos.alumno');
+        Route::post('/fotos/contacto/{contactoId}', [PortalPadreController::class, 'subirFotoContacto'])->name('fotos.contacto');
+        Route::post('/cfdis/emitir/{pagoId}', [PortalPadreController::class, 'emitirCfdi'])->name('cfdis.emitir');
     });
 
 // =======================================================

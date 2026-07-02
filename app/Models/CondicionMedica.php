@@ -39,6 +39,7 @@ class CondicionMedica extends Model
             'alergia_medicamento'  => 'Alergia a medicamento',
             'alergia_ambiental'    => 'Alergia ambiental',
             'discapacidad'         => 'Discapacidad',
+            'neurodivergencia'     => 'Neurodivergencia',
             default                => 'Otro',
         };
     }

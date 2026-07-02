@@ -307,6 +307,14 @@ class FamiliaController extends Controller
             $campos['foto_url'] = $request->file('foto')->store('contactos/fotos', 'public');
         }
 
+        $tieneAcceso = $data['tiene_acceso_portal'] ?? false;
+        $campos['tiene_acceso_portal'] = $tieneAcceso;
+
+        // Si se quita el acceso y el contacto tiene usuario, desactivarlo
+        if (! $tieneAcceso && $contacto->usuario_id) {
+            $contacto->usuario()->update(['activo' => false]);
+        }
+
         $contacto->update($campos);
 
         // Actualizar solo el pivot de ESTE alumno (no el de sus hermanos)
@@ -318,7 +326,7 @@ class FamiliaController extends Controller
                 'orden'               => $data['orden'] ?? null,
                 'autorizado_recoger'  => $data['autorizado_recoger'] ?? false,
                 'es_responsable_pago' => $data['es_responsable_pago'] ?? false,
-                'tiene_acceso_portal' => $data['tiene_acceso_portal'] ?? false,
+                'tiene_acceso_portal' => $tieneAcceso,
             ]);
 
         Auditoria::registrar('contacto_familiar', $contacto->id, 'update', $anterior, $contacto->fresh()->toArray());
