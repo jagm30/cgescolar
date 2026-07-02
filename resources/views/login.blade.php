@@ -139,45 +139,52 @@
             margin-bottom: 20px;
         }
 
+        .logo-kotan-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
         .logo-kotan {
-            width: 150px;
+            width: 80px;
             height: auto;
-            max-width: 45%;
-            /* Evita que crezca más del contenedor */
+            max-width: 100%;
+            opacity: 0.75;
         }
 
         .logo-separator {
             height: 60px;
             width: 2px;
-            background-color: rgba(255, 255, 255, 0.15);
+            background: linear-gradient(to bottom, #E8312A, #C9A227);
             border-radius: 2px;
         }
 
         .logo-genki-wrapper {
             background-color: #ffffff;
-            padding: 10px 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            padding: 14px 20px;
+            border-radius: 14px;
+            border: 2px solid #C9A227;
+            box-shadow: 0 0 0 4px rgba(232, 49, 42, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4);
             max-width: 45%;
-            /* Evita que rompa en celular */
         }
 
         .logo-genki {
-            width: 180px;
+            width: 220px;
             height: auto;
             max-width: 100%;
-            /* Se adapta al envoltorio */
+            display: block;
         }
 
         .login-box-header a.logo-text {
             color: #ffffff !important;
-            font-size: 34px;
-            /* Reducido */
+            font-size: 18px;
             font-weight: 300;
             text-decoration: none;
             display: block;
             line-height: 1;
             font-family: 'Source Sans Pro', sans-serif;
+            opacity: 0.7;
         }
 
         .login-box-header a.logo-text b {
@@ -187,11 +194,11 @@
 
         .school-name {
             display: block;
-            font-size: 13px;
+            font-size: 22px;
             font-weight: 700;
-            color: #8aa4af;
+            color: #ffffff;
             margin-top: 10px;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
             text-transform: uppercase;
         }
 
@@ -255,28 +262,9 @@
         .kotan-footer {
             background-color: #0b3c50;
             color: #8aa4af;
-            padding: 40px 20px 15px 20px;
+            padding: 20px 20px 15px 20px;
             border-top: 5px solid #48c4a1;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-col h4 {
-            color: #ffffff;
-            font-weight: 700;
-            margin-bottom: 12px;
-            font-size: 15px;
-        }
-
-        .footer-col p {
             font-size: 12px;
-            line-height: 1.5;
         }
 
         .footer-wa-btn {
@@ -335,15 +323,15 @@
             }
 
             .logo-kotan {
-                width: 110px;
+                width: 60px;
             }
 
             .logo-genki-wrapper {
-                padding: 8px 10px;
+                padding: 8px 12px;
             }
 
             .logo-genki {
-                width: 130px;
+                width: 160px;
             }
 
             .logo-separator {
@@ -365,7 +353,7 @@
             }
 
             .logo-kotan {
-                width: 130px;
+                width: 70px;
                 max-width: 100%;
             }
 
@@ -392,8 +380,8 @@
                 title="Facebook"><i class="fa fa-facebook-official"></i> Facebook</a>
             <a href="https://www.instagram.com/colegiojaponesgenki/" target="_blank" title="Instagram"><i
                     class="fa fa-instagram"></i> Instagram</a>
-            <a href="https://wa.me/529611364088" target="_blank" class="btn-wa-client"><i class="fa fa-whatsapp"></i>
-                Chat Directo</a>
+            <a href="https://wa.me/529191123147" target="_blank" class="btn-wa-client"><i class="fa fa-whatsapp"></i>
+                919 112 3147</a>
         </div>
     </nav>
 
@@ -404,7 +392,10 @@
             <div class="login-box-header">
                 {{-- NUEVA ESTRUCTURA DE LOGOS RESPONSIVOS --}}
                 <div class="logos-container">
-                    <img src="{{ asset('dist/img/Kotan3.png') }}" alt="Kotan Logo" class="logo-kotan">
+                    <div class="logo-kotan-group">
+                        <img src="{{ asset('dist/img/Kotan3.png') }}" alt="Kotan Logo" class="logo-kotan">
+                        <a href="{{ route('login') }}" class="logo-text"><b>Kotan</b>Escolar</a>
+                    </div>
 
                     <div class="logo-separator"></div>
 
@@ -413,7 +404,6 @@
                     </div>
                 </div>
 
-                <a href="{{ route('login') }}" class="logo-text"><b>Kotan</b>Escolar</a>
                 <span class="school-name">GENKI SCHOOL TUXTLA</span>
             </div>
 
@@ -465,34 +455,11 @@
 
     {{-- FOOTER CORPORATIVO --}}
     <footer class="kotan-footer">
-        <div class="footer-grid">
-            <div class="footer-col">
-                <h4>Acerca de KotanEscolar</h4>
-                <p>Somos la plataforma integral líder en gestión educativa, diseñada para simplificar y optimizar los
-                    procesos administrativos, financieros y académicos de tu institución, integrando la tecnología en el
-                    aprendizaje diario.</p>
-            </div>
-
-            <div class="footer-col">
-                <h4>Nuestra Misión</h4>
-                <p>Brindar herramientas tecnológicas innovadoras y accesibles que faciliten la comunicación y el control
-                    escolar, empoderando a las instituciones, docentes y familias para mejorar la calidad educativa.</p>
-            </div>
-
-            <div class="footer-col">
-                <h4>Nuestra Visión</h4>
-                <p>Ser el estándar de excelencia en software de gestión educativa, impulsando la transformación digital
-                    de las escuelas y creando ecosistemas escolares conectados y eficientes en todo el país.</p>
-            </div>
-
-            <div class="footer-col">
-                <h4>¿Te interesa nuestro sistema?</h4>
-                <p>Para contrataciones, cotizaciones o demostraciones del sistema, comunícate directamente con nuestro
-                    equipo comercial.</p>
-                <a href="https://wa.me/529191123147" target="_blank" class="footer-wa-btn">
-                    <i class="fa fa-whatsapp" style="font-size: 16px;"></i> 919 112 3147
-                </a>
-            </div>
+        <div style="text-align:center;">
+            <p style="margin-bottom:8px;">¿Te interesa nuestro sistema? Comunícate con nuestro equipo comercial.</p>
+            <a href="https://wa.me/529191123147" target="_blank" class="footer-wa-btn">
+                <i class="fa fa-whatsapp" style="font-size: 16px;"></i> 919 112 3147
+            </a>
         </div>
 
         <div class="footer-bottom">

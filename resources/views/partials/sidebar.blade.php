@@ -161,16 +161,33 @@
             @endif
 
             @if (auth()->user()->esPadre())
-                <li class="header">FAMILIA</li>
+                <li class="header">MI PORTAL</li>
 
-                <li
-                    class="{{ request()->routeIs('portal.hijos', 'portal.estado-cuenta', 'portal.historial-pagos') ? 'active' : '' }}">
+                <li class="{{ request()->routeIs('portal.hijos') ? 'active' : '' }}">
                     <a href="{{ route('portal.hijos') }}">
                         <i class="fa fa-users"></i> <span>Mis hijos</span>
                     </a>
                 </li>
 
-                <li class="{{ request()->routeIs('portal.razones-sociales') ? 'active' : '' }}">
+                <li class="{{ request()->routeIs('portal.estado-cuenta') ? 'active' : '' }}">
+                    <a href="{{ route('portal.hijos') }}">
+                        <i class="fa fa-file-text-o"></i> <span>Estados de cuenta</span>
+                    </a>
+                </li>
+
+                <li class="{{ request()->routeIs('portal.historial-pagos') ? 'active' : '' }}">
+                    <a href="{{ route('portal.hijos') }}">
+                        <i class="fa fa-credit-card"></i> <span>Facturación</span>
+                    </a>
+                </li>
+
+                <li class="{{ request()->routeIs('portal.fotos') ? 'active' : '' }}">
+                    <a href="{{ route('portal.fotos') }}">
+                        <i class="fa fa-camera"></i> <span>Fotografías</span>
+                    </a>
+                </li>
+
+                <li class="{{ request()->routeIs('portal.razones-sociales*') ? 'active' : '' }}">
                     <a href="{{ route('portal.razones-sociales') }}">
                         <i class="fa fa-building-o"></i> <span>Datos fiscales</span>
                     </a>
