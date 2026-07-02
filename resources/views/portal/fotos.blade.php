@@ -113,6 +113,7 @@
                     <p class="foto-sub">Matrícula {{ $alumno->matricula }}</p>
 
                     <input type="file" class="foto-input" accept="image/jpeg,image/png,image/webp"
+                           style="display:none;"
                            id="file-alumno-{{ $alumno->id }}"
                            data-tipo="alumno"
                            data-id="{{ $alumno->id }}"
@@ -161,6 +162,7 @@
                     <p class="foto-sub">Contacto familiar</p>
 
                     <input type="file" class="foto-input" accept="image/jpeg,image/png,image/webp"
+                           style="display:none;"
                            id="file-contacto-{{ $contacto->id }}"
                            data-tipo="contacto"
                            data-id="{{ $contacto->id }}"

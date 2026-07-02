@@ -96,24 +96,24 @@
     {{-- Accesos rápidos --}}
     <div class="row" style="margin-top:4px;">
         <div class="col-sm-6">
-            <a href="{{ route('portal.fotos') }}" class="portal-card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;text-decoration:none;color:inherit;">
-                <div class="portal-avatar" style="width:42px;height:42px;font-size:20px;flex-shrink:0;">
+            <a href="{{ route('portal.fotos') }}" class="portal-card" style="display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:inherit;">
+                <div class="portal-avatar" style="flex-shrink:0;">
                     <i class="fa fa-camera"></i>
                 </div>
                 <div>
-                    <div style="font-weight:700;font-size:14px;color:#172b3a;">Fotografías</div>
-                    <div style="font-size:12px;color:#7b8794;">Carga fotos de alumnos y contactos</div>
+                    <div style="font-weight:700;font-size:13px;color:#172b3a;">Fotografías</div>
+                    <div style="font-size:11px;color:#7b8794;">Carga fotos de alumnos y contactos</div>
                 </div>
             </a>
         </div>
         <div class="col-sm-6">
-            <a href="{{ route('portal.razones-sociales') }}" class="portal-card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;text-decoration:none;color:inherit;">
-                <div class="portal-avatar" style="width:42px;height:42px;font-size:20px;flex-shrink:0;">
+            <a href="{{ route('portal.razones-sociales') }}" class="portal-card" style="display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:inherit;">
+                <div class="portal-avatar" style="flex-shrink:0;">
                     <i class="fa fa-building-o"></i>
                 </div>
                 <div>
-                    <div style="font-weight:700;font-size:14px;color:#172b3a;">Datos fiscales</div>
-                    <div style="font-size:12px;color:#7b8794;">Gestiona tus razones sociales</div>
+                    <div style="font-weight:700;font-size:13px;color:#172b3a;">Datos fiscales</div>
+                    <div style="font-size:11px;color:#7b8794;">Gestiona tus razones sociales</div>
                 </div>
             </a>
         </div>
