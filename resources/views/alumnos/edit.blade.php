@@ -811,6 +811,19 @@
                                             {{ $contacto->pivot->tiene_acceso_portal ? 'checked' : '' }}>
                                         Acceso al portal
                                     </label>
+                                    @if($contacto->usuario_id && $contacto->usuario?->activo)
+                                        <span class="label label-success" style="margin-left:6px;font-size:10px;">
+                                            <i class="fa fa-check"></i> Usuario activo
+                                        </span>
+                                    @elseif($contacto->tiene_acceso_portal && !$contacto->usuario_id)
+                                        <span class="label label-warning" style="margin-left:6px;font-size:10px;">
+                                            <i class="fa fa-clock-o"></i> Pendiente de usuario
+                                        </span>
+                                    @elseif($contacto->usuario_id && !$contacto->usuario?->activo)
+                                        <span class="label label-default" style="margin-left:6px;font-size:10px;">
+                                            <i class="fa fa-ban"></i> Usuario deshabilitado
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                             {{-- Datos adicionales del contacto --}}
@@ -1575,6 +1588,7 @@
                     method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify({
+                        alumno_id:           ALUMNO_ID,
                         nombre:              $panel.find('.ctc-nombre').val().trim(),
                         ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
                         ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
