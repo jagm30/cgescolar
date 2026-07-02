@@ -474,6 +474,29 @@ class GrupoController extends Controller
 
         return $pdf->stream("ExpedienteMedico_{$grupo->grado->nivel->nombre}_{$grupo->nombre}.pdf");
     }
+    public function albumFotografico(int $id)
+    {
+        $grupo = Grupo::with([
+            'grado.nivel',
+            'ciclo',
+            'inscripciones' => fn($q) => $q->where('activo', true)->with([
+                'alumno',
+            ]),
+        ])->findOrFail($id);
+
+        if (ob_get_length()) ob_end_clean();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'grupos.reportes.album_fotografico_pdf',
+            compact('grupo')
+        );
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'landscape');
+
+        return $pdf->stream("AlbumFotografico_{$grupo->grado->nivel->nombre}_{$grupo->nombre}.pdf");
+    }
 
     public function migrarEstructura(Request $request)
     {
