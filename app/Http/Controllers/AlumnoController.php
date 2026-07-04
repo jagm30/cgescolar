@@ -245,10 +245,10 @@ class AlumnoController extends Controller
         }
 
         return view('alumnos.edit', [
-            'alumno'        => $alumno,
+            'alumno' => $alumno,
             'inscripciones' => $alumno->inscripciones()->with('ciclo', 'grupo.ciclo', 'grupo.grado.nivel')->get(),
-            'niveles'       => NivelEscolar::activo()->get(),
-            'familias'      => \App\Models\Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']),
+            'niveles' => NivelEscolar::activo()->get(),
+            'familias' => Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']),
         ]);
     }
 
@@ -392,10 +392,10 @@ class AlumnoController extends Controller
             ->where(fn ($q) => $q->whereNull('vigencia_fin')->orWhere('vigencia_fin', '>=', now()))
             ->get();
 
-        $becasPorPlan      = $becas->whereNotNull('plan_id')->keyBy('plan_id');
-        $becasPorConcepto  = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
+        $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
+        $becasPorConcepto = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
         // Becas globales: sin plan ni concepto específico, aplican a todos los cargos del ciclo
-        $becasGlobales     = $becas->filter(fn ($b) => $b->plan_id === null && $b->concepto_id === null);
+        $becasGlobales = $becas->filter(fn ($b) => $b->plan_id === null && $b->concepto_id === null);
 
         $resumen = $this->calcularResumenCargos($cargos, $becasPorPlan, $becasPorConcepto, $becasGlobales);
 
@@ -623,10 +623,10 @@ class AlumnoController extends Controller
         $setting = Setting::first();
 
         $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
-            'alumno'       => $alumno,
-            'base64'       => $this->logoBase64($setting),
-            'setting'      => $setting,
-            'cicloActualId'=> $this->cicloActualId(),
+            'alumno' => $alumno,
+            'base64' => $this->logoBase64($setting),
+            'setting' => $setting,
+            'cicloActualId' => $this->cicloActualId(),
         ]);
 
         $pdf->setOption('isPhpEnabled', true);
@@ -661,14 +661,7 @@ class AlumnoController extends Controller
         $vinculados = [];
 
         foreach ($contactos as $index => $datos) {
-            $contacto = null;
-
-            if (! empty($datos['curp'])) {
-                $contacto = ContactoFamiliar::where('curp', $datos['curp'])->first();
-            }
-            if (! $contacto && ! empty($datos['telefono_celular'])) {
-                $contacto = ContactoFamiliar::where('telefono_celular', $datos['telefono_celular'])->first();
-            }
+            $contacto = $this->buscarContactoExistente($datos, $vinculados);
 
             if ($contacto) {
                 if (! $contacto->familia_id) {
@@ -714,11 +707,40 @@ class AlumnoController extends Controller
                 'orden' => $datos['orden'],
                 'autorizado_recoger' => $datos['autorizado_recoger'] ?? false,
                 'es_responsable_pago' => $datos['es_responsable_pago'] ?? false,
+                'tiene_acceso_portal' => $datos['tiene_acceso_portal'] ?? false,
                 'activo' => true,
             ]);
 
             $vinculados[] = $contacto->id;
         }
+    }
+
+    /**
+     * Busca un contacto ya existente por CURP o teléfono, excluyendo los
+     * contactos ya vinculados en esta misma solicitud. Sin esta exclusión,
+     * dos contactos distintos del mismo formulario que comparten teléfono
+     * (ej. ambos padres con el mismo celular de casa) se fusionarían en un
+     * solo registro y el segundo contacto se perdería.
+     */
+    private function buscarContactoExistente(array $datos, array $idsExcluidos): ?ContactoFamiliar
+    {
+        if (! empty($datos['curp'])) {
+            $contacto = ContactoFamiliar::where('curp', $datos['curp'])
+                ->whereNotIn('id', $idsExcluidos)
+                ->first();
+
+            if ($contacto) {
+                return $contacto;
+            }
+        }
+
+        if (! empty($datos['telefono_celular'])) {
+            return ContactoFamiliar::where('telefono_celular', $datos['telefono_celular'])
+                ->whereNotIn('id', $idsExcluidos)
+                ->first();
+        }
+
+        return null;
     }
 
     /**
@@ -734,17 +756,17 @@ class AlumnoController extends Controller
     ): array {
         $hoyFecha = today();
         $totales = [
-            'total_cargado'      => 0.0,
-            'total_pagado'       => 0.0,
-            'total_condonado'    => 0.0,
-            'total_vencido'      => 0.0,
-            'total_recargos'     => 0.0,
-            'total_descuentos'   => 0.0,
-            'total_becas'        => 0.0,
-            'total_condonaciones'=> 0.0,
-            'total_cargos'       => $cargos->count(),
-            'cargos_pendientes'  => 0,
-            'cargos_vencidos'    => 0,
+            'total_cargado' => 0.0,
+            'total_pagado' => 0.0,
+            'total_condonado' => 0.0,
+            'total_vencido' => 0.0,
+            'total_recargos' => 0.0,
+            'total_descuentos' => 0.0,
+            'total_becas' => 0.0,
+            'total_condonaciones' => 0.0,
+            'total_cargos' => $cargos->count(),
+            'cargos_pendientes' => 0,
+            'cargos_vencidos' => 0,
         ];
 
         foreach ($cargos as $cargo) {
@@ -767,13 +789,13 @@ class AlumnoController extends Controller
                 : 0.0;
 
             // Anotar en el modelo para la vista
-            $cargo->beca_descuento_calc        = $becaDescuento;
-            $cargo->beca_porcentaje            = $becaPorcentaje;
-            $cargo->descuento_calc             = $descuento;
-            $cargo->recargo_calc               = $recargo;
-            $cargo->meses_retraso              = $mesesRetraso;
+            $cargo->beca_descuento_calc = $becaDescuento;
+            $cargo->beca_porcentaje = $becaPorcentaje;
+            $cargo->descuento_calc = $descuento;
+            $cargo->recargo_calc = $recargo;
+            $cargo->meses_retraso = $mesesRetraso;
             $cargo->descuento_condonacion_calc = $condonacionDesc;
-            $cargo->monto_a_pagar_hoy          = max(0, $saldoBase - $becaDescuento - $descuento - $condonacionDesc + $recargo);
+            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento - $condonacionDesc + $recargo);
 
             $totales['total_cargado'] += (float) $cargo->monto_original;
             $totales['total_pagado'] += $abonado;
@@ -783,11 +805,11 @@ class AlumnoController extends Controller
             }
 
             if ($esPendiente) {
-                $totales['total_becas']        += $becaDescuento;
+                $totales['total_becas'] += $becaDescuento;
                 $totales['total_condonaciones'] += $condonacionDesc;
                 if ($vencido) {
-                    $totales['total_vencido']   += $cargo->monto_a_pagar_hoy;
-                    $totales['total_recargos']  += $recargo;
+                    $totales['total_vencido'] += $cargo->monto_a_pagar_hoy;
+                    $totales['total_recargos'] += $recargo;
                     $totales['cargos_vencidos']++;
                 } else {
                     $totales['total_descuentos'] += $descuento;
@@ -834,7 +856,7 @@ class AlumnoController extends Controller
             return [0.0, null];
         }
 
-        $descuento  = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
+        $descuento = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
         $porcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
             ? (float) $becaItem->catalogoBeca->valor
             : null;
