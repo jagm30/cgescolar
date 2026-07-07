@@ -63,7 +63,17 @@ class PersonalController extends Controller
     /** POST /personal */
     public function store(StorePersonalRequest $request)
     {
-        $empleado = $this->service->crear($request->validated());
+        // 1. Extraemos los datos del Request
+        $datos = $request->validated();
+        
+        // 2. Establecemos si tendrá acceso al sistema (va a la cola de pendientes)
+        // Se asume que el checkbox o select en la vista manda 'tiene_acceso_sistema' (1 o 0)
+        $datos['tiene_acceso_sistema'] = $request->boolean('tiene_acceso_sistema');
+        
+        // El usuario_id se deja nulo por defecto (se crea después por el admin)
+
+        // 3. Crear el empleado en la base de datos a través del servicio
+        $empleado = $this->service->crear($datos);
 
         return $this->respuestaExito(
             redirectRoute: 'personal.show',
@@ -92,7 +102,18 @@ class PersonalController extends Controller
     /** PUT /personal/{personal} */
     public function update(UpdatePersonalRequest $request, Personal $personal)
     {
-        $empleado = $this->service->actualizar($personal, $request->validated());
+        $datos = $request->validated();
+        
+        // Capturamos el cambio de acceso
+        $tieneAcceso = $request->boolean('tiene_acceso_sistema');
+        $datos['tiene_acceso_sistema'] = $tieneAcceso;
+
+        // Si le quitan el acceso y tenía usuario, desactivamos al usuario por seguridad
+        if (!$tieneAcceso && $personal->usuario_id) {
+            $personal->usuario()->update(['activo' => false]);
+        }
+
+        $empleado = $this->service->actualizar($personal, $datos);
 
         return $this->respuestaExito(
             redirectRoute: 'personal.show',
@@ -106,6 +127,11 @@ class PersonalController extends Controller
     public function destroy(Personal $personal)
     {
         $nombre = $personal->nombre_completo;
+
+        // Si eliminan al empleado y tenía cuenta, deberíamos considerar qué pasa con el usuario
+        if ($personal->usuario_id) {
+            $personal->usuario()->update(['activo' => false]);
+        }
 
         $this->service->eliminar($personal);
 
