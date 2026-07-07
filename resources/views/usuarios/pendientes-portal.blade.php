@@ -16,6 +16,8 @@
             background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 8px 8px 0 0;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .filter-select {
@@ -23,6 +25,8 @@
             border-radius: 6px;
             border: 1px solid #d2d6de;
             padding: 0 10px;
+            color: #475569;
+            outline: none;
         }
 
         .con-table {
@@ -52,6 +56,15 @@
         .con-badge-familia {
             background: #f1f5f9;
             color: #475569;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .con-badge-personal {
+            background: #e0e7ff;
+            color: #4338ca;
             padding: 4px 10px;
             border-radius: 12px;
             font-size: 11px;
@@ -129,7 +142,6 @@
                     <span
                         style="font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.4;">{{ $mensajeMostrar }}</span>
 
-                    {{-- Botón para descargar el PDF manualmente si hay uno disponible --}}
                     @if ($hayPdf)
                         <div style="margin-top: 12px;">
                             <a href="{{ route('usuarios.credencialesPdf') }}" target="_blank"
@@ -142,15 +154,21 @@
             </div>
         </div>
     @endif
-    {{-- FIN DE LA TARJETA --}}
 
     <div class="row">
         <div class="col-md-9">
             <div class="con-filter-toolbar">
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <h4 style="margin:0; font-weight:800; color:#2c3e50;">
-                        <i class="fa fa-user-plus text-orange"></i> Pendientes de Acceso
+                        <i class="fa fa-user-plus text-orange"></i> Pendientes
                     </h4>
+
+                    {{-- FILTRO POR TIPO --}}
+                    <select id="filtro-tipo" class="filter-select" style="min-width: 180px;">
+                        <option value="todos">Todos los pendientes</option>
+                        <option value="contacto">Solo Padres de Familia</option>
+                        <option value="personal">Solo Personal (Empleados)</option>
+                    </select>
                 </div>
                 <div style="margin-left:auto;">
                     <button id="btn-generar-masivo" class="btn" disabled
@@ -167,28 +185,53 @@
                             <tr>
                                 <th width="40" class="text-center"><input type="checkbox" id="check-all"></th>
                                 <th>Nombre Completo</th>
-                                <th>Familia</th>
+                                <th>Origen / Referencia</th>
                                 <th>Correo Electrónico</th>
+                                <th>Rol en el Sistema</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($pendientes as $p)
-                                <tr data-id="{{ $p->id }}">
-                                    <td class="text-center"><input type="checkbox" class="check-user"
-                                            value="{{ $p->id }}"></td>
-                                    <td><b style="color: #2c3e50;">{{ $p->nombre }} {{ $p->ap_paterno }}
-                                            {{ $p->ap_materno }}</b></td>
-                                    <td><span
-                                            class="con-badge-familia">{{ $p->familia->apellido_familia ?? 'Sin Familia' }}</span>
+                            @forelse ($pendientes as $p)
+                                <tr class="row-pendiente" data-id="{{ $p->id }}" data-tipo="{{ $p->tipo }}">
+                                    <td class="text-center">
+                                        <input type="checkbox" class="check-user" value="{{ $p->id }}">
+                                    </td>
+                                    <td><b style="color: #2c3e50;">{{ $p->nombre_completo }}</b></td>
+                                    <td>
+                                        <span
+                                            class="{{ $p->tipo === 'personal' ? 'con-badge-personal' : 'con-badge-familia' }}">
+                                            {{ $p->referencia }}
+                                        </span>
                                     </td>
                                     <td style="font-family:monospace; color: #64748b;">{{ $p->email }}</td>
+                                    <td>
+                                        @if ($p->tipo === 'contacto')
+                                            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Padre de
+                                                Familia</span>
+                                        @else
+                                            <select class="form-control select-rol"
+                                                style="height: 30px; font-size: 12px; padding: 2px 10px;">
+                                                <option value="recepcion">Recepción</option>
+                                                <option value="caja">Caja</option>
+                                                <option value="admisiones">Admisiones</option>
+                                                <option value="administrador">Administrador</option>
+                                            </select>
+                                        @endif
+                                    </td>
                                     <td class="text-center">
-                                        <button class="btn-action-flat btn-individual" title="Generar Alta"><i
-                                                class="fa fa-flash text-orange"></i></button>
+                                        <button class="btn-action-flat btn-individual" title="Generar Alta">
+                                            <i class="fa fa-flash text-orange"></i>
+                                        </button>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center" style="padding: 30px; color: #94a3b8;">
+                                        No hay usuarios pendientes de creación.
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -203,6 +246,8 @@
                 <div style="padding:15px; font-size:12px; color:#64748b;">
                     <p>Al procesar los usuarios, se enviará un correo electrónico con sus datos de ingreso y podrás
                         descargar un <b>archivo PDF</b> con las credenciales.</p>
+                    <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Para el
+                        personal administrativo, asegúrate de seleccionar el rol correcto antes de procesar su alta.</p>
                 </div>
             </div>
         </div>
@@ -212,64 +257,91 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Lógica para habilitar el botón
+            // Filtrado Dinámico
+            $('#filtro-tipo').on('change', function() {
+                let tipo = $(this).val();
+                if (tipo === 'todos') {
+                    $('.row-pendiente').show();
+                } else {
+                    $('.row-pendiente').hide();
+                    $('.row-pendiente[data-tipo="' + tipo + '"]').show();
+                }
+                $('.check-user').prop('checked', false);
+                $('#check-all').prop('checked', false);
+                actualizarBotonMasivo();
+            });
+
+            // Lógica de Checkboxes
             $(document).on('change', '.check-user, #check-all', function() {
                 if ($(this).attr('id') === 'check-all') {
-                    $('.check-user').prop('checked', $(this).prop('checked'));
+                    $('.row-pendiente:visible .check-user').prop('checked', $(this).prop('checked'));
                 }
+                actualizarBotonMasivo();
+            });
 
+            function actualizarBotonMasivo() {
                 let seleccionados = $('.check-user:checked').length;
                 $('#count-select').text(seleccionados);
-
-                if (seleccionados > 0) {
-                    $('#btn-generar-masivo').prop('disabled', false);
-                } else {
-                    $('#btn-generar-masivo').prop('disabled', true);
-                }
-            });
+                $('#btn-generar-masivo').prop('disabled', seleccionados === 0);
+            }
 
             // Disparadores
             $('#btn-generar-masivo').on('click', function() {
-                let ids = $('.check-user:checked').map(function() {
-                    return $(this).val();
-                }).get();
-                procesarPeticion(ids);
+                recolectarYEnviar($('.check-user:checked').closest('tr'));
             });
 
             $(document).on('click', '.btn-individual', function() {
-                let id = $(this).closest('tr').data('id');
-                procesarPeticion([id]);
+                recolectarYEnviar($(this).closest('tr'));
             });
-        });
 
-        // Función AJAX Limpia
-        function procesarPeticion(ids) {
-            if (!confirm("¿Generar cuenta para " + ids.length + " contactos?")) return;
+            // Lógica recolectora unificada (Apunta a la ruta original)
+            function recolectarYEnviar(filasDOM) {
+                let contactos = [];
+                let personal = [];
 
-            fetch("{{ route('usuarios.generarMasivos') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        contacto_ids: ids
-                    })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.status === 'success') {
-                        location.reload(); // Recarga instantánea y limpia
-                    } else {
-                        alert("Hubo un problema: " + res.mensaje);
+                filasDOM.each(function() {
+                    let tipo = $(this).data('tipo');
+                    let id = $(this).data('id');
+
+                    if (tipo === 'contacto') {
+                        contactos.push(id);
+                    } else if (tipo === 'personal') {
+                        let rol = $(this).find('.select-rol').val();
+                        personal.push({
+                            id: id,
+                            rol: rol
+                        });
                     }
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Ocurrió un error en el servidor.');
-                    alert('Ocurrió un error en el servidor.');
                 });
-        }
+
+                let total = contactos.length + personal.length;
+                if (!confirm("¿Generar cuenta y enviar credenciales para " + total + " usuarios?")) return;
+
+                fetch("{{ route('usuarios.generarMasivos') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contacto_ids: contactos,
+                            personal_datos: personal
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert("Hubo un problema: " + res.mensaje);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Ocurrió un error en el servidor. Verifica tu conexión o contacta a soporte.');
+                    });
+            }
+        });
     </script>
 @endpush

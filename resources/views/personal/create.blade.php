@@ -207,26 +207,9 @@
                                 Dar acceso a KotanEscolar (Crear usuario)
                             </label>
                             <p class="text-muted" style="margin: 5px 0 0 28px; font-size: 12px;">
-                                Al marcar esta opción, el empleado será enviado a la lista de "Pendientes" o podrás
-                                generarle su cuenta inmediatamente seleccionando su rol.
+                                Al marcar esta opción, el empleado será enviado a la lista de "Usuarios Pendientes Portal"
                             </p>
 
-                            <div class="role-selector" id="box-roles">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label><i class="fa fa-shield"></i> Nivel de Permisos (Rol) <small
-                                            class="text-muted">(Opcional, puede asignarse después)</small></label>
-                                    <select name="rol_sistema" id="select-rol" class="form-control">
-                                        <option value="">-- Seleccionar Rol --</option>
-                                        <option value="administrador"
-                                            {{ old('rol_sistema') == 'administrador' ? 'selected' : '' }}>Administrador
-                                        </option>
-                                        <option value="caja" {{ old('rol_sistema') == 'caja' ? 'selected' : '' }}>Caja
-                                        </option>
-                                        <option value="recepcion"
-                                            {{ old('rol_sistema') == 'recepcion' ? 'selected' : '' }}>Recepción</option>
-                                    </select>
-                                </div>
-                            </div>
                         </div>
 
                     </div>{{-- /box-body --}}

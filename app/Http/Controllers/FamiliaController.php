@@ -310,11 +310,53 @@ class FamiliaController extends Controller
         $tieneAcceso = $data['tiene_acceso_portal'] ?? false;
         $campos['tiene_acceso_portal'] = $tieneAcceso;
 
-        // Si se quita el acceso y el contacto tiene usuario, desactivarlo
+        // 1. Si se quita el acceso y el contacto tiene usuario, desactivarlo
         if (! $tieneAcceso && $contacto->usuario_id) {
             $contacto->usuario()->update(['activo' => false]);
         }
 
+        // 2. SINCRONIZACIÓN CON LA TABLA USUARIO
+        if ($contacto->usuario_id) {
+            $usuarioUpdate = [];
+
+            // Regla de seguridad: Si tiene cuenta, no puede dejar el email vacío
+            if (empty($data['email'])) {
+                return response()->json([
+                    'message' => 'No puedes dejar el correo en blanco porque este contacto tiene una cuenta activa en el sistema.',
+                    'errors' => ['email' => ['El correo es obligatorio para mantener el acceso al portal.']]
+                ], 422);
+            }
+
+            // Sincronizar Correo (Verificando que no le pertenezca a alguien más)
+            if ($contacto->email !== $data['email']) {
+                $correoOcupado = Usuario::where('email', $data['email'])
+                    ->where('id', '!=', $contacto->usuario_id)
+                    ->exists();
+
+                if ($correoOcupado) {
+                    return response()->json([
+                        'message' => 'El correo electrónico ya está registrado en otra cuenta del sistema.',
+                        'errors' => ['email' => ['El correo ya está en uso.']]
+                    ], 422);
+                }
+                $usuarioUpdate['email'] = $data['email'];
+            }
+
+            // Sincronizar Nombre (Si corrigieron su nombre, actualizar el perfil)
+            $nuevoNombreCompleto = trim($data['nombre'] . ' ' . ($data['ap_paterno'] ?? ''));
+            $nombreAnterior = trim($contacto->nombre . ' ' . $contacto->ap_paterno);
+            
+            if ($nuevoNombreCompleto !== $nombreAnterior) {
+                $usuarioUpdate['nombre'] = $nuevoNombreCompleto;
+            }
+
+            // Aplicamos los cambios en la tabla usuario si hubo alguno
+            if (!empty($usuarioUpdate)) {
+                $contacto->usuario()->update($usuarioUpdate);
+            }
+        }
+
+        // Ejecutar actualización del contacto
         $contacto->update($campos);
 
         // Actualizar solo el pivot de ESTE alumno (no el de sus hermanos)

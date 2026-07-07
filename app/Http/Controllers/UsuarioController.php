@@ -42,15 +42,42 @@ class UsuarioController extends Controller
     }
 
     /** GET /usuarios/pendientes-portal (PADRES) */
-    public function pendientesPortal()
+    /** GET /usuarios/pendientes-portal (UNIFICADO: Padres + Personal) */
+    public function pendientesPortal(Request $request)
     {
-        $pendientes = ContactoFamiliar::with('familia')
+        // 1. Obtener Padres pendientes
+        $padres = ContactoFamiliar::with('familia')
             ->where('tiene_acceso_portal', true)
             ->whereNull('usuario_id')
-            ->orderBy('familia_id')
-            ->get();
+            ->get()
+            ->map(function($c) {
+                return (object)[
+                    'id'              => $c->id,
+                    'tipo'            => 'contacto',
+                    'nombre_completo' => trim("{$c->nombre} {$c->ap_paterno} {$c->ap_materno}"),
+                    'referencia'      => $c->familia->apellido_familia ?? 'Sin Familia',
+                    'email'           => $c->email,
+                ];
+            });
 
-        if (request()->ajax()) {
+        // 2. Obtener Personal pendiente
+        $empleados = Personal::where('tiene_acceso_sistema', true)
+            ->whereNull('usuario_id')
+            ->get()
+            ->map(function($p) {
+                return (object)[
+                    'id'              => $p->id,
+                    'tipo'            => 'personal',
+                    'nombre_completo' => trim("{$p->nombre} {$p->ap_paterno} {$p->ap_materno}"),
+                    'referencia'      => $p->tipo ?? 'Sin Puesto',
+                    'email'           => $p->email,
+                ];
+            });
+
+        // 3. Unir y ordenar alfabéticamente
+        $pendientes = $padres->concat($empleados)->sortBy('nombre_completo');
+
+        if ($request->ajax()) {
             return response()->json($pendientes);
         }
 
@@ -284,23 +311,26 @@ class UsuarioController extends Controller
     /** POST /usuarios/generar-masivos (PADRES) */
     public function generarUsuariosMasivos(Request $request)
     {
-        $ids = $request->input('contacto_ids'); 
+        // Recibimos los arreglos desde el JavaScript de la vista
+        $contactoIds = $request->input('contacto_ids', []); 
+        $personalDatos = $request->input('personal_datos', []);  
+        
         $usuariosCreados = [];
-
         $enviados = 0;
         $fallidos = 0;
 
-        foreach ($ids as $id) {
-            $contacto = ContactoFamiliar::with('familia')->findOrFail($id);
-            if($contacto->usuario_id) continue;
+        // 1. Procesar Padres de Familia
+        foreach ($contactoIds as $id) {
+            $contacto = ContactoFamiliar::find($id);
+            if (!$contacto || $contacto->usuario_id) continue;
             
-            $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
-            $nombreCompleto = trim($contacto->nombre . ' ' . $contacto->ap_paterno . ' ' . $contacto->ap_materno);
+            $password = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+            $nombre = trim("{$contacto->nombre} {$contacto->ap_paterno}");
 
             $usuario = Usuario::create([
-                'nombre'        => $nombreCompleto,
+                'nombre'        => $nombre,
                 'email'         => $contacto->email,
-                'password_hash' => Hash::make($passwordPlana),
+                'password_hash' => Hash::make($password),
                 'rol'           => 'padre',
                 'activo'        => true,
             ]);
@@ -308,32 +338,56 @@ class UsuarioController extends Controller
 
             try {
                 Mail::to($usuario->email)->send(new CredencialesAccesoMail([
-                    'nombre'   => $nombreCompleto,
-                    'email'    => $usuario->email,
-                    'password' => $passwordPlana,
+                    'nombre'   => $nombre, 
+                    'email'    => $usuario->email, 
+                    'password' => $password, 
                     'rol'      => 'padre'
                 ]));
                 $enviados++;
-            } catch (\Exception $e) {
-                $fallidos++; 
-            }
+            } catch (\Exception $e) { $fallidos++; }
 
-            $usuariosCreados[] = [
-                'nombre'   => $nombreCompleto, 
-                'email'    => $usuario->email,
-                'password' => $passwordPlana,
-                'rol'      => 'padre'
-            ];
+            $usuariosCreados[] = ['nombre' => $nombre, 'email' => $usuario->email, 'password' => $password, 'rol' => 'padre'];
         }
 
-        $mensajeNotificacion = count($usuariosCreados) . " usuarios generados. Correos enviados: {$enviados}. Fallidos: {$fallidos}.";
+        // 2. Procesar Personal (Empleados)
+        foreach ($personalDatos as $empData) {
+            $empleado = Personal::find($empData['id']);
+            if (!$empleado || $empleado->usuario_id) continue;
+            
+            $password = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+            $nombre = trim("{$empleado->nombre} {$empleado->ap_paterno}");
+            $rol = $empData['rol'] ?? 'recepcion'; // Fallback por defecto
+
+            $usuario = Usuario::create([
+                'nombre'        => $nombre,
+                'email'         => $empleado->email,
+                'password_hash' => Hash::make($password),
+                'rol'           => $rol,
+                'activo'        => true,
+            ]);
+            $empleado->update(['usuario_id' => $usuario->id]);
+
+            try {
+                Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                    'nombre'   => $nombre, 
+                    'email'    => $usuario->email, 
+                    'password' => $password, 
+                    'rol'      => $rol
+                ]));
+                $enviados++;
+            } catch (\Exception $e) { $fallidos++; }
+
+            $usuariosCreados[] = ['nombre' => $nombre, 'email' => $usuario->email, 'password' => $password, 'rol' => $rol];
+        }
+
+        $mensaje = count($usuariosCreados) . " cuentas generadas. Correos: {$enviados} enviados, {$fallidos} fallidos.";
         
         session()->flash('credenciales_nuevas', $usuariosCreados);
-        session()->put('mensaje_persistente', $mensajeNotificacion);
+        session()->put('mensaje_persistente', $mensaje);
 
         return response()->json([
             'status' => 'success',
-            'mensaje' => $mensajeNotificacion
+            'mensaje' => $mensaje
         ]);
     }
 
