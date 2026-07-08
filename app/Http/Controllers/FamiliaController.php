@@ -319,7 +319,6 @@ class FamiliaController extends Controller
         if ($contacto->usuario_id) {
             $usuarioUpdate = [];
 
-            // Regla de seguridad: Si tiene cuenta, no puede dejar el email vacío
             if (empty($data['email'])) {
                 return response()->json([
                     'message' => 'No puedes dejar el correo en blanco porque este contacto tiene una cuenta activa en el sistema.',
@@ -327,7 +326,7 @@ class FamiliaController extends Controller
                 ], 422);
             }
 
-            // Sincronizar Correo (Verificando que no le pertenezca a alguien más)
+            // Detectar si cambió el correo
             if ($contacto->email !== $data['email']) {
                 $correoOcupado = Usuario::where('email', $data['email'])
                     ->where('id', '!=', $contacto->usuario_id)
@@ -339,10 +338,29 @@ class FamiliaController extends Controller
                         'errors' => ['email' => ['El correo ya está en uso.']]
                     ], 422);
                 }
+                
                 $usuarioUpdate['email'] = $data['email'];
+
+                // ── NUEVA LÓGICA: NOTIFICAR A LOS ADMINISTRADORES ──
+                $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+                
+                if ($admins->isNotEmpty()) {
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($admins)->send(
+                            new \App\Mail\AlertaCambioCorreoMail(
+                                trim($contacto->nombre . ' ' . $contacto->ap_paterno),
+                                $contacto->email,
+                                $data['email'],
+                                auth()->user()->nombre,
+                                'Padre de Familia'// El usuario (ej. control escolar) que está haciendo la edición
+                            )
+                        );
+                    } catch (\Exception $e) {
+                        // Falla silenciosa: si falla el correo (ej. sin internet), el sistema guarda los datos normalmente
+                    }
+                }
             }
 
-            // Sincronizar Nombre (Si corrigieron su nombre, actualizar el perfil)
             $nuevoNombreCompleto = trim($data['nombre'] . ' ' . ($data['ap_paterno'] ?? ''));
             $nombreAnterior = trim($contacto->nombre . ' ' . $contacto->ap_paterno);
             
@@ -350,7 +368,6 @@ class FamiliaController extends Controller
                 $usuarioUpdate['nombre'] = $nuevoNombreCompleto;
             }
 
-            // Aplicamos los cambios en la tabla usuario si hubo alguno
             if (!empty($usuarioUpdate)) {
                 $contacto->usuario()->update($usuarioUpdate);
             }

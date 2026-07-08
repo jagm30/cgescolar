@@ -9,11 +9,49 @@
     <li class="active">Editar</li>
 @endsection
 
+@push('styles')
+    <style>
+        .access-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .checkbox-custom {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            margin: 0;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .checkbox-custom input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .role-selector {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #cbd5e1;
+            display: none;
+            /* Oculto por defecto */
+        }
+    </style>
+@endpush
+
 @section('content')
 
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
-            <div class="box box-warning" style="border-radius:8px;border:1px solid #e0e7ef;box-shadow:0 2px 10px rgba(0,0,0,.05);">
+            <div class="box box-warning"
+                style="border-radius:8px;border:1px solid #e0e7ef;box-shadow:0 2px 10px rgba(0,0,0,.05);">
                 <div class="box-header with-border">
                     <h3 class="box-title"><i class="fa fa-pencil"></i> Editar empleado</h3>
                 </div>
@@ -39,10 +77,11 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('numero_empleado') ? 'has-error' : '' }}">
-                                    <label><i class="fa fa-hashtag"></i> Número de empleado <span class="text-danger">*</span></label>
+                                    <label><i class="fa fa-hashtag"></i> Número de empleado <span
+                                            class="text-danger">*</span></label>
                                     <input type="text" name="numero_empleado" class="form-control"
-                                           value="{{ old('numero_empleado', $empleado->numero_empleado) }}"
-                                           maxlength="20" required>
+                                        value="{{ old('numero_empleado', $empleado->numero_empleado) }}" maxlength="20"
+                                        required>
                                     @error('numero_empleado')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -50,7 +89,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('tipo') ? 'has-error' : '' }}">
-                                    <label><i class="fa fa-briefcase"></i> Tipo de personal <span class="text-danger">*</span></label>
+                                    <label><i class="fa fa-briefcase"></i> Tipo de personal <span
+                                            class="text-danger">*</span></label>
                                     <select name="tipo" class="form-control" required>
                                         <option value="">Seleccionar tipo…</option>
                                         @foreach ($tipos as $tipo)
@@ -73,7 +113,7 @@
                                 <div class="form-group {{ $errors->has('nombre') ? 'has-error' : '' }}">
                                     <label><i class="fa fa-user"></i> Nombre(s) <span class="text-danger">*</span></label>
                                     <input type="text" name="nombre" class="form-control"
-                                           value="{{ old('nombre', $empleado->nombre) }}" maxlength="100" required>
+                                        value="{{ old('nombre', $empleado->nombre) }}" maxlength="100" required>
                                     @error('nombre')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -83,7 +123,7 @@
                                 <div class="form-group {{ $errors->has('ap_paterno') ? 'has-error' : '' }}">
                                     <label>Apellido paterno <span class="text-danger">*</span></label>
                                     <input type="text" name="ap_paterno" class="form-control"
-                                           value="{{ old('ap_paterno', $empleado->ap_paterno) }}" maxlength="100" required>
+                                        value="{{ old('ap_paterno', $empleado->ap_paterno) }}" maxlength="100" required>
                                     @error('ap_paterno')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -93,7 +133,7 @@
                                 <div class="form-group {{ $errors->has('ap_materno') ? 'has-error' : '' }}">
                                     <label>Apellido materno</label>
                                     <input type="text" name="ap_materno" class="form-control"
-                                           value="{{ old('ap_materno', $empleado->ap_materno) }}" maxlength="100">
+                                        value="{{ old('ap_materno', $empleado->ap_materno) }}" maxlength="100">
                                     @error('ap_materno')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -107,7 +147,7 @@
                                 <div class="form-group {{ $errors->has('telefono') ? 'has-error' : '' }}">
                                     <label><i class="fa fa-phone"></i> Teléfono <span class="text-danger">*</span></label>
                                     <input type="text" name="telefono" class="form-control"
-                                           value="{{ old('telefono', $empleado->telefono) }}" maxlength="20" required>
+                                        value="{{ old('telefono', $empleado->telefono) }}" maxlength="20" required>
                                     @error('telefono')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -115,9 +155,10 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('email') ? 'has-error' : '' }}">
-                                    <label><i class="fa fa-envelope-o"></i> Correo electrónico <span class="text-danger">*</span></label>
+                                    <label><i class="fa fa-envelope-o"></i> Correo electrónico <span
+                                            class="text-danger">*</span></label>
                                     <input type="email" name="email" class="form-control"
-                                           value="{{ old('email', $empleado->email) }}" maxlength="150" required>
+                                        value="{{ old('email', $empleado->email) }}" maxlength="150" required>
                                     @error('email')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -129,10 +170,11 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('rfc') ? 'has-error' : '' }}">
-                                    <label><i class="fa fa-id-card-o"></i> RFC <small class="text-muted">(opcional, 13 caracteres)</small></label>
+                                    <label><i class="fa fa-id-card-o"></i> RFC <small class="text-muted">(opcional, 13
+                                            caracteres)</small></label>
                                     <input type="text" name="rfc" class="form-control"
-                                           value="{{ old('rfc', $empleado->rfc) }}" maxlength="13"
-                                           style="text-transform:uppercase;">
+                                        value="{{ old('rfc', $empleado->rfc) }}" maxlength="13"
+                                        style="text-transform:uppercase;">
                                     @error('rfc')
                                         <span class="help-block">{{ $message }}</span>
                                     @enderror
@@ -154,15 +196,31 @@
                             <label><i class="fa fa-camera"></i> Foto</label>
                             @if ($empleado->foto_url)
                                 <div style="margin-bottom:8px;">
-                                    <img src="{{ asset('storage/' . $empleado->foto_url) }}"
-                                         alt="Foto actual" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #d0dbe6;">
-                                    <small class="text-muted" style="margin-left:8px;">Foto actual — sube una nueva para reemplazarla.</small>
+                                    <img src="{{ asset('storage/' . $empleado->foto_url) }}" alt="Foto actual"
+                                        style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #d0dbe6;">
+                                    <small class="text-muted" style="margin-left:8px;">Foto actual — sube una nueva para
+                                        reemplazarla.</small>
                                 </div>
                             @endif
                             <input type="file" name="foto" accept="image/jpeg,image/png,image/webp">
                             @error('foto')
                                 <span class="help-block">{{ $message }}</span>
                             @enderror
+                        </div>
+
+                        {{-- ── SECCIÓN: ACCESO AL SISTEMA ── --}}
+                        <div class="access-box">
+                            <label class="checkbox-custom">
+                                <input type="checkbox" name="tiene_acceso_sistema" id="chk-acceso" value="1"
+                                    {{ old('tiene_acceso_sistema', $empleado->tiene_acceso_sistema) ? 'checked' : '' }}>
+                                Dar acceso a KotanEscolar (Usuario del sistema)
+                            </label>
+                            <p class="text-muted" style="margin: 5px 0 0 28px; font-size: 12px;">
+                                Si desmarcas esta opción, el empleado perderá inmediatamente el acceso al sistema (su
+                                usuario se desactivará).
+                            </p>
+
+
                         </div>
 
                     </div>{{-- /box-body --}}
@@ -184,8 +242,34 @@
 
 @push('scripts')
     <script>
-        document.querySelector('input[name="rfc"]')?.addEventListener('input', function () {
+        // Convertir RFC a mayúsculas
+        document.querySelector('input[name="rfc"]')?.addEventListener('input', function() {
             this.value = this.value.toUpperCase();
+        });
+
+        // Lógica para mostrar/ocultar el selector de roles
+        document.addEventListener('DOMContentLoaded', function() {
+            const chkAcceso = document.getElementById('chk-acceso');
+            const boxRoles = document.getElementById('box-roles');
+            const selectRol = document.getElementById('select-rol');
+
+            function toggleRoles() {
+                if (chkAcceso.checked) {
+                    boxRoles.style.display = 'block';
+                } else {
+                    boxRoles.style.display = 'none';
+                    // Si no tiene usuario creado, limpiamos el select al desmarcar
+                    if (!selectRol.disabled) {
+                        selectRol.value = '';
+                    }
+                }
+            }
+
+            // Ejecutar al cargar (validar estado inicial de la BD o por error de validación)
+            toggleRoles();
+
+            // Escuchar cambios
+            chkAcceso.addEventListener('change', toggleRoles);
         });
     </script>
 @endpush
