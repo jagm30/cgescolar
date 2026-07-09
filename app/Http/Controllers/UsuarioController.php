@@ -6,6 +6,7 @@ use App\Http\Requests\StoreUsuarioRequest;
 use App\Http\Requests\UpdateUsuarioRequest;
 use App\Models\Auditoria;
 use App\Models\ContactoFamiliar;
+use App\Models\Personal; // <-- NUEVO: Importamos el modelo Personal
 use App\Models\Usuario;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\Hash;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\CredencialesAccesoMail;
-
 
 class UsuarioController extends Controller
 {
@@ -41,20 +41,62 @@ class UsuarioController extends Controller
         return view('usuarios.index', compact('usuarios'));
     }
 
-    /** GET /usuarios/pendientes-portal */
-    public function pendientesPortal()
+    /** GET /usuarios/pendientes-portal (PADRES) */
+    /** GET /usuarios/pendientes-portal (UNIFICADO: Padres + Personal) */
+    public function pendientesPortal(Request $request)
     {
-        $pendientes = ContactoFamiliar::with('familia')
+        // 1. Obtener Padres pendientes
+        $padres = ContactoFamiliar::with('familia')
             ->where('tiene_acceso_portal', true)
             ->whereNull('usuario_id')
-            ->orderBy('familia_id')
+            ->get()
+            ->map(function($c) {
+                return (object)[
+                    'id'              => $c->id,
+                    'tipo'            => 'contacto',
+                    'nombre_completo' => trim("{$c->nombre} {$c->ap_paterno} {$c->ap_materno}"),
+                    'referencia'      => $c->familia->apellido_familia ?? 'Sin Familia',
+                    'email'           => $c->email,
+                ];
+            });
+
+        // 2. Obtener Personal pendiente
+        $empleados = Personal::where('tiene_acceso_sistema', true)
+            ->whereNull('usuario_id')
+            ->get()
+            ->map(function($p) {
+                return (object)[
+                    'id'              => $p->id,
+                    'tipo'            => 'personal',
+                    'nombre_completo' => trim("{$p->nombre} {$p->ap_paterno} {$p->ap_materno}"),
+                    'referencia'      => $p->tipo ?? 'Sin Puesto',
+                    'email'           => $p->email,
+                ];
+            });
+
+        // 3. Unir y ordenar alfabéticamente
+        $pendientes = $padres->concat($empleados)->sortBy('nombre_completo');
+
+        if ($request->ajax()) {
+            return response()->json($pendientes);
+        }
+
+        return view('usuarios.pendientes-portal', compact('pendientes'));
+    }
+
+    /** NUEVO: GET /usuarios/pendientes-personal (EMPLEADOS) */
+    public function pendientesPersonal()
+    {
+        $pendientes = Personal::where('tiene_acceso_sistema', true)
+            ->whereNull('usuario_id')
+            ->orderBy('nombre')
             ->get();
 
         if (request()->ajax()) {
             return response()->json($pendientes);
         }
 
-        return view('usuarios.pendientes-portal', compact('pendientes'));
+        return view('usuarios.pendientes-personal', compact('pendientes'));
     }
 
     /** GET /usuarios/create */
@@ -266,26 +308,29 @@ class UsuarioController extends Controller
         );
     }
 
-    /** POST /usuarios/generar-masivos */
+    /** POST /usuarios/generar-masivos (PADRES) */
     public function generarUsuariosMasivos(Request $request)
     {
-        $ids = $request->input('contacto_ids'); 
+        // Recibimos los arreglos desde el JavaScript de la vista
+        $contactoIds = $request->input('contacto_ids', []); 
+        $personalDatos = $request->input('personal_datos', []);  
+        
         $usuariosCreados = [];
-
         $enviados = 0;
         $fallidos = 0;
 
-        foreach ($ids as $id) {
-            $contacto = ContactoFamiliar::with('familia')->findOrFail($id);
-            if($contacto->usuario_id) continue;
+        // 1. Procesar Padres de Familia
+        foreach ($contactoIds as $id) {
+            $contacto = ContactoFamiliar::find($id);
+            if (!$contacto || $contacto->usuario_id) continue;
             
-            $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
-            $nombreCompleto = trim($contacto->nombre . ' ' . $contacto->ap_paterno . ' ' . $contacto->ap_materno);
+            $password = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+            $nombre = trim("{$contacto->nombre} {$contacto->ap_paterno}");
 
             $usuario = Usuario::create([
-                'nombre'        => $nombreCompleto,
+                'nombre'        => $nombre,
                 'email'         => $contacto->email,
-                'password_hash' => Hash::make($passwordPlana),
+                'password_hash' => Hash::make($password),
                 'rol'           => 'padre',
                 'activo'        => true,
             ]);
@@ -293,10 +338,91 @@ class UsuarioController extends Controller
 
             try {
                 Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                    'nombre'   => $nombre, 
+                    'email'    => $usuario->email, 
+                    'password' => $password, 
+                    'rol'      => 'padre'
+                ]));
+                $enviados++;
+            } catch (\Exception $e) { $fallidos++; }
+
+            $usuariosCreados[] = ['nombre' => $nombre, 'email' => $usuario->email, 'password' => $password, 'rol' => 'padre'];
+        }
+
+        // 2. Procesar Personal (Empleados)
+        foreach ($personalDatos as $empData) {
+            $empleado = Personal::find($empData['id']);
+            if (!$empleado || $empleado->usuario_id) continue;
+            
+            $password = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+            $nombre = trim("{$empleado->nombre} {$empleado->ap_paterno}");
+            $rol = $empData['rol'] ?? 'recepcion'; // Fallback por defecto
+
+            $usuario = Usuario::create([
+                'nombre'        => $nombre,
+                'email'         => $empleado->email,
+                'password_hash' => Hash::make($password),
+                'rol'           => $rol,
+                'activo'        => true,
+            ]);
+            $empleado->update(['usuario_id' => $usuario->id]);
+
+            try {
+                Mail::to($usuario->email)->send(new CredencialesAccesoMail([
+                    'nombre'   => $nombre, 
+                    'email'    => $usuario->email, 
+                    'password' => $password, 
+                    'rol'      => $rol
+                ]));
+                $enviados++;
+            } catch (\Exception $e) { $fallidos++; }
+
+            $usuariosCreados[] = ['nombre' => $nombre, 'email' => $usuario->email, 'password' => $password, 'rol' => $rol];
+        }
+
+        $mensaje = count($usuariosCreados) . " cuentas generadas. Correos: {$enviados} enviados, {$fallidos} fallidos.";
+        
+        session()->flash('credenciales_nuevas', $usuariosCreados);
+        session()->put('mensaje_persistente', $mensaje);
+
+        return response()->json([
+            'status' => 'success',
+            'mensaje' => $mensaje
+        ]);
+    }
+
+    /** NUEVO: POST /usuarios/generar-masivos-personal (EMPLEADOS) */
+    public function generarUsuariosMasivosPersonal(Request $request)
+    {
+        $ids = $request->input('personal_ids'); 
+        $rolSeleccionado = $request->input('rol', 'recepcion'); // Por defecto recepción si no indican
+        $usuariosCreados = [];
+
+        $enviados = 0;
+        $fallidos = 0;
+
+        foreach ($ids as $id) {
+            $empleado = Personal::findOrFail($id);
+            if($empleado->usuario_id) continue;
+            
+            $passwordPlana = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
+            $nombreCompleto = trim($empleado->nombre . ' ' . $empleado->ap_paterno . ' ' . $empleado->ap_materno);
+
+            $usuario = Usuario::create([
+                'nombre'        => $nombreCompleto,
+                'email'         => $empleado->email,
+                'password_hash' => Hash::make($passwordPlana),
+                'rol'           => $rolSeleccionado,
+                'activo'        => true,
+            ]);
+            $empleado->update(['usuario_id' => $usuario->id]);
+
+            try {
+                Mail::to($usuario->email)->send(new CredencialesAccesoMail([
                     'nombre'   => $nombreCompleto,
                     'email'    => $usuario->email,
                     'password' => $passwordPlana,
-                    'rol'      => 'padre'
+                    'rol'      => $rolSeleccionado
                 ]));
                 $enviados++;
             } catch (\Exception $e) {
@@ -307,11 +433,11 @@ class UsuarioController extends Controller
                 'nombre'   => $nombreCompleto, 
                 'email'    => $usuario->email,
                 'password' => $passwordPlana,
-                'rol'      => 'padre'
+                'rol'      => $rolSeleccionado
             ];
         }
 
-        $mensajeNotificacion = count($usuariosCreados) . " usuarios generados. Correos enviados: {$enviados}. Fallidos: {$fallidos}.";
+        $mensajeNotificacion = count($usuariosCreados) . " usuarios de personal generados. Correos enviados: {$enviados}. Fallidos: {$fallidos}.";
         
         session()->flash('credenciales_nuevas', $usuariosCreados);
         session()->put('mensaje_persistente', $mensajeNotificacion);
@@ -347,7 +473,7 @@ class UsuarioController extends Controller
         return redirect()->route('usuarios.index')->with('mensaje', "Usuario reactivado con éxito.");
     }
 
-   /** DELETE /usuarios/{id}/forzar-eliminar */
+   /** DELETE /usuarios/{id}/forzar-eliminar - MODIFICADO PARA PROTEGER LA TABLA PERSONAL */
     public function forzarEliminar(int $id)
     {
         try {
@@ -360,10 +486,18 @@ class UsuarioController extends Controller
                 ], 403);
             }
 
+            // 1. Desvincular de Padres de Familia
             ContactoFamiliar::where('usuario_id', $usuario->id)
                 ->update([
                     'usuario_id' => null,
                     'tiene_acceso_portal' => 0 
+                ]);
+
+            // 2. NUEVO: Desvincular de Personal/Empleados
+            Personal::where('usuario_id', $usuario->id)
+                ->update([
+                    'usuario_id' => null,
+                    'tiene_acceso_sistema' => 0 
                 ]);
 
             Auditoria::registrar('usuario', $id, 'delete', $usuario->toArray(), null);

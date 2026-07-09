@@ -10,6 +10,15 @@ return new class extends Migration
     {
         Schema::create('personal', function (Blueprint $table) {
             $table->id();
+            
+            // ── NUEVOS CAMPOS DE ACCESO AL SISTEMA ──
+            $table->boolean('tiene_acceso_sistema')->default(false)
+                  ->comment('El admin define si este empleado tendrá usuario para loguearse');
+            
+            $table->foreignId('usuario_id')->nullable()->constrained('usuario')->nullOnDelete()
+                  ->comment('null hasta que el usuario sea creado. Solo aplica si tiene_acceso_sistema = true');
+
+            // ── DATOS DEL EMPLEADO ──
             $table->string('numero_empleado', 20)->unique();
             $table->string('nombre', 100);
             $table->string('ap_paterno', 100);
@@ -22,6 +31,9 @@ return new class extends Migration
             $table->string('foto_url')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamp('creado_at')->useCurrent();
+
+            // Índice para búsquedas rápidas por usuario
+            $table->index('usuario_id');
         });
     }
 

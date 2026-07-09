@@ -24,7 +24,14 @@ class Personal extends Model
         'domicilio',
         'foto_url',
         'activo',
+        'tiene_acceso_sistema', 
+        'usuario_id',
     ];
+    
+public function usuario()
+    {
+        return $this->belongsTo(Usuario::class, 'usuario_id');
+    }
 
     protected function casts(): array
     {

@@ -310,11 +310,70 @@ class FamiliaController extends Controller
         $tieneAcceso = $data['tiene_acceso_portal'] ?? false;
         $campos['tiene_acceso_portal'] = $tieneAcceso;
 
-        // Si se quita el acceso y el contacto tiene usuario, desactivarlo
+        // 1. Si se quita el acceso y el contacto tiene usuario, desactivarlo
         if (! $tieneAcceso && $contacto->usuario_id) {
             $contacto->usuario()->update(['activo' => false]);
         }
 
+        // 2. SINCRONIZACIÓN CON LA TABLA USUARIO
+        if ($contacto->usuario_id) {
+            $usuarioUpdate = [];
+
+            if (empty($data['email'])) {
+                return response()->json([
+                    'message' => 'No puedes dejar el correo en blanco porque este contacto tiene una cuenta activa en el sistema.',
+                    'errors' => ['email' => ['El correo es obligatorio para mantener el acceso al portal.']]
+                ], 422);
+            }
+
+            // Detectar si cambió el correo
+            if ($contacto->email !== $data['email']) {
+                $correoOcupado = Usuario::where('email', $data['email'])
+                    ->where('id', '!=', $contacto->usuario_id)
+                    ->exists();
+
+                if ($correoOcupado) {
+                    return response()->json([
+                        'message' => 'El correo electrónico ya está registrado en otra cuenta del sistema.',
+                        'errors' => ['email' => ['El correo ya está en uso.']]
+                    ], 422);
+                }
+                
+                $usuarioUpdate['email'] = $data['email'];
+
+                // ── NUEVA LÓGICA: NOTIFICAR A LOS ADMINISTRADORES ──
+                $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+                
+                if ($admins->isNotEmpty()) {
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($admins)->send(
+                            new \App\Mail\AlertaCambioCorreoMail(
+                                trim($contacto->nombre . ' ' . $contacto->ap_paterno),
+                                $contacto->email,
+                                $data['email'],
+                                auth()->user()->nombre,
+                                'Padre de Familia'// El usuario (ej. control escolar) que está haciendo la edición
+                            )
+                        );
+                    } catch (\Exception $e) {
+                        // Falla silenciosa: si falla el correo (ej. sin internet), el sistema guarda los datos normalmente
+                    }
+                }
+            }
+
+            $nuevoNombreCompleto = trim($data['nombre'] . ' ' . ($data['ap_paterno'] ?? ''));
+            $nombreAnterior = trim($contacto->nombre . ' ' . $contacto->ap_paterno);
+            
+            if ($nuevoNombreCompleto !== $nombreAnterior) {
+                $usuarioUpdate['nombre'] = $nuevoNombreCompleto;
+            }
+
+            if (!empty($usuarioUpdate)) {
+                $contacto->usuario()->update($usuarioUpdate);
+            }
+        }
+
+        // Ejecutar actualización del contacto
         $contacto->update($campos);
 
         // Actualizar solo el pivot de ESTE alumno (no el de sus hermanos)
