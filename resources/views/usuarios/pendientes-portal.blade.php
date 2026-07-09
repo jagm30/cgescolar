@@ -215,7 +215,7 @@
                                                 <option value="recepcion">Recepción</option>
                                                 <option value="caja">Caja</option>
                                                 <option value="admisiones">Admisiones</option>
-                                                <option value="administrador">Administrador</option>
+                                                {{-- <option value="administrador">Administrador</option> --}}
                                             </select>
                                         @endif
                                     </td>
