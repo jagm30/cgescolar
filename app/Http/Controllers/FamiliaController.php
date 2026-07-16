@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\AlertaCambioCorreoMail;
+use App\Mail\AlertaModificacionUsuarioMail; // <-- Importamos la alerta de seguridad
 
 class FamiliaController extends Controller
 {
@@ -33,7 +36,7 @@ class FamiliaController extends Controller
             ])
             ->with([
                 'alumnos' => fn ($q) => $q->orderBy('ap_paterno'),
-                'contactos', // se ordena en la vista con sortBy('pivot.orden')
+                'contactos', 
             ])
             ->when($request->filled('q'), fn ($query) => $query->where(fn ($q) => $q
                 ->where('apellido_familia', 'like', "%{$request->q}%")
@@ -81,12 +84,6 @@ class FamiliaController extends Controller
             'contactos.*.curp' => ['nullable', 'string', 'size:18'],
             'contactos.*.telefono_trabajo' => ['nullable', 'string', 'max:20'],
             'contactos.*.tiene_acceso_portal' => ['boolean'],
-        ], [
-            'apellido_familia.required' => 'El nombre de la familia es obligatorio.',
-            'contactos.required' => 'Agrega al menos un contacto familiar.',
-            'contactos.*.nombre.required' => 'El nombre del contacto es obligatorio.',
-            'contactos.*.telefono_celular.required' => 'El teléfono del contacto es obligatorio.',
-            'contactos.*.curp.size' => 'La CURP debe tener exactamente 18 caracteres.',
         ]);
 
         $familia = Familia::create([
@@ -95,11 +92,10 @@ class FamiliaController extends Controller
             'activo' => true,
         ]);
 
-        // contacto_familiar solo almacena datos personales del contacto.
-        // Los datos del pivot (parentesco, tipo, orden, permisos) van en
-        // alumno_contacto y se crean al vincular el contacto a un alumno.
+        $nombresConAcceso = [];
+
         foreach ($data['contactos'] as $ctcData) {
-            ContactoFamiliar::create([
+            $contacto = ContactoFamiliar::create([
                 'familia_id' => $familia->id,
                 'nombre' => $ctcData['nombre'],
                 'ap_paterno' => $ctcData['ap_paterno'] ?? null,
@@ -110,6 +106,28 @@ class FamiliaController extends Controller
                 'curp' => $ctcData['curp'] ?? null,
                 'tiene_acceso_portal' => $ctcData['tiene_acceso_portal'] ?? false,
             ]);
+
+            if ($contacto->tiene_acceso_portal) {
+                $nombresConAcceso[] = trim($contacto->nombre . ' ' . $contacto->ap_paterno);
+            }
+        }
+
+        // ── ALERTA DE NUEVOS ACCESOS DURANTE EL REGISTRO ──
+        if (count($nombresConAcceso) > 0) {
+            $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+            if ($admins->isNotEmpty()) {
+                try {
+                    Mail::to($admins)->send(
+                        new AlertaModificacionUsuarioMail(
+                            implode(", ", $nombresConAcceso),
+                            'Múltiples correos',
+                            'Padres de Familia',
+                            'Se otorgó acceso al portal durante el registro de nueva familia (Enviados a pendientes)',
+                            auth()->user()->nombre
+                        )
+                    );
+                } catch (\Exception $e) {}
+            }
         }
 
         Auditoria::registrar('familia', $familia->id, 'insert', null, $familia->toArray());
@@ -119,10 +137,6 @@ class FamiliaController extends Controller
             ->with('success', "Familia \"{$familia->apellido_familia}\" registrada correctamente.");
     }
 
-    /**
-     * GET /familias/{id}
-     * Con ?_modal=1 devuelve el partial HTML para el modal; si no, la vista completa.
-     */
     public function show(Request $request, int $id): View|Response
     {
         $familia = Familia::with([
@@ -145,35 +159,22 @@ class FamiliaController extends Controller
         if ($request->has('_modal')) {
             try {
                 $html = view('familias._modal', compact('familia'))->render();
-
                 return response($html, 200)->header('Content-Type', 'text/html');
             } catch (\Throwable $e) {
-                return response(
-                    '<div class="alert alert-danger" style="margin:16px;">'.
-                    '<strong>Error:</strong> '.e($e->getMessage()).
-                    '<br><small>'.e($e->getFile()).':'.$e->getLine().'</small>'.
-                    '</div>',
-                    500
-                )->header('Content-Type', 'text/html');
+                return response('<div class="alert alert-danger">Error</div>', 500);
             }
         }
 
         return view('familias.show', compact('familia'));
     }
 
-    /** GET /familias/{id}/edit */
     public function edit(int $id): View|JsonResponse
     {
         $familia = Familia::findOrFail($id);
-
-        if (request()->ajax()) {
-            return response()->json($familia);
-        }
-
+        if (request()->ajax()) return response()->json($familia);
         return view('familias.edit', compact('familia'));
     }
 
-    /** PUT /familias/{id} */
     public function update(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $familia = Familia::findOrFail($id);
@@ -186,30 +187,18 @@ class FamiliaController extends Controller
         ]);
 
         $familia->update($data);
-
         Auditoria::registrar('familia', $familia->id, 'update', $anterior, $familia->fresh()->toArray());
 
         return $this->respuestaExito(
             redirectRoute: 'familias.show',
             jsonData: ['familia' => $familia->fresh()],
-            mensaje: "Familia '{$familia->apellido_familia}' actualizada correctamente."
+            mensaje: "Familia actualizada correctamente."
         );
     }
 
-    // ══════════════════════════════════════════════════════════
-    // GESTIÓN DE CONTACTOS Y ACCESO AL PORTAL
-    // ══════════════════════════════════════════════════════════
-
-    /**
-     * GET /familias/{id}/contactos
-     * Lista contactos con estado de acceso al portal. Solo AJAX.
-     */
     public function contactos(int $id): JsonResponse
     {
-        $contactos = Familia::findOrFail($id)
-            ->contactos()
-            ->with('usuario')
-            ->get()
+        $contactos = Familia::findOrFail($id)->contactos()->with('usuario')->get()
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'nombre_completo' => trim("{$c->nombre} {$c->ap_paterno} {$c->ap_materno}"),
@@ -225,15 +214,9 @@ class FamiliaController extends Controller
         return response()->json($contactos);
     }
 
-    /**
-     * GET /familias/{id}/contactos-enlace
-     * Retorna datos de los contactos para pre-llenar el formulario de creación de alumno.
-     */
     public function contactosParaEnlace(int $id): JsonResponse
     {
-        $contactos = Familia::findOrFail($id)
-            ->contactos()
-            ->get()
+        $contactos = Familia::findOrFail($id)->contactos()->get()
             ->map(fn ($c) => [
                 'nombre' => $c->nombre,
                 'ap_paterno' => $c->ap_paterno ?? '',
@@ -249,7 +232,7 @@ class FamiliaController extends Controller
 
     /**
      * PUT /familias/contactos/{contactoId}
-     * Actualiza datos del contacto y su pivot con el alumno. Solo AJAX.
+     * Actualiza datos del contacto, incluyendo reactivación/desactivación automática
      */
     public function actualizarContacto(Request $request, int $contactoId): JsonResponse
     {
@@ -277,12 +260,6 @@ class FamiliaController extends Controller
             'es_responsable_pago' => ['boolean'],
             'tiene_acceso_portal' => ['boolean'],
             'foto' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
-        ], [
-            'alumno_id.required' => 'El alumno es obligatorio.',
-            'alumno_id.exists'   => 'El alumno no existe.',
-            'nombre.required' => 'El nombre del contacto es obligatorio.',
-            'telefono_celular.required' => 'El teléfono es obligatorio.',
-            'email.email' => 'El formato del correo no es válido.',
         ]);
 
         $campos = [
@@ -301,63 +278,74 @@ class FamiliaController extends Controller
         ];
 
         if ($request->hasFile('foto')) {
-            if ($contacto->foto_url) {
-                Storage::disk('public')->delete($contacto->foto_url);
-            }
+            if ($contacto->foto_url) Storage::disk('public')->delete($contacto->foto_url);
             $campos['foto_url'] = $request->file('foto')->store('contactos/fotos', 'public');
         }
 
+        // ── LÓGICA DE ACCESO AL PORTAL (ACTIVAR/DESACTIVAR AUTOMÁTICO) ──
         $tieneAcceso = $data['tiene_acceso_portal'] ?? false;
         $campos['tiene_acceso_portal'] = $tieneAcceso;
+        
+        $cambioAcceso = false;
+        $mensajeAcceso = '';
 
-        // 1. Si se quita el acceso y el contacto tiene usuario, desactivarlo
-        if (! $tieneAcceso && $contacto->usuario_id) {
-            $contacto->usuario()->update(['activo' => false]);
+        if ($contacto->tiene_acceso_portal !== $tieneAcceso) {
+            $cambioAcceso = true;
+
+            if ($tieneAcceso) {
+                if ($contacto->usuario_id) {
+                    $contacto->usuario()->update(['activo' => true]);
+                    $mensajeAcceso = 'Acceso al portal REACTIVADO ';
+                } else {
+                    $mensajeAcceso = 'Acceso al portal OTORGADO';
+                }
+            } else {
+                if ($contacto->usuario_id) {
+                    $contacto->usuario()->update(['activo' => false]);
+                    $mensajeAcceso = 'Acceso al portal REVOCADO ';
+                } else {
+                    $mensajeAcceso = 'Acceso al portal REVOCADO';
+                }
+            }
         }
 
-        // 2. SINCRONIZACIÓN CON LA TABLA USUARIO
+        // ── SINCRONIZACIÓN CON LA TABLA USUARIO Y CORREOS ──
         if ($contacto->usuario_id) {
             $usuarioUpdate = [];
 
-            if (empty($data['email'])) {
+            if ($tieneAcceso && empty($data['email'])) {
                 return response()->json([
-                    'message' => 'No puedes dejar el correo en blanco porque este contacto tiene una cuenta activa en el sistema.',
-                    'errors' => ['email' => ['El correo es obligatorio para mantener el acceso al portal.']]
+                    'message' => 'No puedes dejar el correo en blanco porque este contacto tiene una cuenta activa.',
+                    'errors' => ['email' => ['El correo es obligatorio para el acceso.']]
                 ], 422);
             }
 
-            // Detectar si cambió el correo
-            if ($contacto->email !== $data['email']) {
+            if (!empty($data['email']) && $contacto->email !== $data['email']) {
                 $correoOcupado = Usuario::where('email', $data['email'])
-                    ->where('id', '!=', $contacto->usuario_id)
-                    ->exists();
+                    ->where('id', '!=', $contacto->usuario_id)->exists();
 
                 if ($correoOcupado) {
                     return response()->json([
-                        'message' => 'El correo electrónico ya está registrado en otra cuenta del sistema.',
+                        'message' => 'El correo electrónico ya está registrado en otra cuenta.',
                         'errors' => ['email' => ['El correo ya está en uso.']]
                     ], 422);
                 }
                 
                 $usuarioUpdate['email'] = $data['email'];
 
-                // ── NUEVA LÓGICA: NOTIFICAR A LOS ADMINISTRADORES ──
                 $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
-                
                 if ($admins->isNotEmpty()) {
                     try {
-                        \Illuminate\Support\Facades\Mail::to($admins)->send(
-                            new \App\Mail\AlertaCambioCorreoMail(
+                        Mail::to($admins)->send(
+                            new AlertaCambioCorreoMail(
                                 trim($contacto->nombre . ' ' . $contacto->ap_paterno),
                                 $contacto->email,
                                 $data['email'],
                                 auth()->user()->nombre,
-                                'Padre de Familia'// El usuario (ej. control escolar) que está haciendo la edición
+                                'Padre de Familia'
                             )
                         );
-                    } catch (\Exception $e) {
-                        // Falla silenciosa: si falla el correo (ej. sin internet), el sistema guarda los datos normalmente
-                    }
+                    } catch (\Exception $e) {}
                 }
             }
 
@@ -373,10 +361,26 @@ class FamiliaController extends Controller
             }
         }
 
-        // Ejecutar actualización del contacto
         $contacto->update($campos);
 
-        // Actualizar solo el pivot de ESTE alumno (no el de sus hermanos)
+        // ── NOTIFICAR SI HUBO CAMBIO DE ESTATUS DE ACCESO ──
+        if ($cambioAcceso) {
+            $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+            if ($admins->isNotEmpty()) {
+                try {
+                    Mail::to($admins)->send(
+                        new AlertaModificacionUsuarioMail(
+                            trim($contacto->nombre . ' ' . $contacto->ap_paterno),
+                            $contacto->email ?? 'Sin correo',
+                            'Padre de Familia',
+                            $mensajeAcceso,
+                            auth()->user()->nombre
+                        )
+                    );
+                } catch (\Exception $e) {}
+            }
+        }
+
         AlumnoContacto::where('contacto_id', $contacto->id)
             ->where('alumno_id', $data['alumno_id'])
             ->update([
@@ -396,39 +400,21 @@ class FamiliaController extends Controller
         ]);
     }
 
-    /**
-     * POST /familias/contactos/{contactoId}/foto
-     * Sube o reemplaza la foto de un contacto existente. Solo AJAX.
-     */
     public function subirFotoContacto(Request $request, int $contactoId): JsonResponse
     {
-        $request->validate([
-            'foto' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
-        ], [
-            'foto.required' => 'Selecciona una imagen.',
-            'foto.image' => 'El archivo debe ser una imagen.',
-            'foto.mimes' => 'Solo se permiten JPG, PNG o WEBP.',
-            'foto.max' => 'La imagen no debe superar los 2 MB.',
-        ]);
-
+        $request->validate(['foto' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048']]);
         $contacto = ContactoFamiliar::findOrFail($contactoId);
 
-        if ($contacto->foto_url) {
-            Storage::disk('public')->delete($contacto->foto_url);
-        }
+        if ($contacto->foto_url) Storage::disk('public')->delete($contacto->foto_url);
 
         $ruta = $request->file('foto')->store('contactos/fotos', 'public');
         $contacto->update(['foto_url' => $ruta]);
 
-        return response()->json([
-            'message' => 'Foto actualizada correctamente.',
-            'foto_url' => asset('storage/'.$ruta),
-        ]);
+        return response()->json(['message' => 'Foto actualizada.', 'foto_url' => asset('storage/'.$ruta)]);
     }
 
     /**
      * POST /familias/contactos
-     * Crea un nuevo contacto y lo vincula al alumno. Solo AJAX.
      */
     public function agregarContacto(Request $request): JsonResponse
     {
@@ -455,13 +441,6 @@ class FamiliaController extends Controller
             'es_responsable_pago' => ['boolean'],
             'tiene_acceso_portal' => ['boolean'],
             'foto' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
-        ], [
-            'alumno_id.exists' => 'El alumno no existe.',
-            'nombre.required' => 'El nombre del contacto es obligatorio.',
-            'telefono_celular.required' => 'El teléfono es obligatorio.',
-            'parentesco.required' => 'El parentesco es obligatorio.',
-            'tipo.required' => 'El tipo de contacto es obligatorio.',
-            'curp.size' => 'La CURP debe tener exactamente 18 caracteres.',
         ]);
 
         $alumno = Alumno::findOrFail($data['alumno_id']);
@@ -486,9 +465,7 @@ class FamiliaController extends Controller
         ]);
 
         if ($request->hasFile('foto')) {
-            $contacto->update([
-                'foto_url' => $request->file('foto')->store('contactos/fotos', 'public'),
-            ]);
+            $contacto->update(['foto_url' => $request->file('foto')->store('contactos/fotos', 'public')]);
         }
 
         $pivot = AlumnoContacto::create([
@@ -503,35 +480,42 @@ class FamiliaController extends Controller
             'activo'              => true,
         ]);
 
+        // ── NOTIFICAR SI SE CREA CON ACCESO AL PORTAL ──
+        if ($contacto->tiene_acceso_portal) {
+            $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+            if ($admins->isNotEmpty()) {
+                try {
+                    Mail::to($admins)->send(
+                        new AlertaModificacionUsuarioMail(
+                            trim($contacto->nombre . ' ' . $contacto->ap_paterno),
+                            $contacto->email ?? 'Sin correo',
+                            'Padre de Familia',
+                            'Se otorgó acceso al portal a un contacto recién creado (Enviado a pendientes)',
+                            auth()->user()->nombre
+                        )
+                    );
+                } catch (\Exception $e) {}
+            }
+        }
+
         Auditoria::registrar('contacto_familiar', $contacto->id, 'insert', null, $contacto->toArray());
 
         return response()->json([
-            'message' => "Contacto '{$contacto->nombre}' agregado correctamente.",
+            'message' => "Contacto agregado correctamente.",
             'contacto' => $contacto->fresh(),
             'pivot' => $pivot,
         ], 201);
     }
 
-    /**
-     * DELETE /familias/contactos/{contactoId}
-     * Elimina un contacto verificando que quede al menos uno activo.
-     */
     public function eliminarContacto(int $contactoId): JsonResponse
     {
         $contacto = ContactoFamiliar::findOrFail($contactoId);
-        $alumnoContacto = AlumnoContacto::where('contacto_id', $contactoId)
-            ->where('activo', true)
-            ->first();
+        $alumnoContacto = AlumnoContacto::where('contacto_id', $contactoId)->where('activo', true)->first();
 
         if ($alumnoContacto) {
-            $totalContactos = AlumnoContacto::where('alumno_id', $alumnoContacto->alumno_id)
-                ->where('activo', true)
-                ->count();
-
+            $totalContactos = AlumnoContacto::where('alumno_id', $alumnoContacto->alumno_id)->where('activo', true)->count();
             if ($totalContactos <= 1) {
-                return response()->json([
-                    'message' => 'No se puede eliminar el único contacto del alumno. Debe haber al menos uno.',
-                ], 422);
+                return response()->json(['message' => 'No se puede eliminar el único contacto del alumno.'], 422);
             }
         }
 
@@ -541,49 +525,67 @@ class FamiliaController extends Controller
         $contacto->delete();
 
         Auditoria::registrar('contacto_familiar', $contactoId, 'delete', ['nombre' => $nombre], null);
-
         return response()->json(['message' => "Contacto '{$nombre}' eliminado correctamente."]);
     }
 
     /**
      * POST /familias/contactos/{contactoId}/habilitar-portal
-     * Activa la bandera de acceso al portal (no crea el usuario).
+     * Reactivación directa mediante el botón de la interfaz
      */
     public function habilitarPortal(int $contactoId): RedirectResponse|JsonResponse
     {
         $this->soloAdmin();
-
         $contacto = ContactoFamiliar::findOrFail($contactoId);
         $anterior = $contacto->toArray();
 
         $contacto->update(['tiene_acceso_portal' => true]);
+        $mensajeAcceso = '';
+
+        if ($contacto->usuario_id) {
+            $contacto->usuario()->update(['activo' => true]);
+            $mensajeAcceso = 'Acceso al portal REACTIVADO (Usuario habilitado manualmente)';
+        } else {
+            $mensajeAcceso = 'Acceso al portal OTORGADO (Enviado a pendientes manualmente)';
+        }
+
+        // ── NOTIFICAR ──
+        $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+        if ($admins->isNotEmpty()) {
+            try {
+                Mail::to($admins)->send(
+                    new AlertaModificacionUsuarioMail(
+                        trim($contacto->nombre . ' ' . $contacto->ap_paterno),
+                        $contacto->email ?? 'Sin correo',
+                        'Padre de Familia',
+                        $mensajeAcceso,
+                        auth()->user()->nombre
+                    )
+                );
+            } catch (\Exception $e) {}
+        }
 
         Auditoria::registrar('contacto_familiar', $contacto->id, 'update', $anterior, ['tiene_acceso_portal' => true]);
 
         return $this->respuestaExito(
             redirectRoute: 'familias.show',
             jsonData: ['contacto' => $contacto->fresh()],
-            mensaje: "Acceso al portal habilitado para {$contacto->nombre}. Ahora puedes crearle un usuario."
+            mensaje: "Acceso al portal habilitado para {$contacto->nombre}."
         );
     }
 
     /**
      * POST /familias/contactos/{contactoId}/deshabilitar-portal
-     * Revoca el acceso al portal y desactiva el usuario si existe.
+     * Desactivación directa mediante el botón de la interfaz
      */
     public function deshabilitarPortal(int $contactoId): RedirectResponse|JsonResponse
     {
         $this->soloAdmin();
-
         $contacto = ContactoFamiliar::with('usuario')->findOrFail($contactoId);
         $anterior = $contacto->toArray();
 
         try {
             DB::transaction(function () use ($contacto, $anterior) {
-                if ($contacto->usuario) {
-                    $contacto->usuario->update(['activo' => false]);
-                }
-
+                if ($contacto->usuario) $contacto->usuario->update(['activo' => false]);
                 $contacto->update(['tiene_acceso_portal' => false]);
 
                 Auditoria::registrar('contacto_familiar', $contacto->id, 'update', $anterior, [
@@ -591,6 +593,27 @@ class FamiliaController extends Controller
                     'usuario_desactivado' => $contacto->usuario_id,
                 ]);
             });
+
+            // ── NOTIFICAR ──
+            $mensajeAcceso = $contacto->usuario_id 
+                ? 'Acceso al portal REVOCADO (Usuario deshabilitado manualmente)' 
+                : 'Acceso al portal REVOCADO (Removido de pendientes manualmente)';
+
+            $admins = Usuario::where('rol', 'administrador')->where('activo', true)->pluck('email');
+            if ($admins->isNotEmpty()) {
+                try {
+                    Mail::to($admins)->send(
+                        new AlertaModificacionUsuarioMail(
+                            trim($contacto->nombre . ' ' . $contacto->ap_paterno),
+                            $contacto->email ?? 'Sin correo',
+                            'Padre de Familia',
+                            $mensajeAcceso,
+                            auth()->user()->nombre
+                        )
+                    );
+                } catch (\Exception $e) {}
+            }
+
         } catch (\Throwable $e) {
             return $this->respuestaError('Error al deshabilitar acceso: '.$e->getMessage());
         }
@@ -602,41 +625,24 @@ class FamiliaController extends Controller
         );
     }
 
-    /**
-     * POST /familias/contactos/{contactoId}/crear-usuario
-     * Crea el usuario del portal para un contacto con tiene_acceso_portal = true.
-     */
     public function crearUsuario(Request $request, int $contactoId): RedirectResponse|JsonResponse
     {
         $this->soloAdmin();
-
         $contacto = ContactoFamiliar::findOrFail($contactoId);
 
-        if (! $contacto->tiene_acceso_portal) {
-            return $this->respuestaError('El contacto no tiene habilitado el acceso al portal. Habilítalo primero.');
-        }
-
-        if ($contacto->usuario_id) {
-            return $this->respuestaError("Este contacto ya tiene un usuario asignado ({$contacto->usuario?->email}).");
-        }
-
-        if (empty($contacto->email)) {
-            return $this->respuestaError('El contacto no tiene correo electrónico registrado. Actualiza sus datos primero.');
-        }
+        if (! $contacto->tiene_acceso_portal) return $this->respuestaError('El contacto no tiene habilitado el acceso al portal.');
+        if ($contacto->usuario_id) return $this->respuestaError("Este contacto ya tiene usuario.");
+        if (empty($contacto->email)) return $this->respuestaError('El contacto no tiene correo electrónico registrado.');
 
         $data = $request->validate([
             'email' => ['nullable', 'email', 'max:200', 'unique:usuario,email'],
             'password' => ['nullable', 'string', 'min:8'],
-        ], [
-            'email.unique' => 'Este correo ya está registrado en el sistema.',
         ]);
 
         $email = $data['email'] ?? $contacto->email;
         $password = $data['password'] ?? Str::random(10);
 
-        if (Usuario::where('email', $email)->exists()) {
-            return $this->respuestaError("El correo {$email} ya está registrado en el sistema.");
-        }
+        if (Usuario::where('email', $email)->exists()) return $this->respuestaError("El correo {$email} ya está registrado.");
 
         try {
             $usuario = DB::transaction(function () use ($contacto, $email, $password): Usuario {
@@ -649,13 +655,7 @@ class FamiliaController extends Controller
                 ]);
 
                 $contacto->update(['usuario_id' => $usuario->id]);
-
-                Auditoria::registrar('usuario', $usuario->id, 'insert', null, [
-                    'contacto_id' => $contacto->id,
-                    'email' => $email,
-                    'rol' => 'padre',
-                ]);
-
+                Auditoria::registrar('usuario', $usuario->id, 'insert', null, ['contacto_id' => $contacto->id, 'email' => $email, 'rol' => 'padre']);
                 return $usuario;
             });
         } catch (\Throwable $e) {
@@ -664,66 +664,36 @@ class FamiliaController extends Controller
 
         return $this->respuestaExito(
             redirectRoute: 'familias.show',
-            jsonData: [
-                'usuario' => $usuario,
-                'password_inicial' => $password, // Mostrar al admin para entregársela al padre
-            ],
+            jsonData: ['usuario' => $usuario, 'password_inicial' => $password],
             mensaje: "Usuario creado para {$contacto->nombre}. Email: {$email}",
             jsonStatus: 201
         );
     }
 
-    /**
-     * POST /familias/contactos/{contactoId}/resetear-password
-     * Genera una nueva contraseña temporal para el usuario padre. Solo admin.
-     */
     public function resetearPassword(int $contactoId): RedirectResponse|JsonResponse
     {
         $this->soloAdmin();
-
         $contacto = ContactoFamiliar::with('usuario')->findOrFail($contactoId);
 
-        if (! $contacto->usuario_id || ! $contacto->usuario) {
-            return $this->respuestaError('Este contacto no tiene un usuario registrado en el sistema.');
-        }
+        if (! $contacto->usuario_id || ! $contacto->usuario) return $this->respuestaError('Este contacto no tiene usuario.');
 
         $nuevaPassword = Str::random(10);
+        $contacto->usuario->update(['password_hash' => Hash::make($nuevaPassword), 'activo' => true]);
 
-        $contacto->usuario->update([
-            'password_hash' => Hash::make($nuevaPassword),
-            'activo' => true, // Reactivar si estaba desactivado
-        ]);
-
-        Auditoria::registrar('usuario', $contacto->usuario_id, 'update', [], [
-            'accion' => 'reseteo_password',
-            'contacto_id' => $contacto->id,
-        ]);
+        Auditoria::registrar('usuario', $contacto->usuario_id, 'update', [], ['accion' => 'reseteo_password', 'contacto_id' => $contacto->id]);
 
         return $this->respuestaExito(
             redirectRoute: 'familias.show',
-            jsonData: [
-                'nueva_password' => $nuevaPassword, // Mostrar al admin
-                'email' => $contacto->usuario->email,
-            ],
-            mensaje: "Contraseña reseteada para {$contacto->nombre}. Entrega la nueva contraseña al padre de familia."
+            jsonData: ['nueva_password' => $nuevaPassword, 'email' => $contacto->usuario->email],
+            mensaje: "Contraseña reseteada para {$contacto->nombre}. Entrega la nueva contraseña al padre."
         );
     }
 
-    // ── Helpers privados ──────────────────────────────────────────────────────
-
-    /** Determina el estado de acceso al portal de un contacto. */
     private function estadoPortal(ContactoFamiliar $contacto): string
     {
-        if (! $contacto->tiene_acceso_portal) {
-            return 'sin_acceso';
-        }
-        if (! $contacto->usuario_id) {
-            return 'pendiente';
-        } // Habilitado pero sin usuario
-        if (! $contacto->usuario?->activo) {
-            return 'desactivado';
-        }
-
+        if (! $contacto->tiene_acceso_portal) return 'sin_acceso';
+        if (! $contacto->usuario_id) return 'pendiente';
+        if (! $contacto->usuario?->activo) return 'desactivado';
         return 'activo';
     }
 

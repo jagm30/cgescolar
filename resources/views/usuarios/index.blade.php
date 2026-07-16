@@ -128,11 +128,9 @@
             color: #065f46;
         }
 
-        /* Nuevos Estilos para el Estado (Cápsula Ovalada) */
         .badge-status {
             padding: 5px 12px;
             border-radius: 20px;
-            /* Píldora */
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
@@ -207,7 +205,6 @@
 
         $hayPdf = session()->has('credenciales_nuevas');
 
-        // ¡CRÍTICO PARA QUE EL BOTÓN FUNCIONE! Mantiene los datos vivos una petición más
         if ($hayPdf) {
             session()->keep(['credenciales_nuevas']);
         }
@@ -234,7 +231,6 @@
                     <span
                         style="font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.4;">{{ $mensajeMostrar }}</span>
 
-                    {{-- Botón para descargar el PDF manualmente si hay uno disponible --}}
                     @if ($hayPdf)
                         <div style="margin-top: 12px;">
                             <a href="{{ route('usuarios.credencialesPdf') }}" target="_blank"
@@ -247,7 +243,6 @@
             </div>
         </div>
     @endif
-    {{-- FIN DE LA TARJETA --}}
 
     <div class="con-stats">
         <div style="display: flex; gap: 15px;">
@@ -268,12 +263,11 @@
             </a>
         </div>
 
-        {{-- Botón Crear Usuario: Forma de píldora (20px) --}}
-        <button class="btn btn-success btn-sm"
+        {{-- <button class="btn btn-success btn-sm"
             style="border-radius: 20px; font-weight: 600; padding: 6px 18px; box-shadow: 0 2px 6px rgba(0, 166, 90, 0.3);"
             data-toggle="modal" data-target="#modal-crear-usuario">
             <i class="fa fa-plus"></i> Crear Usuario
-        </button>
+        </button> --}}
     </div>
 
     <div class="row">
@@ -282,7 +276,6 @@
                 <form method="GET" action="{{ route('usuarios.index') }}"
                     style="display: flex; gap: 10px; width: 100%; align-items: center;" id="form-filtros-usuario">
 
-                    {{-- Botón Ayuda: Forma de píldora (20px) --}}
                     <button type="button" class="btn btn-info btn-sm"
                         style="border-radius: 20px; font-weight: 600; padding: 6px 18px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0, 192, 239, 0.3);"
                         data-toggle="modal" data-target="#modalAyuda" title="Ayuda del Módulo">
@@ -305,7 +298,8 @@
                             Administrador</option>
                         <option value="caja" {{ request('rol') == 'caja' ? 'selected' : '' }}>Caja</option>
                         <option value="recepcion" {{ request('rol') == 'recepcion' ? 'selected' : '' }}>Recepción</option>
-                        <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones</option>
+                        <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones
+                        </option>
                         <option value="padre" {{ request('rol') == 'padre' ? 'selected' : '' }}>Padre de Familia</option>
                     </select>
 
@@ -356,7 +350,7 @@
                                     </td>
                                     <td>
                                         <span
-                                            class="badge-rol @if($usuario->rol == 'administrador') rol-admin @elseif($usuario->rol == 'admisiones') rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
+                                            class="badge-rol @if ($usuario->rol == 'administrador') rol-admin @elseif($usuario->rol == 'admisiones') rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
                                             {{ $usuario->rol }}
                                         </span>
                                     </td>
@@ -366,7 +360,6 @@
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        {{-- Nueva cápsula ovalada para el ESTADO --}}
                                         @if ($usuario->activo)
                                             <span class="badge-status badge-active">
                                                 <span class="dot-active"></span> Activo
@@ -378,7 +371,6 @@
                                         @endif
                                     </td>
 
-                                    {{-- COLUMNA DE ACCIONES ALINEADA CON FLEXBOX --}}
                                     <td class="text-center">
                                         <div
                                             style="display: flex; gap: 5px; justify-content: center; align-items: center;">
@@ -459,9 +451,7 @@
         </div>
     </div>
 
-    {{-- ========================================== --}}
-    {{-- ══ MODAL AYUDA ══ --}}
-    {{-- ========================================== --}}
+    {{-- MODAL AYUDA --}}
     <x-modal id="modalAyuda" title="Guía del Módulo de Usuarios" size="modal-md">
         <div style="line-height:1.7;">
 
@@ -541,7 +531,8 @@
                 </span>
                 <p style="font-size: 11px; color: #991b1b; margin: 5px 0 0; line-height: 1.4;">
                     Por seguridad, el sistema bloquea acciones directas sobre tu propia sesión activa para evitar la pérdida
-                    accidental de acceso.
+                    accidental de acceso. Adicionalmente, el perfil de "Administrador" no puede ser asignado y los roles de
+                    los "Padres de familia" no pueden ser modificados.
                 </p>
             </div>
 
@@ -614,13 +605,17 @@
 
             <div class="form-group">
                 <label>Rol / Permisos <span class="text-danger">*</span></label>
-                <select name="rol" id="edit-rol" class="form-control" required>
+                <select id="edit-rol" class="form-control" required>
                     <option value="padre">Padre de Familia</option>
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
                     <option value="admisiones">Admisiones</option>
                     <option value="administrador">Administrador</option>
                 </select>
+                <p id="help-edit-rol" class="help-block text-muted"
+                    style="display:none; font-size:11px; margin-top:4px;">
+                    <!-- Mensaje dinámico de bloqueo -->
+                </p>
             </div>
 
             <div class="form-group">
@@ -697,16 +692,51 @@
                 }
             });
 
+            // ── LÓGICA DE SEGURIDAD AL ABRIR EL MODAL DE EDICIÓN ──
             $('.btn-modal-edit').on('click', function() {
                 let id = $(this).data('id');
                 let nombre = $(this).data('nombre');
-                let rol = $(this).data('rol');
+                let rol = $(this).data('rol').toLowerCase();
 
                 $('#edit-id').val(id);
                 $('#edit-nombre-lbl').val(nombre);
-                $('#edit-rol').val(rol.toLowerCase());
                 $('#edit-password').val('');
                 $('#chk-edit-auto').prop('checked', false);
+
+                let $selectRol = $('#edit-rol');
+                let $helpMsg = $('#help-edit-rol');
+
+                // 1. Limpiamos cualquier bloqueo anterior
+                $selectRol.prop('disabled', false).attr('name', 'rol');
+                $selectRol.find('option').prop('disabled', false).show();
+                $('#hidden-rol').remove();
+                $helpMsg.hide();
+
+                // 2. Aplicamos las reglas de seguridad
+                if (rol === 'padre') {
+                    // Si es padre, no puede cambiar de rol
+                    $selectRol.val('padre').prop('disabled', true).removeAttr('name');
+                    $('#form-editar-usuario').append(
+                        '<input type="hidden" name="rol" id="hidden-rol" value="padre">');
+                    $helpMsg.html(
+                            '<i class="fa fa-lock"></i> Los padres de familia no pueden cambiar de rol.')
+                        .show();
+                } else if (rol === 'administrador') {
+                    // Un administrador editando a otro administrador (solo puede cambiar contraseña, no degradarlo)
+                    $selectRol.val('administrador').prop('disabled', true).removeAttr('name');
+                    $('#form-editar-usuario').append(
+                        '<input type="hidden" name="rol" id="hidden-rol" value="administrador">');
+                    $helpMsg.html(
+                            '<i class="fa fa-lock"></i> Los privilegios de Administrador están protegidos.')
+                        .show();
+                } else {
+                    // Es un empleado normal (Caja, Admisiones, Recepción). 
+                    // No pueden convertirse en Padres de familia ni ser ascendidos a Administradores desde aquí.
+                    $selectRol.find('option[value="padre"]').prop('disabled', true).hide();
+                    $selectRol.find('option[value="administrador"]').prop('disabled', true).hide();
+                    $selectRol.val(rol);
+                }
+
                 $('#modal-editar-usuario').modal('show');
             });
 
@@ -728,7 +758,7 @@
                     .then(res => {
                         if (res.status === 'success') {
                             $('#modal-crear-usuario').modal('hide');
-                            location.reload(); // Recarga limpia e instantánea
+                            location.reload();
                         } else {
                             alert("No se pudo crear el usuario: \n" + res.mensaje);
                         }
@@ -767,7 +797,7 @@
                     .then(res => {
                         if (res.status === 'success') {
                             $('#modal-editar-usuario').modal('hide');
-                            location.reload(); // Recarga limpia e instantánea
+                            location.reload();
                         }
                     });
             });
