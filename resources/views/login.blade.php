@@ -381,7 +381,7 @@
             <a href="https://www.instagram.com/colegiojaponesgenki/" target="_blank" title="Instagram"><i
                     class="fa fa-instagram"></i> Instagram</a>
             <a href="https://wa.me/529191123147" target="_blank" class="btn-wa-client"><i class="fa fa-whatsapp"></i>
-                919 112 3147</a>
+                Soporte</a>
         </div>
     </nav>
 
@@ -458,7 +458,7 @@
         <div style="text-align:center;">
             <p style="margin-bottom:8px;">¿Te interesa nuestro sistema? Comunícate con nuestro equipo comercial.</p>
             <a href="https://wa.me/529191123147" target="_blank" class="footer-wa-btn">
-                <i class="fa fa-whatsapp" style="font-size: 16px;"></i> 919 112 3147
+                <i class="fa fa-whatsapp" style="font-size: 16px;"></i> Soporte
             </a>
         </div>
 
