@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
-use App\Mail\EventoAdmisionMail;
 use App\Models\Usuario;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Mail;
 
+/**
+ * Orquestador: despacha un EnviarCorreoAdmisionJob por cada usuario de admisiones
+ * activo, de modo que un fallo individual no cancele el resto de envíos.
+ */
 class NotificarEventoAdmisionJob implements ShouldQueue
 {
     use Queueable;
@@ -23,7 +25,7 @@ class NotificarEventoAdmisionJob implements ShouldQueue
             ->where('rol', 'admisiones')
             ->whereNotNull('email')
             ->each(fn (Usuario $u) =>
-                Mail::to($u->email)->send(new EventoAdmisionMail($this->evento, $this->datos))
+                EnviarCorreoAdmisionJob::dispatch($u->email, $this->evento, $this->datos)
             );
     }
 }

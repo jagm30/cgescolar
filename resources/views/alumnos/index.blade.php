@@ -47,12 +47,24 @@
                 </span>
             </div>
         </div>
-        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
-            <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm btn-flat"
-               style="border-radius:20px;white-space:nowrap;flex-shrink:0;">
-                <i class="fa fa-plus"></i> Registrar alumno
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+            <a href="{{ route('alumnos.reporte-inscritos') }}" target="_blank"
+               class="btn btn-default btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;">
+                <i class="fa fa-file-pdf-o"></i> Reporte inscritos
             </a>
-        @endif
+            <a href="{{ route('alumnos.exportar-excel', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}"
+               class="btn btn-success btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;background:#217346;border-color:#1a5e38;">
+                <i class="fa fa-file-excel-o"></i> Exportar Excel
+            </a>
+            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm btn-flat"
+                   style="border-radius:20px;white-space:nowrap;">
+                    <i class="fa fa-plus"></i> Registrar alumno
+                </a>
+            @endif
+        </div>
     </div>
 
     {{-- ══ PANEL PRINCIPAL ══ --}}
