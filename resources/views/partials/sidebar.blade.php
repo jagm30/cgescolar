@@ -463,6 +463,33 @@
                 </li>
             @endif
 
+            {{-- ── SECCIÓN: Ayuda ───────────────────────── --}}
+            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                <li class="header">AYUDA</li>
+
+                <li class="treeview">
+                    <a href="#">
+                        <i class="fa fa-question-circle"></i>
+                        <span>Ayuda</span>
+                        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li>
+                            <a href="{{ asset('manual.html') }}" target="_blank">
+                                <i class="fa fa-circle-o"></i> Manual general
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ asset('guia-cobranza.html') }}" target="_blank">
+                                <i class="fa fa-circle-o"></i> Guía de cobranza
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            @endif
+
         </ul>
     </section>
 </aside>
