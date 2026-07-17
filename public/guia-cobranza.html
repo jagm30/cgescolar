@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía de Cobranza — CGEscolar</title>
+  <style>
+    /* ── Tipografía y base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --azul:    #1E4D7B;
+      --azul-cl: #EBF3FB;
+      --verde:   #2E7D32;
+      --verde-cl:#E8F5E9;
+      --naranja: #E65100;
+      --njo-cl:  #FFF3E0;
+      --rojo:    #C62828;
+      --rojo-cl: #FFEBEE;
+      --gris:    #546E7A;
+      --gris-cl: #ECEFF1;
+      --fondo:   #F5F7FA;
+      --blanco:  #FFFFFF;
+      --borde:   #CFD8DC;
+      --sombra:  0 2px 8px rgba(0,0,0,.10);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.65;
+      background: var(--fondo);
+      color: #263238;
+    }
+    a { color: var(--azul); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    img { max-width: 100%; border-radius: 6px; }
+
+    /* ── Layout ── */
+    .wrapper { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 270px;
+      min-width: 270px;
+      background: var(--azul);
+      color: #fff;
+      padding: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      background: rgba(0,0,0,.25);
+      padding: 22px 20px;
+      text-align: center;
+    }
+    .sidebar-header .logo { font-size: 28px; margin-bottom: 6px; }
+    .sidebar-header h2 { font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .sidebar-header p { font-size: 11px; opacity: .75; margin-top: 4px; }
+    .sidebar nav { padding: 12px 0; }
+    .nav-section { padding: 10px 20px 4px; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1px; opacity: .55; font-weight: 700; }
+    .sidebar nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; color: rgba(255,255,255,.85);
+      font-size: 13.5px; transition: background .15s;
+      border-left: 3px solid transparent;
+    }
+    .sidebar nav a:hover, .sidebar nav a.active {
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      border-left-color: #fff;
+      text-decoration: none;
+    }
+    .sidebar nav a .num {
+      background: rgba(255,255,255,.2); border-radius: 50%;
+      width: 22px; height: 22px; display: flex; align-items: center;
+      justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── Contenido ── */
+    .content { flex: 1; padding: 36px 44px 60px; max-width: 900px; }
+
+    /* ── Portada ── */
+    .portada {
+      background: linear-gradient(135deg, var(--azul) 0%, #0d47a1 100%);
+      color: #fff; border-radius: 14px; padding: 48px 44px;
+      margin-bottom: 44px; position: relative; overflow: hidden;
+    }
+    .portada::after {
+      content: '📚'; position: absolute; right: 40px; top: 30px;
+      font-size: 96px; opacity: .15;
+    }
+    .portada h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+    .portada p { font-size: 15px; opacity: .9; max-width: 520px; }
+    .portada .chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .portada .chip {
+      background: rgba(255,255,255,.2); border-radius: 20px;
+      padding: 4px 14px; font-size: 12px; font-weight: 600;
+    }
+
+    /* ── Sección ── */
+    .seccion {
+      background: var(--blanco); border-radius: 12px;
+      border: 1px solid var(--borde); box-shadow: var(--sombra);
+      margin-bottom: 36px; overflow: hidden;
+    }
+    .seccion-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 28px; border-bottom: 1px solid var(--borde);
+    }
+    .seccion-header .icono {
+      width: 46px; height: 46px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .seccion-header h2 { font-size: 18px; font-weight: 700; color: var(--azul); }
+    .seccion-header p { font-size: 12.5px; color: var(--gris); margin-top: 2px; }
+    .seccion-body { padding: 28px; }
+
+    /* ── Pasos ── */
+    .paso {
+      display: flex; gap: 18px; margin-bottom: 28px; align-items: flex-start;
+    }
+    .paso:last-child { margin-bottom: 0; }
+    .paso-num {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px; color: #fff; margin-top: 2px;
+    }
+    .paso-content h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .paso-content p { font-size: 14px; color: #455a64; }
+
+    /* ── Tabla de campos ── */
+    .tabla-campos {
+      width: 100%; border-collapse: collapse;
+      font-size: 13.5px; margin: 14px 0;
+    }
+    .tabla-campos th {
+      background: var(--gris-cl); padding: 9px 12px;
+      text-align: left; font-weight: 700; color: var(--gris);
+      font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 2px solid var(--borde);
+    }
+    .tabla-campos td {
+      padding: 9px 12px; border-bottom: 1px solid #EEF0F2;
+      vertical-align: top;
+    }
+    .tabla-campos tr:last-child td { border-bottom: none; }
+    .tabla-campos tr:hover td { background: #FAFBFC; }
+    .req { color: var(--rojo); font-weight: 700; }
+    .opt { color: var(--gris); font-size: 12px; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; border-radius: 20px;
+      padding: 2px 10px; font-size: 11.5px; font-weight: 600;
+    }
+    .badge-azul    { background: var(--azul-cl); color: var(--azul); }
+    .badge-verde   { background: var(--verde-cl); color: var(--verde); }
+    .badge-naranja { background: var(--njo-cl); color: var(--naranja); }
+    .badge-rojo    { background: var(--rojo-cl); color: var(--rojo); }
+    .badge-gris    { background: var(--gris-cl); color: var(--gris); }
+
+    /* ── Cajas informativas ── */
+    .caja {
+      border-radius: 8px; padding: 14px 18px;
+      margin: 16px 0; display: flex; gap: 12px; align-items: flex-start;
+      font-size: 13.5px;
+    }
+    .caja .caja-ico { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .caja-info  { background: var(--azul-cl);  border-left: 4px solid var(--azul); }
+    .caja-ok    { background: var(--verde-cl); border-left: 4px solid var(--verde); }
+    .caja-warn  { background: var(--njo-cl);   border-left: 4px solid var(--naranja); }
+    .caja-peli  { background: var(--rojo-cl);  border-left: 4px solid var(--rojo); }
+    .caja b { display: block; margin-bottom: 4px; }
+
+    /* ── Pantalla simulada ── */
+    .pantalla {
+      background: #1E272E; border-radius: 10px;
+      padding: 16px; margin: 16px 0; font-family: monospace;
+      font-size: 12.5px; color: #CFD8DC;
+    }
+    .pantalla .barra {
+      display: flex; gap: 6px; margin-bottom: 12px; align-items: center;
+    }
+    .pantalla .barra span {
+      width: 11px; height: 11px; border-radius: 50%; display: inline-block;
+    }
+    .dot-r { background: #FF5F57; }
+    .dot-y { background: #FEBC2E; }
+    .dot-g { background: #28C840; }
+    .pantalla .url {
+      background: rgba(255,255,255,.08); border-radius: 4px;
+      padding: 3px 10px; font-size: 11px; color: #90A4AE;
+      flex: 1; text-align: center;
+    }
+    .pantalla .ui-row {
+      display: flex; gap: 10px; margin-bottom: 8px; align-items: center;
+    }
+    .pantalla .ui-label { color: #90A4AE; font-size: 11px; min-width: 120px; }
+    .pantalla .ui-field {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 4px; padding: 4px 10px; flex: 1; color: #B0BEC5; font-size: 12px;
+    }
+    .pantalla .ui-btn {
+      background: var(--azul); color: #fff; border-radius: 4px;
+      padding: 5px 14px; font-size: 12px; display: inline-block;
+    }
+    .pantalla .ui-btn-verde { background: var(--verde); }
+    .pantalla .ui-title {
+      color: #fff; font-size: 13px; font-weight: 700;
+      margin-bottom: 10px; padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+
+    /* ── Flujo visual ── */
+    .flujo {
+      display: flex; align-items: center; gap: 0;
+      flex-wrap: wrap; margin: 20px 0; gap: 4px;
+    }
+    .flujo-item {
+      background: var(--azul); color: #fff; border-radius: 8px;
+      padding: 10px 18px; font-size: 13px; font-weight: 600;
+      text-align: center; min-width: 130px;
+    }
+    .flujo-arrow {
+      font-size: 20px; color: var(--gris); padding: 0 2px;
+    }
+
+    /* ── Opciones / Lista ── */
+    .opciones { list-style: none; margin: 10px 0; }
+    .opciones li {
+      padding: 7px 0; border-bottom: 1px dashed var(--borde);
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13.5px;
+    }
+    .opciones li:last-child { border-bottom: none; }
+    .opciones li .ico { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Divisor de sección ── */
+    .divisor {
+      text-align: center; color: var(--gris); font-size: 12px;
+      margin: 28px 0; display: flex; align-items: center; gap: 12px;
+    }
+    .divisor::before, .divisor::after {
+      content: ''; flex: 1; height: 1px; background: var(--borde);
+    }
+
+    /* ── Glosario ── */
+    .glosario dt {
+      font-weight: 700; color: var(--azul); margin-top: 14px; font-size: 14px;
+    }
+    .glosario dd {
+      margin-left: 0; color: #455a64; font-size: 13.5px;
+      padding-left: 12px; border-left: 3px solid var(--borde);
+      margin-top: 4px;
+    }
+
+    /* ── Scroll sidebar activo ── */
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.3); border-radius: 2px; }
+
+    /* ── Impresión ── */
+    @media print {
+      .sidebar { display: none; }
+      .content { padding: 20px; }
+      .seccion { break-inside: avoid; }
+    }
+
+    /* ── Responsivo ── */
+    @media (max-width: 768px) {
+      .wrapper { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: relative; }
+      .content { padding: 20px; }
+      .portada { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">🏫</div>
+      <h2>Guía de Cobranza</h2>
+      <p>CGEscolar · Módulo Financiero</p>
+    </div>
+    <nav>
+      <div class="nav-section">Inicio</div>
+      <a href="#inicio"><span class="num">★</span> Introducción</a>
+      <a href="#flujo-general"><span class="num">→</span> Flujo general</a>
+      <a href="#glosario"><span class="num">?</span> Glosario</a>
+
+      <div class="nav-section">Módulos</div>
+      <a href="#conceptos"><span class="num">1</span> Conceptos de cobro</a>
+      <a href="#planes"><span class="num">2</span> Planes de pago</a>
+      <a href="#asignacion"><span class="num">3</span> Asignación de planes</a>
+      <a href="#cobros"><span class="num">4</span> Registro de cobros</a>
+      <a href="#cargo-unico"><span class="num">5</span> Cargos únicos/recurrentes</a>
+      <a href="#condonaciones"><span class="num">6</span> Condonaciones</a>
+
+      <div class="nav-section">Referencia</div>
+      <a href="#errores"><span class="num">!</span> Problemas frecuentes</a>
+      <a href="#consejos"><span class="num">✓</span> Consejos</a>
+    </nav>
+  </aside>
+
+  <!-- ══ CONTENIDO ══ -->
+  <main class="content">
+
+    <!-- PORTADA -->
+    <div class="portada" id="inicio">
+      <h1>Guía de Cobranza y Planes de Pago</h1>
+      <p>Manual paso a paso para crear conceptos, planes, asignarlos a alumnos y registrar cobros desde la caja.</p>
+      <div class="chips">
+        <span class="chip">📋 Conceptos de cobro</span>
+        <span class="chip">📄 Planes de pago</span>
+        <span class="chip">👤 Asignación</span>
+        <span class="chip">💳 Cobros</span>
+        <span class="chip">🔁 Cargos recurrentes</span>
+      </div>
+    </div>
+
+    <!-- FLUJO GENERAL -->
+    <div class="seccion" id="flujo-general">
+      <div class="seccion-header">
+        <div class="icono" style="background:#EBF3FB">🗺️</div>
+        <div>
+          <h2>¿Cómo funciona el sistema de cobranza?</h2>
+          <p>Flujo completo de principio a fin</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+        <p style="margin-bottom:16px">Para cobrar a los alumnos, el proceso siempre sigue el mismo orden. Primero se configura, después se asigna y finalmente se cobra:</p>
+
+        <div class="flujo">
+          <div class="flujo-item" style="background:#1E4D7B">1. Crear<br>Conceptos</div>
+          <div class="flujo-arrow">→</div>
+          <div class="flujo-item" style="background:#2E7D32">2. Crear<br>Plan de pago</div>
+          <div class="flujo-arrow">→</div>
+          <div class="flujo-item" style="background:#6A1E6E">3. Asignar plan<br>a alumnos</div>
+          <div class="flujo-arrow">→</div>
+          <div class="flujo-item" style="background:#E65100">4. Cobrar en<br>caja</div>
+        </div>
+
+        <div class="caja caja-info" style="margin-top:18px">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>Importante</b>
+            Los pasos 1, 2 y 3 los realiza el <strong>administrador</strong>. El paso 4 lo realiza el personal de <strong>caja</strong>. Si eres cajero, puedes ir directamente a la sección 4.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GLOSARIO -->
+    <div class="seccion" id="glosario">
+      <div class="seccion-header">
+        <div class="icono" style="background:#F3E5F5">📖</div>
+        <div>
+          <h2>Glosario — Palabras clave</h2>
+          <p>Definiciones de los términos que usaremos en esta guía</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+        <dl class="glosario">
+          <dt>Concepto de cobro</dt>
+          <dd>Es el "tipo" de pago. Ejemplos: Colegiatura, Inscripción, Papelería. Se define una vez y se reutiliza en varios planes.</dd>
+
+          <dt>Plan de pago</dt>
+          <dd>Es una plantilla que agrupa conceptos con sus montos y define <em>cuándo</em> y <em>cuánto</em> cobrar. Ej: "Plan Primaria 2024-2025 · Mensual · $2,500".</dd>
+
+          <dt>Periodicidad</dt>
+          <dd>Con qué frecuencia se genera un cobro. <strong>Mensual</strong> = 12 cobros al año. <strong>Único</strong> = 1 solo cobro.</dd>
+
+          <dt>Asignación de plan</dt>
+          <dd>Es el proceso de aplicar un plan a uno o varios alumnos. Al asignar, el sistema crea automáticamente los cargos correspondientes.</dd>
+
+          <dt>Cargo</dt>
+          <dd>Un cobro pendiente que le aparece a un alumno. Puede estar en estado: <span class="badge badge-naranja">Pendiente</span> <span class="badge badge-gris">Parcial</span> <span class="badge badge-verde">Pagado</span> <span class="badge badge-azul">Condonado</span></dd>
+
+          <dt>Beca</dt>
+          <dd>Descuento automático asignado al alumno. Si el concepto "aplica beca" y el alumno tiene beca vigente, el sistema descuenta el porcentaje automáticamente.</dd>
+
+          <dt>Recargo por mora</dt>
+          <dd>Cargo extra por pagar tarde. Se aplica automáticamente al pasar la fecha límite de pago.</dd>
+
+          <dt>Descuento por pronto pago</dt>
+          <dd>Descuento especial por pagar antes de la fecha límite. Se configura en el plan de pago.</dd>
+
+          <dt>Folio de recibo</dt>
+          <dd>Número único que identifica cada pago. Formato: <code>R20240115-0001</code>. Úsalo para buscar pagos anteriores.</dd>
+        </dl>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 1 — CONCEPTOS DE COBRO
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="conceptos">
+      <div class="seccion-header">
+        <div class="icono" style="background:#EBF3FB; font-size:24px">🏷️</div>
+        <div>
+          <h2>1. Conceptos de cobro</h2>
+          <p>¿Qué se cobra? — Aquí defines los tipos de pago del colegio</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-info">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>¿Qué es un concepto?</b>
+            Es el nombre del tipo de cobro: Colegiatura, Inscripción, Papelería, Transporte, etc. Solo necesitas crearlo <strong>una vez</strong> y luego lo reutilizas en todos los planes que quieras.
+          </div>
+        </div>
+
+        <div class="divisor">Dónde encontrarlo</div>
+
+        <div class="pantalla">
+          <div class="barra">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <div class="url">cgescolar.com / conceptos</div>
+          </div>
+          <div style="color:#90A4AE; font-size:12px; margin-bottom:8px">
+            Menú lateral → <strong style="color:#fff">Configuración</strong> → <strong style="color:#fff">Conceptos de cobro</strong>
+          </div>
+          <div class="ui-title">📋 Conceptos de cobro</div>
+          <div style="display:flex; justify-content:flex-end; margin-bottom:10px">
+            <div class="ui-btn">+ Nuevo concepto</div>
+          </div>
+          <div style="color:#78909C; font-size:11px">
+            [ tabla con conceptos existentes ]
+          </div>
+        </div>
+
+        <div class="divisor">Pasos para crear un concepto</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--azul)">1</div>
+          <div class="paso-content">
+            <h3>Haz clic en "Nuevo concepto"</h3>
+            <p>Botón azul en la esquina superior derecha de la pantalla de Conceptos. Se abrirá una ventana emergente con el formulario.</p>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--azul)">2</div>
+          <div class="paso-content">
+            <h3>Completa el formulario</h3>
+            <p>Llena los campos según el tipo de cobro que vas a crear:</p>
+
+            <table class="tabla-campos">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>¿Obligatorio?</th>
+                  <th>Qué escribir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Nombre</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>El nombre del cobro. Ej: <em>Colegiatura Mensual</em>, <em>Inscripción Anual</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Tipo</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>Elige una opción del menú desplegable (ver tabla de tipos abajo)</td>
+                </tr>
+                <tr>
+                  <td><strong>Descripción</strong></td>
+                  <td><span class="opt">No</span></td>
+                  <td>Texto adicional para aclarar el concepto. Ej: <em>Pago mensual de servicios educativos</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Aplica beca</strong></td>
+                  <td><span class="opt">No</span></td>
+                  <td>Actívalo si quieres que las becas descuenten de este concepto. <em>Solo disponible si el Tipo es Colegiatura.</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Aplica recargo</strong></td>
+                  <td><span class="opt">No</span></td>
+                  <td>Actívalo si pagos tardíos de este concepto deben generar recargo por mora.</td>
+                </tr>
+                <tr>
+                  <td><strong>Activo</strong></td>
+                  <td><span class="opt">No</span></td>
+                  <td>Déjalo marcado. Si lo desactivas, el concepto no aparecerá en los planes.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--azul)">3</div>
+          <div class="paso-content">
+            <h3>Tipos de concepto — ¿cuál elegir?</h3>
+
+            <ul class="opciones">
+              <li>
+                <span class="ico">🎓</span>
+                <div>
+                  <span class="badge badge-verde">Colegiatura</span><br>
+                  Cobro principal del colegio. Se repite mes a mes según la periodicidad del plan. <strong>Permite aplicar becas</strong>. Ej: Colegiatura mensual.
+                </div>
+              </li>
+              <li>
+                <span class="ico">📝</span>
+                <div>
+                  <span class="badge badge-azul">Inscripción</span><br>
+                  Pago único al inicio del ciclo escolar. Ej: Inscripción 2024-2025.
+                </div>
+              </li>
+              <li>
+                <span class="ico">1️⃣</span>
+                <div>
+                  <span class="badge badge-naranja">Cargo Único</span><br>
+                  Un cobro que se hace una sola vez, no se repite. Ej: Excursión, Papelería, Uniforme.
+                </div>
+              </li>
+              <li>
+                <span class="ico">🔁</span>
+                <div>
+                  <span class="badge badge-rojo">Cargo Recurrente</span><br>
+                  Un cobro que puede repetirse varias veces en el mismo mes. Ej: Comedor diario, Transporte semanal.
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">4</div>
+          <div class="paso-content">
+            <h3>Haz clic en "Guardar concepto"</h3>
+            <p>El sistema confirmará que se creó correctamente. El concepto ya aparecerá disponible para usarse en planes de pago.</p>
+          </div>
+        </div>
+
+        <div class="caja caja-warn">
+          <span class="caja-ico">⚠️</span>
+          <div>
+            <b>Ten en cuenta</b>
+            No se puede eliminar un concepto que ya tiene cargos generados. Si ya no lo necesitas, desactívalo con el botón de prohibido (🚫) rojo en la tabla.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 2 — PLANES DE PAGO
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="planes">
+      <div class="seccion-header">
+        <div class="icono" style="background:#E8F5E9; font-size:24px">📄</div>
+        <div>
+          <h2>2. Planes de pago</h2>
+          <p>¿Cuánto y cuándo se cobra? — Agrupa conceptos con montos y fechas</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-info">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>¿Qué es un plan de pago?</b>
+            Es una plantilla que dice: "a los alumnos de <em>Primaria</em>, cobrarles $2,500 de colegiatura cada mes entre agosto y junio". Luego asignas ese plan a los alumnos y el sistema genera los cargos automáticamente.
+          </div>
+        </div>
+
+        <div class="divisor">Dónde encontrarlo</div>
+
+        <div class="pantalla">
+          <div class="barra">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <div class="url">cgescolar.com / planes</div>
+          </div>
+          <div style="color:#90A4AE; font-size:12px">
+            Menú lateral → <strong style="color:#fff">Configuración</strong> → <strong style="color:#fff">Planes de pago</strong> → <strong style="color:#fff">Nuevo plan</strong>
+          </div>
+        </div>
+
+        <div class="divisor">Pasos para crear un plan</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">1</div>
+          <div class="paso-content">
+            <h3>Datos generales del plan</h3>
+            <p>La primera sección pide la información básica del plan:</p>
+
+            <table class="tabla-campos">
+              <thead>
+                <tr><th>Campo</th><th>¿Obligatorio?</th><th>Descripción</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Nombre del plan</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>Ponle un nombre descriptivo. Ej: <em>Plan Primaria 2024-2025</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Ciclo escolar</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>Selecciona a qué ciclo pertenece. Ej: <em>2024-2025</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Nivel educativo</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>Primaria, Secundaria, Preparatoria, etc.</td>
+                </tr>
+                <tr>
+                  <td><strong>Periodicidad</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>¿Con qué frecuencia se genera el cargo? (ver abajo)</td>
+                </tr>
+                <tr>
+                  <td><strong>Fecha inicio</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>Ej: 01/08/2024 — inicio del ciclo</td>
+                </tr>
+                <tr>
+                  <td><strong>Fecha fin</strong></td>
+                  <td><span class="req">SÍ</span></td>
+                  <td>Ej: 30/06/2025 — fin del ciclo</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="caja caja-info" style="margin-top:12px">
+              <span class="caja-ico">📅</span>
+              <div>
+                <b>Opciones de periodicidad</b>
+                <ul style="margin-top:6px; padding-left:16px; font-size:13px">
+                  <li><strong>Mensual</strong> → Un cargo por mes. Agosto a junio = 11 cargos.</li>
+                  <li><strong>Bimestral</strong> → Un cargo cada 2 meses = 6 cargos aprox.</li>
+                  <li><strong>Semestral</strong> → Un cargo cada 6 meses = 2 cargos.</li>
+                  <li><strong>Anual</strong> → Un solo cargo al año.</li>
+                  <li><strong>Único</strong> → Un cargo puntual, sin repetición.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">2</div>
+          <div class="paso-content">
+            <h3>Agregar conceptos al plan</h3>
+            <p>En la sección <strong>"Conceptos del plan"</strong>, haz clic en <strong>"Agregar concepto"</strong> para añadir cada tipo de cobro:</p>
+
+            <div class="pantalla" style="margin-top:12px">
+              <div class="ui-title">Conceptos del plan</div>
+              <div class="ui-row">
+                <div class="ui-label">Concepto</div>
+                <div class="ui-field">Colegiatura Mensual</div>
+                <div class="ui-label" style="min-width:60px; text-align:center">Monto</div>
+                <div class="ui-field" style="max-width:100px">$2,500.00</div>
+                <span style="color:#FF5F57; cursor:pointer; padding-left:6px">✕</span>
+              </div>
+              <div class="ui-row">
+                <div class="ui-label">Concepto</div>
+                <div class="ui-field">Inscripción Anual</div>
+                <div class="ui-label" style="min-width:60px; text-align:center">Monto</div>
+                <div class="ui-field" style="max-width:100px">$500.00</div>
+                <span style="color:#FF5F57; cursor:pointer; padding-left:6px">✕</span>
+              </div>
+              <div style="margin-top:10px">
+                <div class="ui-btn" style="font-size:11px">+ Agregar concepto</div>
+              </div>
+            </div>
+
+            <ul class="opciones" style="margin-top:12px">
+              <li><span class="ico">👆</span><div>En <strong>Concepto</strong>, elige del menú desplegable los conceptos que creaste en el paso anterior.</div></li>
+              <li><span class="ico">💲</span><div>En <strong>Monto</strong>, escribe la cantidad a cobrar por ese concepto. Ej: <em>2500</em></div></li>
+              <li><span class="ico">➕</span><div>Puedes agregar <strong>múltiples conceptos</strong> al mismo plan. Cada uno puede tener un monto diferente.</div></li>
+              <li><span class="ico">✕</span><div>El botón <strong>×</strong> rojo elimina esa fila si te equivocaste.</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">3</div>
+          <div class="paso-content">
+            <h3>Configurar descuentos por pronto pago (opcional)</h3>
+            <p>Si quieres ofrecer un descuento a quienes pagan antes de cierta fecha:</p>
+
+            <table class="tabla-campos">
+              <thead>
+                <tr><th>Campo</th><th>Descripción / Ejemplo</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Nombre del descuento</strong></td>
+                  <td>Ej: <em>Descuento pronto pago</em></td>
+                </tr>
+                <tr>
+                  <td><strong>Tipo de valor</strong></td>
+                  <td><span class="badge badge-azul">Porcentaje</span> (Ej: 5%) &nbsp;o&nbsp; <span class="badge badge-naranja">Monto fijo</span> (Ej: $100)</td>
+                </tr>
+                <tr>
+                  <td><strong>Valor</strong></td>
+                  <td>El número del descuento. Ej: <em>5</em> para 5%, o <em>100</em> para $100</td>
+                </tr>
+                <tr>
+                  <td><strong>Día límite</strong></td>
+                  <td>Día del mes hasta el que aplica el descuento. Ej: <em>10</em> = aplica si paga antes del día 10</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="caja caja-ok" style="margin-top:10px">
+              <span class="caja-ico">✅</span>
+              <div>Ejemplo: "5% de descuento si paga antes del día 10 del mes" → Tipo: Porcentaje · Valor: 5 · Día límite: 10</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">4</div>
+          <div class="paso-content">
+            <h3>Configurar recargo por mora (opcional)</h3>
+            <p>Si quieres cobrar extra a quienes pagan tarde, marca la casilla <strong>"Configurar recargo por mora"</strong>:</p>
+
+            <table class="tabla-campos">
+              <thead>
+                <tr><th>Campo</th><th>Descripción / Ejemplo</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Día límite de pago</strong></td>
+                  <td>Ej: <em>10</em> = si paga después del día 10, aplica recargo</td>
+                </tr>
+                <tr>
+                  <td><strong>Tipo de recargo</strong></td>
+                  <td><span class="badge badge-rojo">Porcentaje</span> o <span class="badge badge-naranja">Monto fijo</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Valor</strong></td>
+                  <td>Ej: <em>2</em> para 2%, o <em>50</em> para $50 adicionales</td>
+                </tr>
+                <tr>
+                  <td><strong>Tope máximo</strong></td>
+                  <td>Máximo recargo a cobrar aunque acumulen varios meses. Ej: <em>300</em> = máximo $300</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="caja caja-warn" style="margin-top:10px">
+              <span class="caja-ico">⚠️</span>
+              <div>El recargo solo aplica en conceptos que tengan activada la opción <strong>"Aplica recargo"</strong>. Verifica que tus conceptos estén configurados correctamente.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">5</div>
+          <div class="paso-content">
+            <h3>Guardar el plan</h3>
+            <p>Haz clic en <strong>"Guardar plan"</strong>. Si todo está correcto, el sistema te llevará a la página del plan creado. Ya puedes asignarlo a alumnos.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 3 — ASIGNACIÓN DE PLANES
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="asignacion">
+      <div class="seccion-header">
+        <div class="icono" style="background:#F3E5F5; font-size:24px">👥</div>
+        <div>
+          <h2>3. Asignación de planes</h2>
+          <p>¿A quién se le cobra? — Aplica el plan a alumnos y genera los cargos</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-info">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>¿Qué hace la asignación?</b>
+            Cuando asignas un plan a un alumno (o grupo), el sistema <strong>genera automáticamente</strong> todos los cargos. Por ejemplo: si asignas un plan mensual de agosto a junio, se crearán 11 cargos pendientes para ese alumno.
+          </div>
+        </div>
+
+        <div class="divisor">Dónde encontrarlo</div>
+
+        <div class="pantalla">
+          <div class="barra">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <div class="url">cgescolar.com / planes / asignar</div>
+          </div>
+          <div style="color:#90A4AE; font-size:12px">
+            Menú lateral → <strong style="color:#fff">Configuración</strong> → <strong style="color:#fff">Planes de pago</strong> → <strong style="color:#fff">Asignaciones</strong> → <strong style="color:#fff">Asignar nuevo plan</strong>
+          </div>
+        </div>
+
+        <div class="divisor">Pasos para asignar un plan</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#6A1E6E">1</div>
+          <div class="paso-content">
+            <h3>Selecciona el plan de pago</h3>
+            <p>En el campo <strong>"Plan de pago"</strong>, busca y selecciona el plan que creaste. Puedes escribir parte del nombre para filtrar.</p>
+            <div class="caja caja-ok" style="margin-top:10px">
+              <span class="caja-ico">✅</span>
+              <div>Al seleccionar el plan, automáticamente aparecen sus conceptos y fechas en el panel derecho.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#6A1E6E">2</div>
+          <div class="paso-content">
+            <h3>Elige el alcance de la asignación</h3>
+            <p>En el campo <strong>"Alcance"</strong>, selecciona a quién se le aplica el plan:</p>
+
+            <ul class="opciones">
+              <li>
+                <span class="ico">👤</span>
+                <div>
+                  <span class="badge badge-azul">Individual</span> — Solo a un alumno específico.<br>
+                  <small style="color:var(--gris)">Aparecerá un campo para buscar al alumno por nombre o matrícula.</small>
+                </div>
+              </li>
+              <li>
+                <span class="ico">👥</span>
+                <div>
+                  <span class="badge badge-verde">Grupo</span> — A todos los alumnos de un grupo (ej: 1°A).<br>
+                  <small style="color:var(--gris)">Aparecerá un campo para seleccionar el grupo.</small>
+                </div>
+              </li>
+              <li>
+                <span class="ico">🏫</span>
+                <div>
+                  <span class="badge badge-naranja">Nivel</span> — A todos los alumnos de un nivel (ej: toda Primaria).<br>
+                  <small style="color:var(--gris)">Aparecerá un campo para seleccionar el nivel educativo.</small>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#6A1E6E">3</div>
+          <div class="paso-content">
+            <h3>Revisa las fechas</h3>
+            <p>Las fechas de inicio y fin se llenan automáticamente desde el plan. Si necesitas ajustarlas para este alumno en particular, puedes modificarlas.</p>
+            <div class="caja caja-warn" style="margin-top:10px">
+              <span class="caja-ico">⚠️</span>
+              <div>Las fechas determinan cuántos cargos se generan. Si cambias las fechas, revisa la <strong>vista previa de períodos</strong> que aparece abajo.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#6A1E6E">4</div>
+          <div class="paso-content">
+            <h3>Verifica los conceptos a incluir</h3>
+            <p>En el panel derecho verás todos los conceptos del plan con casillas de verificación. <strong>Todas vienen marcadas</strong> por defecto.</p>
+            <ul class="opciones">
+              <li><span class="ico">✅</span><div>Dejar marcado = ese concepto SÍ generará cargos al alumno.</div></li>
+              <li><span class="ico">☐</span><div>Desmarcar = ese concepto NO se cobrará en esta asignación.</div></li>
+            </ul>
+            <div class="caja caja-info" style="margin-top:10px">
+              <span class="caja-ico">💡</span>
+              <div>Ejemplo: Si el plan incluye Colegiatura e Inscripción pero el alumno ya pagó la inscripción, desmarca "Inscripción" antes de guardar.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#6A1E6E">5</div>
+          <div class="paso-content">
+            <h3>Revisa la vista previa de períodos</h3>
+            <p>Justo debajo de los conceptos verás una lista de los meses/períodos que se van a generar. Confirma que son los correctos.</p>
+            <div class="pantalla" style="margin-top:10px">
+              <div class="ui-title" style="font-size:11px">📅 Períodos a generar</div>
+              <div style="color:#B0BEC5; font-size:11px; line-height:2">
+                Agosto 2024 &nbsp;·&nbsp; Septiembre 2024 &nbsp;·&nbsp; Octubre 2024 &nbsp;·&nbsp;
+                Noviembre 2024 &nbsp;·&nbsp; Diciembre 2024 &nbsp;·&nbsp; Enero 2025 &nbsp;·&nbsp;
+                Febrero 2025 &nbsp;·&nbsp; Marzo 2025 &nbsp;·&nbsp; Abril 2025 &nbsp;·&nbsp;
+                Mayo 2025 &nbsp;·&nbsp; Junio 2025
+              </div>
+              <div style="margin-top:8px; color:#FFB74D; font-size:11px">
+                Total: 11 períodos · 2 conceptos = <strong style="color:#fff">22 cargos a generar</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">6</div>
+          <div class="paso-content">
+            <h3>Haz clic en "Guardar asignación"</h3>
+            <p>El sistema procesará la asignación y generará automáticamente todos los cargos. Recibirás una confirmación con el número de cargos creados.</p>
+            <div class="caja caja-ok" style="margin-top:10px">
+              <span class="caja-ico">✅</span>
+              <div><strong>¡Listo!</strong> Los cargos ya aparecen en la pantalla de cobros de cada alumno. El cajero puede empezar a recibirlos.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 4 — COBROS EN CAJA
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="cobros">
+      <div class="seccion-header">
+        <div class="icono" style="background:#FFF3E0; font-size:24px">💰</div>
+        <div>
+          <h2>4. Registro de cobros en caja</h2>
+          <p>Busca al alumno, selecciona cargos y registra el pago</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-info">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>¿Quién usa esta pantalla?</b>
+            El personal de <strong>caja o administración</strong>. Esta es la pantalla principal de cobro del día a día. No necesitas conocer la configuración de planes.
+          </div>
+        </div>
+
+        <div class="divisor">Dónde encontrarlo</div>
+
+        <div class="pantalla">
+          <div class="barra">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <div class="url">cgescolar.com / cobros</div>
+          </div>
+          <div style="color:#90A4AE; font-size:12px">
+            Menú lateral → <strong style="color:#fff">Caja</strong> → <strong style="color:#fff">Cobros</strong>
+          </div>
+        </div>
+
+        <div class="divisor">Pasos para registrar un cobro</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--naranja)">1</div>
+          <div class="paso-content">
+            <h3>Busca al alumno</h3>
+            <p>En la pantalla principal de Cobros verás un campo de búsqueda. Escribe el <strong>nombre</strong>, <strong>matrícula</strong> o <strong>CURP</strong> del alumno y selecciónalo de la lista.</p>
+            <div class="caja caja-info" style="margin-top:10px">
+              <span class="caja-ico">🔍</span>
+              <div>Con 3 o más letras ya aparecen sugerencias. Haz clic en el alumno correcto para abrir su pantalla de cobros.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--naranja)">2</div>
+          <div class="paso-content">
+            <h3>Revisa los cargos pendientes</h3>
+            <p>Al entrar a la pantalla del alumno verás todos sus cargos pendientes. Cada cargo muestra:</p>
+
+            <div class="pantalla" style="margin-top:10px">
+              <div class="ui-title">📋 Cargos pendientes — García Luis</div>
+              <div class="ui-row" style="background:rgba(255,255,255,.05); border-radius:4px; padding:8px; margin-bottom:6px">
+                <div style="color:#fff; font-size:11px; flex:1">
+                  <div style="font-weight:700">☐ Colegiatura</div>
+                  <div style="color:#90A4AE; font-size:10px">Agosto 2024 · Plan Primaria · Vence: 10/08/2024</div>
+                  <div style="color:#FFB74D; font-size:10px">⚠️ 5 días de atraso · Recargo: +$50.00</div>
+                </div>
+                <div style="color:#FF5F57; font-weight:700; font-size:14px">$2,550.00</div>
+              </div>
+              <div class="ui-row" style="background:rgba(255,255,255,.05); border-radius:4px; padding:8px">
+                <div style="color:#fff; font-size:11px; flex:1">
+                  <div style="font-weight:700">☐ Colegiatura</div>
+                  <div style="color:#90A4AE; font-size:10px">Septiembre 2024 · Plan Primaria · Vence: 10/09/2024</div>
+                  <div style="color:#81C784; font-size:10px">🏷️ Pronto pago: -$125.00</div>
+                </div>
+                <div style="color:#81C784; font-weight:700; font-size:14px">$2,375.00</div>
+              </div>
+            </div>
+
+            <ul class="opciones" style="margin-top:12px">
+              <li><span class="ico">🔴</span><div><strong>Monto en rojo</strong> = cargo vencido con recargo por mora.</div></li>
+              <li><span class="ico">🟢</span><div><strong>Monto en verde</strong> = cargo vigente con descuento por pronto pago.</div></li>
+              <li><span class="ico">🎓</span><div><strong>Beca aplicada</strong> = el sistema ya descontó el porcentaje de beca del alumno automáticamente.</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--naranja)">3</div>
+          <div class="paso-content">
+            <h3>Selecciona los cargos a cobrar</h3>
+            <p>Marca las casillas (☐) de los cargos que el alumno va a pagar <strong>en este momento</strong>. Puedes seleccionar uno o varios al mismo tiempo.</p>
+            <div class="caja caja-info" style="margin-top:10px">
+              <span class="caja-ico">💡</span>
+              <div>El <strong>resumen del lado derecho</strong> se actualiza automáticamente cada vez que marcas o desmarcas un cargo. Muestra el total a cobrar en ese momento.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--naranja)">4</div>
+          <div class="paso-content">
+            <h3>Selecciona la forma de pago</h3>
+            <p>En el panel derecho, haz clic en uno de los botones de forma de pago:</p>
+
+            <ul class="opciones">
+              <li>
+                <span class="ico">💵</span>
+                <div>
+                  <span class="badge badge-verde">Efectivo</span> — Aparecerán campos adicionales:<br>
+                  <small style="color:var(--gris)">
+                    · "¿Con cuánto paga?" → escribe el monto recibido (ej: $500)<br>
+                    · Botones rápidos: $50, $100, $200, $500, $1,000<br>
+                    · El sistema calcula automáticamente el <strong>cambio a devolver</strong>
+                  </small>
+                </div>
+              </li>
+              <li>
+                <span class="ico">📱</span>
+                <div>
+                  <span class="badge badge-azul">Transferencia</span> — Se habilita un campo para ingresar el <strong>número de folio o referencia bancaria</strong>.
+                </div>
+              </li>
+              <li>
+                <span class="ico">💳</span>
+                <div>
+                  <span class="badge badge-naranja">Tarjeta</span> — Sin campos adicionales. Solo selecciona y confirma.
+                </div>
+              </li>
+              <li>
+                <span class="ico">🏦</span>
+                <div>
+                  <span class="badge badge-gris">Cheque</span> — Se habilita un campo para ingresar el <strong>número de cheque o referencia</strong>.
+                </div>
+              </li>
+            </ul>
+
+            <div class="pantalla" style="margin-top:14px">
+              <div class="ui-title">💵 Pago en efectivo</div>
+              <div class="ui-row">
+                <div class="ui-label">Total a cobrar</div>
+                <div style="color:#81C784; font-weight:700; font-size:18px">$2,550.00</div>
+              </div>
+              <div class="ui-row">
+                <div class="ui-label">¿Con cuánto paga?</div>
+                <div class="ui-field" style="max-width:120px">$3,000.00</div>
+              </div>
+              <div style="background:rgba(129,199,132,.15); border:1px solid rgba(129,199,132,.3); border-radius:6px; padding:8px 12px; margin-top:8px; color:#81C784; font-size:13px; font-weight:700">
+                💰 Cambio a devolver: $450.00
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--naranja)">5</div>
+          <div class="paso-content">
+            <h3>Verifica la fecha del pago</h3>
+            <p>El campo <strong>"Fecha del pago"</strong> viene relleno con la fecha de hoy. Cámbiala solo si estás registrando un pago de una fecha diferente (por ejemplo, un pago recibido ayer).</p>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">6</div>
+          <div class="paso-content">
+            <h3>Haz clic en "Registrar cobro"</h3>
+            <p>El sistema procesará el pago y te llevará a la <strong>pantalla del recibo</strong>.</p>
+
+            <div class="pantalla" style="margin-top:12px">
+              <div class="ui-title">🧾 Recibo generado</div>
+              <div class="ui-row">
+                <div class="ui-label">Folio</div>
+                <div style="color:#FFD54F; font-weight:700">R20240815-0042</div>
+              </div>
+              <div class="ui-row">
+                <div class="ui-label">Alumno</div>
+                <div style="color:#B0BEC5">García Pérez, Luis</div>
+              </div>
+              <div class="ui-row">
+                <div class="ui-label">Total cobrado</div>
+                <div style="color:#81C784; font-weight:700">$2,550.00</div>
+              </div>
+              <div class="ui-row" style="margin-top:10px; gap:8px">
+                <div class="ui-btn" style="font-size:11px">📥 Descargar PDF</div>
+                <div class="ui-btn" style="background:#546E7A; font-size:11px">🖨️ Imprimir</div>
+                <div class="ui-btn" style="background:#2E7D32; font-size:11px">👤 Otro alumno</div>
+              </div>
+            </div>
+
+            <ul class="opciones" style="margin-top:12px">
+              <li><span class="ico">📥</span><div><strong>Descargar PDF</strong> — Guarda el recibo para enviarlo al padre de familia por WhatsApp o correo.</div></li>
+              <li><span class="ico">🖨️</span><div><strong>Imprimir</strong> — Imprime el recibo directamente.</div></li>
+              <li><span class="ico">👤</span><div><strong>Otro alumno</strong> — Regresa a la búsqueda para cobrarle a otro alumno.</div></li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 5 — CARGOS ÚNICOS / RECURRENTES
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="cargo-unico">
+      <div class="seccion-header">
+        <div class="icono" style="background:#FCE4EC; font-size:24px">🔁</div>
+        <div>
+          <h2>5. Cargos únicos y recurrentes</h2>
+          <p>Cobrar conceptos que no están en el plan — excursiones, papelería, etc.</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-info">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>¿Para qué sirve?</b>
+            Cuando tienes que cobrarle algo a un alumno que <strong>no está en su plan de pago</strong>. Por ejemplo: una excursión, una multa por daños, papelería extra, comedor del día, etc.
+          </div>
+        </div>
+
+        <div class="divisor">Desde la pantalla de cobros del alumno</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#880E4F">1</div>
+          <div class="paso-content">
+            <h3>Busca al alumno y entra a su pantalla de cobros</h3>
+            <p>Igual que en la sección anterior. Ve a <strong>Caja → Cobros</strong>, busca al alumno y ábrelo.</p>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#880E4F">2</div>
+          <div class="paso-content">
+            <h3>Localiza la sección "Agregar concepto"</h3>
+            <p>En la pantalla del alumno, debajo de la lista de cargos pendientes, encontrarás la sección <strong>"Agregar concepto en este momento"</strong>. Haz clic en el botón <strong>"+ Agregar"</strong>.</p>
+            <div class="pantalla" style="margin-top:10px">
+              <div style="color:#90A4AE; font-size:11px; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,.1); padding-bottom:6px">
+                ─── Agregar concepto en este momento ───
+              </div>
+              <div class="ui-row">
+                <div class="ui-label">Concepto</div>
+                <div class="ui-field">[ Seleccionar... ]</div>
+              </div>
+              <div class="ui-row">
+                <div class="ui-label">Monto</div>
+                <div class="ui-field" style="max-width:120px">$0.00</div>
+              </div>
+              <div style="margin-top:8px">
+                <div class="ui-btn" style="font-size:11px">+ Agregar</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#880E4F">3</div>
+          <div class="paso-content">
+            <h3>Selecciona el concepto y escribe el monto</h3>
+
+            <table class="tabla-campos">
+              <thead>
+                <tr><th>Campo</th><th>Descripción</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Concepto</strong></td>
+                  <td>Selecciona del menú desplegable. Solo aparecen conceptos de tipo <span class="badge badge-naranja">Cargo Único</span> o <span class="badge badge-rojo">Cargo Recurrente</span>.</td>
+                </tr>
+                <tr>
+                  <td><strong>Monto</strong></td>
+                  <td>Escribe el monto a cobrar. Puede ser diferente al monto base del concepto.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="caja caja-info" style="margin-top:12px">
+              <span class="caja-ico">➕</span>
+              <div>
+                <b>¿Cargo Recurrente?</b>
+                Si el concepto es <strong>Cargo Recurrente</strong> (ej: comedor del día), puedes hacer clic en <strong>"+ Agregar"</strong> varias veces para añadir múltiples cargos del mismo tipo en un solo cobro. Ej: 5 días de comedor = 5 filas de $35 c/u.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#880E4F">4</div>
+          <div class="paso-content">
+            <h3>Combinar con cargos del plan (si aplica)</h3>
+            <p>Puedes cobrar en un solo movimiento tanto los cargos del plan como los cargos nuevos. Simplemente:</p>
+            <ul class="opciones">
+              <li><span class="ico">☑️</span><div>Marca los cargos del plan que vayas a cobrar.</div></li>
+              <li><span class="ico">➕</span><div>Agrega los conceptos extra que necesites.</div></li>
+              <li><span class="ico">💳</span><div>Selecciona forma de pago y registra todo junto.</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">5</div>
+          <div class="paso-content">
+            <h3>Registrar el cobro</h3>
+            <p>Selecciona la forma de pago y haz clic en <strong>"Registrar cobro"</strong>. El recibo incluirá todos los conceptos cobrados.</p>
+          </div>
+        </div>
+
+        <div class="caja caja-warn">
+          <span class="caja-ico">⚠️</span>
+          <div>
+            <b>¿No ves el concepto en el menú?</b>
+            Significa que el concepto no existe o está desactivado. Pide al administrador que cree el concepto (tipo Cargo Único o Recurrente) en la sección de Conceptos de cobro.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 6 — CONDONACIONES
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="condonaciones">
+      <div class="seccion-header">
+        <div class="icono" style="background:#EDE7F6; font-size:24px">✂️</div>
+        <div>
+          <h2>6. Condonaciones</h2>
+          <p>Perdonar o reducir un cargo ya generado — solo para administradores</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-info">
+          <span class="caja-ico">ℹ️</span>
+          <div>
+            <b>¿Qué es una condonación?</b>
+            Es el perdón parcial o total de un cargo que ya existe en el sistema. A diferencia de una beca (que se asigna antes), la condonación se aplica sobre un cargo ya generado, por una razón específica que debe quedar registrada.
+          </div>
+        </div>
+
+        <div class="caja caja-warn">
+          <span class="caja-ico">🔒</span>
+          <div>
+            <b>Solo administradores</b>
+            Únicamente los usuarios con rol <strong>Administrador</strong> pueden crear o cancelar condonaciones. El personal de caja puede ver los descuentos aplicados en la pantalla de cobros, pero no puede crearlos.
+          </div>
+        </div>
+
+        <div class="divisor">Diferencia entre beca y condonación</div>
+
+        <table class="tabla-campos">
+          <thead>
+            <tr><th></th><th>Beca</th><th>Condonación</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>¿Cuándo se aplica?</strong></td>
+              <td>Al asignar el plan (antes de los cargos)</td>
+              <td>Sobre un cargo ya generado y existente</td>
+            </tr>
+            <tr>
+              <td><strong>¿Quién la autoriza?</strong></td>
+              <td>Administrador</td>
+              <td>Administrador</td>
+            </tr>
+            <tr>
+              <td><strong>¿Se puede revertir?</strong></td>
+              <td>Sí, desactivando la beca</td>
+              <td>Sí, cancelando la condonación</td>
+            </tr>
+            <tr>
+              <td><strong>¿Requiere motivo?</strong></td>
+              <td>Sí (opcional en algunos casos)</td>
+              <td><strong>Sí, obligatorio (mín. 10 caracteres)</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Tipo de descuento</strong></td>
+              <td>Porcentaje sobre el monto</td>
+              <td>Monto fijo elegido por el administrador</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="divisor">Dónde encontrarlo</div>
+
+        <div class="pantalla">
+          <div class="barra">
+            <span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span>
+            <div class="url">cgescolar.com / condonaciones</div>
+          </div>
+          <div style="color:#90A4AE; font-size:12px">
+            Menú lateral → <strong style="color:#fff">Configuración</strong> → <strong style="color:#fff">Planes y conceptos</strong> → <strong style="color:#fff">Condonaciones</strong>
+          </div>
+        </div>
+
+        <div class="divisor">Pasos para crear una condonación</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#4527A0">1</div>
+          <div class="paso-content">
+            <h3>Haz clic en "Nueva condonación"</h3>
+            <p>En el listado de condonaciones, haz clic en el botón verde <strong>"+ Nueva condonación"</strong> en la esquina superior derecha. Se abrirá el formulario dividido en dos paneles.</p>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#4527A0">2</div>
+          <div class="paso-content">
+            <h3>Selecciona el alumno</h3>
+            <p>En el panel izquierdo, busca al alumno en el campo <strong>"Alumno"</strong>. Escribe su nombre o matrícula y selecciónalo de la lista. El sistema mostrará solo alumnos inscritos en el ciclo escolar actual.</p>
+            <div class="caja caja-ok" style="margin-top:10px">
+              <span class="caja-ico">✅</span>
+              <div>Al seleccionar el alumno, la tabla de cargos se carga automáticamente mostrando todos sus cargos pendientes o con saldo.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#4527A0">3</div>
+          <div class="paso-content">
+            <h3>Selecciona los cargos a condonar</h3>
+            <p>La tabla muestra los cargos del alumno. Para cada cargo que quieras condonar:</p>
+
+            <div class="pantalla" style="margin-top:10px">
+              <div class="ui-title">📋 Cargos del alumno — García Pérez, Luis</div>
+              <div style="display:grid; grid-template-columns:30px 1fr 100px 100px 110px; gap:6px; font-size:11px; color:#90A4AE; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.1); margin-bottom:6px">
+                <span>☐</span><span>Cargo / Período</span><span>Monto orig.</span><span>Saldo pend.</span><span>A condonar</span>
+              </div>
+              <div style="display:grid; grid-template-columns:30px 1fr 100px 100px 110px; gap:6px; font-size:11px; color:#B0BEC5; margin-bottom:4px; align-items:center">
+                <span style="color:#81C784">☑</span>
+                <div><div style="color:#fff">Colegiatura</div><div style="color:#78909C">Julio 2026</div></div>
+                <span>$2,500.00</span>
+                <span style="color:#FFB74D">$2,500.00</span>
+                <div class="ui-field" style="max-width:100px; color:#fff">$500.00</div>
+              </div>
+              <div style="display:grid; grid-template-columns:30px 1fr 100px 100px 110px; gap:6px; font-size:11px; color:#B0BEC5; align-items:center">
+                <span>☐</span>
+                <div><div style="color:#fff">Colegiatura</div><div style="color:#78909C">Agosto 2026</div></div>
+                <span>$2,500.00</span>
+                <span style="color:#FFB74D">$2,500.00</span>
+                <div class="ui-field" style="max-width:100px; color:#78909C">—</div>
+              </div>
+              <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,.1); display:flex; justify-content:space-between; font-size:12px">
+                <span style="color:#90A4AE">1 cargo seleccionado</span>
+                <span style="color:#81C784; font-weight:700">Total a condonar: $500.00</span>
+              </div>
+            </div>
+
+            <ul class="opciones" style="margin-top:14px">
+              <li><span class="ico">☑️</span><div>Marca la casilla del cargo que quieres condonar. Se habilitará el campo <strong>"Monto a condonar"</strong>.</div></li>
+              <li><span class="ico">💲</span><div>En el campo <strong>"Monto a condonar"</strong>, el sistema pre-rellena el saldo pendiente completo. Puedes reducirlo para hacer una condonación parcial. Ej: condonar $500 de un cargo de $2,500.</div></li>
+              <li><span class="ico">☑️☑️</span><div>Puedes marcar <strong>varios cargos</strong> a la vez. El total se actualiza automáticamente en la parte inferior.</div></li>
+            </ul>
+
+            <div class="caja caja-warn" style="margin-top:12px">
+              <span class="caja-ico">⚠️</span>
+              <div>
+                <b>Cargos que NO aparecen en la lista</b>
+                Los cargos con estado <span class="badge badge-verde">Pagado</span> o <span class="badge badge-azul">Condonado</span> no aparecen, ya que no tienen saldo disponible para condonar.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:#4527A0">4</div>
+          <div class="paso-content">
+            <h3>Escribe el motivo</h3>
+            <p>En el panel derecho, completa el campo <strong>"Motivo"</strong>. Este campo es <strong>obligatorio</strong> y debe tener al menos 10 caracteres. Queda registrado en auditoría para consultas futuras.</p>
+
+            <table class="tabla-campos" style="margin-top:10px">
+              <thead>
+                <tr><th>Campo</th><th>Regla</th><th>Ejemplo</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Motivo</strong></td>
+                  <td><span class="req">Obligatorio</span> · mín. 10 caracteres · máx. 1,000</td>
+                  <td><em>"Alumno de nuevo ingreso con convenio especial de familia. Autorizado por dirección."</em></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="caja caja-info" style="margin-top:10px">
+              <span class="caja-ico">📝</span>
+              <div>Sé descriptivo en el motivo. Dirección y auditoría pueden consultar este campo para verificar por qué se otorgó el descuento.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--verde)">5</div>
+          <div class="paso-content">
+            <h3>Verifica el resumen y haz clic en "Registrar condonación"</h3>
+            <p>Antes de guardar, revisa el panel de resumen:</p>
+            <ul class="opciones">
+              <li><span class="ico">👤</span><div>Alumno correcto</div></li>
+              <li><span class="ico">📋</span><div>Número de cargos seleccionados</div></li>
+              <li><span class="ico">💲</span><div>Total a condonar (suma de todos los montos)</div></li>
+            </ul>
+            <p style="margin-top:10px">Haz clic en <strong>"Registrar condonación"</strong>. El sistema aplicará los descuentos y actualizará los cargos inmediatamente.</p>
+          </div>
+        </div>
+
+        <div class="divisor">¿Qué pasa con el cargo después de condonar?</div>
+
+        <table class="tabla-campos">
+          <thead>
+            <tr><th>Situación</th><th>Estado resultante del cargo</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>El monto condonado cubre el <strong>saldo completo</strong> del cargo</td>
+              <td><span class="badge badge-azul">Condonado</span> — Ya no aparece como pendiente</td>
+            </tr>
+            <tr>
+              <td>El monto condonado es <strong>menor al saldo</strong> (condonación parcial)</td>
+              <td><span class="badge badge-naranja">Pendiente</span> o <span class="badge badge-gris">Parcial</span> — Queda con saldo reducido</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="caja caja-ok" style="margin-top:12px">
+          <span class="caja-ico">💡</span>
+          <div>
+            <b>Ejemplo práctico</b><br>
+            Cargo de $2,500 · Se condona $500 → Saldo pendiente queda en $2,000 con estado <span class="badge badge-naranja">Pendiente</span>.<br>
+            Cargo de $2,500 · Se condona $2,500 → Cargo pasa a <span class="badge badge-azul">Condonado</span> y desaparece de la lista de cobros.
+          </div>
+        </div>
+
+        <div class="divisor">Cómo cancelar una condonación</div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--rojo)">1</div>
+          <div class="paso-content">
+            <h3>Abre el detalle de la condonación</h3>
+            <p>En el listado de condonaciones, haz clic en el botón <strong>"Ver"</strong> (ícono ojo 👁️) de la condonación que quieres revertir.</p>
+          </div>
+        </div>
+
+        <div class="paso">
+          <div class="paso-num" style="background:var(--rojo)">2</div>
+          <div class="paso-content">
+            <h3>Haz clic en "Cancelar condonación"</h3>
+            <p>En la pantalla de detalle, encontrarás el botón rojo <strong>"Cancelar condonación"</strong> en la parte inferior. Solo aparece si la condonación está <span class="badge badge-verde">Activa</span>.</p>
+            <div class="caja caja-peli" style="margin-top:10px">
+              <span class="caja-ico">⚠️</span>
+              <div>
+                <b>Efecto inmediato</b>
+                Al cancelar, se eliminan todos los descuentos aplicados y los cargos vuelven a mostrar su saldo original. El sistema pedirá confirmación antes de proceder.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="caja caja-info" style="margin-top:6px">
+          <span class="caja-ico">ℹ️</span>
+          <div>Una condonación <strong>cancelada</strong> queda en el historial con estado <span class="badge badge-gris">Cancelada</span> pero no se elimina. Siempre hay trazabilidad de lo que ocurrió.</div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 7 — PROBLEMAS FRECUENTES
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="errores">
+      <div class="seccion-header">
+        <div class="icono" style="background:#FFEBEE; font-size:24px">🆘</div>
+        <div>
+          <h2>Problemas frecuentes</h2>
+          <p>Soluciones a los errores más comunes</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <div class="caja caja-peli">
+          <span class="caja-ico">❓</span>
+          <div>
+            <b>El alumno no tiene cargos pendientes</b>
+            Verifica que se le haya asignado un plan de pago. Ve a <strong>Planes → Asignaciones</strong> y busca al alumno. Si no aparece, asígnale un plan (ver Sección 3).
+          </div>
+        </div>
+
+        <div class="caja caja-peli">
+          <span class="caja-ico">❓</span>
+          <div>
+            <b>No puedo guardar el plan — "Debe agregar al menos un concepto"</b>
+            El plan necesita al menos un concepto con monto. Asegúrate de haber hecho clic en <strong>"Agregar concepto"</strong> y llenado el campo Monto.
+          </div>
+        </div>
+
+        <div class="caja caja-peli">
+          <span class="caja-ico">❓</span>
+          <div>
+            <b>No aparece el concepto en el menú del plan</b>
+            El concepto puede estar desactivado. Ve a <strong>Configuración → Conceptos</strong> y verifica que tenga el estado <span class="badge badge-verde">Activo</span>.
+          </div>
+        </div>
+
+        <div class="caja caja-peli">
+          <span class="caja-ico">❓</span>
+          <div>
+            <b>El cargo dice "pagado" pero el padre dice que no ha pagado</b>
+            Busca el folio de recibo en <strong>Caja → Pagos</strong> para ver quién registró el pago y cuándo. Puede ser un error de captura; avisa al administrador para anularlo.
+          </div>
+        </div>
+
+        <div class="caja caja-peli">
+          <span class="caja-ico">❓</span>
+          <div>
+            <b>El botón "Registrar cobro" no hace nada</b>
+            Verifica que: (1) hayas seleccionado al menos un cargo, (2) hayas elegido la forma de pago, y (3) si elegiste Efectivo, hayas ingresado el monto recibido.
+          </div>
+        </div>
+
+        <div class="caja caja-warn">
+          <span class="caja-ico">⚠️</span>
+          <div>
+            <b>¿No encuentras tu problema aquí?</b>
+            Contacta al administrador del sistema o al soporte técnico con el mensaje de error exacto que te mostró la pantalla.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         SECCIÓN 7 — CONSEJOS
+    ══════════════════════════════════════════════ -->
+    <div class="seccion" id="consejos">
+      <div class="seccion-header">
+        <div class="icono" style="background:#E8F5E9; font-size:24px">💡</div>
+        <div>
+          <h2>Consejos y buenas prácticas</h2>
+          <p>Recomendaciones para usar el sistema correctamente</p>
+        </div>
+      </div>
+      <div class="seccion-body">
+
+        <ul class="opciones">
+          <li>
+            <span class="ico">✅</span>
+            <div>
+              <strong>Crea primero los conceptos, luego el plan</strong><br>
+              <small style="color:var(--gris)">Antes de crear un plan, asegúrate de que todos los conceptos que vas a incluir ya existen en el sistema.</small>
+            </div>
+          </li>
+          <li>
+            <span class="ico">📅</span>
+            <div>
+              <strong>Revisa siempre la vista previa de períodos antes de asignar</strong><br>
+              <small style="color:var(--gris)">Confirma que el número de cargos a generar es el esperado. Un plan mensual de agosto a junio debe mostrar 11 períodos.</small>
+            </div>
+          </li>
+          <li>
+            <span class="ico">🧾</span>
+            <div>
+              <strong>Guarda o entrega el recibo inmediatamente</strong><br>
+              <small style="color:var(--gris)">El recibo PDF es el comprobante oficial del pago. Entrega una copia al padre de familia o envíasela por WhatsApp.</small>
+            </div>
+          </li>
+          <li>
+            <span class="ico">🔍</span>
+            <div>
+              <strong>Anota el folio de recibo cuando tengas dudas</strong><br>
+              <small style="color:var(--gris)">El folio (Ej: R20240815-0042) es tu referencia para buscar cualquier pago en Caja → Pagos.</small>
+            </div>
+          </li>
+          <li>
+            <span class="ico">👤</span>
+            <div>
+              <strong>Un alumno puede tener varios planes asignados</strong><br>
+              <small style="color:var(--gris)">Por ejemplo, un plan de colegiatura y un plan de transporte por separado. Ambos generarán cargos independientes.</small>
+            </div>
+          </li>
+          <li>
+            <span class="ico">🚫</span>
+            <div>
+              <strong>No desactives un concepto que esté en planes activos</strong><br>
+              <small style="color:var(--gris)">El sistema no te lo permitirá, pero si debes hacerlo, primero finaliza o desactiva los planes que lo usan.</small>
+            </div>
+          </li>
+          <li>
+            <span class="ico">💳</span>
+            <div>
+              <strong>Para transferencias, siempre anota la referencia bancaria</strong><br>
+              <small style="color:var(--gris)">El número de referencia es indispensable para verificar el pago ante cualquier aclaración futura.</small>
+            </div>
+          </li>
+        </ul>
+
+        <div class="caja caja-ok" style="margin-top:20px">
+          <span class="caja-ico">🎉</span>
+          <div>
+            <b>¡Bien hecho!</b>
+            Ya conoces el flujo completo de cobranza: Conceptos → Plan → Asignación → Cobro. Si tienes dudas, regresa a esta guía o consulta al administrador del sistema.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center; color:var(--gris); font-size:12px; margin-top:20px; padding-top:20px; border-top:1px solid var(--borde)">
+      CGEscolar · Guía de Cobranza · Para consultas contacta al administrador del sistema
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Marca el link activo en el sidebar según el scroll
+  const links = document.querySelectorAll('.sidebar nav a');
+  const sections = [];
+  links.forEach(link => {
+    const id = link.getAttribute('href').replace('#', '');
+    const el = document.getElementById(id);
+    if (el) sections.push({ link, el });
+  });
+
+  window.addEventListener('scroll', () => {
+    let current = sections[0];
+    sections.forEach(s => {
+      if (window.scrollY >= s.el.offsetTop - 80) current = s;
+    });
+    links.forEach(l => l.classList.remove('active'));
+    if (current) current.link.classList.add('active');
+  }, { passive: true });
+</script>
+
+</body>
+</html>
