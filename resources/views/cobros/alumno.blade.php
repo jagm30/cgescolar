@@ -9,6 +9,8 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
 <style>
 /* ── Alumno cabecera ──────────────────────── */
 .alumno-header {
@@ -700,10 +702,10 @@
         <div class="col-md-4">
             <div class="form-group">
                 <label style="font-size:12px;">Concepto <span class="text-red">*</span></label>
-                <select name="items[__IDX__][concepto_id]" class="form-control input-sm nuevo-concepto-sel">
+                <select name="items[__IDX__][concepto_id]" class="form-control nuevo-concepto-sel nuevo-concepto-sel-s2" style="width:100%;">
                     <option value="">-- Selecciona --</option>
                     @foreach($conceptos as $c)
-                    <option value="{{ $c->id }}">{{ $c->nombre }}</option>
+                    <option value="{{ $c->id }}" data-monto="{{ $c->monto ?? '' }}">{{ $c->nombre }}</option>
                     @endforeach
                 </select>
             </div>
@@ -744,6 +746,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
 <script>
 $(function() {
 
@@ -860,11 +863,19 @@ $(function() {
         var idx = nuevoIdx++;
         var tpl = $('#tpl-nuevo').html().replace(/__IDX__/g, idx);
         $('#contenedor-nuevos').append(tpl);
+        // Inicializar buscador en el select recién insertado
+        $('#nuevo-panel-' + idx).find('.nuevo-concepto-sel-s2').select2({
+            placeholder: 'Buscar concepto...',
+            allowClear: true,
+            width: '100%',
+            language: { noResults: function() { return 'Sin resultados'; } }
+        });
         nuevosItems[idx] = true;
         actualizarBtnCobrar();
     });
 
     window.quitarNuevo = function(idx) {
+        $('#nuevo-panel-' + idx).find('.nuevo-concepto-sel-s2').select2('destroy');
         $('#nuevo-panel-' + idx).remove();
         delete nuevosItems[idx];
         actualizarResumen();
@@ -1008,6 +1019,15 @@ $(function() {
         var hayFormaPago = $('input[name="forma_pago"]:checked').length > 0;
         $('#btn-cobrar').prop('disabled', !(hayItems && hayFormaPago));
     }
+
+    // Al seleccionar concepto → cargar monto del catálogo (editable)
+    $(document).on('change', '.nuevo-concepto-sel-s2', function() {
+        var $panel = $(this).closest('.nuevo-concepto-panel');
+        var monto  = $(this).find('option:selected').data('monto');
+        if (monto && parseFloat(monto) > 0) {
+            $panel.find('.item-monto').val(parseFloat(monto).toFixed(2)).trigger('input');
+        }
+    });
 
     // También actualizar al cambiar selects de nuevo concepto
     $(document).on('change', '.nuevo-concepto-sel', function() {

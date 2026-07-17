@@ -98,7 +98,7 @@ class CobrosController extends Controller
             ->map(fn ($cargo) => $this->enriquecerCargo($cargo, $hoy, $hoyFecha, $becasPorPlan, $becasPorConcepto));
 
         $conceptos = ConceptoCobro::where('activo', true)
-            ->whereIn('tipo', ['cargo_unico', 'cargo_recurrente', 'inscripcion'])
+            ->whereIn('tipo', ['cargo_unico', 'cargo_recurrente'])
             ->orderBy('tipo')
             ->orderBy('nombre')
             ->get();
@@ -376,18 +376,61 @@ class CobrosController extends Controller
         }
 
         $cargo = $item['tipo'] === 'nuevo'
-            ? Cargo::create([
-                'inscripcion_id' => $item['inscripcion_id'],
-                'concepto_id' => $item['concepto_id'],
-                'generado_por' => $cajeroId,
-                'monto_original' => $abonado,
-                'fecha_vencimiento' => $fechaPago,
-                'estado' => 'pagado',
-                'periodo' => now()->format('Y-m'),
-            ])
+            ? $this->crearCargoNuevo($item, $cajeroId, $fechaPago, $abonado)
             : Cargo::findOrFail($item['cargo_id']);
 
         return compact('cargo', 'abonado', 'descBeca', 'descProntoPago', 'descOtros', 'recargo', 'montoFinal');
+    }
+
+    /**
+     * Crea el cargo para un concepto cobrado en el momento desde el POS.
+     *
+     * - cargo_recurrente → periodo YYYY-MM-DD (permite múltiples cobros
+     *   del mismo concepto en el mismo mes, p.ej. desayunos diarios).
+     * - cargo_unico      → periodo YYYY-MM con firstOrCreate (evita
+     *   duplicar si ya existe un cargo previo sin pagar del mismo mes).
+     */
+    private function crearCargoNuevo(array $item, int $cajeroId, string $fechaPago, float $monto): Cargo
+    {
+        $concepto = ConceptoCobro::findOrFail($item['concepto_id']);
+
+        $base = [
+            'inscripcion_id'    => $item['inscripcion_id'],
+            'concepto_id'       => $item['concepto_id'],
+            'generado_por'      => $cajeroId,
+            'fecha_vencimiento' => Carbon::parse($fechaPago)->toDateString(),
+            'estado'            => 'pagado',
+        ];
+
+        if ($concepto->tipo === 'cargo_recurrente') {
+            // Periodo secuencial YYYY-MM-NN: permite múltiples cobros del mismo
+            // concepto en el mes (desayunos, comidas, etc.).
+            // Ejemplo: 2026-07-01, 2026-07-02, 2026-07-03…
+            $prefijo = now()->format('Y-m-');
+            $siguiente = Cargo::where('inscripcion_id', $item['inscripcion_id'])
+                ->where('concepto_id', $item['concepto_id'])
+                ->where('periodo', 'LIKE', $prefijo . '%')
+                ->count() + 1;
+
+            return Cargo::create([
+                ...$base,
+                'monto_original' => $monto,
+                'periodo'        => $prefijo . str_pad($siguiente, 2, '0', STR_PAD_LEFT),
+            ]);
+        }
+
+        // cargo_unico: reutiliza el cargo del mes si ya existe
+        return Cargo::firstOrCreate(
+            [
+                'inscripcion_id' => $item['inscripcion_id'],
+                'concepto_id'    => $item['concepto_id'],
+                'periodo'        => now()->format('Y-m'),
+            ],
+            [
+                ...$base,
+                'monto_original' => $monto,
+            ]
+        );
     }
 
     /** Crea el registro PagoDetalle y actualiza el estado del cargo asociado. */

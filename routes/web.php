@@ -30,24 +30,6 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/tables', function () {
-    return view('plantilla.tables');
-})->name('tables');
-Route::get('/datatables', function () {
-    return view('plantilla.data');
-})->name('datatables');
-Route::get('/ui-elements', function () {
-    return view('plantilla.uiGeneral');
-})->name('ui-elements');
-Route::get('/forms', function () {
-    return view('plantilla.forms');
-})->name('forms');
-Route::get('/icons', function () {
-    return view('plantilla.icons');
-})->name('icons');
-Route::get('/widgets', function () {
-    return view('plantilla.widgets');
-})->name('widgets');
 // =======================================================
 // Rutas públicas — sin autenticación
 // =======================================================
@@ -141,6 +123,13 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/alumnos', [AlumnoController::class, 'index'])
         ->middleware('rol:administrador,recepcion,caja,admisiones')
         ->name('alumnos.index');
+    // Reportes sin parámetro — deben ir ANTES del resource para no ser capturados por {alumno}
+    Route::get('/alumnos/reporte-inscritos', [AlumnoController::class, 'reporteInscritos'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('alumnos.reporte-inscritos');
+    Route::get('/alumnos/exportar-excel', [AlumnoController::class, 'exportarExcel'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('alumnos.exportar-excel');
     // Operaciones de escritura — solo admin y recepción
     // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
     // de la ruta /alumnos/{alumno} para evitar que "create" se resuelva como {id}

@@ -10,7 +10,11 @@
       "Bash(php --version)",
       "Bash(php:*)",
       "Bash(composer show:*)",
-      "Bash(composer require:*)"
+      "Bash(composer require:*)",
+      "Bash(sed -n '842,861p' \"D:/Downloads/dbkgenki_base.sql\")",
+      "Bash(sed -n '1295,1340p' \"D:/Downloads/dbkgenki_base.sql\")",
+      "Bash(sed -n '1640,1660p' \"D:/Downloads/dbkgenki_base.sql\")",
+      "Bash(composer dump-autoload:*)"
     ]
   }
 }

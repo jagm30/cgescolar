@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\MotivoBaja;
 use App\Enums\TipoInscripcion;
+use App\Services\AlumnosExcelExport;
 use App\Http\Requests\StoreAlumnoRequest;
 use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
@@ -634,6 +635,63 @@ class AlumnoController extends Controller
         $pdf->setPaper('letter', 'portrait');
 
         return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
+    }
+
+    /** GET /alumnos/exportar-excel */
+    public function exportarExcel(Request $request, AlumnosExcelExport $export)
+    {
+        return $export->descargar($request, $this->cicloActualId());
+    }
+
+    /** GET /alumnos/reporte-inscritos */
+    public function reporteInscritos()
+    {
+        $cicloId = $this->cicloActualId();
+        $ciclo   = CicloEscolar::findOrFail($cicloId);
+        $setting = Setting::first();
+
+        $niveles = NivelEscolar::activo()
+            ->with(['grados.grupos' => fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->activo()
+                ->withCount(['inscripciones as total_inscritos' => fn ($q) => $q->activa()])
+            ])
+            ->get();
+
+        $datos = $niveles->map(function (NivelEscolar $nivel) {
+            $grupos = $nivel->grados->flatMap(fn ($grado) => $grado->grupos);
+
+            $filas = $grupos->map(fn (Grupo $grupo) => [
+                'grupo' => $grupo->nombre,
+                'total' => (int) ($grupo->total_inscritos ?? 0),
+            ])->filter(fn ($f) => $f['total'] > 0)->values();
+
+            return [
+                'nivel'  => $nivel->nombre,
+                'filas'  => $filas,
+                'total'  => $filas->sum('total'),
+            ];
+        })->filter(fn ($d) => $d['total'] > 0)->values();
+
+        $granTotal = $datos->sum('total');
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('alumnos.reportes.inscritos_pdf', [
+            'ciclo'      => $ciclo,
+            'datos'      => $datos,
+            'granTotal'  => $granTotal,
+            'base64'     => $this->logoBase64($setting),
+            'setting'    => $setting,
+        ]);
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Inscritos_{$ciclo->nombre}.pdf");
     }
 
     // ── Helpers privados ──────────────────────────────────────────────────────

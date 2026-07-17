@@ -70,7 +70,7 @@ class Cargo extends Model
             return '';
         }
 
-        $fecha = Carbon::createFromFormat('Y-m', $this->periodo)->locale('es');
+        $fecha = Carbon::createFromFormat('Y-m', substr($this->periodo, 0, 7))->locale('es');
 
         return ucfirst($fecha->monthName).' '.$fecha->year;
     }
@@ -87,7 +87,7 @@ class Cargo extends Model
             return $nombre;
         }
 
-        $fecha = Carbon::createFromFormat('Y-m', $this->periodo)->locale('es');
+        $fecha = Carbon::createFromFormat('Y-m', substr($this->periodo, 0, 7))->locale('es');
 
         return $nombre.' '.ucfirst($fecha->monthName).' '.$fecha->year;
     }
