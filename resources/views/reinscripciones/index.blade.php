@@ -165,7 +165,7 @@
                             <option value="">— Selecciona el ciclo —</option>
                             @foreach($ciclos as $ciclo)
                                 <option value="{{ $ciclo->id }}"
-                                    {{ old('ciclo_id') == $ciclo->id ? 'selected' : '' }}>
+                                    {{ old('ciclo_id', $cicloActual?->id) == $ciclo->id ? 'selected' : '' }}>
                                     {{ $ciclo->nombre }}
                                     @if($ciclo->estado === 'activo')
                                         (Ciclo activo)
@@ -262,6 +262,9 @@
     const cicloSelect    = document.getElementById('cicloSelect');
     const gradoSelect    = document.getElementById('gradoSelect');
     const grupoSelect    = document.getElementById('grupoSelect');
+
+    const preselectGradoId = '{{ old('grado_id') }}';
+    const preselectGrupoId = '{{ old('grupo_id') }}';
 
     let searchTimer = null;
 
@@ -395,6 +398,10 @@
             gradoSelect.innerHTML = '<option value="">— Selecciona el grado —</option>'
                 + grados.map(g => `<option value="${g.id}">${g.label}</option>`).join('');
             gradoSelect.classList.remove('ri-select-disabled');
+            if (preselectGradoId) {
+                gradoSelect.value = preselectGradoId;
+                if (gradoSelect.value) gradoSelect.dispatchEvent(new Event('change'));
+            }
         });
     });
 
@@ -423,6 +430,7 @@
             grupoSelect.innerHTML = '<option value="">— Selecciona el grupo —</option>'
                 + grupos.map(g => `<option value="${g.id}">${g.label}</option>`).join('');
             grupoSelect.classList.remove('ri-select-disabled');
+            if (preselectGrupoId) grupoSelect.value = preselectGrupoId;
         });
     });
 
@@ -438,6 +446,9 @@
     function inhabilitarSubmit() {
         btnSubmit.disabled = true;
     }
+
+    /* ── Cascade inicial si ya hay ciclo pre-seleccionado ── */
+    if (cicloSelect.value) cicloSelect.dispatchEvent(new Event('change'));
 
     /* ── Prevenir envío sin alumno ────────────────── */
     document.getElementById('reinscripcionForm').addEventListener('submit', function (e) {

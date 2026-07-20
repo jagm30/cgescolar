@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\AlumnoController;
-use App\Http\Controllers\PersonalController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BecaController;
 use App\Http\Controllers\CargoController;
@@ -18,6 +17,7 @@ use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\NivelEscolarController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PersonalController;
 use App\Http\Controllers\PlanPagoConceptoController;
 use App\Http\Controllers\PlanPagoController;
 use App\Http\Controllers\PoliticaController;
@@ -130,12 +130,16 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/alumnos/exportar-excel', [AlumnoController::class, 'exportarExcel'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.exportar-excel');
-    // Operaciones de escritura — solo admin y recepción
+    // Registrar alumnos (create/store) — admin, recepción y caja
     // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
     // de la ruta /alumnos/{alumno} para evitar que "create" se resuelva como {id}
     Route::resource('alumnos', AlumnoController::class)
+        ->middleware('rol:administrador,recepcion,caja')
+        ->only(['create', 'store']);
+    // Editar y eliminar alumnos — solo admin y recepción
+    Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion')
-        ->except(['index', 'show']);
+        ->only(['edit', 'update', 'destroy']);
     Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])
         ->middleware('rol:administrador,recepcion,caja,admisiones')
         ->name('alumnos.show');
@@ -161,14 +165,14 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('medicamentos-autorizados.destroy');
     Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
     Route::get('/alumnos-bajas', [AlumnoController::class, 'reporteBajas'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.bajas');
     Route::post('/alumnos/{id}/inscripcion-anticipada', [AlumnoController::class, 'registrarAnticipada'])
         ->middleware('rol:administrador,recepcion')
         ->name('alumnos.inscripcion-anticipada');
 
     // ── Reinscripciones ──────────────────────────────────
-    Route::middleware('rol:administrador,recepcion')->prefix('reinscripciones')->name('reinscripciones.')->group(function () {
+    Route::middleware('rol:administrador,recepcion,caja')->prefix('reinscripciones')->name('reinscripciones.')->group(function () {
         Route::get('/', [ReinscripcionController::class, 'index'])->name('index');
         Route::get('/buscar', [ReinscripcionController::class, 'buscar'])->name('buscar');
         Route::post('/', [ReinscripcionController::class, 'store'])->name('store');
@@ -178,11 +182,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // Planes de pago
     // conceptos de cobro
     Route::resource('conceptos', ConceptoCobroController::class)
-        ->middleware('rol:administrador');
+        ->middleware('rol:administrador,caja');
 
     // ── Políticas de descuento y recargo (anidadas en plan) ──
     Route::prefix('planes/{planId}/politicas')
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('planes.politicas.')
         ->group(function () {
             Route::get('/', [PoliticaController::class, 'index'])->name('index');
@@ -199,27 +203,31 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         });
     // ── Planes de pago ───────────────────────────────────
     Route::get('/planes/asignar', [PlanPagoController::class, 'indexAsignaciones'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('planes.asignar.index');
 
     Route::get('/planes/asignar/nuevo', [PlanPagoController::class, 'createAsignacion'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('planes.asignar.form');
 
     Route::get('/planes/asignar/disponibles', [PlanPagoController::class, 'planesDisponibles'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('planes.asignar.disponibles');
 
     Route::post('/planes/asignar', [PlanPagoController::class, 'asignar'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('planes.asignar');
 
     Route::get('/planes/asignacion/{alumnoId}', [PlanPagoController::class, 'asignacionDeAlumno'])
         ->middleware('rol:administrador,caja')
         ->name('planes.asignacion-alumno');
 
+    Route::get('/planes/{planId}/alumnos-asignados', [PlanPagoController::class, 'alumnosPorPlan'])
+        ->middleware('rol:administrador,caja')
+        ->name('planes.alumnos-asignados');
+
     Route::resource('planes', PlanPagoController::class)
-        ->middleware('rol:administrador');
+        ->middleware('rol:administrador,caja');
 
     Route::post('planes/clonar-masivo', [PlanPagoController::class, 'clonarMasivo'])->name('planes.clonar.masivo');
 
@@ -289,49 +297,53 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Becas ────────────────────────────────────────────
     Route::get('/becas/catalogo', [BecaController::class, 'catalogo'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.catalogo');
 
     Route::post('/becas/catalogo', [BecaController::class, 'storeCatalogo'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.catalogo.store');
 
     Route::get('/becas/catalogo/{id}/editar', [BecaController::class, 'editCatalogo'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.catalogo.edit');
 
     Route::put('/becas/catalogo/{id}', [BecaController::class, 'updateCatalogo'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.catalogo.update');
 
     Route::delete('/becas/catalogo/{id}', [BecaController::class, 'destroyCatalogo'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.catalogo.destroy');
 
     Route::get('/becas/crear', [BecaController::class, 'create'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.create');
 
     Route::get('/becas/alumno/{alumnoId}/becas-activas', [BecaController::class, 'alumnoBecasActivas'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('becas.alumno.becas');
 
     Route::resource('becas', BecaController::class)
         ->only(['index', 'store', 'destroy'])
-        ->middleware('rol:administrador');
+        ->middleware('rol:administrador,caja');
 
     // ── Condonaciones ────────────────────────────────────
+    Route::post('/condonaciones/masiva', [CondonacionController::class, 'storeMasiva'])
+        ->middleware('rol:administrador,caja')
+        ->name('condonaciones.masiva');
+
     Route::get('/condonaciones/cargos-alumno/{alumnoId}', [CondonacionController::class, 'cargosAlumno'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('condonaciones.cargos-alumno');
 
     Route::get('/condonaciones/crear', [CondonacionController::class, 'create'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('condonaciones.create');
 
     Route::resource('condonaciones', CondonacionController::class)
         ->only(['index', 'store', 'show', 'destroy'])
-        ->middleware('rol:administrador');
+        ->middleware('rol:administrador,caja');
 
     // ── Prospectos ───────────────────────────────────────
     Route::get('/prospectos/metricas', [ProspectoController::class, 'metricas'])

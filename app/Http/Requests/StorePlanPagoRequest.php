@@ -31,7 +31,7 @@ class StorePlanPagoRequest extends FormRequest
         return [
             // Plan
             'ciclo_id' => ['required', 'exists:ciclo_escolar,id'],
-            'nivel_id' => ['required', 'exists:nivel_escolar,id'],
+            'nivel_id' => ['nullable', 'exists:nivel_escolar,id'],
             'nombre' => ['required', 'string', 'max:200'],
             'periodicidad' => ['required', 'in:mensual,bimestral,semestral,anual,unico'],
             'fecha_inicio' => ['required', 'date'],
@@ -90,7 +90,7 @@ class StorePlanPagoRequest extends FormRequest
     {
         return [
             'ciclo_id.required' => 'Debe seleccionar el ciclo escolar.',
-            'nivel_id.required' => 'Debe seleccionar el nivel educativo.',
+            'nivel_id.exists' => 'El nivel educativo seleccionado no es válido.',
             'nombre.required' => 'El nombre del plan es obligatorio.',
             'periodicidad.required' => 'Debe seleccionar la periodicidad del plan.',
             'periodicidad.in' => 'La periodicidad debe ser: mensual, bimestral, semestral, anual o único.',

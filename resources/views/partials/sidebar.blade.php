@@ -234,7 +234,7 @@
                 </li>
             @endif
 
-            @if (auth()->user()->esAdministrador())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
                 <li
                     class="treeview {{ request()->routeIs(['conceptos.*', 'planes.*', 'becas.*', 'condonaciones.*']) ? 'active menu-open' : '' }}">
                     <a href="#">
@@ -318,7 +318,7 @@
                                 <i class="fa fa-circle-o"></i> Lista de alumnos
                             </a>
                         </li>
-                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
                             <li class="{{ request()->routeIs('alumnos.create') ? 'active' : '' }}">
                                 <a href="{{ route('alumnos.create') }}">
                                     <i class="fa fa-circle-o"></i> Registrar alumno

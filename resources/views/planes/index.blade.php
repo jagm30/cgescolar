@@ -12,6 +12,10 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <style>
+        .modal input[type="text"][name="nombre"] {
+            text-transform: uppercase;
+        }
+
         /* ── DISEÑO IDÉNTICO A TU IMAGEN DE EJEMPLO ── */
         .select2-container {
             width: 100% !important;
@@ -527,7 +531,10 @@
                                 @if ($plan->nivel)
                                     <span class="pln-nivel-tag">{{ $plan->nivel->nombre }}</span>
                                 @else
-                                    <span style="font-size:12px;color:#ccc;font-style:italic;">—</span>
+                                    <span style="font-size:11px;font-weight:700;color:#7c3aed;background:#f3e8fd;
+                                                 border:1px solid #e9d5ff;padding:2px 8px;border-radius:10px;">
+                                        Todas las secciones
+                                    </span>
                                 @endif
                             </td>
 
@@ -706,13 +713,14 @@
 
                     <div class="form-group">
                         <label><i class="fa fa-graduation-cap"></i> Nivel Escolar</label>
-                        <select name="nivel_id" class="form-control" required>
-                            <option value="">Seleccione un nivel...</option>
+                        <select name="nivel_id" class="form-control">
+                            <option value="" {{ old('nivel_id') === null ? 'selected' : '' }}>— Todas las secciones</option>
                             @foreach ($niveles as $nivel)
                                 <option value="{{ $nivel->id }}"
                                     {{ old('nivel_id') == $nivel->id ? 'selected' : '' }}>{{ $nivel->nombre }}</option>
                             @endforeach
                         </select>
+                        <small class="text-muted">Deja en blanco si el plan aplica a todas las secciones.</small>
                     </div>
                     <div class="form-group">
                         <label><i class="fa fa-clock-o"></i> Periodicidad</label>
@@ -1065,6 +1073,13 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
+        $(document).on('input', '.modal input[type="text"][name="nombre"]', function() {
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(start, end);
+        });
+
         $(document).ready(function() {
             // Redireccionar al resumen al hacer click en la fila
             $('#tabla-planes tbody').on('click', 'tr', function(e) {

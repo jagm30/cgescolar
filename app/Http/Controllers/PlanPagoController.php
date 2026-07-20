@@ -21,6 +21,7 @@ use App\Models\PoliticaDescuento;
 use App\Models\PoliticaRecargo;
 use App\Traits\RespondsWithJson;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -40,7 +41,9 @@ class PlanPagoController extends Controller
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
             ->withCount('asignaciones')
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('nivel_id'), fn ($q) => $q->where('nivel_id', $request->nivel_id))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->where(
+                fn ($q) => $q->where('nivel_id', $request->nivel_id)->orWhereNull('nivel_id')
+            ))
             ->orderBy('nivel_id')
             ->orderBy('nombre')
             ->paginate($planesPerPage, ['*'], 'planes_page');
@@ -465,6 +468,62 @@ class PlanPagoController extends Controller
         return response()->json(['asignaciones' => $asignaciones]);
     }
 
+    /**
+     * GET /planes/{planId}/alumnos-asignados (AJAX)
+     * Resuelve todos los alumnos asignados a un plan (individual/grupo/nivel)
+     * y retorna los alumnos + conceptos del plan.
+     */
+    public function alumnosPorPlan(int $planId): JsonResponse
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+
+        $plan = PlanPago::with('planPagoConceptos.concepto')->findOrFail($planId);
+
+        $asignaciones = AsignacionPlan::where('plan_id', $planId)->get();
+
+        $alumnoIds = collect();
+
+        foreach ($asignaciones as $asignacion) {
+            if ($asignacion->origen === 'individual' && $asignacion->alumno_id) {
+                $alumnoIds->push($asignacion->alumno_id);
+            } elseif ($asignacion->origen === 'grupo' && $asignacion->grupo_id) {
+                $ids = Inscripcion::where('grupo_id', $asignacion->grupo_id)
+                    ->where('ciclo_id', $cicloId)
+                    ->where('activo', true)
+                    ->pluck('alumno_id');
+                $alumnoIds = $alumnoIds->merge($ids);
+            } elseif ($asignacion->origen === 'nivel' && $asignacion->nivel_id) {
+                $ids = Inscripcion::whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $asignacion->nivel_id))
+                    ->where('ciclo_id', $cicloId)
+                    ->where('activo', true)
+                    ->pluck('alumno_id');
+                $alumnoIds = $alumnoIds->merge($ids);
+            }
+        }
+
+        $alumnoIds = $alumnoIds->unique()->values();
+
+        $alumnos = Alumno::whereIn('id', $alumnoIds)
+            ->orderBy('ap_paterno')->orderBy('nombre')
+            ->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'matricula'])
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'nombre_completo' => trim("{$a->ap_paterno} {$a->ap_materno} {$a->nombre}"),
+                'matricula' => $a->matricula,
+            ]);
+
+        $conceptos = $plan->planPagoConceptos->map(fn ($c) => [
+            'concepto_id' => $c->concepto_id,
+            'nombre' => $c->concepto->nombre,
+            'monto' => (float) $c->monto,
+        ]);
+
+        return response()->json([
+            'alumnos' => $alumnos,
+            'conceptos' => $conceptos,
+        ]);
+    }
+
     public function clonarMasivo(Request $request)
     {
         $request->validate([
@@ -544,18 +603,18 @@ class PlanPagoController extends Controller
         // Transformar planes a estructura simple para JavaScript
         $planesData = $planes->map(function ($p) {
             return [
-                'id'           => $p->id,
-                'nombre'       => $p->nombre,
+                'id' => $p->id,
+                'nombre' => $p->nombre,
                 'periodicidad' => $p->periodicidad,
                 'fecha_inicio' => $p->fecha_inicio?->format('Y-m-d'),
-                'fecha_fin'    => $p->fecha_fin?->format('Y-m-d'),
-                'conceptos'    => $p->planPagoConceptos->map(function ($c) {
+                'fecha_fin' => $p->fecha_fin?->format('Y-m-d'),
+                'conceptos' => $p->planPagoConceptos->map(function ($c) {
                     return [
-                        'id'          => $c->id,
+                        'id' => $c->id,
                         'concepto_id' => $c->concepto_id,
-                        'nombre'      => $c->concepto->nombre,
-                        'tipo'        => $c->concepto->tipo,
-                        'monto'       => (float) $c->monto,
+                        'nombre' => $c->concepto->nombre,
+                        'tipo' => $c->concepto->tipo,
+                        'monto' => (float) $c->monto,
                     ];
                 })->all(),
             ];
@@ -597,7 +656,7 @@ class PlanPagoController extends Controller
 
         // Respetar fechas personalizadas de la asignación; caer a las del plan si no se proporcionaron
         $fechaInicio = ($asignacion->fecha_inicio ?? $plan->fecha_inicio)->format('Y-m-d');
-        $fechaFin    = ($asignacion->fecha_fin    ?? $plan->fecha_fin)->format('Y-m-d');
+        $fechaFin = ($asignacion->fecha_fin ?? $plan->fecha_fin)->format('Y-m-d');
 
         $periodos = $this->calcularPeriodos($fechaInicio, $fechaFin, $plan->periodicidad);
         $inscripciones = $this->obtenerInscripcionesParaAsignacion($asignacion);

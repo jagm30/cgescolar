@@ -10,7 +10,7 @@ class StoreCondonacionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->esAdministrador();
+        return auth()->check() && (auth()->user()->esAdministrador() || auth()->user()->esCajero());
     }
 
     public function rules(): array
