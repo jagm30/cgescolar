@@ -126,6 +126,12 @@
         padding: 5px 16px;
     }
 
+    /* ── Mayúsculas en campos de texto ── */
+    .pro-panel-body input[type="text"],
+    .pro-panel-body textarea {
+        text-transform: uppercase;
+    }
+
     /* ── Alerta de errores ── */
     .pro-errors {
         border-left: 3px solid #e74c3c;
@@ -336,11 +342,15 @@
                 return value
                     .normalize("NFD")
                     .replace(/[\u0300-\u036f]/g, '')
-                    .replace(/[^A-Za-zÑñ\s'-]/g, '');
+                    .replace(/[^A-Za-zÑñ\s'-]/g, '')
+                    .toUpperCase();
             }
 
             $('#nombre, #ap_paterno, #ap_materno, #contacto_nombre').on('input', function() {
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
                 this.value = sanitizeName(this.value);
+                this.setSelectionRange(start, end);
             });
 
             $('#contacto_telefono').on('input', function() {

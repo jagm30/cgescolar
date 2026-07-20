@@ -7,6 +7,7 @@ use App\Models\Cargo;
 use App\Models\Condonacion;
 use App\Models\CondonacionDetalle;
 use App\Models\DescuentoCargo;
+use App\Models\Inscripcion;
 use Illuminate\Support\Facades\DB;
 
 class CondonacionService
@@ -65,6 +66,47 @@ class CondonacionService
     }
 
     /**
+     * Aplica la misma condonación a múltiples alumnos de un plan.
+     * Para cada alumno, busca los cargos pendientes de los conceptos indicados
+     * y aplica el monto configurado (respetando el saldo pendiente de cada cargo).
+     *
+     * @return int Número de condonaciones creadas (una por alumno con cargos válidos)
+     */
+    public function crearMasiva(array $data): int
+    {
+        $count = 0;
+
+        foreach ($data['alumno_ids'] as $alumnoId) {
+            $inscripcion = Inscripcion::where('alumno_id', $alumnoId)
+                ->where('ciclo_id', $data['ciclo_id'])
+                ->where('activo', true)
+                ->orderByRaw('grupo_id IS NULL')
+                ->first();
+
+            if (! $inscripcion) {
+                continue;
+            }
+
+            $detalles = $this->resolverDetallesParaAlumno($inscripcion->id, $data['conceptos']);
+
+            if (empty($detalles)) {
+                continue;
+            }
+
+            $this->crear([
+                'alumno_id' => $alumnoId,
+                'ciclo_id' => $data['ciclo_id'],
+                'motivo' => $data['motivo'],
+                'detalles' => $detalles,
+            ]);
+
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
      * Cancela una condonación: elimina los descuentos asociados y
      * revierte el estado de los cargos que quedaron marcados como condonados.
      */
@@ -89,6 +131,42 @@ class CondonacionService
     }
 
     // ── Helpers privados ─────────────────────────────────
+
+    /**
+     * Construye los detalles de condonación para un alumno dado.
+     * Aplica el monto configurado a cada cargo pendiente/parcial del concepto,
+     * respetando el saldo pendiente neto de cada cargo.
+     */
+    private function resolverDetallesParaAlumno(int $inscripcionId, array $conceptos): array
+    {
+        $detalles = [];
+
+        foreach ($conceptos as $concepto) {
+            $cargos = Cargo::where('inscripcion_id', $inscripcionId)
+                ->where('concepto_id', $concepto['concepto_id'])
+                ->whereIn('estado', ['pendiente', 'parcial'])
+                ->get();
+
+            foreach ($cargos as $cargo) {
+                $totalDescuentosPrevios = (float) DescuentoCargo::where('cargo_id', $cargo->id)
+                    ->sum('monto_aplicado');
+
+                $saldoPendiente = round(
+                    (float) $cargo->monto_original - $cargo->saldo_abonado - $totalDescuentosPrevios,
+                    2
+                );
+
+                if ($saldoPendiente <= 0) {
+                    continue;
+                }
+
+                $monto = min(round((float) $concepto['monto'], 2), $saldoPendiente);
+                $detalles[] = ['cargo_id' => $cargo->id, 'monto' => $monto];
+            }
+        }
+
+        return $detalles;
+    }
 
     /**
      * Marca el cargo como 'condonado' si los descuentos acumulados

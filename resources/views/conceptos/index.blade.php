@@ -258,6 +258,11 @@
             color: #bbb;
             margin: 0 0 20px;
         }
+
+        .modal input[type="text"],
+        .modal textarea {
+            text-transform: uppercase;
+        }
     </style>
 @endpush
 
@@ -722,6 +727,13 @@
 
 @push('scripts')
     <script>
+        $(document).on('input', '.modal input[type="text"], .modal textarea', function() {
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(start, end);
+        });
+
         $(document).ready(function() {
             // Lógica dinámica del select de tipo (Agregamos la 'e' de evento)
             $('.select-tipo-dinamico').on('change', function(e) {

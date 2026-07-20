@@ -42,6 +42,11 @@
             display: none;
             /* Oculto por defecto */
         }
+
+        .box-body input[type="text"],
+        .box-body textarea {
+            text-transform: uppercase;
+        }
     </style>
 @endpush
 
@@ -231,9 +236,13 @@
 
 @push('scripts')
     <script>
-        // RFC siempre en mayúsculas
-        document.querySelector('input[name="rfc"]')?.addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
+        document.querySelectorAll('.box-body input[type="text"], .box-body textarea').forEach(function(el) {
+            el.addEventListener('input', function() {
+                var start = this.selectionStart;
+                var end = this.selectionEnd;
+                this.value = this.value.toUpperCase();
+                this.setSelectionRange(start, end);
+            });
         });
 
         // Lógica para mostrar/ocultar el selector de roles

@@ -8,6 +8,7 @@ use App\Models\Cargo;
 use App\Models\CicloEscolar;
 use App\Models\Condonacion;
 use App\Models\DescuentoCargo;
+use App\Models\PlanPago;
 use App\Services\CondonacionService;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\JsonResponse;
@@ -56,7 +57,12 @@ class CondonacionController extends Controller
             ->orderBy('ap_paterno')->orderBy('nombre')
             ->get();
 
-        return view('condonaciones.create', compact('alumnos', 'cicloActual'));
+        $planes = PlanPago::where('ciclo_id', $cicloId)
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
+        return view('condonaciones.create', compact('alumnos', 'cicloActual', 'planes'));
     }
 
     /** POST /condonaciones */
@@ -104,6 +110,38 @@ class CondonacionController extends Controller
         return $this->respuestaExito(
             redirectRoute: 'condonaciones.index',
             mensaje: 'Condonación cancelada. Los descuentos han sido revertidos.'
+        );
+    }
+
+    /** POST /condonaciones/masiva */
+    public function storeMasiva(Request $request): JsonResponse|RedirectResponse
+    {
+        $data = $request->validate([
+            'plan_id' => ['required', 'integer', 'exists:plan_pago,id'],
+            'ciclo_id' => ['required', 'integer', 'exists:ciclo_escolar,id'],
+            'motivo' => ['required', 'string', 'min:10', 'max:1000'],
+            'alumno_ids' => ['required', 'array', 'min:1'],
+            'alumno_ids.*' => ['required', 'integer', 'exists:alumno,id'],
+            'conceptos' => ['required', 'array', 'min:1'],
+            'conceptos.*.concepto_id' => ['required', 'integer', 'exists:concepto_cobro,id'],
+            'conceptos.*.monto' => ['required', 'numeric', 'min:0.01'],
+        ], [
+            'motivo.min' => 'El motivo debe tener al menos 10 caracteres.',
+            'alumno_ids.required' => 'Debes seleccionar al menos un alumno.',
+            'alumno_ids.min' => 'Debes seleccionar al menos un alumno.',
+            'conceptos.*.monto.min' => 'El monto mínimo por concepto es $0.01.',
+        ]);
+
+        $count = $this->service->crearMasiva($data);
+
+        if ($count === 0) {
+            return $this->respuestaError('No se encontraron cargos pendientes para los alumnos seleccionados.');
+        }
+
+        return $this->respuestaExito(
+            redirectRoute: 'condonaciones.index',
+            mensaje: "Se registraron {$count} condonación(es) correctamente.",
+            jsonData: ['condonaciones_creadas' => $count]
         );
     }
 

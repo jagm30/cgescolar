@@ -42,6 +42,8 @@
 .form-panel-body .form-group { margin-bottom: 10px; }
 .form-panel-body label { font-size: 12px; color: #6b7a8d; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 3px; }
 .form-panel-body .form-control { border-radius: 6px !important; border: 1px solid #d0dbe6; box-shadow: none; height: 32px; font-size: 13px; padding: 4px 10px; color: #1a2634; }
+#form-alumno input[type="text"],
+#form-alumno textarea { text-transform: uppercase; }
 .form-panel-body textarea.form-control { height: auto; }
 .form-panel-body .form-control:focus { border-color: #3c8dbc; box-shadow: 0 0 0 3px rgba(60,141,188,.12); }
 .form-panel-body .help-block { font-size: 11px; margin-top: 3px; }
@@ -838,6 +840,13 @@
         var pasoActual = 1;
         var contactosIniciales = @json($contactosPrecargados);
         var contactosInicializados = false;
+
+        $(document).on('input', '#form-alumno input[type="text"], #form-alumno textarea', function() {
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(start, end);
+        });
 
         $(document).ready(function() {
             if (contactosIniciales.length) {
