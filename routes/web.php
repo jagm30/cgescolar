@@ -175,7 +175,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::middleware('rol:administrador,recepcion,caja')->prefix('reinscripciones')->name('reinscripciones.')->group(function () {
         Route::get('/', [ReinscripcionController::class, 'index'])->name('index');
         Route::get('/buscar', [ReinscripcionController::class, 'buscar'])->name('buscar');
+        Route::get('/alumnos-por-grupo', [ReinscripcionController::class, 'alumnosPorGrupo'])->name('alumnosPorGrupo');
         Route::post('/', [ReinscripcionController::class, 'store'])->name('store');
+        Route::post('/masiva', [ReinscripcionController::class, 'storeMasiva'])->name('storeMasiva');
     });
 
     // conceptos de cobro

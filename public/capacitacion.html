@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capacitación — Planes de Pago y Cobros | CGEscolar</title>
+<style>
+  :root {
+    --azul:    #1a3a5c;
+    --azul-cl: #2563eb;
+    --verde:   #16a34a;
+    --naranja: #d97706;
+    --rojo:    #dc2626;
+    --morado:  #7c3aed;
+    --gris:    #f1f5f9;
+    --texto:   #1e293b;
+    --borde:   #cbd5e1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a;
+    color: var(--texto);
+    counter-reset: slide;
+  }
+
+  /* ── Slides ── */
+  .slide {
+    width: 1200px;
+    min-height: 680px;
+    margin: 32px auto;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide::after {
+    counter-increment: slide;
+    content: counter(slide);
+    position: absolute;
+    bottom: 14px; right: 20px;
+    font-size: 12px; color: #94a3b8; font-weight: 600;
+  }
+
+  /* ── Headers ── */
+  .hd { padding: 24px 40px 20px; color: white; }
+  .hd.azul    { background: var(--azul); }
+  .hd.verde   { background: var(--verde); }
+  .hd.morado  { background: var(--morado); }
+  .hd .tag    { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: .7; margin-bottom: 5px; }
+  .hd h2      { font-size: 24px; font-weight: 700; line-height: 1.2; }
+  .hd p       { margin-top: 6px; font-size: 13px; opacity: .8; }
+
+  /* ── Body ── */
+  .body { flex: 1; padding: 24px 40px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── Portada ── */
+  .portada {
+    min-height: 680px; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+    padding: 60px; position: relative;
+  }
+  .portada .logo { width: 72px; height: 72px; background: rgba(255,255,255,.15); border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 24px; }
+  .portada h1   { font-size: 44px; font-weight: 800; line-height: 1.1; color: white; margin-bottom: 14px; }
+  .portada .sub { font-size: 18px; color: rgba(255,255,255,.75); margin-bottom: 36px; }
+  .portada .chips { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .portada .chip  { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 99px; padding: 6px 18px; font-size: 13px; font-weight: 600; color: white; }
+  .portada .fecha { position: absolute; bottom: 24px; right: 32px; font-size: 12px; color: rgba(255,255,255,.4); }
+
+  /* ── Agenda ── */
+  .agenda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ag-item { background: var(--gris); border-radius: 10px; padding: 16px 18px;
+    border-left: 4px solid var(--azul-cl); display: flex; gap: 12px; align-items: flex-start; }
+  .ag-item.v { border-left-color: var(--verde); }
+  .ag-num { width: 30px; height: 30px; border-radius: 50%; background: var(--azul); color: white;
+    font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ag-item.v .ag-num { background: var(--verde); }
+  .ag-item h4 { font-size: 14px; font-weight: 700; color: var(--azul); margin-bottom: 3px; }
+  .ag-item p  { font-size: 12px; color: #475569; }
+
+  /* ── Pasos ── */
+  .pasos { display: flex; position: relative; }
+  .pasos::before { content: ''; position: absolute; top: 22px; left: 24px; right: 24px; height: 2px; background: var(--borde); z-index: 0; }
+  .paso { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; z-index: 1; padding: 0 6px; }
+  .paso .circ { width: 44px; height: 44px; border-radius: 50%; background: var(--azul); color: white;
+    font-weight: 800; font-size: 17px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px; border: 3px solid white; box-shadow: 0 0 0 2px var(--azul); }
+  .paso .circ.v { background: var(--verde); box-shadow: 0 0 0 2px var(--verde); }
+  .paso h4 { font-size: 12px; font-weight: 700; color: var(--azul); margin-bottom: 2px; }
+  .paso p  { font-size: 11px; color: #64748b; }
+
+  /* ── Cols ── */
+  .cols     { display: grid; gap: 18px; align-items: start; }
+  .c2       { grid-template-columns: 1fr 1fr; }
+  .c4060    { grid-template-columns: 2fr 3fr; }
+  .c6040    { grid-template-columns: 3fr 2fr; }
+  .c3       { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* ── Screenshot ── */
+  .ss { border: 2px solid var(--borde); border-radius: 10px; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08); position: relative; cursor: zoom-in; }
+  .ss img { width: 100%; display: block; object-fit: cover; object-position: top; max-height: 370px; }
+  .ss .lbl { position: absolute; top: 8px; left: 8px;
+    background: rgba(26,58,92,.88); color: white; font-size: 10px; font-weight: 700;
+    padding: 3px 9px; border-radius: 99px; letter-spacing: .5px; }
+  .ss .btn-full { position: absolute; bottom: 8px; right: 8px;
+    background: rgba(26,58,92,.88); color: white; font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 6px; text-decoration: none; border: none; cursor: pointer; }
+  .ss .btn-full:hover { background: var(--azul-cl); }
+
+  /* ── Diagrama slide (imagen grande + botón) ── */
+  .diag-wrap { position: relative; border-radius: 10px; overflow: hidden;
+    border: 2px solid var(--borde); box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+  .diag-wrap img { width: 100%; display: block; max-height: 460px; object-fit: contain; object-position: top; background: #f8fafc; }
+  .diag-actions { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  .btn-abrir {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--azul); color: white; text-decoration: none;
+    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    transition: background .15s;
+  }
+  .btn-abrir:hover { background: var(--azul-cl); }
+  .btn-abrir.v { background: var(--verde); }
+  .btn-abrir.v:hover { background: #15803d; }
+
+  /* ── Listas ── */
+  .lista { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .lista li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; line-height: 1.45; }
+  .lista li .ico { width: 20px; height: 20px; border-radius: 50%; background: var(--azul); color: white;
+    font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .lista.v li .ico { background: var(--verde); }
+
+  /* ── Badges ── */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge.az { background: #dbeafe; color: #1d4ed8; }
+  .badge.vd { background: #dcfce7; color: #15803d; }
+  .badge.na { background: #fef3c7; color: #b45309; }
+  .badge.ro { background: #fee2e2; color: #b91c1c; }
+  .badge.gr { background: #f1f5f9; color: #475569; }
+  .badge.mo { background: #ede9fe; color: #6d28d9; }
+
+  /* ── Info boxes ── */
+  .ib { border-radius: 9px; padding: 12px 16px; font-size: 13px; line-height: 1.5; }
+  .ib.az { background: #eff6ff; border-left: 4px solid var(--azul-cl); }
+  .ib.vd { background: #f0fdf4; border-left: 4px solid var(--verde); }
+  .ib.na { background: #fffbeb; border-left: 4px solid var(--naranja); }
+  .ib.ro { background: #fef2f2; border-left: 4px solid var(--rojo); }
+  .ib strong { display: block; margin-bottom: 3px; font-size: 13px; }
+
+  /* ── Tabla estados ── */
+  table.t { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.t th { background: var(--azul); color: white; padding: 9px 13px; text-align: left; font-weight: 600; }
+  table.t td { padding: 8px 13px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+  table.t tr:nth-child(even) td { background: #f8fafc; }
+
+  /* ── Fórmula ── */
+  .formula { background: #f8fafc; border: 1px solid var(--borde); border-radius: 10px; padding: 16px 20px; font-size: 13px; }
+  .frow { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #e2e8f0; }
+  .frow:last-child { border: none; }
+  .frow.tot { border-top: 2px solid var(--azul); margin-top: 4px; padding-top: 8px; font-weight: 700; color: var(--azul); }
+  .fop { font-weight: 800; width: 18px; color: var(--rojo); }
+  .fop.p { color: var(--naranja); }
+  .fop.e { color: var(--azul); }
+
+  /* ── Prioridades ── */
+  .prio { display: flex; flex-direction: column; gap: 8px; }
+  .prio-item { border-radius: 8px; padding: 11px 14px; display: flex; align-items: center; gap: 11px; font-size: 13px; }
+  .prio-item .n { font-size: 18px; font-weight: 800; width: 28px; }
+
+  /* ── Ejercicios ── */
+  .ej { background: linear-gradient(135deg,#f0fdf4,#dcfce7); border: 2px solid #86efac; border-radius: 10px; padding: 14px 18px; }
+  .ej h4 { color: #15803d; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .ej ol { padding-left: 18px; font-size: 12.5px; line-height: 1.7; color: var(--texto); }
+
+  /* ── Lightbox ── */
+  #lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88);
+    z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+  #lb.open { display: flex; }
+  #lb img { max-width: 95vw; max-height: 88vh; border-radius: 8px; box-shadow: 0 0 60px rgba(0,0,0,.8); }
+  #lb-close { position: absolute; top: 16px; right: 24px; background: rgba(255,255,255,.15);
+    color: white; border: none; cursor: pointer; font-size: 28px; border-radius: 50%;
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+  #lb-close:hover { background: rgba(255,255,255,.3); }
+  #lb-hint { color: rgba(255,255,255,.55); font-size: 12px; }
+
+  @media print {
+    body { background: white; }
+    .slide { margin: 0; border-radius: 0; box-shadow: none; page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LIGHTBOX ═══════════════════════════════════════════════════════════════ -->
+<div id="lb">
+  <button id="lb-close" onclick="closeLb()">✕</button>
+  <img id="lb-img" src="" alt="">
+  <span id="lb-hint">Clic fuera de la imagen para cerrar · Abrir en nueva pestaña →
+    <a id="lb-link" href="#" target="_blank" style="color:#93c5fd;">Ver original</a>
+  </span>
+</div>
+<script>
+  function openLb(src){ const l=document.getElementById('lb'); l.classList.add('open');
+    document.getElementById('lb-img').src=src; document.getElementById('lb-link').href=src; }
+  function closeLb(){ document.getElementById('lb').classList.remove('open'); }
+  document.getElementById('lb').addEventListener('click',function(e){ if(e.target===this) closeLb(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeLb(); });
+  document.querySelectorAll && window.addEventListener('load',function(){
+    document.querySelectorAll('.ss img').forEach(img=>{
+      img.addEventListener('click',function(){ openLb(this.src.replace('?small',''));  });
+    });
+  });
+</script>
+
+<!-- ══ 1. PORTADA ══════════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="portada" style="background:linear-gradient(135deg,#1a3a5c,#0f2340);">
+    <div class="logo">🎓</div>
+    <h1>Capacitación<br>CGEscolar</h1>
+    <p class="sub">Sistema de Gestión Escolar — Sesión de Cobranza</p>
+    <div class="chips">
+      <span class="chip">📋 Asignación de Planes</span>
+      <span class="chip">💰 Módulo de Cobros</span>
+      <span class="chip">🧾 Recibos y Reportes</span>
+    </div>
+    <div class="fecha">Julio 2026</div>
+  </div>
+</div>
+
+<!-- ══ 2. AGENDA ═══════════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Sesión de Hoy</div>
+    <h2>Agenda</h2>
+  </div>
+  <div class="body">
+    <div class="agenda-grid">
+      <div class="ag-item">
+        <div class="ag-num">1</div>
+        <div><h4>Repaso: Asignación de Planes</h4>
+          <p>Flujo completo: crear plan → asignar → generar cargos. Prioridades y periodicidad.</p></div>
+      </div>
+      <div class="ag-item v">
+        <div class="ag-num">2</div>
+        <div><h4>Módulo de Cobros (POS)</h4>
+          <p>Búsqueda de alumno, cargos pendientes, cálculo automático de descuentos y recargos.</p></div>
+      </div>
+      <div class="ag-item v">
+        <div class="ag-num">3</div>
+        <div><h4>Registrar un Pago</h4>
+          <p>Selección de cargos, formas de pago, cargos adicionales en ventanilla y recibo.</p></div>
+      </div>
+      <div class="ag-item">
+        <div class="ag-num">4</div>
+        <div><h4>Ejercicios Prácticos</h4>
+          <p>Escenarios reales: cobro estándar, pago parcial, cargo en ventanilla, corte de caja.</p></div>
+      </div>
+    </div>
+    <div style="margin-top:6px;">
+      <div class="pasos">
+        <div class="paso"><div class="circ">1</div><h4>Crear Plan</h4><p>Conceptos + políticas</p></div>
+        <div class="paso"><div class="circ">2</div><h4>Asignar</h4><p>Alumno / Grupo / Nivel</p></div>
+        <div class="paso"><div class="circ v">3</div><h4>Cobrar</h4><p>Seleccionar cargos</p></div>
+        <div class="paso"><div class="circ v">4</div><h4>Recibo</h4><p>PDF + historial</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 3. PARTE 1 PORTADILLA ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="portada" style="background:linear-gradient(135deg,#1e3a5f,#1a3a5c);">
+    <div class="logo" style="font-size:38px;">📋</div>
+    <h1 style="font-size:38px;">Parte 1</h1>
+    <p class="sub" style="font-size:22px;color:white;opacity:1;font-weight:700;">Repaso: Asignación de Planes</p>
+    <p style="color:rgba(255,255,255,.6);margin-top:12px;">Conceptos · Planes · Asignaciones · Cargos automáticos</p>
+  </div>
+</div>
+
+<!-- ══ 4. DIAGRAMA PLANES ══════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Parte 1 — Repaso</div>
+    <h2>Diagrama de Flujo: Planes de Pago</h2>
+    <p>Del plan a los cargos automáticos</p>
+  </div>
+  <div class="body">
+    <div class="cols c6040" style="gap:16px;">
+      <div>
+        <div class="diag-wrap" onclick="openLb('capturas/diagrama_planes.png')" style="cursor:zoom-in;">
+          <img src="capturas/diagrama_planes.png" alt="Diagrama flujo planes">
+        </div>
+        <div class="diag-actions">
+          <a class="btn-abrir" href="capturas/diagrama_planes.png" target="_blank">
+            🔍 Ver diagrama en tamaño completo
+          </a>
+          <span style="font-size:12px;color:#94a3b8;">o clic en la imagen para ampliar</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="ib az">
+          <strong>📋 Crear el Plan</strong>
+          Define nombre, periodicidad (mensual/anual/único) y fechas. Agrega los conceptos con su monto.
+        </div>
+        <div class="ib vd">
+          <strong>🎁 Políticas opcionales</strong>
+          Descuento pronto pago (si paga antes del día límite) y recargo por retraso (si paga después).
+        </div>
+        <div class="ib na">
+          <strong>👥 Asignar a alumno/grupo/nivel</strong>
+          <b>Individual &gt; Grupo &gt; Nivel</b> en prioridad. El sistema genera un cargo por cada período automáticamente.
+        </div>
+        <div class="ib az">
+          <strong>⚡ Cargos generados</strong>
+          Plan mensual ago–dic → 5 cargos, uno por mes, con vencimiento el día 10 de cada mes.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 5. PANTALLA PLANES INDEX ════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Parte 1 — Repaso</div>
+    <h2>Catálogo de Planes de Pago</h2>
+    <p>Menú → Planes y conceptos → Planes de pago</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <ul class="lista">
+          <li><span class="ico">1</span><span>Lista todos los planes del <strong>ciclo escolar activo</strong></span></li>
+          <li><span class="ico">2</span><span>Muestra nombre, nivel, periodicidad, vigencia y estatus</span></li>
+          <li><span class="ico">3</span><span>Botón <strong>"+ Nuevo plan"</strong> para crear uno nuevo</span></li>
+          <li><span class="ico">4</span><span>Botón <strong>"Ver opciones"</strong> para editar, ver detalle o asignar</span></li>
+          <li><span class="ico">5</span><span>Tarjetas superiores muestran totales del ciclo de un vistazo</span></li>
+        </ul>
+        <div class="ib na">
+          <strong>⚠️ Antes de crear un plan nuevo</strong>
+          Revisa si ya existe uno para el ciclo y nivel. Duplicar planes genera cargos repetidos.
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/01_planes_index.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/01_planes_index.png" alt="Planes index">
+        <a class="btn-full" href="capturas/01_planes_index.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 6. DETALLE DE UN PLAN ════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Parte 1 — Repaso</div>
+    <h2>Detalle de un Plan de Pago</h2>
+    <p>Conceptos · Políticas de descuento y recargo</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="ib az">
+          <strong>Sección "Conceptos"</strong>
+          Qué se cobra y cuánto. Cada concepto tiene su propio monto. Un plan puede incluir varios (ej. Colegiatura + Actividades).
+        </div>
+        <div class="ib vd">
+          <strong>Política de Descuento (Pronto Pago)</strong>
+          Porcentaje o monto fijo que aplica si el padre paga <em>antes</em> del día límite. Ej: 5% si paga antes del día 5.
+        </div>
+        <div class="ib ro">
+          <strong>Política de Recargo</strong>
+          Porcentaje o monto que se suma si paga <em>después</em> del día límite. Puede acumularse por mes de retraso.
+        </div>
+        <div class="ib na">
+          <strong>💡 Estas políticas se calculan al momento del cobro</strong>
+          No se aplican al crear el plan, sino en la pantalla de caja cuando el cajero registra el pago.
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/01b_plan_detalle.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/01b_plan_detalle.png" alt="Plan detalle">
+        <a class="btn-full" href="capturas/01b_plan_detalle.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 7. ASIGNACIONES LIST ════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Parte 1 — Repaso</div>
+    <h2>Lista de Asignaciones</h2>
+    <p>Menú → Planes y conceptos → Asignar plan</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <ul class="lista" style="margin-bottom:4px;">
+          <li><span class="ico">1</span><span>Historial de todas las asignaciones realizadas</span></li>
+          <li><span class="ico">2</span><span>Muestra: plan, a quién, número de asignaciones y vigencia</span></li>
+          <li><span class="ico">3</span><span>Botón <strong>"+ Asignar plan"</strong> para nueva asignación</span></li>
+        </ul>
+        <div class="prio">
+          <div class="prio-item" style="background:#dbeafe;">
+            <span class="n" style="color:#1d4ed8;">1°</span>
+            <div><span class="badge az">Individual</span>
+              <p style="font-size:11px;color:#475569;margin-top:3px;">Alumno específico. Máxima prioridad. Reemplaza grupo y nivel.</p></div>
+          </div>
+          <div class="prio-item" style="background:#fef3c7;">
+            <span class="n" style="color:#b45309;">2°</span>
+            <div><span class="badge na">Grupo</span>
+              <p style="font-size:11px;color:#475569;margin-top:3px;">Todos los alumnos del grupo. Prioridad media.</p></div>
+          </div>
+          <div class="prio-item" style="background:#f1f5f9;">
+            <span class="n" style="color:#475569;">3°</span>
+            <div><span class="badge gr">Nivel</span>
+              <p style="font-size:11px;color:#475569;margin-top:3px;">Todos los alumnos del nivel. Menor prioridad.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/03_asignaciones.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/03_asignaciones.png" alt="Asignaciones">
+        <a class="btn-full" href="capturas/03_asignaciones.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 8. NUEVA ASIGNACIÓN ═════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Parte 1 — Repaso</div>
+    <h2>Realizar una Nueva Asignación</h2>
+    <p>Plan → Origen → Conceptos → Guardar → Cargos generados</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <ul class="lista v">
+          <li><span class="ico">1</span><span>Seleccionar el <strong>plan de pago</strong> a asignar</span></li>
+          <li><span class="ico">2</span><span>Elegir el <strong>origen</strong>: Individual, Grupo o Nivel</span></li>
+          <li><span class="ico">3</span><span>Buscar el alumno / grupo / nivel correspondiente</span></li>
+          <li><span class="ico">4</span><span>Confirmar los <strong>conceptos</strong> que aplican del plan</span></li>
+          <li><span class="ico">5</span><span>Al guardar, los <strong>cargos se crean automáticamente</strong> uno por período</span></li>
+        </ul>
+        <div class="ib vd">
+          <strong>✅ ¿Qué pasa al asignar?</strong>
+          El sistema calcula períodos según la periodicidad y crea un cargo por cada uno. La fecha de vencimiento es el día 10 del mes de cada período.
+        </div>
+        <div class="ib az">
+          <strong>💡 ¿Ya existe el cargo?</strong>
+          Si el alumno ya tiene un cargo sin pagos para ese período y la nueva asignación tiene mayor prioridad, el cargo se reemplaza.
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/05_nueva_asignacion.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/05_nueva_asignacion.png" alt="Nueva asignación">
+        <a class="btn-full" href="capturas/05_nueva_asignacion.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 9. ESTADOS DE CARGO ══════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd azul">
+    <div class="tag">Parte 1 — Repaso</div>
+    <h2>Estados de un Cargo</h2>
+    <p>El sistema actualiza el estado automáticamente en cada operación</p>
+  </div>
+  <div class="body">
+    <table class="t">
+      <thead>
+        <tr><th>Estado</th><th>Descripción</th><th>¿Cuándo ocurre?</th><th>¿Aparece en cobros?</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge az">Pendiente</span></td><td>Sin pagos, fecha vigente</td><td>Al generarse el cargo</td><td>✅ Sí</td></tr>
+        <tr><td><span class="badge ro">Vencido</span></td><td>Sin pagos, ya pasó el vencimiento</td><td>Automático al pasar el día 10</td><td>✅ Sí (con recargo si aplica)</td></tr>
+        <tr><td><span class="badge na">Parcial</span></td><td>Tiene abonos pero falta saldo</td><td>Pago incompleto registrado</td><td>✅ Sí (por el saldo restante)</td></tr>
+        <tr><td><span class="badge" style="background:#fef3c7;color:#92400e;">Parcial Vencido</span></td><td>Abonos incompletos y ya venció</td><td>Combinación parcial + vencido</td><td>✅ Sí (con recargo)</td></tr>
+        <tr><td><span class="badge vd">Pagado</span></td><td>Cubierto al 100%</td><td>Pago completo registrado</td><td>❌ No</td></tr>
+        <tr><td><span class="badge mo">Condonado</span></td><td>Deuda perdonada manualmente</td><td>Solo por el administrador</td><td>❌ No</td></tr>
+      </tbody>
+    </table>
+    <div class="ib az" style="margin-top:4px;">
+      <strong>💡 Importante para caja</strong>
+      Solo los estados <b>Pendiente, Vencido, Parcial y Parcial Vencido</b> aparecen en la pantalla de cobros. Pagados y condonados ya no se muestran.
+    </div>
+  </div>
+</div>
+
+<!-- ══ 10. PARTE 2 PORTADILLA ══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="portada" style="background:linear-gradient(135deg,#14532d,#15803d);">
+    <div class="logo" style="font-size:38px;">💰</div>
+    <h1 style="font-size:38px;">Parte 2</h1>
+    <p class="sub" style="font-size:22px;color:white;opacity:1;font-weight:700;">Módulo de Cobros</p>
+    <p style="color:rgba(255,255,255,.6);margin-top:12px;">Búsqueda · Cargos · Pago · Recibo</p>
+  </div>
+</div>
+
+<!-- ══ 11. DIAGRAMA COBROS ══════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd verde">
+    <div class="tag">Parte 2 — Cobros</div>
+    <h2>Diagrama de Flujo: Módulo de Cobros (POS)</h2>
+    <p>Del buscador de alumno al recibo impreso</p>
+  </div>
+  <div class="body">
+    <div class="cols c6040" style="gap:16px;">
+      <div>
+        <div class="diag-wrap" onclick="openLb('capturas/diagrama_cobros.png')" style="cursor:zoom-in;">
+          <img src="capturas/diagrama_cobros.png" alt="Diagrama flujo cobros">
+        </div>
+        <div class="diag-actions">
+          <a class="btn-abrir v" href="capturas/diagrama_cobros.png" target="_blank">
+            🔍 Ver diagrama en tamaño completo
+          </a>
+          <span style="font-size:12px;color:#94a3b8;">o clic en la imagen para ampliar</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="ib vd">
+          <strong>🔍 Buscar alumno</strong>
+          Por nombre, matrícula o CURP. El sistema muestra sus cargos pendientes automáticamente.
+        </div>
+        <div class="ib vd">
+          <strong>✅ Seleccionar cargos</strong>
+          El cajero solo elige cuáles cargos paga el padre hoy. Los montos ya están calculados.
+        </div>
+        <div class="ib na">
+          <strong>➕ Cargo adicional opcional</strong>
+          Sin plan previo, se puede cobrar un concepto directo (único o recurrente).
+        </div>
+        <div class="ib az">
+          <strong>🧾 Recibo automático</strong>
+          Al registrar el pago se genera un folio único (R20260722-0001) y el recibo en pantalla. Descarga en PDF inmediata.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 12. COBROS INDEX ═════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd verde">
+    <div class="tag">Parte 2 — Cobros</div>
+    <h2>Pantalla Principal de Cobros</h2>
+    <p>Menú → Cobros → Buscar alumno</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <ul class="lista v">
+          <li><span class="ico">1</span><span>Buscar por <strong>nombre</strong>, matrícula o CURP</span></li>
+          <li><span class="ico">2</span><span>El buscador muestra resultados en tiempo real (autocomplete)</span></li>
+          <li><span class="ico">3</span><span>Cada resultado muestra nombre, matrícula, grupo y ciclo</span></li>
+          <li><span class="ico">4</span><span>Al seleccionar el alumno, se abre su pantalla de cobro directamente</span></li>
+        </ul>
+        <div class="ib na">
+          <strong>🔍 Tip de búsqueda</strong>
+          Se puede escribir solo el apellido o las primeras letras. Si hay nombres similares, se distinguen por la matrícula (GNK-2025-254).
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/06_cobros_index.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/06_cobros_index.png" alt="Cobros index">
+        <a class="btn-full" href="capturas/06_cobros_index.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 13. COBROS ALUMNO ════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd verde">
+    <div class="tag">Parte 2 — Cobros</div>
+    <h2>Pantalla de Cobro del Alumno</h2>
+    <p>Cargos pendientes + resumen del cobro en tiempo real</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <ul class="lista v">
+          <li><span class="ico">1</span><span>Cabecera azul: nombre, matrícula, grupo del alumno</span></li>
+          <li><span class="ico">2</span><span>Tabla <b>"Cargos pendientes"</b>: concepto, período, monto ya calculado</span></li>
+          <li><span class="ico">3</span><span>El monto ya incluye descuentos de beca, pronto pago y recargos</span></li>
+          <li><span class="ico">4</span><span>Panel lateral derecho: total a cobrar en tiempo real y formas de pago</span></li>
+          <li><span class="ico">5</span><span>Sección inferior: <b>"Agregar concepto en este momento"</b> para cobros adicionales</span></li>
+        </ul>
+        <div class="ib ro">
+          <strong>⚠️ El cajero NO modifica montos</strong>
+          Los montos son calculados por el sistema. Para condonaciones, solo el Administrador puede aplicarlas desde el perfil del alumno.
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/08_cobros_alumno.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/08_cobros_alumno.png" alt="Cobros alumno">
+        <a class="btn-full" href="capturas/08_cobros_alumno.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 14. FÓRMULA DE COBRO ════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd verde">
+    <div class="tag">Parte 2 — Cobros</div>
+    <h2>¿Cómo Calcula el Sistema el Monto a Cobrar?</h2>
+    <p>Cálculo automático aplicado a cada cargo individual</p>
+  </div>
+  <div class="body">
+    <div class="cols c2">
+      <div>
+        <div class="formula">
+          <div class="frow"><span style="font-weight:600;">Monto Original del Plan</span><span style="font-weight:700;">$1,500.00</span></div>
+          <div class="frow"><span><span class="fop">−</span> Descuento por Beca (si tiene beca activa)</span><span style="color:var(--verde);">− $300.00</span></div>
+          <div class="frow"><span><span class="fop">−</span> Descuento Pronto Pago (paga antes del día 5)</span><span style="color:var(--verde);">− $75.00</span></div>
+          <div class="frow"><span><span class="fop">−</span> Condonación Manual (si el admin la aplicó)</span><span style="color:var(--verde);">− $0.00</span></div>
+          <div class="frow"><span><span class="fop p">+</span> Recargo por Retraso (paga después del día 10)</span><span style="color:var(--naranja);">+ $0.00</span></div>
+          <div class="frow"><span><span class="fop">−</span> Abonos previos en pagos anteriores</span><span style="color:var(--verde);">− $0.00</span></div>
+          <div class="frow tot"><span><span class="fop e">=</span> Total a Cobrar Hoy</span><span>$1,125.00</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="ib vd">
+          <strong>✅ Descuento Pronto Pago</strong>
+          Solo aplica si hoy ≤ día límite de la política. Si el padre llega el día 6 y el límite es el 5, ya no aplica — el sistema lo detecta automáticamente.
+        </div>
+        <div class="ib ro">
+          <strong>⚠️ Recargo por Retraso</strong>
+          Solo aplica si hoy &gt; día límite de pago. Puede acumularse por mes: 2 meses de retraso con política acumulativa = doble recargo.
+        </div>
+        <div class="ib az">
+          <strong>💡 Pago Parcial Previo</strong>
+          Si el padre ya pagó $500 de un cargo de $1,500, la pantalla de cobros mostrará solo los $1,000 restantes.
+        </div>
+        <div class="ib na">
+          <strong>Beca + Pronto Pago: ¿se acumulan?</strong>
+          Sí. Si el alumno tiene beca del 20% y hay pronto pago del 5%, ambos descuentos se aplican sobre el monto original.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 15. RECIBO ═══════════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd verde">
+    <div class="tag">Parte 2 — Cobros</div>
+    <h2>Recibo de Pago</h2>
+    <p>Generado automáticamente al registrar el cobro · Folio único por pago</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <ul class="lista v">
+          <li><span class="ico">1</span><span><strong>Folio único automático</strong> — Formato: R20260722-0001</span></li>
+          <li><span class="ico">2</span><span>Datos del alumno, fecha exacta y método de pago</span></li>
+          <li><span class="ico">3</span><span>Detalle por concepto: monto base, descuentos aplicados, subtotal</span></li>
+          <li><span class="ico">4</span><span>Monto Total Pagado destacado</span></li>
+        </ul>
+        <div class="ib az">
+          <strong>📄 Acciones disponibles</strong>
+          <ul style="font-size:12.5px;padding-left:16px;margin-top:5px;line-height:1.7;">
+            <li><b>Generar Recibo Oficial (PDF)</b> — imprimir o enviar al padre</li>
+            <li><b>+ Nuevo Cobro</b> — cobrar otro alumno inmediatamente</li>
+            <li><b>Ver estado de cuenta</b> — revisar historial completo del alumno</li>
+            <li>Reimprimir en cualquier momento: Menú → Pagos → buscar folio</li>
+          </ul>
+        </div>
+        <div class="ib ro">
+          <strong>Solo admin puede anular</strong>
+          El pago queda en estado "Anulado" (no se borra). Los cargos regresan a pendiente. El folio queda como registro histórico.
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/14_recibo.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/14_recibo.png" alt="Recibo de pago">
+        <a class="btn-full" href="capturas/14_recibo.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 16. HISTORIAL + CORTE ═══════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd verde">
+    <div class="tag">Parte 2 — Cobros</div>
+    <h2>Historial de Pagos y Corte de Caja</h2>
+    <p>Menú → Pagos</p>
+  </div>
+  <div class="body">
+    <div class="cols c4060">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="ib az">
+          <strong>📋 Historial de Pagos (Menú → Pagos)</strong>
+          Lista todos los pagos registrados. Filtrable por fecha, alumno o forma de pago. Acceso al recibo de cualquier pago anterior para reimpresión.
+        </div>
+        <div class="ib vd">
+          <strong>🏦 Corte de Caja (Menú → Pagos → Corte)</strong>
+          Resumen del día agrupado por forma de pago: efectivo, transferencia, tarjeta, cheque. Es solo un <b>reporte consultivo</b> — no cierra ni bloquea la caja.
+        </div>
+        <div class="ib az">
+          <strong>📊 Cargos (Menú → Cargos)</strong>
+          Vista global de todos los cargos del ciclo. Útil para identificar alumnos con adeudos vencidos. Diferencia con Cobros: Cargos es para <b>consulta</b>, Cobros es para <b>registrar pagos</b>.
+        </div>
+        <div class="ib na">
+          <strong>⚠️ Anulación — Solo Administrador</strong>
+          Ir a Pagos → Ver detalle del pago → Anular. El cajero no tiene acceso a esta función.
+        </div>
+      </div>
+      <div class="ss" onclick="openLb('capturas/10_pagos_historial.png')">
+        <span class="lbl">Pantalla real del sistema</span>
+        <img src="capturas/10_pagos_historial.png" alt="Historial pagos">
+        <a class="btn-full" href="capturas/10_pagos_historial.png" target="_blank" onclick="event.stopPropagation()">⛶ Ampliar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 17. EJERCICIOS ═══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd morado">
+    <div class="tag">Práctica</div>
+    <h2>Ejercicios Prácticos</h2>
+    <p>Escenarios reales para practicar en el sistema</p>
+  </div>
+  <div class="body">
+    <div class="cols c2">
+      <div class="ej">
+        <h4>🏋️ Ejercicio 1 — Cobro Estándar</h4>
+        <ol>
+          <li>Ir a <b>Cobros</b> y buscar un alumno del grupo de práctica</li>
+          <li>Observar los cargos pendientes y sus fechas de vencimiento</li>
+          <li>Seleccionar el cargo de colegiatura del mes actual</li>
+          <li>Elegir <b>forma de pago: Efectivo</b></li>
+          <li>Registrar el cobro y descargar el <b>PDF del recibo</b></li>
+        </ol>
+      </div>
+      <div class="ej">
+        <h4>🏋️ Ejercicio 2 — Cargo Adicional en Ventanilla</h4>
+        <ol>
+          <li>Abrir el cobro de otro alumno</li>
+          <li>En <b>"Agregar concepto en este momento"</b>, seleccionar un concepto (ej. evento escolar)</li>
+          <li>Ingresar el monto y clic en <b>+ Agregar</b></li>
+          <li>Seleccionar también la colegiatura pendiente</li>
+          <li>Registrar en <b>Transferencia</b> con número de referencia</li>
+        </ol>
+      </div>
+      <div class="ej">
+        <h4>🏋️ Ejercicio 3 — Pago Parcial</h4>
+        <ol>
+          <li>Buscar un alumno con cargo de colegiatura pendiente</li>
+          <li>Seleccionar el cargo y registrar solo <b>la mitad del monto</b></li>
+          <li>Verificar que el cargo queda en estado <span class="badge na">Parcial</span></li>
+          <li>Volver al mismo alumno en Cobros y <b>completar el saldo restante</b></li>
+          <li>Verificar que el cargo queda en <span class="badge vd">Pagado</span></li>
+        </ol>
+      </div>
+      <div class="ej">
+        <h4>🏋️ Ejercicio 4 — Historial y Corte</h4>
+        <ol>
+          <li>Ir a <b>Pagos</b> y localizar los cobros del día</li>
+          <li>Clic en un folio para ver el detalle completo</li>
+          <li>Descargar el PDF del recibo desde el detalle</li>
+          <li>Ir a <b>Pagos → Corte</b> y revisar el resumen por forma de pago</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 18. FAQ ══════════════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="hd morado">
+    <div class="tag">Referencia</div>
+    <h2>Preguntas Frecuentes</h2>
+  </div>
+  <div class="body">
+    <div class="cols c2" style="gap:12px;">
+      <div class="ib az">
+        <strong>¿Qué pasa si asigno el mismo plan dos veces al grupo?</strong>
+        El sistema detecta los cargos existentes sin pagos y los reemplaza. Si ya tienen abonos, los respeta.
+      </div>
+      <div class="ib az">
+        <strong>¿Puedo cambiar el monto de un cargo en caja?</strong>
+        No. Los montos los define el plan. Para excepciones se aplican condonaciones — solo el Administrador puede hacerlo desde el perfil del alumno.
+      </div>
+      <div class="ib az">
+        <strong>¿Se pueden usar dos formas de pago en una visita?</strong>
+        No en un solo registro. Para pago mixto (ej. mitad efectivo / mitad transferencia), se hacen dos cobros por el monto correspondiente a cada forma.
+      </div>
+      <div class="ib az">
+        <strong>¿Se pueden reimprimir recibos anteriores?</strong>
+        Sí. Menú → Pagos → buscar el folio → ver detalle → Generar Recibo Oficial (PDF).
+      </div>
+      <div class="ib az">
+        <strong>¿El Corte de Caja cierra la caja?</strong>
+        No. Es solo un reporte consultivo del día. Los pagos siguen activos y se puede seguir cobrando.
+      </div>
+      <div class="ib ro">
+        <strong>¿Quién puede anular un pago?</strong>
+        Solo el <b>Administrador</b>. El rol Caja no puede anular. Al anular, el cargo regresa al estado anterior y el folio queda como registro (no se reutiliza).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 19. CIERRE ═══════════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="portada" style="background:linear-gradient(135deg,#1a3a5c,#15803d);">
+    <div class="logo" style="font-size:38px;">✅</div>
+    <h1 style="font-size:34px;">¡Listo para la práctica!</h1>
+    <p class="sub">Flujo completo resumido</p>
+    <div style="display:flex;gap:20px;margin-top:24px;flex-wrap:wrap;justify-content:center;">
+      <div style="text-align:center;padding:18px 24px;background:rgba(255,255,255,.1);border-radius:12px;min-width:130px;">
+        <div style="font-size:26px;margin-bottom:6px;">📋</div>
+        <div style="font-weight:700;font-size:14px;color:white;">Crear Plan</div>
+        <div style="opacity:.6;font-size:12px;color:white;margin-top:3px;">Conceptos + Políticas</div>
+      </div>
+      <div style="font-size:22px;display:flex;align-items:center;opacity:.4;color:white;">→</div>
+      <div style="text-align:center;padding:18px 24px;background:rgba(255,255,255,.1);border-radius:12px;min-width:130px;">
+        <div style="font-size:26px;margin-bottom:6px;">👥</div>
+        <div style="font-weight:700;font-size:14px;color:white;">Asignar</div>
+        <div style="opacity:.6;font-size:12px;color:white;margin-top:3px;">Alumno / Grupo / Nivel</div>
+      </div>
+      <div style="font-size:22px;display:flex;align-items:center;opacity:.4;color:white;">→</div>
+      <div style="text-align:center;padding:18px 24px;background:rgba(255,255,255,.1);border-radius:12px;min-width:130px;">
+        <div style="font-size:26px;margin-bottom:6px;">⚡</div>
+        <div style="font-weight:700;font-size:14px;color:white;">Cargos Automáticos</div>
+        <div style="opacity:.6;font-size:12px;color:white;margin-top:3px;">1 cargo por período</div>
+      </div>
+      <div style="font-size:22px;display:flex;align-items:center;opacity:.4;color:white;">→</div>
+      <div style="text-align:center;padding:18px 24px;background:rgba(255,255,255,.1);border-radius:12px;min-width:130px;">
+        <div style="font-size:26px;margin-bottom:6px;">💰</div>
+        <div style="font-weight:700;font-size:14px;color:white;">Cobrar en Caja</div>
+        <div style="opacity:.6;font-size:12px;color:white;margin-top:3px;">Seleccionar + Registrar</div>
+      </div>
+      <div style="font-size:22px;display:flex;align-items:center;opacity:.4;color:white;">→</div>
+      <div style="text-align:center;padding:18px 24px;background:rgba(255,255,255,.1);border-radius:12px;min-width:130px;">
+        <div style="font-size:26px;margin-bottom:6px;">🧾</div>
+        <div style="font-weight:700;font-size:14px;color:white;">Recibo PDF</div>
+        <div style="opacity:.6;font-size:12px;color:white;margin-top:3px;">Folio único automático</div>
+      </div>
+    </div>
+    <div class="fecha">Julio 2026</div>
+  </div>
+</div>
+
+</body>
+</html>

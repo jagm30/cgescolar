@@ -88,7 +88,8 @@
                 </div>
 
                 {{-- Filtro nivel --}}
-                <select name="nivel_id" class="alm-select" onchange="this.form.submit()" title="Filtrar por nivel">
+                <select name="nivel_id" class="alm-select" title="Filtrar por nivel"
+                        onchange="document.getElementById('filtroGrupo').value=''; this.form.submit()">
                     <option value="">Todos los niveles</option>
                     @foreach ($niveles as $nivel)
                         <option value="{{ $nivel->id }}" {{ request('nivel_id') == $nivel->id ? 'selected' : '' }}>
@@ -98,7 +99,7 @@
                 </select>
 
                 {{-- Filtro grupo --}}
-                <select name="grupo_id" class="alm-select" onchange="this.form.submit()" title="Filtrar por grupo">
+                <select name="grupo_id" id="filtroGrupo" class="alm-select" onchange="this.form.submit()" title="Filtrar por grupo">
                     <option value="">Todos los grupos</option>
                     @foreach ($grupos as $grupo)
                         <option value="{{ $grupo->id }}" {{ request('grupo_id') == $grupo->id ? 'selected' : '' }}>

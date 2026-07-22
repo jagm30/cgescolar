@@ -89,20 +89,20 @@ class StoreAsignacionPlanRequest extends FormRequest
             if ($origen === 'grupo') {
                 $grupo = Grupo::with('grado')->find($grupoId);
 
-                if ((int) $grupo?->grado?->nivel_id !== (int) $plan->nivel_id) {
+                if ($plan->nivel_id !== null && (int) $grupo?->grado?->nivel_id !== (int) $plan->nivel_id) {
                     $validator->errors()->add('plan_id', 'El plan seleccionado no corresponde al nivel del grupo.');
                 }
             }
 
             if ($origen === 'nivel') {
-                if ((int) $nivelId !== (int) $plan->nivel_id) {
+                if ($plan->nivel_id !== null && (int) $nivelId !== (int) $plan->nivel_id) {
                     $validator->errors()->add('plan_id', 'El plan seleccionado no corresponde al nivel elegido.');
                 }
             }
 
             // Calcular los períodos que generaría esta nueva asignación
             $fi = $this->input('fecha_inicio') ?? $plan->fecha_inicio?->format('Y-m-d');
-            $ff = $this->input('fecha_fin')    ?? $plan->fecha_fin?->format('Y-m-d');
+            $ff = $this->input('fecha_fin') ?? $plan->fecha_fin?->format('Y-m-d');
 
             if ($fi && $ff) {
                 $nuevosPeriodos = $this->calcularPeriodos($fi, $ff, $plan->periodicidad);
@@ -149,22 +149,22 @@ class StoreAsignacionPlanRequest extends FormRequest
     private function calcularPeriodos(string $fechaInicio, string $fechaFin, string $periodicidad): array
     {
         $inicio = Carbon::parse($fechaInicio);
-        $fin    = Carbon::parse($fechaFin);
+        $fin = Carbon::parse($fechaFin);
 
         if ($periodicidad === 'unico') {
             return [$inicio->format('Y-m')];
         }
 
         $intervalo = match ($periodicidad) {
-            'mensual'   => '1 month',
+            'mensual' => '1 month',
             'bimestral' => '2 months',
             'semestral' => '6 months',
-            'anual'     => '1 year',
-            default     => '1 month',
+            'anual' => '1 year',
+            default => '1 month',
         };
 
         $periodos = [];
-        $actual   = $inicio->copy();
+        $actual = $inicio->copy();
 
         while ($actual->lte($fin)) {
             $periodos[] = $actual->format('Y-m');
