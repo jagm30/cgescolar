@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\MotivoBaja;
 use App\Enums\TipoInscripcion;
-use App\Services\AlumnosExcelExport;
 use App\Http\Requests\StoreAlumnoRequest;
 use App\Http\Requests\UpdateAlumnoRequest;
 use App\Models\Alumno;
@@ -23,6 +22,7 @@ use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
 use App\Models\Setting;
+use App\Services\AlumnosExcelExport;
 use App\Traits\RespondsWithJson;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -101,7 +101,11 @@ class AlumnoController extends Controller
             'alumnos' => $alumnos,
             'planPorAlumno' => $planPorAlumno,
             'niveles' => NivelEscolar::activo()->get(),
-            'grupos' => Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get(),
+            'grupos' => Grupo::with('grado')
+                ->where('ciclo_id', $cicloId)
+                ->activo()
+                ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('grado', fn ($q) => $q->where('nivel_id', $request->nivel_id)))
+                ->get(),
             'cicloId' => $cicloId,
             'statsActivos' => Alumno::where('estado', 'activo')->count(),
             'statsTotal' => Alumno::count(),
@@ -647,14 +651,14 @@ class AlumnoController extends Controller
     public function reporteInscritos()
     {
         $cicloId = $this->cicloActualId();
-        $ciclo   = CicloEscolar::findOrFail($cicloId);
+        $ciclo = CicloEscolar::findOrFail($cicloId);
         $setting = Setting::first();
 
         $niveles = NivelEscolar::activo()
             ->with(['grados.grupos' => fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->activo()
-                ->withCount(['inscripciones as total_inscritos' => fn ($q) => $q->activa()])
+                ->withCount(['inscripciones as total_inscritos' => fn ($q) => $q->activa()]),
             ])
             ->get();
 
@@ -667,9 +671,9 @@ class AlumnoController extends Controller
             ])->filter(fn ($f) => $f['total'] > 0)->values();
 
             return [
-                'nivel'  => $nivel->nombre,
-                'filas'  => $filas,
-                'total'  => $filas->sum('total'),
+                'nivel' => $nivel->nombre,
+                'filas' => $filas,
+                'total' => $filas->sum('total'),
             ];
         })->filter(fn ($d) => $d['total'] > 0)->values();
 
@@ -680,11 +684,11 @@ class AlumnoController extends Controller
         }
 
         $pdf = Pdf::loadView('alumnos.reportes.inscritos_pdf', [
-            'ciclo'      => $ciclo,
-            'datos'      => $datos,
-            'granTotal'  => $granTotal,
-            'base64'     => $this->logoBase64($setting),
-            'setting'    => $setting,
+            'ciclo' => $ciclo,
+            'datos' => $datos,
+            'granTotal' => $granTotal,
+            'base64' => $this->logoBase64($setting),
+            'setting' => $setting,
         ]);
 
         $pdf->setOption('isPhpEnabled', true);
