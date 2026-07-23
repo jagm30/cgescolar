@@ -150,7 +150,8 @@ class AlumnoController extends Controller
         return view('alumnos.create', [
             'niveles' => NivelEscolar::activo()->get(),
             'grupos' => Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get(),
-            'familias' => Familia::where('activo', true)->orderBy('apellido_familia')->get(),
+            'familias' => Familia::withCount('alumnos')->where('activo', true)->orderBy('apellido_familia')->get(),
+            'prospectos' => Prospecto::enProceso()->orderBy('ap_paterno')->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'contacto_telefono']),
             'prospectoOrigen' => $prospectoOrigen,
             'datosPrecargados' => $this->obtenerDatosPrecargados($prospectoOrigen, $cicloId),
         ]);
@@ -723,7 +724,12 @@ class AlumnoController extends Controller
         $vinculados = [];
 
         foreach ($contactos as $index => $datos) {
-            $contacto = $this->buscarContactoExistente($datos, $vinculados);
+            // Si viene un contacto_id, reutilizar el registro existente directamente
+            if (! empty($datos['contacto_id'])) {
+                $contacto = ContactoFamiliar::find((int) $datos['contacto_id']);
+            } else {
+                $contacto = $this->buscarContactoExistente($datos, $vinculados);
+            }
 
             if ($contacto) {
                 if (! $contacto->familia_id) {
@@ -1039,6 +1045,51 @@ class AlumnoController extends Controller
                 'tiene_acceso_portal' => false,
             ]],
         ];
+    }
+
+    /** DELETE /alumnos/{alumno} */
+    public function destroy(int $alumno): JsonResponse|RedirectResponse
+    {
+        $alumno = Alumno::findOrFail($alumno);
+
+        $tieneCargos = Cargo::where(function ($q) use ($alumno): void {
+            $q->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+                ->orWhereHas('asignacion', fn ($q) => $q->where('alumno_id', $alumno->id));
+        })->exists();
+
+        if ($tieneCargos) {
+            return $this->respuestaError(
+                'No es posible eliminar al alumno porque tiene cargos o pagos registrados.'
+            );
+        }
+
+        DB::transaction(function () use ($alumno): void {
+            $alumno->condicionesMedicas()->delete();
+            $alumno->medicamentosAutorizados()->delete();
+            $alumno->fichaMedica()?->delete();
+            $alumno->documentos()->delete();
+            $alumno->historialBajas()->delete();
+            $alumno->becas()->delete();
+            $alumno->asignacionesPlanes()->delete();
+            $alumno->inscripciones()->delete();
+            $alumno->contactos()->detach();
+
+            if ($alumno->foto_url) {
+                Storage::disk('public')->delete($alumno->foto_url);
+            }
+
+            Auditoria::registrar('alumno', $alumno->id, 'delete', [
+                'nombre' => $alumno->nombre_completo,
+                'matricula' => $alumno->matricula,
+            ], null);
+
+            $alumno->delete();
+        });
+
+        return $this->respuestaExito(
+            mensaje: 'Alumno eliminado correctamente.',
+            redirectRoute: 'alumnos.index'
+        );
     }
 
     private function separarNombreCompleto(?string $nombreCompleto): array

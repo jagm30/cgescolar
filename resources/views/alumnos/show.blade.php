@@ -627,7 +627,7 @@
                         {{ $inscActiva->grupo->grado->numero }} {{ $inscActiva->grupo->nombre }}
                     </a>
                 @endif
-                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
                     <a href="{{ route('alumnos.edit', $alumno->id) }}" class="btn btn-sm btn-flat"
                         style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
                         <i class="fa fa-pencil"></i> Editar
@@ -1393,7 +1393,7 @@
                         <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                     </a>
 
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
                         <a href="{{ route('alumnos.edit', $alumno->id) }}" class="accion-btn">
                             <div class="accion-icon" style="background:#e8f0fb;">
                                 <i class="fa fa-pencil" style="color:#3c8dbc;font-size:13px;"></i>
@@ -1452,6 +1452,19 @@
                                 <i class="fa fa-user-times" style="color:#e74c3c;font-size:13px;"></i>
                             </div>
                             Dar de baja
+                            <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
+                        </button>
+                    @endif
+
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                        <button type="button" class="accion-btn btn-eliminar-alumno-show"
+                                style="width:100%;text-align:left;background:none;border:none;cursor:pointer;color:#c0392b;"
+                                data-id="{{ $alumno->id }}"
+                                data-nombre="{{ $alumno->nombre_completo }}">
+                            <div class="accion-icon" style="background:#fdecea;">
+                                <i class="fa fa-trash" style="color:#c0392b;font-size:13px;"></i>
+                            </div>
+                            Eliminar alumno
                             <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                         </button>
                     @endif
@@ -1856,6 +1869,30 @@
 <script>
     document.getElementById('chkAccion')?.addEventListener('change', function () {
         document.getElementById('grupoAccion').style.display = this.checked ? 'block' : 'none';
+    });
+
+    $(document).on('click', '.btn-eliminar-alumno-show', function() {
+        var id = $(this).data('id');
+        var nombre = $(this).data('nombre');
+
+        if (!confirm('¿Eliminar a ' + nombre + '?\n\nEsta acción es irreversible. Solo se permite si el alumno no tiene cargos o pagos registrados.')) {
+            return;
+        }
+
+        $.ajax({
+            url: '/alumnos/' + id,
+            method: 'POST',
+            data: { _method: 'DELETE', _token: $('meta[name="csrf-token"]').attr('content') },
+            success: function() {
+                window.location.href = '{{ route("alumnos.index") }}';
+            },
+            error: function(xhr) {
+                var msg = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'No se pudo eliminar al alumno.';
+                alert(msg);
+            }
+        });
     });
 </script>
 @endpush

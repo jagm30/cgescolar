@@ -133,11 +133,12 @@
                 <thead>
                     <tr>
                         <th style="width:5%;">#</th>
-                        <th style="width:25%;">Alumno</th>
-                        <th style="width:30%;">Motivo</th>
-                        <th style="width:13%;">Monto total</th>
-                        <th style="width:10%;">Estado</th>
-                        <th style="width:11%;">Registrado</th>
+                        <th style="width:20%;">Alumno</th>
+                        <th style="width:18%;">Plan de pagos</th>
+                        <th style="width:24%;">Motivo</th>
+                        <th style="width:10%;">Monto total</th>
+                        <th style="width:8%;">Estado</th>
+                        <th style="width:9%;">Registrado</th>
                         <th style="width:6%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -149,8 +150,27 @@
                                 <div class="con-alumno">{{ $cond->alumno->nombre_completo }}</div>
                                 <div class="con-sub">{{ $cond->ciclo->nombre ?? '—' }}</div>
                             </td>
+                            <td style="font-size:12px;color:#444;">
+                                @php
+                                    $planes = $cond->detalles
+                                        ->pluck('cargo.asignacion.plan.nombre')
+                                        ->filter()
+                                        ->unique()
+                                        ->values();
+                                @endphp
+                                @forelse ($planes as $nombrePlan)
+                                    <span style="display:inline-block;background:#eaf3fb;color:#2c6fad;
+                                                 border:1px solid #b3d4f5;border-radius:10px;
+                                                 padding:1px 8px;font-size:11px;font-weight:600;
+                                                 margin-bottom:2px;">
+                                        {{ $nombrePlan }}
+                                    </span>
+                                @empty
+                                    <span style="color:#bbb;font-size:11px;">—</span>
+                                @endforelse
+                            </td>
                             <td style="font-size:13px;color:#444;">
-                                {{ Str::limit($cond->motivo, 80) }}
+                                {{ Str::limit($cond->motivo, 60) }}
                             </td>
                             <td>
                                 <span class="con-monto">${{ number_format((float) $cond->monto_total, 2) }}</span>
@@ -174,7 +194,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <div class="con-empty">
                                     <i class="fa fa-scissors"></i>
                                     <h4>Sin condonaciones</h4>

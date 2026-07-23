@@ -257,10 +257,12 @@
                         <div class="box-tools" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 
                             {{-- BOTÓN 1: PROMOCIÓN --}}
+                            @unless(in_array(auth()->user()->rol, ['admisiones', 'recepcion']))
                             <button type="button" id="btn-trigger-promocion" disabled class="btn btn-default btn-sm"
                                 style="cursor: not-allowed; opacity: 0.7;">
                                 <i class="fa fa-arrow-circle-up"></i> Promocionar / Reinscribir
                             </button>
+                            @endunless
 
                             {{-- BOTÓN 2: EGRESO --}}
                             @php
@@ -286,17 +288,19 @@
                                     <li class="dropdown-header">Opciones de reporte</li>
                                     <li><a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"><i
                                                 class="fa fa-file-pdf-o text-danger"></i> Reporte (Activos)</a></li>
+                                    @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
                                     <li><a href="{{ route('grupos.reporte-pagos', $grupo->id) }}" target="_blank"><i
                                                 class="fa fa-money text-success"></i> Reporte de Pagos</a></li>
+                                    @endif
+                                    @unless(auth()->user()->rol === 'admisiones')
                                     <li><a href="{{ route('grupos.reporte-medico', $grupo->id) }}" target="_blank"><i
                                                 class="fa fa-heartbeat text-danger"></i> Expediente Médico</a></li>
-
-                                    {{-- CORRECCIÓN AQUÍ: Eliminamos el li vacío y cerramos el li correctamente --}}
                                     <li>
                                         <a href="{{ route('grupos.album-fotografico', $grupo->id) }}" target="_blank">
                                             <i class="fa fa-history text-muted"></i> Álbum fotográfico de Alumnos
                                         </a>
                                     </li>
+                                    @endunless
                                 </ul>
                             </div>
                         </div>

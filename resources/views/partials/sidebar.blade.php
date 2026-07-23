@@ -152,6 +152,12 @@
                         <i class="fa fa-dashboard"></i> <span>Dashboard</span>
                     </a>
                 </li>
+            @elseif(auth()->user()->esInformacionAdmisiones())
+                <li class="{{ request()->routeIs('alumnos.index') ? 'active' : '' }}">
+                    <a href="{{ route('alumnos.index') }}">
+                        <i class="fa fa-dashboard"></i> <span>Dashboard</span>
+                    </a>
+                </li>
             @elseif(auth()->user()->esPadre())
                 <li class="{{ request()->routeIs('portal.dashboard') ? 'active' : '' }}">
                     <a href="{{ route('portal.dashboard') }}">
@@ -276,7 +282,7 @@
             @endif
 
             {{-- ── SECCIÓN: Alumnos ─────────────────────── --}}
-            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
                 <li class="header">ALUMNOS</li>
 
                 <li class="treeview {{ request()->routeIs(['familias.*']) ? 'active menu-open' : '' }}">
@@ -318,17 +324,19 @@
                                 <i class="fa fa-circle-o"></i> Lista de alumnos
                             </a>
                         </li>
-                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
                             <li class="{{ request()->routeIs('alumnos.create') ? 'active' : '' }}">
                                 <a href="{{ route('alumnos.create') }}">
                                     <i class="fa fa-circle-o"></i> Registrar alumno
                                 </a>
                             </li>
+                            @if(auth()->user()->esAdministrador() || auth()->user()->esCajero())
                             <li class="{{ request()->routeIs('reinscripciones.*') ? 'active' : '' }}">
                                 <a href="{{ route('reinscripciones.index') }}">
                                     <i class="fa fa-circle-o"></i> Reinscripciones
                                 </a>
                             </li>
+                            @endif
                             <li class="{{ request()->routeIs('alumnos.bajas') ? 'active' : '' }}">
                                 <a href="{{ route('alumnos.bajas') }}">
                                     <i class="fa fa-circle-o"></i> Reporte de bajas
@@ -342,6 +350,14 @@
                     <li class="{{ request()->routeIs('prospectos.*') ? 'active' : '' }}">
                         <a href="{{ route('prospectos.index') }}">
                             <i class="fa fa-user-plus"></i> <span>Admisiones</span>
+                        </a>
+                    </li>
+                @endif
+
+                @if (auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
+                    <li class="{{ request()->routeIs('grupos.*') ? 'active' : '' }}">
+                        <a href="{{ route('grupos.index') }}">
+                            <i class="fa fa-th-large"></i> <span>Grupos</span>
                         </a>
                     </li>
                 @endif
@@ -397,7 +413,7 @@
             @endif
 
             {{-- ── SECCIÓN: Administración ──────────────── --}}
-            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+            @if (auth()->user()->esAdministrador())
                 <li class="header">ADMINISTRACIÓN</li>
 
                 <li class="{{ request()->routeIs('personal.*') ? 'active' : '' }}">
@@ -464,7 +480,7 @@
             @endif
 
             {{-- ── SECCIÓN: Ayuda ───────────────────────── --}}
-            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esCajero() || auth()->user()->esRecepcion() || auth()->user()->esAdmisiones())
                 <li class="header">AYUDA</li>
 
                 <li class="treeview">
@@ -476,16 +492,25 @@
                         </span>
                     </a>
                     <ul class="treeview-menu">
-                        <li>
-                            <a href="{{ asset('manual.html') }}" target="_blank">
-                                <i class="fa fa-circle-o"></i> Manual general
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ asset('guia-cobranza.html') }}" target="_blank">
-                                <i class="fa fa-circle-o"></i> Guía de cobranza
-                            </a>
-                        </li>
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                            <li>
+                                <a href="{{ asset('manual.html') }}" target="_blank">
+                                    <i class="fa fa-circle-o"></i> Manual general
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ asset('guia-cobranza.html') }}" target="_blank">
+                                    <i class="fa fa-circle-o"></i> Guía de cobranza
+                                </a>
+                            </li>
+                        @endif
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esAdmisiones())
+                            <li>
+                                <a href="{{ route('manuales.admisiones-recepcion') }}">
+                                    <i class="fa fa-circle-o"></i> Manual Admisiones / Recepción
+                                </a>
+                            </li>
+                        @endif
                     </ul>
                 </li>
             @endif

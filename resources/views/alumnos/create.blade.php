@@ -8,6 +8,8 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
 <style>
 /* ══ Wizard nav ═══════════════════════════════════════════ */
 .wizard-step-trigger {
@@ -483,8 +485,8 @@
                         <div id="bloque-familia-existente" style="display:none;">
                             <div class="form-group {{ $errors->has('familia_id') ? 'has-error' : '' }}">
                                 <label for="familia_id">Seleccionar familia <span class="text-red">*</span></label>
-                                <select name="familia_id" id="familia_id" class="form-control">
-                                    <option value="">-- Buscar familia --</option>
+                                <select name="familia_id" id="familia_id" class="form-control select2" style="width:100%;" data-placeholder="Buscar familia por apellido...">
+                                    <option value=""></option>
                                     @foreach ($familias as $familia)
                                         <option value="{{ $familia->id }}"
                                             {{ old('familia_id') == $familia->id ? 'selected' : '' }}>
@@ -513,12 +515,21 @@
                     </div>
                     <div class="form-panel-body">
                         <div class="form-group {{ $errors->has('prospecto_id') ? 'has-error' : '' }}">
-                            <label for="prospecto_id">Numero de prospecto</label>
-                            <input type="number" name="prospecto_id" id="prospecto_id" class="form-control"
-                                placeholder="ID del prospecto en admisiones" value="{{ $prospectoIdInicial }}"
-                                min="1">
+                            <label for="prospecto_id">Prospecto</label>
+                            <select name="prospecto_id" id="prospecto_id" class="form-control select2" style="width:100%;" data-placeholder="Buscar prospecto por nombre...">
+                                <option value=""></option>
+                                @foreach ($prospectos as $prospecto)
+                                    <option value="{{ $prospecto->id }}"
+                                        {{ $prospectoIdInicial == $prospecto->id ? 'selected' : '' }}>
+                                        {{ trim("{$prospecto->ap_paterno} {$prospecto->ap_materno} {$prospecto->nombre}") }}
+                                        @if($prospecto->contacto_telefono)
+                                            — {{ $prospecto->contacto_telefono }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
                             <span class="help-block">
-                                Opcional. Si se especifica, el prospecto cambia a "inscrito" automaticamente.
+                                Opcional. Si se especifica, el prospecto cambia a "inscrito" automáticamente.
                             </span>
                         </div>
                     </div>
@@ -823,9 +834,109 @@
         </div>{{-- /.contacto-item --}}
     </div>{{-- /#template-contacto --}}
 
+    {{-- -- Template oculto para contacto existente (familia seleccionada) -- --}}
+    <div id="template-contacto-existente" style="display:none;">
+        <div class="contacto-item" data-index="__INDEX__">
+            <div class="contacto-item-header">
+                <strong><i class="fa fa-user"></i> Contacto #<span class="num-contacto">__NUM__</span></strong>
+                <span class="label label-info" style="font-size:11px;font-weight:400;">Contacto existente</span>
+            </div>
+            <div class="contacto-item-body">
+                <input type="hidden" name="contactos[__INDEX__][contacto_id]" value="__CONTACTO_ID__">
+
+                {{-- Info de solo lectura --}}
+                <div class="alert alert-default" style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:4px;padding:10px 14px;margin-bottom:12px;">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Nombre</small>
+                            <strong class="ce-nombre" style="font-size:13px;"></strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Teléfono celular</small>
+                            <span class="ce-telefono" style="font-size:13px;"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Correo electrónico</small>
+                            <span class="ce-email" style="font-size:13px;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Campos editables: permisos --}}
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Parentesco <span class="text-red">*</span></label>
+                            <select name="contactos[__INDEX__][parentesco]" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="padre">Padre</option>
+                                <option value="madre">Madre</option>
+                                <option value="abuelo">Abuelo/a</option>
+                                <option value="tio">Tío/a</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Tipo <span class="text-red">*</span></label>
+                            <select name="contactos[__INDEX__][tipo]" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="padre">Padre/Madre</option>
+                                <option value="tutor">Tutor</option>
+                                <option value="tercero_autorizado">Tercero autorizado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Orden</label>
+                            <select name="contactos[__INDEX__][orden]" class="form-control">
+                                <option value="1" __ORDEN1__>1 - Principal</option>
+                                <option value="2" __ORDEN2__>2 - Secundario</option>
+                                <option value="3" __ORDEN3__>3 - Tercero</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                <input type="hidden" name="contactos[__INDEX__][autorizado_recoger]" value="0">
+                                <input type="checkbox" name="contactos[__INDEX__][autorizado_recoger]" value="1" __RECOGER__>
+                                Autorizado para recoger
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                <input type="hidden" name="contactos[__INDEX__][es_responsable_pago]" value="0">
+                                <input type="checkbox" name="contactos[__INDEX__][es_responsable_pago]" value="1" __PAGO__>
+                                Responsable de pagos
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                <input type="hidden" name="contactos[__INDEX__][tiene_acceso_portal]" value="0">
+                                <input type="checkbox" name="contactos[__INDEX__][tiene_acceso_portal]" value="1">
+                                Acceso al portal
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>{{-- /.contacto-item-body --}}
+        </div>{{-- /.contacto-item --}}
+    </div>{{-- /#template-contacto-existente --}}
+
 @endsection
 
 @push('scripts')
+    <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
         var MAX_CONTACTOS = 3;
         var MAX_FOTO_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -849,6 +960,22 @@
         });
 
         $(document).ready(function() {
+            // ── Select2 en búsqueda de familia ──
+            $('#familia_id').select2({
+                allowClear: true,
+                width: '100%',
+                language: { noResults: function() { return 'Sin resultados'; } },
+                placeholder: 'Buscar familia por apellido...',
+            });
+
+            // ── Select2 en búsqueda de prospecto ──
+            $('#prospecto_id').select2({
+                allowClear: true,
+                width: '100%',
+                language: { noResults: function() { return 'Sin resultados'; } },
+                placeholder: 'Buscar prospecto por nombre...',
+            });
+
             if (contactosIniciales.length) {
                 contactosIniciales.slice(0, MAX_CONTACTOS).forEach(function(contacto) {
                     agregarContacto(contacto);
@@ -978,6 +1105,7 @@
         function limpiarContactos() {
             $('#contenedor-contactos').empty();
             numContactos = 0;
+            $('#btn-agregar-contacto').show();
             actualizarBtnAgregar();
         }
 
@@ -1006,13 +1134,15 @@
                     }
 
                     contactos.slice(0, MAX_CONTACTOS).forEach(function(contacto) {
-                        agregarContacto(contacto);
+                        agregarContactoExistente(contacto);
                     });
+
+                    $('#btn-agregar-contacto').hide();
 
                     $('#contenedor-contactos').prepend(
                         '<div class="alert alert-info alert-sm" id="aviso-contactos-familia" style="padding:8px 12px;font-size:12px;">' +
                         '<i class="fa fa-info-circle"></i> Se cargaron los contactos de la familia seleccionada. ' +
-                        'Puedes editar la información y configurar los permisos para este alumno.</div>'
+                        'Configura los permisos para este alumno.</div>'
                     );
                 },
                 error: function() {
@@ -1020,6 +1150,89 @@
                     agregarContacto();
                 }
             });
+        }
+
+        function agregarContactoExistente(contacto) {
+            if (numContactos >= MAX_CONTACTOS) {
+                return;
+            }
+
+            var index = numContactos;
+            var num   = numContactos + 1;
+
+            var nombreCompleto = [contacto.nombre, contacto.ap_paterno, contacto.ap_materno]
+                .filter(Boolean).join(' ');
+
+            var html = '<div class="contacto-item" data-index="' + index + '">' +
+                '<div class="contacto-item-header">' +
+                    '<strong><i class="fa fa-user"></i> Contacto #<span class="num-contacto">' + num + '</span></strong>' +
+                    '<span class="label label-info" style="font-size:11px;font-weight:400;">Contacto existente</span>' +
+                '</div>' +
+                '<div class="contacto-item-body">' +
+                    '<input type="hidden" name="contactos[' + index + '][contacto_id]" value="' + (contacto.contacto_id || '') + '">' +
+                    '<div class="alert alert-default" style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:4px;padding:10px 14px;margin-bottom:12px;">' +
+                        '<div class="row">' +
+                            '<div class="col-sm-4">' +
+                                '<small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Nombre</small>' +
+                                '<strong style="font-size:13px;">' + $('<div>').text(nombreCompleto || '—').html() + '</strong>' +
+                            '</div>' +
+                            '<div class="col-sm-4">' +
+                                '<small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Teléfono celular</small>' +
+                                '<span style="font-size:13px;">' + $('<div>').text(contacto.telefono_celular || '—').html() + '</span>' +
+                            '</div>' +
+                            '<div class="col-sm-4">' +
+                                '<small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Correo electrónico</small>' +
+                                '<span style="font-size:13px;">' + $('<div>').text(contacto.email || '—').html() + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="row">' +
+                        '<div class="col-md-4"><div class="form-group"><label>Parentesco <span class="text-red">*</span></label>' +
+                            '<select name="contactos[' + index + '][parentesco]" class="form-control">' +
+                                '<option value="">-- Seleccionar --</option>' +
+                                '<option value="padre">Padre</option>' +
+                                '<option value="madre">Madre</option>' +
+                                '<option value="abuelo">Abuelo/a</option>' +
+                                '<option value="tio">Tío/a</option>' +
+                                '<option value="otro">Otro</option>' +
+                            '</select>' +
+                        '</div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label>Tipo <span class="text-red">*</span></label>' +
+                            '<select name="contactos[' + index + '][tipo]" class="form-control">' +
+                                '<option value="">-- Seleccionar --</option>' +
+                                '<option value="padre">Padre/Madre</option>' +
+                                '<option value="tutor">Tutor</option>' +
+                                '<option value="tercero_autorizado">Tercero autorizado</option>' +
+                            '</select>' +
+                        '</div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label>Orden</label>' +
+                            '<select name="contactos[' + index + '][orden]" class="form-control">' +
+                                '<option value="1"' + (num === 1 ? ' selected' : '') + '>1 - Principal</option>' +
+                                '<option value="2"' + (num === 2 ? ' selected' : '') + '>2 - Secundario</option>' +
+                                '<option value="3"' + (num === 3 ? ' selected' : '') + '>3 - Tercero</option>' +
+                            '</select>' +
+                        '</div></div>' +
+                    '</div>' +
+                    '<div class="row">' +
+                        '<div class="col-md-4"><div class="checkbox"><label>' +
+                            '<input type="hidden" name="contactos[' + index + '][autorizado_recoger]" value="0">' +
+                            '<input type="checkbox" name="contactos[' + index + '][autorizado_recoger]" value="1"' + (num === 1 ? ' checked' : '') + '> Autorizado para recoger' +
+                        '</label></div></div>' +
+                        '<div class="col-md-4"><div class="checkbox"><label>' +
+                            '<input type="hidden" name="contactos[' + index + '][es_responsable_pago]" value="0">' +
+                            '<input type="checkbox" name="contactos[' + index + '][es_responsable_pago]" value="1"' + (num === 1 ? ' checked' : '') + '> Responsable de pagos' +
+                        '</label></div></div>' +
+                        '<div class="col-md-4"><div class="checkbox"><label>' +
+                            '<input type="hidden" name="contactos[' + index + '][tiene_acceso_portal]" value="0">' +
+                            '<input type="checkbox" name="contactos[' + index + '][tiene_acceso_portal]" value="1"> Acceso al portal' +
+                        '</label></div></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+            $('#contenedor-contactos').append(html);
+            numContactos++;
+            actualizarBtnAgregar();
         }
 
         $('input[name="tipo_familia"]').on('change', function() {

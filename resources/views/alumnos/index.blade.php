@@ -323,6 +323,17 @@
                                                 <i class="fa fa-id-card alm-dropdown-icon alm-dropdown-icon-teal"></i> Imprimir credencial
                                             </a>
                                         </li>
+
+                                        {{-- 6. ELIMINAR --}}
+                                        <li role="separator" class="divider"></li>
+                                        <li>
+                                            <a href="javascript:void(0)"
+                                               class="alm-dropdown-item text-danger btn-eliminar-alumno"
+                                               data-id="{{ $alumno->id }}"
+                                               data-nombre="{{ $alumno->nombre_completo }}">
+                                                <i class="fa fa-trash alm-dropdown-icon" style="color:#c0392b;"></i> Eliminar alumno
+                                            </a>
+                                        </li>
                                         @endif
                                     </ul>
                                 </div>
@@ -412,7 +423,33 @@
                     });
                 });
 
-                // ── 2. LÓGICA PARA EL MODAL DE CREDENCIALES (jQuery) ──
+                // ── 2. ELIMINAR ALUMNO ──
+                $(document).on('click', '.btn-eliminar-alumno', function(e) {
+                    e.stopPropagation();
+                    var id = $(this).data('id');
+                    var nombre = $(this).data('nombre');
+
+                    if (!confirm('¿Eliminar a ' + nombre + '?\n\nEsta acción es irreversible. Solo se permite si el alumno no tiene cargos o pagos registrados.')) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '/alumnos/' + id,
+                        method: 'POST',
+                        data: { _method: 'DELETE', _token: $('meta[name="csrf-token"]').attr('content') },
+                        success: function(res) {
+                            window.location.reload();
+                        },
+                        error: function(xhr) {
+                            var msg = xhr.responseJSON && xhr.responseJSON.message
+                                ? xhr.responseJSON.message
+                                : 'No se pudo eliminar al alumno.';
+                            alert(msg);
+                        }
+                    });
+                });
+
+                // ── 3. LÓGICA PARA EL MODAL DE CREDENCIALES (jQuery) ──
                 $(document).ready(function() {
                     let printId = null;
                     let printTipo = null;

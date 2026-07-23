@@ -8,7 +8,7 @@ class StoreAlumnoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array(auth()->user()->rol, ['administrador', 'recepcion']);
+        return in_array(auth()->user()->rol, ['administrador', 'recepcion', 'caja', 'admisiones', 'informacion_admisiones']);
     }
 
     protected function prepareForValidation(): void
@@ -62,10 +62,11 @@ class StoreAlumnoRequest extends FormRequest
             'grupo_id' => ['required', 'exists:grupo,id'],
             'apellido_familia' => ['required_without:familia_id', 'nullable', 'string', 'max:200'],
             'contactos' => ['required', 'array', 'min:1', 'max:3'],
-            'contactos.*.nombre' => ['required', 'string', 'max:100'],
+            'contactos.*.contacto_id' => ['nullable', 'integer', 'exists:contacto_familiar,id'],
+            'contactos.*.nombre' => ['required_without:contactos.*.contacto_id', 'nullable', 'string', 'max:100'],
             'contactos.*.ap_paterno' => ['nullable', 'string', 'max:100'],
             'contactos.*.ap_materno' => ['nullable', 'string', 'max:100'],
-            'contactos.*.telefono_celular' => ['required', 'string', 'max:20'],
+            'contactos.*.telefono_celular' => ['required_without:contactos.*.contacto_id', 'nullable', 'string', 'max:20'],
             'contactos.*.telefono_trabajo' => ['nullable', 'string', 'max:20'],
             'contactos.*.telefono_2' => ['nullable', 'string', 'max:20'],
             'contactos.*.email' => ['nullable', 'email', 'max:200'],

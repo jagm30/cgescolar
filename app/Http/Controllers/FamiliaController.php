@@ -192,7 +192,8 @@ class FamiliaController extends Controller
         return $this->respuestaExito(
             redirectRoute: 'familias.show',
             jsonData: ['familia' => $familia->fresh()],
-            mensaje: "Familia actualizada correctamente."
+            mensaje: 'Familia actualizada correctamente.',
+            routeParams: [$familia->id]
         );
     }
 
@@ -216,18 +217,31 @@ class FamiliaController extends Controller
 
     public function contactosParaEnlace(int $id): JsonResponse
     {
-        $contactos = Familia::findOrFail($id)->contactos()->get()
+        $familia = Familia::with(['alumnos:id,familia_id'])->findOrFail($id);
+
+        // Contactos directamente vinculados a la familia
+        $porFamiliaId = ContactoFamiliar::where('familia_id', $id)->pluck('id');
+
+        // Contactos vinculados a alumnos de esta familia (por si no tienen familia_id seteado)
+        $alumnoIds = $familia->alumnos->pluck('id');
+        $porAlumno = AlumnoContacto::whereIn('alumno_id', $alumnoIds)
+            ->where('activo', true)
+            ->pluck('contacto_id');
+
+        $contactos = ContactoFamiliar::whereIn('id', $porFamiliaId->merge($porAlumno)->unique())
+            ->get()
             ->map(fn ($c) => [
-                'nombre' => $c->nombre,
-                'ap_paterno' => $c->ap_paterno ?? '',
-                'ap_materno' => $c->ap_materno ?? '',
-                'telefono_celular' => $c->telefono_celular,
-                'email' => $c->email ?? '',
-                'curp' => $c->curp ?? '',
+                'contacto_id'         => $c->id,
+                'nombre'              => $c->nombre,
+                'ap_paterno'          => $c->ap_paterno ?? '',
+                'ap_materno'          => $c->ap_materno ?? '',
+                'telefono_celular'    => $c->telefono_celular ?? '',
+                'email'               => $c->email ?? '',
+                'curp'                => $c->curp ?? '',
                 'tiene_acceso_portal' => $c->tiene_acceso_portal ? '1' : '0',
             ]);
 
-        return response()->json($contactos);
+        return response()->json($contactos->values());
     }
 
     /**
@@ -686,6 +700,47 @@ class FamiliaController extends Controller
             redirectRoute: 'familias.show',
             jsonData: ['nueva_password' => $nuevaPassword, 'email' => $contacto->usuario->email],
             mensaje: "Contraseña reseteada para {$contacto->nombre}. Entrega la nueva contraseña al padre."
+        );
+    }
+
+    /** DELETE /familias/{familia} */
+    public function destroy(int $id): JsonResponse|RedirectResponse
+    {
+        $this->soloAdmin();
+
+        $familia = Familia::withCount('alumnos')->findOrFail($id);
+
+        if ($familia->alumnos_count > 0) {
+            return $this->respuestaError(
+                'No es posible eliminar la familia porque tiene alumnos registrados.'
+            );
+        }
+
+        DB::transaction(function () use ($familia): void {
+            foreach ($familia->contactos as $contacto) {
+                AlumnoContacto::where('contacto_id', $contacto->id)->delete();
+
+                if ($contacto->usuario_id) {
+                    Usuario::where('id', $contacto->usuario_id)->delete();
+                }
+
+                if ($contacto->foto_url) {
+                    Storage::disk('public')->delete($contacto->foto_url);
+                }
+
+                $contacto->delete();
+            }
+
+            Auditoria::registrar('familia', $familia->id, 'delete', [
+                'apellido_familia' => $familia->apellido_familia,
+            ], null);
+
+            $familia->delete();
+        });
+
+        return $this->respuestaExito(
+            redirectRoute: 'familias.index',
+            mensaje: 'Familia eliminada correctamente.'
         );
     }
 

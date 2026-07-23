@@ -392,17 +392,24 @@ class PortalPadreController extends Controller
     {
         $contacto = auth()->user()->contactoFamiliar;
 
-        if (! $contacto?->familia_id) {
+        if (! $contacto) {
             $alumnos   = collect();
             $contactos = collect();
         } else {
-            $alumnos = Alumno::where('familia_id', $contacto->familia_id)
+            $alumnos = Alumno::query()
+                ->whereHas('contactos', fn ($q) => $q
+                    ->where('contacto_familiar.id', $contacto->id)
+                    ->where('alumno_contacto.tiene_acceso_portal', true)
+                    ->where('alumno_contacto.activo', true)
+                )
                 ->orderBy('ap_paterno')
                 ->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'matricula', 'foto_url']);
 
-            $contactos = ContactoFamiliar::where('familia_id', $contacto->familia_id)
-                ->orderBy('ap_paterno')
-                ->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'foto_url']);
+            $contactos = $contacto->familia_id
+                ? ContactoFamiliar::where('familia_id', $contacto->familia_id)
+                    ->orderBy('ap_paterno')
+                    ->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'foto_url'])
+                : collect();
         }
 
         if (request()->ajax()) {
@@ -422,7 +429,11 @@ class PortalPadreController extends Controller
 
         $contacto = auth()->user()->contactoFamiliar;
         $alumno   = Alumno::where('id', $alumnoId)
-            ->where('familia_id', $contacto?->familia_id)
+            ->whereHas('contactos', fn ($q) => $q
+                ->where('contacto_familiar.id', $contacto?->id)
+                ->where('alumno_contacto.tiene_acceso_portal', true)
+                ->where('alumno_contacto.activo', true)
+            )
             ->firstOrFail();
 
         if ($alumno->foto_url) {
@@ -486,15 +497,19 @@ class PortalPadreController extends Controller
     {
         $contacto = auth()->user()->contactoFamiliar;
 
-        if (! $contacto?->familia_id) {
+        if (! $contacto) {
             abort(403, 'No tiene acceso a este alumno.');
         }
 
-        $perteneceAFamilia = Alumno::where('id', $alumnoId)
-            ->where('familia_id', $contacto->familia_id)
+        $tieneAcceso = Alumno::where('id', $alumnoId)
+            ->whereHas('contactos', fn ($q) => $q
+                ->where('contacto_familiar.id', $contacto->id)
+                ->where('alumno_contacto.tiene_acceso_portal', true)
+                ->where('alumno_contacto.activo', true)
+            )
             ->exists();
 
-        if (! $perteneceAFamilia) {
+        if (! $tieneAcceso) {
             abort(403, 'No tiene acceso a la informacion de este alumno.');
         }
     }
@@ -522,13 +537,17 @@ class PortalPadreController extends Controller
     {
         $contacto = auth()->user()->contactoFamiliar()->first();
 
-        if (! $contacto?->familia_id) {
+        if (! $contacto) {
             return collect();
         }
 
         return Alumno::query()
-            ->where('familia_id', $contacto->familia_id)
             ->where('estado', 'activo')
+            ->whereHas('contactos', fn ($q) => $q
+                ->where('contacto_familiar.id', $contacto->id)
+                ->where('alumno_contacto.tiene_acceso_portal', true)
+                ->where('alumno_contacto.activo', true)
+            )
             ->whereHas('inscripciones', fn ($query) => $query->where('activo', true))
             ->with([
                 'inscripciones' => fn ($query) => $query->where('activo', true)->latest('id'),
