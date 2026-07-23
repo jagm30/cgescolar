@@ -7,7 +7,6 @@ use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\ConceptoCobro;
-use App\Models\DescuentoCargo;
 use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
@@ -93,6 +92,8 @@ class CobrosController extends Controller
             ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumnoId))
             ->whereIn('estado', ['pendiente', 'parcial'])
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado')
+            ->withSum('detallesPagosVigentes as beca_ya_aplicada', 'descuento_beca')
+            ->withSum('detallesPagosVigentes as condonacion_ya_aplicada', 'descuento_otros')
             ->orderBy('fecha_vencimiento')
             ->get()
             ->map(fn ($cargo) => $this->enriquecerCargo($cargo, $hoy, $hoyFecha, $becasPorPlan, $becasPorConcepto));
@@ -289,13 +290,20 @@ class CobrosController extends Controller
         $cargo->vencido = $vencido;
         $cargo->dias_atraso = $vencido ? $cargo->fecha_vencimiento->diffInDays($hoy) : 0;
 
-        [$becaDescuento, $becaPorcentaje] = $this->calcularBecaCobro($cargo, $pendiente, $becasPorPlan, $becasPorConcepto);
+        $becaYaAplicada = (float) ($cargo->beca_ya_aplicada ?? 0);
+        [$becaDescuento, $becaPorcentaje] = $this->calcularBecaCobro($cargo, $pendiente, $becaYaAplicada, $becasPorPlan, $becasPorConcepto);
 
         [$descuento, $recargo, $mesesRetraso, $pd] = ($pendiente > 0 && $cargo->asignacion?->plan)
             ? $this->calcularPoliticaCobro($cargo, $pendiente, $vencido, $hoyFecha)
             : [0.0, 0.0, 0, null];
 
-        $descuentoCondonacion = (float) $cargo->descuentos->sum('monto_aplicado');
+        // La condonación es un monto fijo ya registrado en descuentos (DescuentoCargo),
+        // no algo que se recalcule por abono: si un abono anterior ya la incluyó en su
+        // monto_abonado (ver JS: sincronizarBaseDesdeVisible suma data-condonacion),
+        // hay que restar lo ya aplicado para no volver a otorgarla en cada abono parcial.
+        $condonacionYaAplicada = (float) ($cargo->condonacion_ya_aplicada ?? 0);
+        $condonacionTotal = (float) $cargo->descuentos->sum('monto_aplicado');
+        $descuentoCondonacion = min($pendiente, max(0, round($condonacionTotal - $condonacionYaAplicada, 2)));
 
         $cargo->beca_descuento_calc = $becaDescuento;
         $cargo->beca_porcentaje = $becaPorcentaje;
@@ -310,8 +318,17 @@ class CobrosController extends Controller
         return $cargo;
     }
 
-    /** Calcula el descuento de beca aplicable a un cargo. */
-    private function calcularBecaCobro(Cargo $cargo, float $pendiente, Collection $becasPorPlan, Collection $becasPorConcepto): array
+    /**
+     * Calcula el descuento de beca aplicable a un cargo.
+     *
+     * El descuento total de la beca se calcula UNA sola vez sobre monto_original
+     * (no sobre el pendiente, que va disminuyendo con cada abono): si se recalculara
+     * el porcentaje sobre el saldo restante en cada abono parcial, la beca se
+     * volvería a aplicar sobre el remanente y el cargo terminaría cubierto con
+     * mucho menos efectivo del que realmente corresponde. $becaYaAplicada resta
+     * lo que ya se acreditó en abonos anteriores para no volver a otorgarla.
+     */
+    private function calcularBecaCobro(Cargo $cargo, float $pendiente, float $becaYaAplicada, Collection $becasPorPlan, Collection $becasPorConcepto): array
     {
         if ($pendiente <= 0) {
             return [0.0, null];
@@ -331,7 +348,8 @@ class CobrosController extends Controller
             return [0.0, null];
         }
 
-        $descuento = $beca->calcularDescuento($pendiente);
+        $descuentoTotal = $beca->calcularDescuento((float) $cargo->monto_original);
+        $descuento = min($pendiente, max(0, round($descuentoTotal - $becaYaAplicada, 2)));
         $porcentaje = $beca->catalogoBeca->tipo === 'porcentaje' ? (float) $beca->catalogoBeca->valor : null;
 
         return [$descuento, $porcentaje];
@@ -395,11 +413,11 @@ class CobrosController extends Controller
         $concepto = ConceptoCobro::findOrFail($item['concepto_id']);
 
         $base = [
-            'inscripcion_id'    => $item['inscripcion_id'],
-            'concepto_id'       => $item['concepto_id'],
-            'generado_por'      => $cajeroId,
+            'inscripcion_id' => $item['inscripcion_id'],
+            'concepto_id' => $item['concepto_id'],
+            'generado_por' => $cajeroId,
             'fecha_vencimiento' => Carbon::parse($fechaPago)->toDateString(),
-            'estado'            => 'pagado',
+            'estado' => 'pagado',
         ];
 
         if ($concepto->tipo === 'cargo_recurrente') {
@@ -409,13 +427,13 @@ class CobrosController extends Controller
             $prefijo = now()->format('Y-m-');
             $siguiente = Cargo::where('inscripcion_id', $item['inscripcion_id'])
                 ->where('concepto_id', $item['concepto_id'])
-                ->where('periodo', 'LIKE', $prefijo . '%')
+                ->where('periodo', 'LIKE', $prefijo.'%')
                 ->count() + 1;
 
             return Cargo::create([
                 ...$base,
                 'monto_original' => $monto,
-                'periodo'        => $prefijo . str_pad($siguiente, 2, '0', STR_PAD_LEFT),
+                'periodo' => $prefijo.str_pad($siguiente, 2, '0', STR_PAD_LEFT),
             ]);
         }
 
@@ -423,8 +441,8 @@ class CobrosController extends Controller
         return Cargo::firstOrCreate(
             [
                 'inscripcion_id' => $item['inscripcion_id'],
-                'concepto_id'    => $item['concepto_id'],
-                'periodo'        => now()->format('Y-m'),
+                'concepto_id' => $item['concepto_id'],
+                'periodo' => now()->format('Y-m'),
             ],
             [
                 ...$base,
@@ -451,17 +469,16 @@ class CobrosController extends Controller
             return;
         }
 
-        $totalAbonado = PagoDetalle::where('cargo_id', $d['cargo']->id)
+        // monto_abonado ya incluye cualquier condonación vigente (el JS la suma en
+        // sincronizarBaseDesdeVisible antes de enviar el formulario), así que no debe
+        // volver a sumarse aquí — hacerlo duplica el crédito y marca el cargo como
+        // pagado con menos efectivo del que realmente se cobró.
+        $totalAbonado = (float) PagoDetalle::where('cargo_id', $d['cargo']->id)
             ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
             ->sum('monto_abonado');
 
-        $totalCondonado = (float) DescuentoCargo::where('cargo_id', $d['cargo']->id)
-            ->sum('monto_aplicado');
-
-        $cubierto = (float) $totalAbonado + $totalCondonado;
-
         $d['cargo']->update([
-            'estado' => $cubierto >= (float) $d['cargo']->monto_original ? 'pagado' : 'parcial',
+            'estado' => $totalAbonado >= (float) $d['cargo']->monto_original ? 'pagado' : 'parcial',
         ]);
     }
 

@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
 
 class Cargo extends Model
 {
@@ -127,21 +126,16 @@ class Cargo extends Model
 
     /**
      * Importe que cubre el cargo original: pagos + descuentos vigentes.
+     *
+     * monto_abonado ya incluye beca, pronto pago y condonación (se calculan una
+     * sola vez al momento del cobro y se suman al efectivo recibido — ver
+     * CobrosController::crearDetallePago y PagoController::store). Sumarlos de
+     * nuevo aquí duplicaba el crédito y hacía que el estado de cuenta y el
+     * portal de padres marcaran cargos como pagados sin estarlo.
      */
     public function getMontoCubiertoAttribute(): float
     {
-        if ($this->relationLoaded('detallesPagosVigentes')) {
-            return (float) $this->detallesPagosVigentes->sum(
-                fn (PagoDetalle $detalle) => (float) $detalle->monto_abonado
-                    + (float) $detalle->descuento_beca
-                    + (float) $detalle->descuento_pronto_pago
-                    + (float) $detalle->descuento_otros
-            );
-        }
-
-        return (float) $this->detallesPagos()
-            ->whereHas('pago', fn ($q) => $q->where('estado', 'vigente'))
-            ->sum(DB::raw('monto_abonado + descuento_beca + descuento_pronto_pago + descuento_otros'));
+        return $this->saldo_abonado;
     }
 
     /**

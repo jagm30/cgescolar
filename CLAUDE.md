@@ -97,6 +97,16 @@ Before writing inline HTML in a view, check `resources/views/components/` and `r
 
 Uses **Pest v3**. Create tests with `php artisan make:test --pest {name}` (add `--unit` for unit tests). Most tests should be feature tests. Tests use SQLite in-memory database. Use model factories when creating test data.
 
+### ⚠️ Before running `php artisan test`, always run `php artisan config:clear` first
+
+`phpunit.xml` forces `DB_CONNECTION=sqlite` / `DB_DATABASE=:memory:` for the test environment. But if Laravel's config is **cached** (`bootstrap/cache/config.php` exists — e.g. left over from a `php artisan optimize` / `config:cache` run), Laravel reads the cached array instead of evaluating `env()`, and silently ignores every `<env>` override in `phpunit.xml`. When that happens, `RefreshDatabase` runs `migrate:fresh` against whatever `DB_CONNECTION` was cached — which on this project's dev machine is the real MySQL `sigescolar` database — wiping every table (`usuario`, `alumno`, etc.) with no warning.
+
+This already happened once. Treat it as a hard rule:
+
+1. Run `php artisan config:clear` (or verify `bootstrap/cache/config.php` does not exist) before the **first** `php artisan test` invocation of a session.
+2. If a stray `bootstrap/cache/config.php` shows up mid-session (e.g. because `composer dev` or another command re-cached it), clear it again before the next test run.
+3. Never run `php artisan config:cache` / `php artisan optimize` on this dev machine unless the user explicitly asks — and if it's run for any reason, clear it again immediately after with `config:clear`.
+
 ---
 
 ## Key Conventions
