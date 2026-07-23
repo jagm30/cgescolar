@@ -383,6 +383,8 @@ class AlumnoController extends Controller
         ])
             ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
             ->withSum('detallesPagosVigentes as total_abonado', 'monto_final')
+            ->withSum('detallesPagosVigentes as beca_ya_aplicada', 'descuento_beca')
+            ->withSum('detallesPagosVigentes as condonacion_ya_aplicada', 'descuento_otros')
             ->when($request->filled('ciclo_id'), fn ($q) => $q->whereHas(
                 'inscripcion', fn ($sq) => $sq->where('ciclo_id', $request->ciclo_id)
             ))
@@ -843,17 +845,22 @@ class AlumnoController extends Controller
             $vencido = $hoyFecha->gt($cargo->fecha_vencimiento);
             $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
 
+            $becaYaAplicada = (float) ($cargo->beca_ya_aplicada ?? 0);
             [$becaDescuento, $becaPorcentaje] = $esPendiente
-                ? $this->calcularBecaCargo($cargo, $saldoBase, $becasPorPlan, $becasPorConcepto, $becasGlobales)
+                ? $this->calcularBecaCargo($cargo, $saldoBase, $becaYaAplicada, $becasPorPlan, $becasPorConcepto, $becasGlobales)
                 : [0.0, null];
 
             [$descuento, $recargo, $mesesRetraso] = ($esPendiente && $cargo->asignacion?->plan)
                 ? $this->calcularPoliticaCargo($cargo, $saldoBase, $vencido, $hoyFecha)
                 : [0.0, 0.0, 0];
 
-            // Descuento por condonación (misma lógica que CobrosController::enriquecerCargo)
+            // Descuento por condonación (misma lógica que CobrosController::enriquecerCargo):
+            // se calcula una sola vez sobre monto_original y se resta lo ya acreditado en
+            // abonos anteriores, para no volver a otorgarla en cada abono parcial.
+            $condonacionYaAplicada = (float) ($cargo->condonacion_ya_aplicada ?? 0);
+            $condonacionTotal = (float) $cargo->descuentos->sum('monto_aplicado');
             $condonacionDesc = $esPendiente
-                ? (float) $cargo->descuentos->sum('monto_aplicado')
+                ? min($saldoBase, max(0, round($condonacionTotal - $condonacionYaAplicada, 2)))
                 : 0.0;
 
             // Anotar en el modelo para la vista
@@ -895,10 +902,16 @@ class AlumnoController extends Controller
         ]);
     }
 
-    /** Resuelve el descuento de beca aplicable a un cargo (plan → concepto → global). */
+    /**
+     * Resuelve el descuento de beca aplicable a un cargo (plan → concepto → global).
+     * $becaYaAplicada resta lo ya acreditado en abonos anteriores para no volver a
+     * otorgar la beca sobre el saldo restante (mismo criterio que
+     * CobrosController::calcularBecaCobro).
+     */
     private function calcularBecaCargo(
         Cargo $cargo,
         float $saldoBase,
+        float $becaYaAplicada,
         Collection $becasPorPlan,
         Collection $becasPorConcepto,
         Collection $becasGlobales = new Collection,
@@ -924,7 +937,8 @@ class AlumnoController extends Controller
             return [0.0, null];
         }
 
-        $descuento = min($becaItem->calcularDescuento((float) $cargo->monto_original), $saldoBase);
+        $descuentoTotal = $becaItem->calcularDescuento((float) $cargo->monto_original);
+        $descuento = min($saldoBase, max(0, round($descuentoTotal - $becaYaAplicada, 2)));
         $porcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
             ? (float) $becaItem->catalogoBeca->valor
             : null;

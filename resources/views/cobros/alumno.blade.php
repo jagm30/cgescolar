@@ -823,6 +823,9 @@ $(function() {
         var monto  = parseFloat($row.find('input[name*="[monto_abonado]"]').val()) || 0;
 
         // Recalcular pronto pago proporcional al monto ingresado (solo cargos existentes)
+        // Nota: la beca NO se reescala aquí — su crédito disponible ya viene topado
+        // desde el servidor (ver CobrosController::calcularBecaCobro) para no volver
+        // a otorgarla sobre el remanente en cada abono parcial.
         var $card     = $row.closest('.cargo-item');
         var dCond     = parseFloat($card.data('condonacion')) || 0;
         var montoBase = Math.max(0, monto - dCond); // base efectiva descontando la condonación
