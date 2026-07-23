@@ -27,7 +27,7 @@ class CondonacionController extends Controller
         $cicloId = auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $query = Condonacion::with(['alumno', 'ciclo', 'creadoPor'])
+        $query = Condonacion::with(['alumno', 'ciclo', 'creadoPor', 'detalles.cargo.asignacion.plan:id,nombre'])
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('alumno_id'), fn ($q) => $q->where('alumno_id', $request->alumno_id))
             ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))

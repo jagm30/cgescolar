@@ -77,6 +77,11 @@ class CondonacionService
         $count = 0;
 
         foreach ($data['alumno_ids'] as $alumnoId) {
+            // Si ya tiene una condonación activa del mismo plan, se omite este alumno
+            if ($this->tieneCondonacionActivaDelPlan($alumnoId, $data['plan_id'])) {
+                continue;
+            }
+
             $inscripcion = Inscripcion::where('alumno_id', $alumnoId)
                 ->where('ciclo_id', $data['ciclo_id'])
                 ->where('activo', true)
@@ -104,6 +109,19 @@ class CondonacionService
         }
 
         return $count;
+    }
+
+    /**
+     * Indica si el alumno ya tiene una condonación activa que cubra
+     * cargos del plan indicado. Se usa para bloquear duplicados en
+     * condonaciones individuales y masivas.
+     */
+    public function tieneCondonacionActivaDelPlan(int $alumnoId, int $planId): bool
+    {
+        return Condonacion::where('alumno_id', $alumnoId)
+            ->activa()
+            ->whereHas('detalles.cargo.asignacion', fn ($q) => $q->where('plan_id', $planId))
+            ->exists();
     }
 
     /**

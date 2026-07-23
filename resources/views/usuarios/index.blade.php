@@ -298,8 +298,8 @@
                             Administrador</option>
                         <option value="caja" {{ request('rol') == 'caja' ? 'selected' : '' }}>Caja</option>
                         <option value="recepcion" {{ request('rol') == 'recepcion' ? 'selected' : '' }}>Recepción</option>
-                        <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones
-                        </option>
+                        <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones</option>
+                        <option value="informacion_admisiones" {{ request('rol') == 'informacion_admisiones' ? 'selected' : '' }}>Información y Admisiones</option>
                         <option value="padre" {{ request('rol') == 'padre' ? 'selected' : '' }}>Padre de Familia</option>
                     </select>
 
@@ -350,8 +350,8 @@
                                     </td>
                                     <td>
                                         <span
-                                            class="badge-rol @if ($usuario->rol == 'administrador') rol-admin @elseif($usuario->rol == 'admisiones') rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
-                                            {{ $usuario->rol }}
+                                            class="badge-rol @if ($usuario->rol == 'administrador') rol-admin @elseif($usuario->rol == 'admisiones' || $usuario->rol == 'informacion_admisiones') rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
+                                            {{ $usuario->rol == 'informacion_admisiones' ? 'Info. y Admisiones' : $usuario->rol }}
                                         </span>
                                     </td>
                                     <td>
@@ -564,6 +564,7 @@
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
                     <option value="admisiones">Admisiones</option>
+                    <option value="informacion_admisiones">Información y Admisiones</option>
                     <option value="administrador">Administrador</option>
                 </select>
             </div>
@@ -610,6 +611,7 @@
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
                     <option value="admisiones">Admisiones</option>
+                    <option value="informacion_admisiones">Información y Admisiones</option>
                     <option value="administrador">Administrador</option>
                 </select>
                 <p id="help-edit-rol" class="help-block text-muted"

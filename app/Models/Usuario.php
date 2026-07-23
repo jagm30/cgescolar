@@ -61,7 +61,7 @@ class Usuario extends Authenticatable
 
     public function scopeInternos($query)
     {
-        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion', 'admisiones']);
+        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion', 'admisiones', 'informacion_admisiones']);
     }
 
     // ── Helpers de rol ───────────────────────────────────
@@ -86,6 +86,11 @@ class Usuario extends Authenticatable
         return $this->rol === 'admisiones';
     }
 
+    public function esInformacionAdmisiones(): bool
+    {
+        return $this->rol === 'informacion_admisiones';
+    }
+
     public function esPadre(): bool
     {
         return $this->rol === 'padre';
@@ -93,18 +98,19 @@ class Usuario extends Authenticatable
 
     public function esInterno(): bool
     {
-        return in_array($this->rol, ['administrador', 'caja', 'recepcion', 'admisiones']);
+        return in_array($this->rol, ['administrador', 'caja', 'recepcion', 'admisiones', 'informacion_admisiones']);
     }
 
     public function rutaDashboard(): string
     {
         return match ($this->rol) {
-            'administrador' => route('admin.dashboard'),
-            'caja' => route('caja.dashboard'),
-            'recepcion'  => route('recepcion.dashboard'),
-            'admisiones' => route('prospectos.metricas'),
-            'padre'      => route('portal.dashboard'),
-            default => route('login'),
+            'administrador'          => route('admin.dashboard'),
+            'caja'                   => route('caja.dashboard'),
+            'recepcion'              => route('recepcion.dashboard'),
+            'admisiones'             => route('prospectos.metricas'),
+            'informacion_admisiones' => route('alumnos.index'),
+            'padre'                  => route('portal.dashboard'),
+            default                  => route('login'),
         };
     }
 

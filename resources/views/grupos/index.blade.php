@@ -455,41 +455,45 @@
                                 </td>
                                 <td>
                                     <div class="grp-acciones">
-                                        <button type="button" class="btn btn-default btn-xs btn-abrir-modal-credencial"
-                                            data-id="{{ $g['id'] }}" data-tipo="lote" title="Imprimir lote">
-                                            <i class="fa fa-id-card text-yellow"></i>
-                                        </button>
+                                        @unless(in_array(auth()->user()->rol, ['admisiones', 'informacion', 'recepcion']))
+                                            <button type="button" class="btn btn-default btn-xs btn-abrir-modal-credencial"
+                                                data-id="{{ $g['id'] }}" data-tipo="lote" title="Imprimir lote">
+                                                <i class="fa fa-id-card text-yellow"></i>
+                                            </button>
+                                        @endunless
                                         <a href="{{ route('grupos.show', $g['id']) }}" class="btn btn-default btn-xs"
                                             title="Ver alumnos">
                                             <i class="fa fa-users text-blue"></i>
                                         </a>
-                                        <button class="btn btn-default btn-xs" data-toggle="modal"
-                                            data-target="#modalEditarGrupo{{ $g['id'] }}" title="Editar">
-                                            <i class="fa fa-pencil text-orange"></i>
-                                        </button>
-                                        <form action="{{ route('grupos.status', $g['id']) }}" method="POST">
-                                            @csrf @method('PATCH')
-                                            <button type="submit" class="btn btn-default btn-xs"
-                                                title="{{ $g['activo'] ? 'Desactivar' : 'Activar' }}">
-                                                <i
-                                                    class="fa fa-power-off {{ $g['activo'] ? 'text-green' : 'text-red' }}"></i>
+                                        @unless(in_array(auth()->user()->rol, ['admisiones', 'informacion', 'recepcion']))
+                                            <button class="btn btn-default btn-xs" data-toggle="modal"
+                                                data-target="#modalEditarGrupo{{ $g['id'] }}" title="Editar">
+                                                <i class="fa fa-pencil text-orange"></i>
                                             </button>
-                                        </form>
-                                        @if ($g['alumnos_inscritos'] == 0)
-                                            <form action="{{ route('grupos.destroy', $g['id']) }}" method="POST"
-                                                class="form-eliminar-grupo">
-                                                @csrf @method('DELETE')
-                                                <button type="button" class="btn btn-default btn-xs btn-trigger-eliminar"
-                                                    title="Eliminar permanente">
-                                                    <i class="fa fa-trash text-red"></i>
+                                            <form action="{{ route('grupos.status', $g['id']) }}" method="POST">
+                                                @csrf @method('PATCH')
+                                                <button type="submit" class="btn btn-default btn-xs"
+                                                    title="{{ $g['activo'] ? 'Desactivar' : 'Activar' }}">
+                                                    <i
+                                                        class="fa fa-power-off {{ $g['activo'] ? 'text-green' : 'text-red' }}"></i>
                                                 </button>
                                             </form>
-                                        @else
-                                            <button class="btn btn-default btn-xs disabled"
-                                                title="Tiene alumnos (no se puede borrar)">
-                                                <i class="fa fa-trash text-muted"></i>
-                                            </button>
-                                        @endif
+                                            @if ($g['alumnos_inscritos'] == 0)
+                                                <form action="{{ route('grupos.destroy', $g['id']) }}" method="POST"
+                                                    class="form-eliminar-grupo">
+                                                    @csrf @method('DELETE')
+                                                    <button type="button" class="btn btn-default btn-xs btn-trigger-eliminar"
+                                                        title="Eliminar permanente">
+                                                        <i class="fa fa-trash text-red"></i>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <button class="btn btn-default btn-xs disabled"
+                                                    title="Tiene alumnos (no se puede borrar)">
+                                                    <i class="fa fa-trash text-muted"></i>
+                                                </button>
+                                            @endif
+                                        @endunless
                                     </div>
                                 </td>
                             </tr>

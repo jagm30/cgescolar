@@ -241,12 +241,12 @@
             </span>
         </div>
     </div>
-    @can('administrador')
+    @if(auth()->user()->esAdministrador())
     <a href="{{ route('familias.create') }}" class="btn btn-success btn-sm btn-flat"
        style="border-radius:20px;white-space:nowrap;flex-shrink:0;">
         <i class="fa fa-plus"></i> Nueva familia
     </a>
-    @endcan
+    @endif
 </div>
 
 {{-- ══ PANEL PRINCIPAL ══ --}}
@@ -410,14 +410,23 @@
                            style="border-radius:4px;">
                             <i class="fa fa-eye"></i>
                         </a>
-                        @can('administrador')
+                        @if(auth()->user()->esAdministrador())
                         <a href="{{ route('familias.edit', $familia->id) }}"
                            class="btn btn-primary btn-xs btn-flat"
                            title="Editar"
                            style="border-radius:4px;">
                             <i class="fa fa-pencil"></i>
                         </a>
-                        @endcan
+                        @if($total === 0)
+                        <button type="button"
+                                class="btn btn-danger btn-xs btn-flat"
+                                title="Eliminar familia"
+                                style="border-radius:4px;"
+                                onclick="eliminarFamilia({{ $familia->id }}, '{{ addslashes($familia->apellido_familia) }}')">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        @endif
+                        @endif
                     </div>
                 </td>
 
@@ -436,11 +445,11 @@
                         @else
                         <h4>No hay familias registradas</h4>
                         <p>Comienza registrando la primera familia del sistema.</p>
-                        @can('administrador')
+                        @if(auth()->user()->esAdministrador())
                         <a href="{{ route('familias.create') }}" class="btn btn-success btn-sm" style="border-radius:20px;">
                             <i class="fa fa-plus"></i> Registrar primera familia
                         </a>
-                        @endcan
+                        @endif
                         @endif
                     </div>
                 </td>
@@ -490,11 +499,11 @@
                 <a href="#" id="modal-btn-ver" class="btn btn-default btn-sm btn-flat" style="border-radius:4px;">
                     <i class="fa fa-external-link"></i> Ficha completa
                 </a>
-                @can('administrador')
+                @if(auth()->user()->esAdministrador())
                 <a href="#" id="modal-btn-editar" class="btn btn-primary btn-sm btn-flat" style="border-radius:4px;">
                     <i class="fa fa-pencil"></i> Editar
                 </a>
-                @endcan
+                @endif
                 <button type="button" class="btn btn-default btn-sm btn-flat"
                         data-dismiss="modal" style="border-radius:4px;">
                     Cerrar
@@ -510,6 +519,28 @@
 @push('scripts')
 <script>
 $(function() {
+
+    // ── Eliminar familia ────────────────────────────────────
+    window.eliminarFamilia = function(id, nombre) {
+        if (!confirm('¿Eliminar la Familia ' + nombre + '?\n\nEsta acción es irreversible y eliminará también sus contactos.')) {
+            return;
+        }
+
+        $.ajax({
+            url: '/familias/' + id,
+            method: 'POST',
+            data: { _method: 'DELETE', _token: $('meta[name="csrf-token"]').attr('content') },
+            success: function() {
+                window.location.reload();
+            },
+            error: function(xhr) {
+                var msg = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'No se pudo eliminar la familia.';
+                alert(msg);
+            }
+        });
+    };
 
     // ── Abrir modal al clic en fila ─────────────────────────
     $(document).on('click', '.fila-familia', function() {

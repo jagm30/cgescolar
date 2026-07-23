@@ -291,7 +291,7 @@
             <div class="fam-hero-stat-lbl">Al corriente</div>
         </div>
         @endif
-        @can('administrador')
+        @if(auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
         <div style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;align-self:center;">
             <a href="{{ route('familias.edit', $familia->id) }}"
                class="btn btn-sm btn-flat"
@@ -299,7 +299,7 @@
                 <i class="fa fa-pencil"></i> Editar
             </a>
         </div>
-        @endcan
+        @endif
     </div>
 </div>
 
@@ -769,12 +769,12 @@
     <div class="info-card">
         <div class="info-card-header">
             <span class="info-card-title"><i class="fa fa-home" style="margin-right:6px;color:#3c8dbc;"></i>Datos de familia</span>
-            @can('administrador')
+            @if(auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
             <a href="{{ route('familias.edit', $familia->id) }}"
                class="btn btn-xs btn-flat btn-default" style="border-radius:4px;">
                 <i class="fa fa-pencil"></i> Editar
             </a>
-            @endcan
+            @endif
         </div>
         <div class="info-row">
             <span class="info-row-label">Estado</span>
@@ -875,12 +875,12 @@
                 <i class="fa fa-user-plus" style="margin-right:6px;"></i> Inscribir alumno
             </a>
             @endcan
-            @can('administrador')
+            @if(auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
             <a href="{{ route('familias.edit', $familia->id) }}"
                class="btn btn-primary btn-block btn-sm btn-flat" style="border-radius:6px;margin-bottom:6px;text-align:left;">
                 <i class="fa fa-pencil" style="margin-right:6px;"></i> Editar familia
             </a>
-            @endcan
+            @endif
             @if(in_array(auth()->user()->rol, ['administrador', 'caja']))
             <button type="button"
                     class="btn btn-default btn-block btn-sm btn-flat"

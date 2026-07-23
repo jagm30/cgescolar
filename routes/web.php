@@ -55,7 +55,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // ── Ciclos ───────────────────────────────────────────
     // IMPORTANTE: rutas con segmento fijo ANTES del resource
     Route::post('/ciclos/{id}/seleccionar', [CicloEscolarController::class, 'seleccionar'])
-        ->middleware('rol:administrador,caja,recepcion,admisiones')
+        ->middleware('rol:administrador,caja,recepcion,admisiones,informacion_admisiones')
         ->name('ciclos.seleccionar');
     Route::delete('ciclos/{id}/force', [CicloEscolarController::class, 'forceDelete'])
         ->middleware('rol:administrador,caja,recepcion')
@@ -84,16 +84,18 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // ── Grupos ───────────────────────────────────────────
     // IMPORTANTE: ruta fija ANTES del resource
     Route::get('descargar-lista-asistencia/{id}', [GrupoController::class, 'generarReporte'])->name('grupos.reporte');
-    Route::get('descargar-reporte-pagos/{id}', [GrupoController::class, 'reportePagos'])->name('grupos.reporte-pagos');
+    Route::get('descargar-reporte-pagos/{id}', [GrupoController::class, 'reportePagos'])
+        ->middleware('rol:administrador,caja')
+        ->name('grupos.reporte-pagos');
     Route::get('descargar-expediente-medico/{id}', [GrupoController::class, 'reporteExpedienteMedico'])->name('grupos.reporte-medico');
     Route::get('album-fotografico/{id}', [GrupoController::class, 'albumFotografico'])->name('grupos.album-fotografico');
 
-    // Caja puede consultar grupos (solo lectura)
+    // Recepción, caja, admisiones e información y admisiones pueden consultar grupos (solo lectura)
     Route::get('/grupos', [GrupoController::class, 'index'])
-        ->middleware('rol:administrador,caja')
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
         ->name('grupos.index');
     Route::get('/grupos/{grupo}', [GrupoController::class, 'show'])
-        ->middleware('rol:administrador,caja')
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
         ->name('grupos.show');
 
     Route::post('/grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno'])
@@ -112,7 +114,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // ── Alumnos ──────────────────────────────────────────
     // Rutas extra ANTES del resource
     Route::get('/alumnos/{id}/hermanos', [AlumnoController::class, 'hermanos'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,admisiones,informacion_admisiones')
         ->name('alumnos.hermanos');
 
     Route::get('/alumnos/{id}/estado-cuenta', [AlumnoController::class, 'estadoCuenta'])
@@ -121,7 +123,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // Caja y admisiones pueden ver el índice y perfil de alumnos (solo lectura)
     Route::get('/alumnos', [AlumnoController::class, 'index'])
-        ->middleware('rol:administrador,recepcion,caja,admisiones')
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
         ->name('alumnos.index');
     // Reportes sin parámetro — deben ir ANTES del resource para no ser capturados por {alumno}
     Route::get('/alumnos/reporte-inscritos', [AlumnoController::class, 'reporteInscritos'])
@@ -130,18 +132,22 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/alumnos/exportar-excel', [AlumnoController::class, 'exportarExcel'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.exportar-excel');
-    // Registrar alumnos (create/store) — admin, recepción y caja
+    // Registrar alumnos (create/store) — admin, recepción, caja, admisiones e información y admisiones
     // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
     // de la ruta /alumnos/{alumno} para evitar que "create" se resuelva como {id}
     Route::resource('alumnos', AlumnoController::class)
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
         ->only(['create', 'store']);
-    // Editar y eliminar alumnos — solo admin y recepción
+    // Editar alumnos — admin, recepción, caja, admisiones e información y admisiones
+    Route::resource('alumnos', AlumnoController::class)
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
+        ->only(['edit', 'update']);
+    // Eliminar alumnos — solo admin y recepción
     Route::resource('alumnos', AlumnoController::class)
         ->middleware('rol:administrador,recepcion')
-        ->only(['edit', 'update', 'destroy']);
+        ->only(['destroy']);
     Route::get('/alumnos/{alumno}', [AlumnoController::class, 'show'])
-        ->middleware('rol:administrador,recepcion,caja,admisiones')
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
         ->name('alumnos.show');
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
@@ -249,7 +255,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::post('politicas/recargo', [PoliticaController::class, 'storeRecargo'])->name('politicas.recargo.store');
         Route::put('politicas/recargo/{id}', [PoliticaController::class, 'updateRecargo'])->name('politicas.recargo.update');
         Route::delete('politicas/recargo/{id}', [PoliticaController::class, 'destroyRecargo'])->name('politicas.recargo.destroy');
-    })->middleware('rol:administrador');
+    })->middleware('rol:administrador,caja');
 
     // ── Cargos ───────────────────────────────────────────
     Route::get('/cargos/{id}/preview', [CargoController::class, 'preview'])
@@ -409,12 +415,17 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     // ── Personal ─────────────────────────────────────────
     // Recepción puede consultar, solo administrador gestiona
     Route::get('/personal', [PersonalController::class, 'index'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador')
         ->name('personal.index');
 
     Route::resource('personal', PersonalController::class)
         ->middleware('rol:administrador')
         ->except(['index']);
+
+    // ── Manuales descargables ────────────────────────────
+    Route::get('/manuales/admisiones-recepcion', [\App\Http\Controllers\ManualController::class, 'admisionesRecepcion'])
+        ->middleware('rol:administrador,recepcion,admisiones,informacion_admisiones')
+        ->name('manuales.admisiones-recepcion');
 
     // ── Dashboards por rol ───────────────────────────────
     Route::get('/admin', [DashboardController::class, 'admin'])
@@ -454,11 +465,11 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
             ->name('contactos');
         // Datos de contactos para pre-llenar formulario de creación de alumno (AJAX)
         Route::get('{id}/contactos-enlace', [FamiliaController::class, 'contactosParaEnlace'])
-            ->middleware('rol:administrador,recepcion')
+            ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones')
             ->name('contactos.enlace');
         // Actualizar datos de un contacto (AJAX desde edit de alumno)
         Route::put('contactos/{contactoId}', [FamiliaController::class, 'actualizarContacto'])
-            ->middleware('rol:administrador,recepcion')
+            ->middleware('rol:administrador,recepcion,caja')
             ->name('contactos.update');
         // Subir/cambiar foto de un contacto existente (AJAX)
         Route::post('contactos/{contactoId}/foto', [FamiliaController::class, 'subirFotoContacto'])
@@ -490,15 +501,21 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
             ->name('razon-social.principal');
     });
 
-    // Resource de familias — caja solo consulta, recepción ve y gestiona, admin hace todo
+    // Resource de familias — caja solo consulta, recepción/info_admisiones ve y gestiona, admin hace todo
     Route::get('/familias', [FamiliaController::class, 'index'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,informacion_admisiones')
         ->name('familias.index');
     Route::resource('familias', FamiliaController::class)
         ->middleware('rol:administrador,recepcion')
-        ->only(['create', 'store', 'edit', 'update']);
+        ->only(['create', 'store']);
+    Route::resource('familias', FamiliaController::class)
+        ->middleware('rol:administrador,recepcion,admisiones,informacion_admisiones')
+        ->only(['edit', 'update']);
+    Route::resource('familias', FamiliaController::class)
+        ->middleware('rol:administrador')
+        ->only(['destroy']);
     Route::get('/familias/{familia}', [FamiliaController::class, 'show'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,informacion_admisiones')
         ->name('familias.show');
 
     // =======================================================
