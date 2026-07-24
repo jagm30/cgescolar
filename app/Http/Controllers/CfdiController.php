@@ -347,7 +347,7 @@ class CfdiController extends Controller
             ->groupBy(fn($d) => $d->cargo?->concepto?->nombre ?? 'Servicio educativo')
             ->map(fn($detalles, $nombre) => [
                 'nombre' => $nombre,
-                'monto'  => round($detalles->sum('monto_abonado'), 2),
+                'monto'  => round($detalles->sum('monto_final'), 2),
             ])
             ->values();
 
@@ -546,7 +546,7 @@ class CfdiController extends Controller
                 'Cantidad'      => 1,
                 'ClaveUnidad'   => 'E48',
                 'Unidad'        => 'Servicio',
-                'ValorUnitario' => round((float) $detalle->monto_abonado, 2),
+                'ValorUnitario' => round((float) $detalle->monto_final, 2),
                 'Descripcion'   => mb_substr($descripcion, 0, 1000),
                 'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
             ];
@@ -611,7 +611,7 @@ class CfdiController extends Controller
                     'Cantidad'      => 1,
                     'ClaveUnidad'   => 'E48',
                     'Unidad'        => 'Servicio',
-                    'ValorUnitario' => round($detalles->sum('monto_abonado'), 2),
+                    'ValorUnitario' => round($detalles->sum('monto_final'), 2),
                     'Descripcion'   => mb_substr($concepto?->nombre ?? 'Servicio educativo', 0, 1000),
                     'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
                 ];

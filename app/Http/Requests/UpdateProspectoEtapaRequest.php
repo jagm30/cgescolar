@@ -15,7 +15,7 @@ class UpdateProspectoEtapaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'etapa' => ['required', 'in:prospecto,cita,visita,documentacion,aceptado,inscrito,no_concretado'],
+            'etapa' => ['required', 'in:prospecto,cita,visita,documentacion,aceptado,en_espera,no_aceptado,inscrito,no_concretado'],
             'notas' => ['required', 'string', 'min:5', 'max:1000'],
             'motivo_no_concrecion' => ['required_if:etapa,no_concretado', 'nullable', 'string', 'max:500'],
         ];

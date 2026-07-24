@@ -259,7 +259,7 @@ class CobrosController extends Controller
         return Pago::with([
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
-            'detalles.cargo.condonacionDetalles',
+            'detalles.cargo.inscripcion.grupo.grado',
             'cajero',
         ])->findOrFail($pagoId);
     }

@@ -223,22 +223,37 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="fecha_nacimiento">Fecha de nacimiento</label>
                                     <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
                                         value="{{ old('fecha_nacimiento') }}">
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="nivel_interes_id">Nivel de interés</label>
                                     <select class="form-control" id="nivel_interes_id" name="nivel_interes_id">
-                                        <option value="">Selecciona un nivel</option>
+                                        <option value="">— Nivel</option>
                                         @foreach ($niveles as $nivel)
                                             <option value="{{ $nivel->id }}"
                                                 {{ (string) old('nivel_interes_id') === (string) $nivel->id ? 'selected' : '' }}>
                                                 {{ $nivel->nombre }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label for="grado_interes_id">Grado</label>
+                                    <select class="form-control" id="grado_interes_id" name="grado_interes_id">
+                                        <option value="">—</option>
+                                        @foreach ($grados as $grado)
+                                            <option value="{{ $grado->id }}"
+                                                data-nivel="{{ $grado->nivel_id }}"
+                                                {{ (string) old('grado_interes_id') === (string) $grado->id ? 'selected' : '' }}>
+                                                {{ $grado->numero }}°
                                             </option>
                                         @endforeach
                                     </select>
@@ -356,6 +371,34 @@
             $('#contacto_telefono').on('input', function() {
                 this.value = this.value.replace(/\D/g, '').slice(0, 10);
             });
+
+            // Filtrar grados según el nivel seleccionado
+            var $gradoSelect = $('#grado_interes_id');
+            var $gradoOptions = $gradoSelect.find('option[data-nivel]');
+
+            function filtrarGrados(nivelId) {
+                var seleccionado = $gradoSelect.val();
+                $gradoSelect.find('option[data-nivel]').remove();
+
+                var opciones = $gradoOptions.filter(function() {
+                    return !nivelId || $(this).data('nivel') == nivelId;
+                });
+
+                $gradoSelect.append(opciones);
+
+                if ($gradoSelect.find('option[value="' + seleccionado + '"]').length) {
+                    $gradoSelect.val(seleccionado);
+                } else {
+                    $gradoSelect.val('');
+                }
+            }
+
+            $('#nivel_interes_id').on('change', function() {
+                filtrarGrados($(this).val());
+            });
+
+            // Aplicar filtro inicial si hay un nivel seleccionado (old())
+            filtrarGrados($('#nivel_interes_id').val());
         });
     </script>
 @endpush

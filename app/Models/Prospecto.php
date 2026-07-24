@@ -23,6 +23,7 @@ class Prospecto extends Model
         'ap_materno',
         'fecha_nacimiento',
         'nivel_interes_id',
+        'grado_interes_id',
         'contacto_nombre',
         'contacto_telefono',
         'contacto_email',
@@ -85,6 +86,11 @@ class Prospecto extends Model
     public function nivelInteres(): BelongsTo
     {
         return $this->belongsTo(NivelEscolar::class, 'nivel_interes_id');
+    }
+
+    public function gradoInteres(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Grado::class, 'grado_interes_id');
     }
 
     public function responsable(): BelongsTo

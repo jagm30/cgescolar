@@ -358,6 +358,18 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.metricas');
 
+    Route::get('/prospectos/metricas/imprimir', [ProspectoController::class, 'metricasImprimir'])
+        ->middleware('rol:administrador,recepcion,admisiones')
+        ->name('prospectos.metricas.imprimir');
+
+    Route::post('/prospectos/metricas/pdf', [ProspectoController::class, 'metricasPdf'])
+        ->middleware('rol:administrador,recepcion,admisiones')
+        ->name('prospectos.metricas.pdf');
+
+    Route::get('/prospectos/{id}/pdf', [ProspectoController::class, 'exportarPdf'])
+        ->middleware('rol:administrador,recepcion,admisiones')
+        ->name('prospectos.pdf');
+
     Route::post('/prospectos/{id}/etapa', [ProspectoController::class, 'cambiarEtapa'])
         ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.etapa');
