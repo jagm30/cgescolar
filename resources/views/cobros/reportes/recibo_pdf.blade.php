@@ -16,6 +16,10 @@
                 7  => 'Julio',   8  => 'Agosto',    9  => 'Septiembre',
                 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
             ];
+
+            $inscripcion = $pago->detalles->first()?->cargo?->inscripcion;
+            $grupo       = $inscripcion?->grupo;
+            $grado       = $grupo?->grado;
         @endphp
 
         <title>Recibo de Pago - Folio {{ $pago->folio_recibo }}</title>
@@ -90,7 +94,7 @@
                 font-size: 12px;
             }
 
-            /* ── TABLA DE CONCEPTOS (DESGLOSE) ── */
+            /* ── TABLA DE CONCEPTOS ── */
             table.concepts-table {
                 width: 100%;
                 border-collapse: collapse;
@@ -125,8 +129,6 @@
             /* ── UTILIDADES ── */
             .text-center { text-align: center; }
             .text-right  { text-align: right; }
-            .text-green  { color: #27ae60; }
-            .text-red    { color: #e74c3c; }
 
             .text-muted {
                 color: #888;
@@ -212,16 +214,16 @@
                 <div style="margin-bottom: 6px;">
                     <b style="color: #1e4d7b; font-size: 16px;">FOLIO: {{ $pago->folio_recibo }}</b>
                 </div>
-                <div style="color: #666; font-size: 11px;">
-                    <b>Fecha de Emisión:</b><br>
-                    {{ $pago->fecha_pago->format('d/m/Y H:i') }}
+                <div style="color: #666; font-size: 11px; line-height: 1.7;">
+                    <b>Fecha de Cobro:</b> {{ $pago->fecha_pago->format('d/m/Y') }}<br>
+                    <b>Fecha de Registro:</b> {{ $pago->creado_at?->format('d/m/Y H:i') ?? '—' }}
                 </div>
             </td>
         </tr>
     </table>
 
-    {{-- ── 2. DATOS DEL ALUMNO Y OPERACIÓN ── --}}
-    <div class="section-title">1. Datos del Pago</div>
+    {{-- ── 2. DATOS DEL ALUMNO ── --}}
+    <div class="section-title">1. Datos del Alumno</div>
     <table class="info-table">
         <tr>
             <th style="width: 18%;">Alumno</th>
@@ -232,6 +234,12 @@
             <td style="width: 29%; text-align: center;">
                 <b>{{ $alumno->matricula ?? 'N/A' }}</b>
             </td>
+        </tr>
+        <tr>
+            <th>Grado</th>
+            <td>{{ $grado?->numero ?? '—' }}</td>
+            <th>Grupo</th>
+            <td>{{ $grupo?->nombre ?? '—' }}</td>
         </tr>
         <tr>
             <th>Forma de Pago</th>
@@ -246,17 +254,14 @@
         </tr>
     </table>
 
-    {{-- ── 4. DESGLOSE DEL COBRO ── --}}
-    <div class="section-title">2. Desglose de Conceptos</div>
+    {{-- ── 3. CONCEPTOS COBRADOS ── --}}
+    <div class="section-title">2. Conceptos Cobrados</div>
     <table class="concepts-table">
         <thead>
             <tr>
-                <th style="width: 35%; text-align: left;">Concepto</th>
-                <th style="width: 15%; text-align: center;">Periodo</th>
-                <th style="width: 15%;" class="text-right">Monto Base</th>
-                <th style="width: 20%;" class="text-right">Descuentos</th>
-                <th style="width: 5%;" class="text-right">Recargo</th>
-                <th style="width: 10%;" class="text-right">Subtotal</th>
+                <th style="width: 55%; text-align: left;">Concepto</th>
+                <th style="width: 20%; text-align: center;">Periodo</th>
+                <th style="width: 25%;" class="text-right">Monto Cobrado</th>
             </tr>
         </thead>
         <tbody>
@@ -268,50 +273,17 @@
                         $periodoLabel = ($mesesEs[(int) $mes] ?? '') . ' ' . $anio;
                     }
 
-                    $dBeca       = (float) $detalle->descuento_beca;
-                    $dProntoPago = (float) $detalle->descuento_pronto_pago;
-                    $dOtros      = (float) $detalle->descuento_otros;
-
-                    // Identificar cuánto de descuento_otros proviene de condonaciones
-                    $dCondonacion = min(
-                        $dOtros,
-                        (float) $detalle->cargo->condonacionDetalles->sum('monto_aplicado')
-                    );
-                    $dManual = max(0, $dOtros - $dCondonacion);
+                    $esAbono = (float) $detalle->monto_abonado < (float) $detalle->cargo->monto_original;
                 @endphp
                 <tr>
                     <td>
                         <b>{{ $detalle->cargo->concepto->nombre }}</b>
-                        @if ($periodoLabel)
-                            <br><span class="text-muted">{{ $periodoLabel }}</span>
+                        @if ($esAbono)
+                            &nbsp;<span class="badge" style="background:#f39c12; color:#fff;">ABONO</span>
+                            <br><span class="text-muted">Monto base: ${{ number_format($detalle->cargo->monto_original, 2) }}</span>
                         @endif
                     </td>
                     <td class="text-center">{{ $periodoLabel ?? '—' }}</td>
-                    <td class="text-right">${{ number_format($detalle->monto_abonado, 2) }}</td>
-                    <td class="text-right text-green" style="font-size:11px; line-height:1.6;">
-                        @if ($dBeca > 0)
-                            <span>Beca: -${{ number_format($dBeca, 2) }}</span><br>
-                        @endif
-                        @if ($dProntoPago > 0)
-                            <span>Pronto pago: -${{ number_format($dProntoPago, 2) }}</span><br>
-                        @endif
-                        @if ($dCondonacion > 0)
-                            <span>Condonación: -${{ number_format($dCondonacion, 2) }}</span><br>
-                        @endif
-                        @if ($dManual > 0)
-                            <span>Descuento: -${{ number_format($dManual, 2) }}</span><br>
-                        @endif
-                        @if ($dBeca + $dProntoPago + $dOtros === 0.0)
-                            $0.00
-                        @endif
-                    </td>
-                    <td class="text-right text-red">
-                        @if ($detalle->recargo_aplicado > 0)
-                            +${{ number_format($detalle->recargo_aplicado, 2) }}
-                        @else
-                            $0.00
-                        @endif
-                    </td>
                     <td class="text-right" style="font-weight: bold;">
                         ${{ number_format($detalle->monto_final, 2) }}
                     </td>
@@ -320,7 +292,7 @@
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="5" class="text-right">TOTAL PAGADO:</td>
+                <td colspan="2" class="text-right">TOTAL PAGADO:</td>
                 <td class="text-right" style="font-size: 16px;">
                     ${{ number_format($pago->monto_total, 2) }}
                 </td>
@@ -328,7 +300,7 @@
         </tfoot>
     </table>
 
-    {{-- ── 5. FIRMA / SELLO ── --}}
+    {{-- ── 4. FIRMA / SELLO ── --}}
     <table style="width: 100%; margin-top: 20px;">
         <tr>
             <td style="text-align: center;">

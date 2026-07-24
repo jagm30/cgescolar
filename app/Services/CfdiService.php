@@ -175,7 +175,7 @@ class CfdiService
                 'Cantidad'      => 1,
                 'ClaveUnidad'   => 'E48',
                 'Unidad'        => 'Servicio',
-                'ValorUnitario' => round((float) $detalle->monto_abonado, 2),
+                'ValorUnitario' => round((float) $detalle->monto_final, 2),
                 'Descripcion'   => mb_substr($descripcion, 0, 1000),
                 'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
             ];

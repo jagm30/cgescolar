@@ -6,11 +6,14 @@ use App\Http\Requests\StoreDocAdmisionRequest;
 use App\Http\Requests\StoreProspectoRequest;
 use App\Http\Requests\UpdateProspectoEtapaRequest;
 use App\Jobs\NotificarEventoAdmisionJob;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\DocAdmision;
+use App\Models\Grado;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
+use App\Models\Setting;
 use App\Models\SeguimientoAdmision;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
@@ -70,9 +73,10 @@ class ProspectoController extends Controller
     public function create()
     {
         $niveles = NivelEscolar::activo()->get();
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $ciclos  = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $grados  = Grado::orderBy('nivel_id')->orderBy('numero')->get();
 
-        return view('prospectos.create', compact('niveles', 'ciclos'));
+        return view('prospectos.create', compact('niveles', 'ciclos', 'grados'));
     }
 
     public function store(StoreProspectoRequest $request)
@@ -254,6 +258,142 @@ class ProspectoController extends Controller
             ?? auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
+        $datos = $this->compilarMetricas($cicloId);
+
+        if ($request->ajax()) {
+            return response()->json($datos);
+        }
+
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+
+        $porSeguimientoUsuario = SeguimientoAdmision::with('usuario')
+            ->whereHas('prospecto', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->get()
+            ->groupBy(fn($s) => $s->usuario?->nombre ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        return view('prospectos.metricas', compact('datos', 'ciclos', 'cicloId', 'porSeguimientoUsuario'));
+    }
+
+    public function exportarPdf(int $id)
+    {
+        $prospecto = Prospecto::with([
+            'nivelInteres', 'gradoInteres', 'responsable', 'ciclo',
+            'seguimientos.usuario', 'documentos',
+        ])->findOrFail($id);
+
+        $logoBase64 = $this->logoBase64(Setting::find(1));
+
+        $pdf = Pdf::setOptions(['defaultMediaType' => 'print', 'dpi' => 150])
+            ->loadView('prospectos.seguimiento_pdf', compact('prospecto', 'logoBase64'))
+            ->setPaper('letter', 'portrait');
+
+        $nombre = str_replace(' ', '_', $prospecto->nombre_completo);
+
+        return $pdf->download("Seguimiento_{$nombre}.pdf");
+    }
+
+    public function metricasImprimir(Request $request)
+    {
+        $cicloId = $request->get('ciclo_id')
+            ?? auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        $ciclo   = CicloEscolar::find($cicloId);
+        $datos   = $this->compilarMetricas($cicloId);
+
+        $prospectos = Prospecto::with(['nivelInteres', 'gradoInteres', 'responsable'])
+            ->where('ciclo_id', $cicloId)
+            ->orderBy('etapa')
+            ->orderBy('ap_paterno')
+            ->get();
+
+        $porResponsable = Prospecto::with('responsable')
+            ->where('ciclo_id', $cicloId)
+            ->get()
+            ->groupBy(fn($p) => $p->responsable?->nombre ?? 'Sin asignar')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        $porSeguimientoUsuario = SeguimientoAdmision::with('usuario')
+            ->whereHas('prospecto', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->get()
+            ->groupBy(fn($s) => $s->usuario?->nombre ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        return view('prospectos.metricas_imprimir', compact(
+            'datos', 'ciclo', 'cicloId', 'prospectos',
+            'porResponsable', 'porSeguimientoUsuario'
+        ));
+    }
+
+    public function metricasPdf(Request $request)
+    {
+        $cicloId = $request->input('ciclo_id');
+        $ciclo   = CicloEscolar::find($cicloId);
+        $datos   = $this->compilarMetricas($cicloId);
+
+        $prospectos = Prospecto::with(['nivelInteres', 'gradoInteres', 'responsable'])
+            ->where('ciclo_id', $cicloId)
+            ->orderBy('etapa')
+            ->orderBy('ap_paterno')
+            ->get();
+
+        $porResponsable = Prospecto::with('responsable')
+            ->where('ciclo_id', $cicloId)
+            ->get()
+            ->groupBy(fn($p) => $p->responsable?->nombre ?? 'Sin asignar')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        $porSeguimientoUsuario = SeguimientoAdmision::with('usuario')
+            ->whereHas('prospecto', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->get()
+            ->groupBy(fn($s) => $s->usuario?->nombre ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        $chartEtapa        = $request->input('chart_etapa', '');
+        $chartCanal        = $request->input('chart_canal', '');
+        $chartResponsable  = $request->input('chart_responsable', '');
+        $logoBase64        = $this->logoBase64(Setting::find(1));
+
+        $pdf = Pdf::setOptions(['defaultMediaType' => 'print', 'dpi' => 150])
+            ->loadView('prospectos.metricas_pdf', compact(
+                'datos', 'ciclo', 'cicloId', 'prospectos',
+                'porResponsable', 'porSeguimientoUsuario',
+                'chartEtapa', 'chartCanal', 'chartResponsable',
+                'logoBase64'
+            ))
+            ->setPaper('letter', 'portrait');
+
+        return $pdf->download("Informe_Admisiones_{$ciclo?->nombre}.pdf");
+    }
+
+    private function logoBase64(?Setting $setting = null): string
+    {
+        $candidatos = array_filter([
+            $setting?->logo_ruta
+                ? public_path('imgs_escuela/reportes/' . $setting->logo_ruta)
+                : null,
+            public_path('imgs_escuela/reportes/logo_reportes.png'),
+        ]);
+
+        foreach ($candidatos as $path) {
+            if (file_exists($path)) {
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+                return 'data:image/' . $type . ';base64,' . base64_encode(file_get_contents($path));
+            }
+        }
+
+        return '';
+    }
+
+    /** Compila todas las métricas del ciclo dado. */
+    private function compilarMetricas(int $cicloId): array
+    {
         $porEtapa = Prospecto::where('ciclo_id', $cicloId)
             ->selectRaw('etapa, COUNT(*) as total')
             ->groupBy('etapa')
@@ -264,26 +404,18 @@ class ProspectoController extends Controller
             ->groupBy('canal_contacto')
             ->pluck('total', 'canal_contacto');
 
-        $totalInscritos = $porEtapa['inscrito'] ?? 0;
+        $totalInscritos  = $porEtapa['inscrito'] ?? 0;
         $totalProspectos = $porEtapa->sum();
-        $tasaConversion = $totalProspectos > 0
+        $tasaConversion  = $totalProspectos > 0
             ? round(($totalInscritos / $totalProspectos) * 100, 1) : 0;
 
-        $datos = [
-            'por_etapa' => $porEtapa,
-            'por_canal' => $porCanal,
+        return [
+            'por_etapa'        => $porEtapa,
+            'por_canal'        => $porCanal,
             'total_prospectos' => $totalProspectos,
-            'total_inscritos' => $totalInscritos,
-            'tasa_conversion' => $tasaConversion.'%',
+            'total_inscritos'  => $totalInscritos,
+            'tasa_conversion'  => $tasaConversion.'%',
         ];
-
-        if ($request->ajax()) {
-            return response()->json($datos);
-        }
-
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
-
-        return view('prospectos.metricas', compact('datos', 'ciclos', 'cicloId'));
     }
 
     private function tiposDocumentoBase(): array

@@ -20,6 +20,7 @@ class StoreProspectoRequest extends FormRequest
             'ap_materno' => ['nullable', 'string', 'max:100', "regex:/^[\p{L}\s'’-]+$/u"],
             'fecha_nacimiento' => ['nullable', 'date', 'before:today'],
             'nivel_interes_id' => ['nullable', 'exists:nivel_escolar,id'],
+            'grado_interes_id' => ['nullable', 'exists:grado,id'],
             'contacto_nombre' => ['required', 'string', 'max:200', "regex:/^[\p{L}\s'’-]+$/u"],
             'contacto_telefono' => ['required', 'digits:10'],
             'contacto_email' => ['nullable', 'email', 'max:200'],

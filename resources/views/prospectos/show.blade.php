@@ -41,8 +41,10 @@
     .pro-badge-visita      { background:#d1fae5; color:#065f46; }
     .pro-badge-documentacion{ background:#fef9c3; color:#854d0e; }
     .pro-badge-aceptado    { background:#bbf7d0; color:#14532d; }
-    .pro-badge-inscrito    { background:#e0e7ef; color:#1e3a5f; }
-    .pro-badge-no_concretado{ background:#fee2e2; color:#991b1b; }
+    .pro-badge-inscrito      { background:#e0e7ef; color:#1e3a5f; }
+    .pro-badge-en_espera     { background:#fde68a; color:#78350f; }
+    .pro-badge-no_aceptado   { background:#fecaca; color:#7f1d1d; }
+    .pro-badge-no_concretado { background:#fee2e2; color:#991b1b; }
 
     /* ── Paneles ── */
     .pro-panel {
@@ -273,7 +275,8 @@
             'visita'         => 'Visita',
             'documentacion'  => 'Documentación',
             'aceptado'       => 'Aceptado',
-            'inscrito'       => 'Inscrito',
+            'en_espera'      => 'En espera',
+            'no_aceptado'    => 'No aceptado',
             'no_concretado'  => 'No concretado',
         ];
 
@@ -325,6 +328,9 @@
                     <i class="fa fa-user-plus"></i> Registrar como alumno
                 </a>
             @endif
+            <a href="{{ route('prospectos.pdf', $prospecto->id) }}" class="btn btn-default btn-sm" target="_blank">
+                <i class="fa fa-file-pdf-o"></i> Exportar PDF
+            </a>
             <a href="{{ route('prospectos.index') }}" class="btn btn-default btn-sm">
                 <i class="fa fa-arrow-left"></i> Admisiones
             </a>
