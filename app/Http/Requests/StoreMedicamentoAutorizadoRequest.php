@@ -8,7 +8,7 @@ class StoreMedicamentoAutorizadoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->user()->esAdministrador() || auth()->user()->esRecepcion();
+        return auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion();
     }
 
     public function rules(): array

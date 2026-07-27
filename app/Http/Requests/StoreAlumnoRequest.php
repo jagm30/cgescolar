@@ -8,7 +8,7 @@ class StoreAlumnoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array(auth()->user()->rol, ['administrador', 'recepcion', 'caja', 'admisiones', 'informacion_admisiones']);
+        return auth()->user()->esInterno();
     }
 
     protected function prepareForValidation(): void

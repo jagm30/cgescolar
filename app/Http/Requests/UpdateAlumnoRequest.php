@@ -9,7 +9,7 @@ class UpdateAlumnoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return in_array(auth()->user()->rol, ['administrador', 'recepcion', 'caja', 'admisiones', 'informacion_admisiones']);
+        return auth()->user()->esInterno();
     }
 
     public function rules(): array

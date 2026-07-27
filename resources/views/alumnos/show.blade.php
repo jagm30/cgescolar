@@ -627,7 +627,7 @@
                         {{ $inscActiva->grupo->grado->numero }} {{ $inscActiva->grupo->nombre }}
                     </a>
                 @endif
-                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
+                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esDirectorSeccion())
                     <a href="{{ route('alumnos.edit', $alumno->id) }}" class="btn btn-sm btn-flat"
                         style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
                         <i class="fa fa-pencil"></i> Editar
@@ -870,7 +870,7 @@
                         <i class="fa fa-heartbeat" style="color:#e74c3c;"></i>
                         Expediente médico
                     </p>
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                         <button type="button" class="btn btn-xs btn-flat"
                                 style="margin-left:12px;background:#fdecea;color:#c0392b;border:1px solid #f5b7b1;border-radius:6px;"
                                 data-toggle="modal" data-target="#modalFichaMedica">
@@ -952,7 +952,7 @@
                     <div style="padding:28px 20px;text-align:center;border:2px dashed #f5b7b1;border-radius:10px;background:#fef9f9;margin-bottom:14px;">
                         <i class="fa fa-heartbeat" style="font-size:32px;color:#f5b7b1;display:block;margin-bottom:10px;"></i>
                         <p style="color:#c0392b;margin:0 0 10px;font-size:13px;">Ficha médica no registrada.</p>
-                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                             <button type="button" class="btn btn-xs btn-flat"
                                     style="background:#e74c3c;color:#fff;border-radius:6px;padding:5px 14px;"
                                     data-toggle="modal" data-target="#modalFichaMedica">
@@ -974,7 +974,7 @@
                             </span>
                         @endif
                     </span>
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                         <button type="button" class="btn btn-xs btn-flat"
                                 style="background:#fff3cd;color:#856404;border:1px solid #fde68a;border-radius:6px;"
                                 data-toggle="modal" data-target="#modalCondicion">
@@ -1021,7 +1021,7 @@
                                         </div>
                                     @endif
                                 </div>
-                                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                                     <form method="POST"
                                           action="{{ route('condiciones-medicas.destroy', $condicion->id) }}"
                                           onsubmit="return confirm('¿Eliminar esta condición médica?');">
@@ -1055,7 +1055,7 @@
                             </span>
                         @endif
                     </span>
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                         <button type="button" class="btn btn-xs btn-flat"
                                 style="background:#f3e8fd;color:#6b21a8;border:1px solid #d8b4fe;border-radius:6px;"
                                 data-toggle="modal" data-target="#modalMedicamento">
@@ -1105,7 +1105,7 @@
                                         @endif
                                     </div>
                                 </div>
-                                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                                @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                                     <form method="POST"
                                           action="{{ route('medicamentos-autorizados.destroy', $med->id) }}"
                                           onsubmit="return confirm('¿Eliminar este medicamento?');">
@@ -1393,7 +1393,7 @@
                         <i class="fa fa-chevron-right" style="margin-left:auto;color:#dde4eb;font-size:11px;"></i>
                     </a>
 
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero())
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esDirectorSeccion())
                         <a href="{{ route('alumnos.edit', $alumno->id) }}" class="accion-btn">
                             <div class="accion-icon" style="background:#e8f0fb;">
                                 <i class="fa fa-pencil" style="color:#3c8dbc;font-size:13px;"></i>
@@ -1433,7 +1433,7 @@
                         </a>
                     @endif
 
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
                         <button type="button" class="accion-btn"
                                 style="width:100%;text-align:left;background:none;border:none;cursor:pointer;"
                                 data-toggle="modal" data-target="#modalFichaMedica">
@@ -1576,7 +1576,7 @@
     @endif
 
     {{-- ══ MODAL FICHA MÉDICA ══ --}}
-    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion())
     <div class="modal fade" id="modalFichaMedica" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">

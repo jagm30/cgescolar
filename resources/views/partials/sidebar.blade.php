@@ -152,7 +152,7 @@
                         <i class="fa fa-dashboard"></i> <span>Dashboard</span>
                     </a>
                 </li>
-            @elseif(auth()->user()->esInformacionAdmisiones())
+            @elseif(auth()->user()->esInformacionAdmisiones() || auth()->user()->esDirectorSeccion())
                 <li class="{{ request()->routeIs('alumnos.index') ? 'active' : '' }}">
                     <a href="{{ route('alumnos.index') }}">
                         <i class="fa fa-dashboard"></i> <span>Dashboard</span>
@@ -282,7 +282,7 @@
             @endif
 
             {{-- ── SECCIÓN: Alumnos ─────────────────────── --}}
-            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones() || auth()->user()->esDirectorSeccion())
                 <li class="header">ALUMNOS</li>
 
                 <li class="treeview {{ request()->routeIs(['familias.*']) ? 'active menu-open' : '' }}">
@@ -324,7 +324,7 @@
                                 <i class="fa fa-circle-o"></i> Lista de alumnos
                             </a>
                         </li>
-                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones() || auth()->user()->esDirectorSeccion())
                             <li class="{{ request()->routeIs('alumnos.create') ? 'active' : '' }}">
                                 <a href="{{ route('alumnos.create') }}">
                                     <i class="fa fa-circle-o"></i> Registrar alumno
@@ -354,7 +354,7 @@
                     </li>
                 @endif
 
-                @if (auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones())
+                @if (auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones() || auth()->user()->esDirectorSeccion())
                     <li class="{{ request()->routeIs('grupos.*') ? 'active' : '' }}">
                         <a href="{{ route('grupos.index') }}">
                             <i class="fa fa-th-large"></i> <span>Grupos</span>
@@ -457,6 +457,53 @@
                     <a href="{{ route('credenciales.index') }}">
                         <i class="fa fa-id-card"></i> <span>Editor de Credenciales</span>
                     </a>
+                </li>
+            @endif
+
+            {{-- ── SECCIÓN: Padres (rol director_seccion) ── --}}
+            @if (auth()->user()->esDirectorSeccion())
+                <li class="header">ADMINISTRACIÓN</li>
+
+                <li class="treeview {{ request()->routeIs(['usuarios.*']) ? 'active menu-open' : '' }}">
+                    <a href="#">
+                        <i class="fa fa-lock"></i>
+                        <span>Usuarios</span>
+                        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li class="{{ request()->routeIs('usuarios.index') ? 'active' : '' }}">
+                            <a href="{{ route('usuarios.index') }}">
+                                <i class="fa fa-circle-o"></i> Padres de familia
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('usuarios.pendientes-portal') ? 'active' : '' }}">
+                            <a href="{{ route('usuarios.pendientes-portal') }}">
+                                <i class="fa fa-circle-o"></i> Pendientes portal
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            @endif
+
+            @if (auth()->user()->esCajero())
+                <li class="header">ACCESOS</li>
+                <li class="treeview {{ request()->routeIs(['usuarios.*']) ? 'active menu-open' : '' }}">
+                    <a href="#">
+                        <i class="fa fa-lock"></i>
+                        <span>Usuarios</span>
+                        <span class="pull-right-container">
+                            <i class="fa fa-angle-left pull-right"></i>
+                        </span>
+                    </a>
+                    <ul class="treeview-menu">
+                        <li class="{{ request()->routeIs('usuarios.pendientes-portal') ? 'active' : '' }}">
+                            <a href="{{ route('usuarios.pendientes-portal') }}">
+                                <i class="fa fa-circle-o"></i> Pendientes portal
+                            </a>
+                        </li>
+                    </ul>
                 </li>
             @endif
 

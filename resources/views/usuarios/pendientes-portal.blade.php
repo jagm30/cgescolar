@@ -109,16 +109,10 @@
 
 @section('content')
 
-    {{-- LÓGICA PARA ATRAPAR EL MENSAJE Y MANTENER VIVO EL PDF --}}
     @php
         $mensajeMostrar = session('mensaje') ?? session('mensaje_persistente');
         session()->forget('mensaje_persistente');
-
         $hayPdf = session()->has('credenciales_nuevas');
-
-        if ($hayPdf) {
-            session()->keep(['credenciales_nuevas']);
-        }
     @endphp
 
     {{-- TARJETA DE NOTIFICACIÓN PERSISTENTE --}}
@@ -163,14 +157,31 @@
                         <i class="fa fa-user-plus text-orange"></i> Pendientes
                     </h4>
 
-                    {{-- FILTRO POR TIPO --}}
+                    {{-- FILTRO POR TIPO (oculto para director: solo ve padres) --}}
+                    @if (!$esDirector)
                     <select id="filtro-tipo" class="filter-select" style="min-width: 180px;">
                         <option value="todos">Todos los pendientes</option>
                         <option value="contacto">Solo Padres de Familia</option>
                         <option value="personal">Solo Personal (Empleados)</option>
                     </select>
+                    @endif
+
+                    {{-- FILTRO POR SECCIÓN ESCOLAR --}}
+                    <select id="filtro-seccion" class="filter-select" style="min-width: 170px;">
+                        <option value="">Todas las Secciones</option>
+                        @foreach ($niveles as $nivel)
+                            <option value="{{ $nivel->id }}">{{ $nivel->nombre }}</option>
+                        @endforeach
+                    </select>
                 </div>
-                <div style="margin-left:auto;">
+                <div style="margin-left:auto; display:flex; align-items:center; gap:18px;">
+                    <label id="lbl-enviar-correo"
+                        style="margin:0; display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:#475569; cursor:pointer; white-space:nowrap;">
+                        <input type="checkbox" id="chk-enviar-correo" checked
+                            style="width:16px; height:16px; cursor:pointer; accent-color:#3c8dbc;">
+                        <i class="fa fa-envelope" style="color:#3c8dbc;"></i>
+                        Enviar correo con credenciales
+                    </label>
                     <button id="btn-generar-masivo" class="btn" disabled
                         style="border-radius:20px; font-weight:700; padding: 7px 25px; transition: 0.3s;">
                         <i class="fa fa-magic"></i> Dar de Alta Cuentas (<span id="count-select">0</span>)
@@ -193,7 +204,8 @@
                         </thead>
                         <tbody>
                             @forelse ($pendientes as $p)
-                                <tr class="row-pendiente" data-id="{{ $p->id }}" data-tipo="{{ $p->tipo }}">
+                                <tr class="row-pendiente" data-id="{{ $p->id }}" data-tipo="{{ $p->tipo }}"
+                                    data-nivel-ids="{{ $p->nivel_ids ?? '' }}">
                                     <td class="text-center">
                                         <input type="checkbox" class="check-user" value="{{ $p->id }}">
                                     </td>
@@ -207,15 +219,15 @@
                                     <td style="font-family:monospace; color: #64748b;">{{ $p->email }}</td>
                                     <td>
                                         @if ($p->tipo === 'contacto')
-                                            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Padre de
-                                                Familia</span>
+                                            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Padre de Familia</span>
                                         @else
                                             <select class="form-control select-rol"
                                                 style="height: 30px; font-size: 12px; padding: 2px 10px;">
-                                                <option value="recepcion">Recepción</option>
-                                                <option value="caja">Caja</option>
-                                                <option value="admisiones">Admisiones</option>
-                                                {{-- <option value="administrador">Administrador</option> --}}
+                                                @foreach ($rolesDisponibles as $valor => $etiqueta)
+                                                    @if ($valor !== 'padre')
+                                                        <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                                                    @endif
+                                                @endforeach
                                             </select>
                                         @endif
                                     </td>
@@ -244,10 +256,15 @@
                     <i class="fa fa-shield text-blue"></i> Gestión de Accesos
                 </div>
                 <div style="padding:15px; font-size:12px; color:#64748b;">
-                    <p>Al procesar los usuarios, se enviará un correo electrónico con sus datos de ingreso y podrás
-                        descargar un <b>archivo PDF</b> con las credenciales.</p>
+                    <p>Al procesar los usuarios podrás descargar un <b>archivo PDF</b> con las credenciales.
+                        Usa la casilla <b>"Enviar correo"</b> para controlar si se notifica a cada usuario por correo electrónico.</p>
+                    @if (!$esDirector)
                     <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Para el
                         personal administrativo, asegúrate de seleccionar el rol correcto antes de procesar su alta.</p>
+                    @else
+                    <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Como
+                        director de sección, únicamente puedes activar cuentas de <b>Padres de Familia</b>.</p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -257,19 +274,37 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
-            // Filtrado Dinámico
-            $('#filtro-tipo').on('change', function() {
-                let tipo = $(this).val();
-                if (tipo === 'todos') {
-                    $('.row-pendiente').show();
-                } else {
-                    $('.row-pendiente').hide();
-                    $('.row-pendiente[data-tipo="' + tipo + '"]').show();
-                }
+            // ── FILTROS COMBINADOS (tipo + sección) ──────────────────
+            function aplicarFiltros() {
+                let tipo    = $('#filtro-tipo').val() || 'todos';
+                let nivelId = String($('#filtro-seccion').val() || '');
+
+                $('.row-pendiente').each(function() {
+                    let rowTipo    = $(this).data('tipo');
+                    let nivelIds   = String($(this).data('nivel-ids') || '').split(',').filter(Boolean);
+
+                    let pasaTipo = (tipo === 'todos') || (rowTipo === tipo);
+
+                    let pasaSeccion = true;
+                    if (nivelId) {
+                        if (rowTipo === 'contacto') {
+                            pasaSeccion = nivelIds.includes(nivelId);
+                        } else {
+                            // Personal no tiene sección escolar: se oculta al filtrar por sección
+                            pasaSeccion = false;
+                        }
+                    }
+
+                    $(this).toggle(pasaTipo && pasaSeccion);
+                });
+
                 $('.check-user').prop('checked', false);
                 $('#check-all').prop('checked', false);
                 actualizarBotonMasivo();
-            });
+            }
+
+            $('#filtro-tipo').on('change', aplicarFiltros);
+            $('#filtro-seccion').on('change', aplicarFiltros);
 
             // Lógica de Checkboxes
             $(document).on('change', '.check-user, #check-all', function() {
@@ -298,6 +333,7 @@
             function recolectarYEnviar(filasDOM) {
                 let contactos = [];
                 let personal = [];
+                let enviarCorreo = $('#chk-enviar-correo').is(':checked');
 
                 filasDOM.each(function() {
                     let tipo = $(this).data('tipo');
@@ -307,15 +343,16 @@
                         contactos.push(id);
                     } else if (tipo === 'personal') {
                         let rol = $(this).find('.select-rol').val();
-                        personal.push({
-                            id: id,
-                            rol: rol
-                        });
+                        personal.push({ id: id, rol: rol });
                     }
                 });
 
                 let total = contactos.length + personal.length;
-                if (!confirm("¿Generar cuenta y enviar credenciales para " + total + " usuarios?")) return;
+                let msgCorreo = enviarCorreo
+                    ? 'Se enviará correo con credenciales a cada usuario.'
+                    : '⚠ No se enviará correo. Descarga el PDF para entregar las credenciales manualmente.';
+
+                if (!confirm("¿Dar de alta " + total + " cuenta(s)?\n\n" + msgCorreo)) return;
 
                 fetch("{{ route('usuarios.generarMasivos') }}", {
                         method: 'POST',
@@ -326,7 +363,8 @@
                         },
                         body: JSON.stringify({
                             contacto_ids: contactos,
-                            personal_datos: personal
+                            personal_datos: personal,
+                            enviar_correo: enviarCorreo
                         })
                     })
                     .then(res => res.json())
@@ -343,5 +381,10 @@
                     });
             }
         });
+
+        // Auto-descarga del PDF al recargar la página si hay credenciales en sesión
+        @if ($hayPdf)
+            window.location.href = "{{ route('usuarios.credencialesPdf') }}";
+        @endif
     </script>
 @endpush
