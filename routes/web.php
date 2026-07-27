@@ -594,6 +594,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
 
         Route::get('/', [PortalPadreController::class, 'dashboard'])->name('dashboard');
         Route::get('/hijos', [PortalPadreController::class, 'hijos'])->name('hijos');
+        Route::get('/hijos/{alumnoId}/expediente', [PortalPadreController::class, 'expedienteMedico'])->name('hijos.expediente');
         Route::get('/hijos/{alumnoId}/estado-cuenta', [PortalPadreController::class, 'estadoCuenta'])->name('estado-cuenta');
         Route::get('/hijos/{alumnoId}/pagos', [PortalPadreController::class, 'historialPagos'])->name('historial-pagos');
         Route::get('/cfdis/{cfdiId}/descargar/{formato}', [PortalPadreController::class, 'descargarCfdi'])->name('cfdis.descargar');
@@ -602,10 +603,16 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::put('/razones-sociales/{id}', [PortalPadreController::class, 'updateRazonSocial'])->name('razones-sociales.update');
         Route::delete('/razones-sociales/{id}', [PortalPadreController::class, 'destroyRazonSocial'])->name('razones-sociales.destroy');
         Route::post('/razones-sociales/{id}/principal', [PortalPadreController::class, 'setPrincipalRazonSocial'])->name('razones-sociales.principal');
+        Route::get('/facturas', [PortalPadreController::class, 'facturas'])->name('facturas');
         Route::get('/fotos', [PortalPadreController::class, 'fotos'])->name('fotos');
         Route::post('/fotos/alumno/{alumnoId}', [PortalPadreController::class, 'subirFotoAlumno'])->name('fotos.alumno');
         Route::post('/fotos/contacto/{contactoId}', [PortalPadreController::class, 'subirFotoContacto'])->name('fotos.contacto');
         Route::post('/cfdis/emitir/{pagoId}', [PortalPadreController::class, 'emitirCfdi'])->name('cfdis.emitir');
+        Route::post('/hijos/{alumnoId}/ficha-medica', [PortalPadreController::class, 'actualizarFichaMedica'])->name('hijos.ficha-medica.update');
+        Route::post('/hijos/{alumnoId}/condiciones-medicas', [PortalPadreController::class, 'storeCondicion'])->name('hijos.condiciones-medicas.store');
+        Route::delete('/condiciones-medicas/{id}', [PortalPadreController::class, 'destroyCondicion'])->name('hijos.condiciones-medicas.destroy');
+        Route::post('/hijos/{alumnoId}/medicamentos', [PortalPadreController::class, 'storeMedicamento'])->name('hijos.medicamentos.store');
+        Route::delete('/medicamentos/{id}', [PortalPadreController::class, 'destroyMedicamento'])->name('hijos.medicamentos.destroy');
     });
 
 // =======================================================

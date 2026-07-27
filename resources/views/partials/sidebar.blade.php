@@ -181,9 +181,9 @@
                     </a>
                 </li>
 
-                <li class="{{ request()->routeIs('portal.historial-pagos') ? 'active' : '' }}">
-                    <a href="{{ route('portal.hijos') }}">
-                        <i class="fa fa-credit-card"></i> <span>Facturación</span>
+                <li class="{{ request()->routeIs('portal.facturas') ? 'active' : '' }}">
+                    <a href="{{ route('portal.facturas') }}">
+                        <i class="fa fa-file-text-o"></i> <span>Facturación</span>
                     </a>
                 </li>
 
