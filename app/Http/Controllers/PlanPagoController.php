@@ -20,6 +20,7 @@ use App\Models\PlanPagoConcepto;
 use App\Models\PoliticaDescuento;
 use App\Models\PoliticaRecargo;
 use App\Traits\RespondsWithJson;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -103,6 +104,33 @@ class PlanPagoController extends Controller
             'niveles',
             'conceptos'
         ));
+    }
+
+    /** GET /planes/pdf */
+    public function exportarPdf(Request $request)
+    {
+        $cicloId    = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+        $cicloActual = CicloEscolar::find($cicloId);
+
+        $planes = PlanPago::with([
+                'nivel',
+                'planPagoConceptos.concepto',
+                'politicasDescuentoActivas',
+                'politicaRecargoActiva',
+            ])
+            ->where('ciclo_id', $cicloId)
+            ->when($request->filled('nivel_id'), fn($q) => $q->where('nivel_id', $request->nivel_id))
+            ->orderByRaw('nivel_id IS NULL')
+            ->orderBy('nivel_id')
+            ->orderBy('nombre')
+            ->get();
+
+        $pdf = Pdf::loadView('planes.pdf-planes', compact('planes', 'cicloActual'))
+            ->setPaper('letter', 'portrait');
+
+        $nombreCiclo = str_replace(['/', ' '], '_', $cicloActual->nombre ?? 'ciclo');
+
+        return $pdf->download("Planes_Pago_{$nombreCiclo}.pdf");
     }
 
     public function show(int $id)
