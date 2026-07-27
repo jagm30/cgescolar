@@ -82,45 +82,47 @@
             border-radius: 20px;
         }
 
-        /* ── Grid de tarjetas ── */
+        /* ── Lista de tarjetas (1 columna en móvil) ── */
         .ft-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             margin-bottom: 20px;
         }
-        @media (min-width: 500px) {
-            .ft-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (min-width: 768px) {
-            .ft-grid { grid-template-columns: repeat(4, 1fr); }
-        }
 
-        /* ── Tarjeta de foto ── */
+        /* ── Tarjeta horizontal (móvil) ── */
         .ft-card {
             background: #fff;
             border: 1px solid #e4eaf0;
             border-radius: 14px;
-            padding: 18px 12px 14px;
-            text-align: center;
+            padding: 14px 16px;
             box-shadow: 0 1px 4px rgba(0,0,0,.05);
-            transition: box-shadow .15s;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            gap: 16px;
         }
-        .ft-card:hover { box-shadow: 0 4px 14px rgba(60,141,188,.12); }
+        .ft-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+
+        /* Lado izquierdo: avatar */
+        .ft-card-avatar {
+            flex-shrink: 0;
+        }
+
+        /* Lado derecho: nombre + botón */
+        .ft-card-body {
+            flex: 1;
+            min-width: 0;
+        }
 
         /* ── Avatar ── */
         .ft-avatar-wrap {
             position: relative;
-            width: 90px;
-            height: 90px;
-            margin: 0 auto 12px;
+            width: 72px;
+            height: 72px;
         }
         .ft-avatar {
-            width: 90px;
-            height: 90px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid #e4eaf0;
@@ -128,24 +130,23 @@
             background: #f0f3f7;
         }
         .ft-avatar-placeholder {
-            width: 90px;
-            height: 90px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             background: #e8f0fb;
             color: #3c8dbc;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 30px;
             border: 3px solid #e4eaf0;
         }
-        /* Badge de foto cargada */
         .ft-avatar-badge {
             position: absolute;
-            bottom: 2px;
-            right: 2px;
-            width: 24px;
-            height: 24px;
+            bottom: 1px;
+            right: 1px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             background: #00875a;
             border: 2px solid #fff;
@@ -158,17 +159,19 @@
 
         /* ── Nombre y subtítulo ── */
         .ft-nombre {
-            font-size: 13px;
+            font-size: 15px;
             font-weight: 700;
             color: #1a2634;
-            margin: 0 0 3px;
+            margin: 0 0 2px;
             line-height: 1.3;
-            word-break: break-word;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .ft-sub {
-            font-size: 11px;
+            font-size: 12px;
             color: #9aa5b4;
-            margin: 0 0 12px;
+            margin: 0 0 10px;
         }
 
         /* ── Botón subir ── */
@@ -178,17 +181,18 @@
             justify-content: center;
             gap: 6px;
             width: 100%;
-            padding: 10px 8px;
+            padding: 10px 12px;
             background: #3c8dbc;
             color: #fff;
             border-radius: 9px;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             cursor: pointer;
             transition: background .15s;
             border: none;
             line-height: 1.2;
             text-align: center;
+            box-sizing: border-box;
         }
         .ft-label-upload:hover { background: #2a6e9e; }
         .ft-label-upload.subiendo {
@@ -196,7 +200,13 @@
             cursor: not-allowed;
             pointer-events: none;
         }
-        .ft-input { display: none; }
+        .ft-input {
+            display: none !important;
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+        }
 
         /* ── Barra de progreso ── */
         .ft-progress {
@@ -219,22 +229,17 @@
         /* ── Mensajes ── */
         .ft-ok {
             display: none;
-            margin-top: 7px;
+            margin-top: 6px;
             font-size: 12px;
             font-weight: 600;
             color: #00875a;
-            display: none;
-            align-items: center;
-            gap: 4px;
-            justify-content: center;
         }
         .ft-err {
             display: none;
-            margin-top: 7px;
+            margin-top: 6px;
             font-size: 12px;
             color: #b91c1c;
             word-break: break-word;
-            text-align: center;
         }
 
         /* ── Vacío ── */
@@ -249,6 +254,35 @@
         }
         .ft-empty i { font-size: 42px; color: #d1d9e0; display: block; margin-bottom: 10px; }
         .ft-empty p { font-size: 14px; margin: 0; }
+
+        /* ── En pantallas grandes: volver a grid ── */
+        @media (min-width: 600px) {
+            .ft-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .ft-card {
+                flex-direction: column;
+                align-items: center;
+                padding: 18px 14px 14px;
+                text-align: center;
+            }
+            .ft-card-body { width: 100%; }
+            .ft-nombre {
+                white-space: normal;
+                text-align: center;
+                font-size: 13px;
+            }
+            .ft-sub { text-align: center; }
+            .ft-avatar-wrap { width: 90px; height: 90px; margin: 0 auto 12px; }
+            .ft-avatar { width: 90px; height: 90px; }
+            .ft-avatar-placeholder { width: 90px; height: 90px; font-size: 36px; }
+            .ft-ok { text-align: center; }
+        }
+        @media (min-width: 900px) {
+            .ft-grid { grid-template-columns: repeat(3, 1fr); }
+        }
     </style>
 @endpush
 
@@ -293,38 +327,46 @@
             @foreach ($alumnos as $alumno)
                 <div class="ft-card" id="alumno-card-{{ $alumno->id }}">
 
-                    <div class="ft-avatar-wrap">
-                        @if ($alumno->foto_url)
-                            <img src="{{ asset('storage/' . $alumno->foto_url) }}"
-                                 alt="{{ $alumno->nombre }}"
-                                 class="ft-avatar ft-img">
-                            <div class="ft-avatar-badge"><i class="fa fa-check"></i></div>
-                        @else
-                            <div class="ft-avatar-placeholder ft-placeholder">
-                                <i class="fa fa-user"></i>
-                            </div>
-                            <img src="" alt="" class="ft-avatar ft-img" style="display:none;">
-                        @endif
+                    {{-- Avatar --}}
+                    <div class="ft-card-avatar">
+                        <div class="ft-avatar-wrap">
+                            @if ($alumno->foto_url)
+                                <img src="{{ asset('storage/' . $alumno->foto_url) }}"
+                                     alt="{{ $alumno->nombre }}"
+                                     class="ft-avatar ft-img">
+                                <div class="ft-avatar-badge"><i class="fa fa-check"></i></div>
+                            @else
+                                <div class="ft-avatar-placeholder ft-placeholder">
+                                    <i class="fa fa-user"></i>
+                                </div>
+                                <img src="" alt="" class="ft-avatar ft-img" style="display:none;">
+                            @endif
+                        </div>
                     </div>
 
-                    <p class="ft-nombre">{{ trim($alumno->nombre . ' ' . $alumno->ap_paterno) }}</p>
-                    <p class="ft-sub">Matrícula {{ $alumno->matricula }}</p>
+                    {{-- Contenido --}}
+                    <div class="ft-card-body">
+                        <p class="ft-nombre">{{ trim($alumno->nombre . ' ' . $alumno->ap_paterno) }}</p>
+                        <p class="ft-sub"><i class="fa fa-id-card-o" style="margin-right:3px;"></i>Matrícula {{ $alumno->matricula }}</p>
 
-                    <input type="file" class="ft-input"
-                           accept="image/jpeg,image/png,image/webp"
-                           id="file-alumno-{{ $alumno->id }}"
-                           data-tipo="alumno"
-                           data-id="{{ $alumno->id }}"
-                           data-url="{{ route('portal.fotos.alumno', $alumno->id) }}">
+                        <input type="file" class="ft-input"
+                               accept="image/jpeg,image/png,image/webp"
+                               id="file-alumno-{{ $alumno->id }}"
+                               data-tipo="alumno"
+                               data-id="{{ $alumno->id }}"
+                               data-url="{{ route('portal.fotos.alumno', $alumno->id) }}"
+                               style="display:none;">
 
-                    <label for="file-alumno-{{ $alumno->id }}" class="ft-label-upload">
-                        <i class="fa fa-camera"></i>
-                        {{ $alumno->foto_url ? 'Cambiar foto' : 'Subir foto' }}
-                    </label>
+                        <label for="file-alumno-{{ $alumno->id }}" class="ft-label-upload">
+                            <i class="fa fa-camera"></i>
+                            {{ $alumno->foto_url ? 'Cambiar foto' : 'Subir foto' }}
+                        </label>
 
-                    <div class="ft-progress"><div class="ft-progress-bar"></div></div>
-                    <div class="ft-ok"><i class="fa fa-check-circle"></i> ¡Foto actualizada!</div>
-                    <div class="ft-err"></div>
+                        <div class="ft-progress"><div class="ft-progress-bar"></div></div>
+                        <div class="ft-ok"><i class="fa fa-check-circle"></i> ¡Foto actualizada!</div>
+                        <div class="ft-err"></div>
+                    </div>
+
                 </div>
             @endforeach
         </div>
@@ -349,40 +391,48 @@
             @foreach ($contactos as $contacto)
                 <div class="ft-card" id="contacto-card-{{ $contacto->id }}">
 
-                    <div class="ft-avatar-wrap">
-                        @if ($contacto->foto_url)
-                            <img src="{{ asset('storage/' . $contacto->foto_url) }}"
-                                 alt="{{ $contacto->nombre }}"
-                                 class="ft-avatar ft-img">
-                            <div class="ft-avatar-badge"><i class="fa fa-check"></i></div>
-                        @else
-                            <div class="ft-avatar-placeholder ft-placeholder"
-                                 style="background:#ede9fe;color:#7c3aed;">
-                                <i class="fa fa-user"></i>
-                            </div>
-                            <img src="" alt="" class="ft-avatar ft-img" style="display:none;">
-                        @endif
+                    {{-- Avatar --}}
+                    <div class="ft-card-avatar">
+                        <div class="ft-avatar-wrap">
+                            @if ($contacto->foto_url)
+                                <img src="{{ asset('storage/' . $contacto->foto_url) }}"
+                                     alt="{{ $contacto->nombre }}"
+                                     class="ft-avatar ft-img">
+                                <div class="ft-avatar-badge"><i class="fa fa-check"></i></div>
+                            @else
+                                <div class="ft-avatar-placeholder ft-placeholder"
+                                     style="background:#ede9fe;color:#7c3aed;">
+                                    <i class="fa fa-user"></i>
+                                </div>
+                                <img src="" alt="" class="ft-avatar ft-img" style="display:none;">
+                            @endif
+                        </div>
                     </div>
 
-                    <p class="ft-nombre">{{ trim($contacto->nombre . ' ' . $contacto->ap_paterno) }}</p>
-                    <p class="ft-sub">Contacto familiar</p>
+                    {{-- Contenido --}}
+                    <div class="ft-card-body">
+                        <p class="ft-nombre">{{ trim($contacto->nombre . ' ' . $contacto->ap_paterno) }}</p>
+                        <p class="ft-sub"><i class="fa fa-users" style="margin-right:3px;"></i>Contacto familiar</p>
 
-                    <input type="file" class="ft-input"
-                           accept="image/jpeg,image/png,image/webp"
-                           id="file-contacto-{{ $contacto->id }}"
-                           data-tipo="contacto"
-                           data-id="{{ $contacto->id }}"
-                           data-url="{{ route('portal.fotos.contacto', $contacto->id) }}">
+                        <input type="file" class="ft-input"
+                               accept="image/jpeg,image/png,image/webp"
+                               id="file-contacto-{{ $contacto->id }}"
+                               data-tipo="contacto"
+                               data-id="{{ $contacto->id }}"
+                               data-url="{{ route('portal.fotos.contacto', $contacto->id) }}"
+                               style="display:none;">
 
-                    <label for="file-contacto-{{ $contacto->id }}" class="ft-label-upload"
-                           style="background:#7c3aed;">
-                        <i class="fa fa-camera"></i>
-                        {{ $contacto->foto_url ? 'Cambiar foto' : 'Subir foto' }}
-                    </label>
+                        <label for="file-contacto-{{ $contacto->id }}" class="ft-label-upload"
+                               style="background:#7c3aed;">
+                            <i class="fa fa-camera"></i>
+                            {{ $contacto->foto_url ? 'Cambiar foto' : 'Subir foto' }}
+                        </label>
 
-                    <div class="ft-progress"><div class="ft-progress-bar" style="background:#7c3aed;"></div></div>
-                    <div class="ft-ok"><i class="fa fa-check-circle"></i> ¡Foto actualizada!</div>
-                    <div class="ft-err"></div>
+                        <div class="ft-progress"><div class="ft-progress-bar" style="background:#7c3aed;"></div></div>
+                        <div class="ft-ok"><i class="fa fa-check-circle"></i> ¡Foto actualizada!</div>
+                        <div class="ft-err"></div>
+                    </div>
+
                 </div>
             @endforeach
         </div>

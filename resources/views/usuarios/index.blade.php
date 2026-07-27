@@ -198,16 +198,10 @@
 
 @section('content')
 
-    {{-- LÓGICA PARA ATRAPAR EL MENSAJE Y MANTENER VIVO EL PDF --}}
     @php
         $mensajeMostrar = session('mensaje') ?? session('mensaje_persistente');
         session()->forget('mensaje_persistente');
-
         $hayPdf = session()->has('credenciales_nuevas');
-
-        if ($hayPdf) {
-            session()->keep(['credenciales_nuevas']);
-        }
     @endphp
 
     {{-- TARJETA DE NOTIFICACIÓN PERSISTENTE --}}
@@ -292,15 +286,28 @@
                     <input type="text" name="buscar" class="filter-input" placeholder="Buscar por nombre o email..."
                         value="{{ request('buscar') }}" style="flex-grow: 1;">
 
-                    <select name="rol" class="filter-select" onchange="this.form.submit()">
+                    @if (!$esDirector)
+                    <select name="rol" id="filtro-rol" class="filter-select" onchange="this.form.submit()">
                         <option value="">Cualquier Rol</option>
-                        <option value="administrador" {{ request('rol') == 'administrador' ? 'selected' : '' }}>
-                            Administrador</option>
+                        <option value="administrador" {{ request('rol') == 'administrador' ? 'selected' : '' }}>Administrador</option>
                         <option value="caja" {{ request('rol') == 'caja' ? 'selected' : '' }}>Caja</option>
                         <option value="recepcion" {{ request('rol') == 'recepcion' ? 'selected' : '' }}>Recepción</option>
                         <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones</option>
                         <option value="informacion_admisiones" {{ request('rol') == 'informacion_admisiones' ? 'selected' : '' }}>Información y Admisiones</option>
+                        <option value="director_seccion" {{ request('rol') == 'director_seccion' ? 'selected' : '' }}>Director de Sección</option>
                         <option value="padre" {{ request('rol') == 'padre' ? 'selected' : '' }}>Padre de Familia</option>
+                    </select>
+                    @endif
+
+                    {{-- Filtro sección escolar: siempre visible para director, aparece al seleccionar "padre" para otros roles --}}
+                    <select name="seccion_id" id="filtro-seccion" class="filter-select" onchange="this.form.submit()"
+                        style="{{ ($esDirector || request('rol') === 'padre') ? '' : 'display:none;' }}">
+                        <option value="">Todas las Secciones</option>
+                        @foreach ($niveles as $nivel)
+                            <option value="{{ $nivel->id }}" {{ request('seccion_id') == $nivel->id ? 'selected' : '' }}>
+                                {{ $nivel->nombre }}
+                            </option>
+                        @endforeach
                     </select>
 
                     <select name="activo" class="filter-select" onchange="this.form.submit()">
@@ -329,7 +336,9 @@
                             <tr>
                                 <th>Usuario</th>
                                 <th>Rol / Permisos</th>
+                                @if (!$esDirector)
                                 <th>Ciclo Actual</th>
+                                @endif
                                 <th class="text-center">Estado</th>
                                 <th width="160" class="text-center">Acciones</th>
                             </tr>
@@ -350,15 +359,29 @@
                                     </td>
                                     <td>
                                         <span
-                                            class="badge-rol @if ($usuario->rol == 'administrador') rol-admin @elseif($usuario->rol == 'admisiones' || $usuario->rol == 'informacion_admisiones') rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
-                                            {{ $usuario->rol == 'informacion_admisiones' ? 'Info. y Admisiones' : $usuario->rol }}
+                                            class="badge-rol @if ($usuario->rol == 'administrador') rol-admin @elseif(in_array($usuario->rol, ['admisiones','informacion_admisiones','director_seccion'])) rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
+                                            @php
+                                                $etiquetaRol = match($usuario->rol) {
+                                                    'informacion_admisiones' => 'Info. y Admisiones',
+                                                    'director_seccion'       => 'Director de Sección',
+                                                    default                  => $usuario->rol,
+                                                };
+                                            @endphp
+                                            {{ $etiquetaRol }}
                                         </span>
+                                        @if ($usuario->seccion)
+                                            <span style="display:inline-block; margin-left:4px; font-size:10px; padding:2px 7px; border-radius:4px; background:#ede9fe; color:#5b21b6; font-weight:700;">
+                                                {{ $usuario->seccion }}
+                                            </span>
+                                        @endif
                                     </td>
+                                    @if (!$esDirector)
                                     <td>
                                         <span style="font-size: 12px; color: #64748b;">
                                             {{ $usuario->cicloSeleccionado->nombre ?? 'Sin seleccionar' }}
                                         </span>
                                     </td>
+                                    @endif
                                     <td class="text-center">
                                         @if ($usuario->activo)
                                             <span class="badge-status badge-active">
@@ -378,7 +401,7 @@
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-modal-edit" title="Editar"
                                                     data-id="{{ $usuario->id }}" data-nombre="{{ $usuario->nombre }}"
-                                                    data-rol="{{ $usuario->rol }}">
+                                                    data-rol="{{ $usuario->rol }}" data-seccion="{{ $usuario->seccion ?? '' }}">
                                                     <i class="fa fa-pencil text-blue"></i>
                                                 </button>
                                             @else
@@ -415,6 +438,15 @@
                                                 </form>
                                             @endif
 
+                                            @if ($usuario->rol === 'padre')
+                                                <button class="btn-action-flat btn-reset-password-pdf"
+                                                    title="Generar nueva contraseña y descargar PDF"
+                                                    data-id="{{ $usuario->id }}"
+                                                    data-nombre="{{ $usuario->nombre }}">
+                                                    <i class="fa fa-key text-orange"></i>
+                                                </button>
+                                            @endif
+
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-delete-permanent"
                                                     title="Borrar de forma permanente" data-id="{{ $usuario->id }}"
@@ -427,7 +459,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center" style="padding:20px; color:#94a3b8;">No se
+                                    <td colspan="{{ $esDirector ? 4 : 5 }}" class="text-center" style="padding:20px; color:#94a3b8;">No se
                                         encontraron usuarios que coincidan con la búsqueda.</td>
                                 </tr>
                             @endforelse
@@ -559,13 +591,25 @@
             </div>
             <div class="form-group">
                 <label>Rol del Usuario <span class="text-danger">*</span></label>
-                <select name="rol" class="form-control" required>
+                <select name="rol" id="create-rol" class="form-control" required>
                     <option value="padre">Padre de Familia</option>
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
                     <option value="admisiones">Admisiones</option>
                     <option value="informacion_admisiones">Información y Admisiones</option>
+                    <option value="director_seccion">Director de Sección</option>
                     <option value="administrador">Administrador</option>
+                </select>
+            </div>
+            <div class="form-group" id="create-seccion-group" style="display:none;">
+                <label>Sección Escolar</label>
+                <select name="seccion" id="create-seccion" class="form-control">
+                    <option value="">-- Sin restricción --</option>
+                    <option value="maternal">Maternal</option>
+                    <option value="preescolar">Preescolar</option>
+                    <option value="primaria">Primaria</option>
+                    <option value="secundaria">Secundaria</option>
+                    <option value="todas">Todas las secciones</option>
                 </select>
             </div>
             <div class="form-group">
@@ -612,12 +656,25 @@
                     <option value="caja">Caja</option>
                     <option value="admisiones">Admisiones</option>
                     <option value="informacion_admisiones">Información y Admisiones</option>
+                    <option value="director_seccion">Director de Sección</option>
                     <option value="administrador">Administrador</option>
                 </select>
                 <p id="help-edit-rol" class="help-block text-muted"
                     style="display:none; font-size:11px; margin-top:4px;">
                     <!-- Mensaje dinámico de bloqueo -->
                 </p>
+            </div>
+
+            <div class="form-group" id="edit-seccion-group" style="display:none;">
+                <label>Sección Escolar</label>
+                <select name="seccion" id="edit-seccion" class="form-control">
+                    <option value="">-- Sin restricción --</option>
+                    <option value="maternal">Maternal</option>
+                    <option value="preescolar">Preescolar</option>
+                    <option value="primaria">Primaria</option>
+                    <option value="secundaria">Secundaria</option>
+                    <option value="todas">Todas las secciones</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -649,6 +706,17 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // ── FILTRO DE SECCIÓN ESCOLAR ──────────────────────────────
+            @if (!$esDirector)
+            $('#filtro-rol').on('change', function() {
+                if ($(this).val() === 'padre') {
+                    $('#filtro-seccion').show();
+                } else {
+                    $('#filtro-seccion').hide().val('');
+                }
+            });
+            @endif
+
             function generarPassword() {
                 let caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#';
                 let pass = '';
@@ -657,6 +725,19 @@
                 }
                 return pass;
             }
+
+            function toggleSeccionCreate() {
+                let rol = $('#create-rol').val();
+                $('#create-seccion-group').toggle(rol === 'director_seccion');
+            }
+
+            function toggleSeccionEdit() {
+                let rol = $('#edit-rol').val();
+                $('#edit-seccion-group').toggle(rol === 'director_seccion');
+            }
+
+            $('#create-rol').on('change', toggleSeccionCreate);
+            $('#edit-rol').on('change', toggleSeccionEdit);
 
             if ($('#chk-create-auto').is(':checked')) {
                 $('#create-password').val(generarPassword());
@@ -699,11 +780,14 @@
                 let id = $(this).data('id');
                 let nombre = $(this).data('nombre');
                 let rol = $(this).data('rol').toLowerCase();
+                let seccion = $(this).data('seccion') || '';
 
                 $('#edit-id').val(id);
                 $('#edit-nombre-lbl').val(nombre);
                 $('#edit-password').val('');
                 $('#chk-edit-auto').prop('checked', false);
+                $('#edit-seccion').val(seccion);
+                $('#edit-seccion-group').toggle(rol === 'director_seccion');
 
                 let $selectRol = $('#edit-rol');
                 let $helpMsg = $('#help-edit-rol');
@@ -732,11 +816,12 @@
                             '<i class="fa fa-lock"></i> Los privilegios de Administrador están protegidos.')
                         .show();
                 } else {
-                    // Es un empleado normal (Caja, Admisiones, Recepción). 
+                    // Es un empleado normal (Caja, Admisiones, Recepción, Director).
                     // No pueden convertirse en Padres de familia ni ser ascendidos a Administradores desde aquí.
                     $selectRol.find('option[value="padre"]').prop('disabled', true).hide();
                     $selectRol.find('option[value="administrador"]').prop('disabled', true).hide();
                     $selectRol.val(rol);
+                    toggleSeccionEdit();
                 }
 
                 $('#modal-editar-usuario').modal('show');
@@ -804,6 +889,40 @@
                     });
             });
 
+            // RESETEAR CONTRASEÑA + DESCARGAR PDF
+            $('.btn-reset-password-pdf').on('click', function() {
+                let id     = $(this).data('id');
+                let nombre = $(this).data('nombre');
+
+                if (!confirm(`¿Generar una nueva contraseña para "${nombre}"?\n\nLa contraseña anterior quedará inválida.`)) return;
+
+                let enviarCorreo = confirm(`¿Deseas enviar la nueva contraseña al correo de "${nombre}"?`);
+
+                let url = "{{ route('usuarios.resetearPasswordPdf', ':id') }}".replace(':id', id);
+
+                fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ enviar_correo: enviarCorreo })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + res.mensaje);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Ocurrió un error de red o de servidor.');
+                    });
+            });
+
             // BORRAR USUARIO
             $('.btn-delete-permanent').on('click', function() {
                 let id = $(this).data('id');
@@ -837,5 +956,10 @@
                     });
             });
         });
+
+        // Auto-descarga del PDF al recargar la página si hay credenciales en sesión
+        @if ($hayPdf)
+            window.location.href = "{{ route('usuarios.credencialesPdf') }}";
+        @endif
     </script>
 @endpush
