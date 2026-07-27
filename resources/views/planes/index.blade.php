@@ -482,6 +482,12 @@
                         style="border-radius:20px;padding:5px 14px;">
                         <i class="fa fa-copy"></i> Clonar seleccionados
                     </button>
+                    <a href="{{ route('planes.pdf', request()->only('nivel_id')) }}"
+                        class="btn btn-danger btn-flat btn-sm"
+                        style="border-radius:20px;padding:5px 14px;"
+                        title="Exportar planes con sus conceptos a PDF">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
                     <button type="button" class="btn btn-success btn-flat btn-sm" data-toggle="modal"
                         data-target="#modalNuevoPlan" style="border-radius:20px;padding:5px 14px;">
                         <i class="fa fa-plus"></i> Nuevo plan

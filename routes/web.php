@@ -236,6 +236,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('planes.alumnos-asignados');
 
+    Route::get('/planes/pdf', [PlanPagoController::class, 'exportarPdf'])
+        ->middleware('rol:administrador,caja')
+        ->name('planes.pdf');
+
     Route::resource('planes', PlanPagoController::class)
         ->middleware('rol:administrador,caja');
 
