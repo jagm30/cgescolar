@@ -435,7 +435,12 @@ class GrupoController extends Controller
             'ciclo',
             'inscripciones' => fn($q) => $q->where('activo', true)->with([
                 'alumno',
-                'cargos' => fn($q) => $q->with('concepto')->orderBy('fecha_vencimiento'),
+                'cargos' => fn($q) => $q->with([
+                    'concepto',
+                    'detallesPagosVigentes',
+                    'descuentos',
+                    'condonacionDetalles',
+                ])->orderBy('fecha_vencimiento'),
             ]),
         ])->findOrFail($id);
 
