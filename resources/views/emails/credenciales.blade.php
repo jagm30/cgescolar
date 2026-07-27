@@ -71,6 +71,17 @@
 
         <p style="color: #475569; font-size: 14px;">Te recomendamos guardar esta información en un lugar seguro.</p>
 
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="https://genki.kotanescolar.com/"
+               style="display: inline-block; background-color: #3c8dbc; color: #ffffff; text-decoration: none;
+                      padding: 12px 28px; border-radius: 6px; font-size: 14px; font-weight: bold;">
+                Ingresar al Portal Escolar
+            </a>
+            <p style="color: #94a3b8; font-size: 11px; margin-top: 8px;">
+                <a href="https://genki.kotanescolar.com/" style="color: #3c8dbc;">https://genki.kotanescolar.com/</a>
+            </p>
+        </div>
+
         <div class="footer">
             Atentamente,<br>
             <b>Administración Escolar</b>
