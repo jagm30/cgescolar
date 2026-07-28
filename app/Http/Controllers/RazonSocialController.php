@@ -82,7 +82,7 @@ class RazonSocialController extends Controller
 
     /**
      * DELETE /familias/razon-social/{id}
-     * Desactiva (borrado lógico) una razón social.
+     * Elimina permanentemente una razón social.
      */
     public function destroy(int $id)
     {
@@ -92,13 +92,13 @@ class RazonSocialController extends Controller
         $familiaId = $rs->contacto->familia_id;
         $rfc = $rs->rfc;
 
-        $rs->update(['activo' => false]);
+        $rs->delete();
 
         return $this->respuestaExito(
             redirectRoute: 'familias.show',
             routeParams:   [$familiaId],
             jsonData:      [],
-            mensaje:       "RFC {$rfc} desactivado."
+            mensaje:       "RFC {$rfc} eliminado."
         );
     }
 

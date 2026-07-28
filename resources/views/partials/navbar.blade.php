@@ -2,14 +2,14 @@
 
     {{-- Logo --}}
     <a href="#" class="logo">
-        {{-- MINI LOGO: Aparece cuando el sidebar se colapsa (Aquí va Kotan1.png) --}}
+        {{-- MINI LOGO: Aparece cuando el sidebar se colapsa --}}
         <span class="logo-mini">
-            <img src="{{ asset('dist/img/Kotan1.png') }}" alt="Kotan" style="width: 35px; height: auto;">
+            <img src="{{ asset('dist/img/genki1.png') }}" alt="Genki School" style="width: 35px; height: auto;">
         </span>
 
         {{-- LOGO NORMAL: Aparece cuando está expandido --}}
-        <span class="logo-lg"><img src="{{ asset('dist/img/Kotan1.png') }}" alt="Kotan"
-                style="width: 35px; height: auto;"><b>Kotan</b>Escolar</span>
+        <span class="logo-lg"><img src="{{ asset('dist/img/genki1.png') }}" alt="Genki School"
+                style="width: 35px; height: auto;"> Genki School Tuxtla</span>
     </a>
     {{-- Navbar --}}
     <nav class="navbar navbar-static-top">

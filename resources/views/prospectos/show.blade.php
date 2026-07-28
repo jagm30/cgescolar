@@ -328,6 +328,9 @@
                     <i class="fa fa-user-plus"></i> Registrar como alumno
                 </a>
             @endif
+            <a href="{{ route('prospectos.edit', $prospecto->id) }}" class="btn btn-default btn-sm">
+                <i class="fa fa-pencil"></i> Editar
+            </a>
             <a href="{{ route('prospectos.pdf', $prospecto->id) }}" class="btn btn-default btn-sm" target="_blank">
                 <i class="fa fa-file-pdf-o"></i> Exportar PDF
             </a>
@@ -352,9 +355,15 @@
                 <div class="pro-panel-body">
                     {{-- Fila 1: alumno --}}
                     <div class="row">
-                        <div class="col-md-5">
+                        <div class="col-md-3">
                             <div class="pro-data-label">Nivel de interés</div>
                             <div class="pro-data-value">{{ optional($prospecto->nivelInteres)->nombre ?: 'Sin definir' }}</div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="pro-data-label">Grado de interés</div>
+                            <div class="pro-data-value">
+                                {{ optional($prospecto->gradoInteres)->numero ? $prospecto->gradoInteres->numero . '°' : 'Sin definir' }}
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <div class="pro-data-label">Fecha de nacimiento</div>

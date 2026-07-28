@@ -30,7 +30,7 @@ class ProspectoController extends Controller
             ?? auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'responsable', 'alumno'])
+        $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'gradoInteres', 'responsable', 'alumno'])
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('etapa'), fn ($q) => $q->where('etapa', $request->etapa))
             ->when($request->filled('en_proceso'), fn ($q) => $q->enProceso())
@@ -57,7 +57,7 @@ class ProspectoController extends Controller
     public function show(int $id)
     {
         $prospecto = Prospecto::with([
-            'nivelInteres', 'responsable', 'alumno',
+            'nivelInteres', 'gradoInteres', 'responsable', 'alumno',
             'seguimientos.usuario', 'documentos',
         ])->findOrFail($id);
 
@@ -77,6 +77,30 @@ class ProspectoController extends Controller
         $grados  = Grado::orderBy('nivel_id')->orderBy('numero')->get();
 
         return view('prospectos.create', compact('niveles', 'ciclos', 'grados'));
+    }
+
+    public function edit(int $id)
+    {
+        $prospecto = Prospecto::with(['nivelInteres', 'gradoInteres'])->findOrFail($id);
+        $niveles   = NivelEscolar::activo()->get();
+        $ciclos    = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $grados    = Grado::orderBy('nivel_id')->orderBy('numero')->get();
+
+        return view('prospectos.edit', compact('prospecto', 'niveles', 'ciclos', 'grados'));
+    }
+
+    public function update(StoreProspectoRequest $request, int $id)
+    {
+        $prospecto = Prospecto::findOrFail($id);
+
+        $prospecto->update($request->validated());
+
+        return $this->respuestaExito(
+            redirectRoute: 'prospectos.show',
+            jsonData:      ['prospecto' => $prospecto->fresh()],
+            mensaje:       "Prospecto '{$prospecto->nombre_completo}' actualizado correctamente.",
+            routeParams:   ['prospecto' => $prospecto->id],
+        );
     }
 
     public function store(StoreProspectoRequest $request)

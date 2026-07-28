@@ -6,10 +6,12 @@ use App\Models\Alumno;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
+use App\Models\ConfigFiscal;
 use App\Models\ConceptoCobro;
 use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
+use App\Models\RazonSocialContacto;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -226,10 +228,30 @@ class CobrosController extends Controller
     /** GET /cobros/recibo/{pagoId} — Recibo de pago */
     public function recibo(int $pagoId): View
     {
-        $pago = $this->cargarPago($pagoId);
+        $pago = Pago::with([
+            'detalles.cargo.concepto',
+            'detalles.cargo.inscripcion.alumno',
+            'detalles.cargo.inscripcion.grupo.grado',
+            'cajero',
+            'cfdis.razonSocial',
+            'cfdiGlobal',
+        ])->findOrFail($pagoId);
+
         $alumno = $this->alumnoDelPago($pago);
 
-        return view('cobros.recibo', compact('pago', 'alumno'));
+        $alumnoIds = $pago->detalles
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno_id)
+            ->filter()->unique()->values();
+
+        $razonesDisponibles = RazonSocialContacto::query()
+            ->where('activo', true)
+            ->whereHas('contacto.alumnos', fn ($q) => $q->whereIn('alumno.id', $alumnoIds))
+            ->with('contacto')
+            ->get();
+
+        $configFiscal = ConfigFiscal::first();
+
+        return view('cobros.recibo', compact('pago', 'alumno', 'razonesDisponibles', 'configFiscal'));
     }
 
     /** GET /cobros/recibo/{pagoId}/pdf — Descarga el recibo en PDF */

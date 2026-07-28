@@ -132,6 +132,9 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/alumnos/exportar-excel', [AlumnoController::class, 'exportarExcel'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.exportar-excel');
+    Route::get('/alumnos/reporte-cumpleaneros', [AlumnoController::class, 'reporteCumpleaneros'])
+        ->middleware('rol:administrador,recepcion,caja')
+        ->name('alumnos.reporte-cumpleaneros');
     // Registrar alumnos (create/store) — admin, recepción, caja, admisiones e información y admisiones
     // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
     // de la ruta /alumnos/{alumno} para evitar que "create" se resuelva como {id}
@@ -393,7 +396,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('prospectos.documentos.archivo');
 
     Route::resource('prospectos', ProspectoController::class)
-        ->only(['index', 'show', 'create', 'store'])
+        ->only(['index', 'show', 'create', 'store', 'edit', 'update'])
         ->middleware('rol:administrador,recepcion,admisiones');
 
     // ── Usuarios ─────────────────────────────────────────
