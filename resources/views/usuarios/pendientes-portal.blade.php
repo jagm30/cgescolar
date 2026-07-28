@@ -113,8 +113,12 @@
         $mensajeMostrar = session('mensaje') ?? session('mensaje_persistente');
         session()->forget('mensaje_persistente');
         $hayPdf = session()->has('credenciales_nuevas');
-    @endphp
 
+        // Mantiene los datos vivos para que el botón los encuentre al hacer clic
+        if ($hayPdf) {
+            session()->keep(['credenciales_nuevas']);
+        }
+    @endphp
     {{-- TARJETA DE NOTIFICACIÓN PERSISTENTE --}}
     @if ($mensajeMostrar)
         <div class="alert alert-dismissible"
@@ -138,7 +142,7 @@
 
                     @if ($hayPdf)
                         <div style="margin-top: 12px;">
-                            <a href="{{ route('usuarios.credencialesPdf') }}" target="_blank"
+                            <a href="{{ route('usuarios.credencialesPdf') }}"
                                 style="display: inline-block; background: #28a745; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; text-decoration: none;">
                                 <i class="fa fa-file-pdf-o" style="margin-right: 4px;"></i> Descargar PDF de Credenciales
                             </a>
@@ -159,11 +163,11 @@
 
                     {{-- FILTRO POR TIPO (oculto para director: solo ve padres) --}}
                     @if (!$esDirector)
-                    <select id="filtro-tipo" class="filter-select" style="min-width: 180px;">
-                        <option value="todos">Todos los pendientes</option>
-                        <option value="contacto">Solo Padres de Familia</option>
-                        <option value="personal">Solo Personal (Empleados)</option>
-                    </select>
+                        <select id="filtro-tipo" class="filter-select" style="min-width: 180px;">
+                            <option value="todos">Todos los pendientes</option>
+                            <option value="contacto">Solo Padres de Familia</option>
+                            <option value="personal">Solo Personal (Empleados)</option>
+                        </select>
                     @endif
 
                     {{-- FILTRO POR SECCIÓN ESCOLAR --}}
@@ -219,7 +223,8 @@
                                     <td style="font-family:monospace; color: #64748b;">{{ $p->email }}</td>
                                     <td>
                                         @if ($p->tipo === 'contacto')
-                                            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Padre de Familia</span>
+                                            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Padre de
+                                                Familia</span>
                                         @else
                                             <select class="form-control select-rol"
                                                 style="height: 30px; font-size: 12px; padding: 2px 10px;">
@@ -257,13 +262,14 @@
                 </div>
                 <div style="padding:15px; font-size:12px; color:#64748b;">
                     <p>Al procesar los usuarios podrás descargar un <b>archivo PDF</b> con las credenciales.
-                        Usa la casilla <b>"Enviar correo"</b> para controlar si se notifica a cada usuario por correo electrónico.</p>
+                        Usa la casilla <b>"Enviar correo"</b> para controlar si se notifica a cada usuario por correo
+                        electrónico.</p>
                     @if (!$esDirector)
-                    <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Para el
-                        personal administrativo, asegúrate de seleccionar el rol correcto antes de procesar su alta.</p>
+                        <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Para el
+                            personal administrativo, asegúrate de seleccionar el rol correcto antes de procesar su alta.</p>
                     @else
-                    <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Como
-                        director de sección, únicamente puedes activar cuentas de <b>Padres de Familia</b>.</p>
+                        <p style="margin-top: 10px; color: #d97706;"><i class="fa fa-info-circle"></i> <b>Nota:</b> Como
+                            director de sección, únicamente puedes activar cuentas de <b>Padres de Familia</b>.</p>
                     @endif
                 </div>
             </div>
@@ -276,12 +282,12 @@
         $(document).ready(function() {
             // ── FILTROS COMBINADOS (tipo + sección) ──────────────────
             function aplicarFiltros() {
-                let tipo    = $('#filtro-tipo').val() || 'todos';
+                let tipo = $('#filtro-tipo').val() || 'todos';
                 let nivelId = String($('#filtro-seccion').val() || '');
 
                 $('.row-pendiente').each(function() {
-                    let rowTipo    = $(this).data('tipo');
-                    let nivelIds   = String($(this).data('nivel-ids') || '').split(',').filter(Boolean);
+                    let rowTipo = $(this).data('tipo');
+                    let nivelIds = String($(this).data('nivel-ids') || '').split(',').filter(Boolean);
 
                     let pasaTipo = (tipo === 'todos') || (rowTipo === tipo);
 
@@ -343,14 +349,17 @@
                         contactos.push(id);
                     } else if (tipo === 'personal') {
                         let rol = $(this).find('.select-rol').val();
-                        personal.push({ id: id, rol: rol });
+                        personal.push({
+                            id: id,
+                            rol: rol
+                        });
                     }
                 });
 
                 let total = contactos.length + personal.length;
-                let msgCorreo = enviarCorreo
-                    ? 'Se enviará correo con credenciales a cada usuario.'
-                    : '⚠ No se enviará correo. Descarga el PDF para entregar las credenciales manualmente.';
+                let msgCorreo = enviarCorreo ?
+                    'Se enviará correo con credenciales a cada usuario.' :
+                    '⚠ No se enviará correo. Descarga el PDF para entregar las credenciales manualmente.';
 
                 if (!confirm("¿Dar de alta " + total + " cuenta(s)?\n\n" + msgCorreo)) return;
 
@@ -381,10 +390,5 @@
                     });
             }
         });
-
-        // Auto-descarga del PDF al recargar la página si hay credenciales en sesión
-        @if ($hayPdf)
-            window.location.href = "{{ route('usuarios.credencialesPdf') }}";
-        @endif
     </script>
 @endpush

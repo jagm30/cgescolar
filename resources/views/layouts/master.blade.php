@@ -19,9 +19,14 @@
     <link rel="stylesheet" href="{{ asset('bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css') }}">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 
     @stack('styles')
+
+    <!-- Etiquetas PWA -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#3c8dbc">
+    <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
 </head>
 
 <body class="hold-transition skin-blue sidebar-mini">
@@ -108,6 +113,16 @@
     </script>
 
     @stack('scripts')
+    <script>
+        // Registrar el Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registrado con éxito', reg.scope))
+                    .catch(err => console.warn('Error al registrar el Service Worker', err));
+            });
+        }
+    </script>
 
 </body>
 
