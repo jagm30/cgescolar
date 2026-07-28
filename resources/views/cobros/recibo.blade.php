@@ -4,14 +4,27 @@
 @section('page_subtitle', 'Folio: ' . $pago->folio_recibo)
 
 @section('content')
+    @php
+        $cfdiVigente  = $pago->cfdis->where('estado', 'vigente')->first();
+        $cfdiGlobal   = $pago->cfdiGlobal->where('estado', 'vigente')->first();
+        $tieneFactura = $cfdiVigente || $cfdiGlobal;
+        $esAnulado    = $pago->estado === 'anulado';
+        $puedeFacturar = auth()->user()->esAdministrador() || auth()->user()->esCajero();
+    @endphp
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
 
-            {{-- Alertas de éxito si viene de pagar --}}
             @if (session('success'))
                 <div class="alert alert-success alert-dismissible">
                     <button type="button" class="close" data-dismiss="alert">&times;</button>
                     <i class="fa fa-check-circle"></i> {{ session('success') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <i class="fa fa-exclamation-circle"></i> {{ session('error') }}
                 </div>
             @endif
 
@@ -22,15 +35,167 @@
                         <i class="fa fa-file-text-o text-blue"></i> Operación Exitosa
                     </h3>
                     <div class="box-tools">
-                        {{-- ¡AQUÍ ESTÁ LA MAGIA! Llama a la ruta PDF en nueva pestaña --}}
                         <a href="{{ route('cobros.pdf', $pago->id) }}" target="_blank" class="btn btn-primary btn-flat">
                             <i class="fa fa-print"></i> Generar Recibo Oficial (PDF)
                         </a>
+                        @if ($puedeFacturar && isset($configFiscal) && $configFiscal && !$esAnulado && !$tieneFactura)
+                            <button type="button" class="btn btn-flat"
+                                    style="background:#7b2d8b;color:#fff;"
+                                    data-toggle="collapse" data-target="#panel-factura">
+                                <i class="fa fa-file-text-o"></i> Facturar
+                            </button>
+                        @elseif ($tieneFactura)
+                            <span class="btn btn-flat disabled"
+                                  style="background:#e8f5ee;color:#00875a;cursor:default;">
+                                <i class="fa fa-check-circle"></i> CFDI emitido
+                            </span>
+                        @endif
                         <a href="{{ route('cobros.index') }}" class="btn btn-success btn-flat">
                             <i class="fa fa-plus"></i> Nuevo Cobro
                         </a>
                     </div>
                 </div>
+
+                {{-- Panel colapsable de facturación --}}
+                @if ($puedeFacturar && isset($configFiscal) && $configFiscal && !$esAnulado && !$tieneFactura)
+                <div id="panel-factura" class="collapse {{ session('error') ? 'in' : '' }}" style="border-bottom:1px solid #e0e7ef; background:#faf5ff;">
+                    <div style="padding:18px 25px;">
+                        <h4 style="color:#7b2d8b;margin-top:0;margin-bottom:14px;">
+                            <i class="fa fa-file-text-o"></i> Emitir CFDI
+                        </h4>
+                        <form method="POST" action="{{ route('cfdis.emitir', $pago->id) }}">
+                            @csrf
+                            <div class="row">
+                                <div class="col-sm-7">
+                                    <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:6px;">
+                                        RFC del receptor
+                                    </label>
+                                    @php
+                                    $nombreRegimen = [
+                                        '601'=>'General Personas Morales','603'=>'PM Fines no Lucrativos',
+                                        '605'=>'Sueldos y Salarios','606'=>'Arrendamiento',
+                                        '608'=>'Demás ingresos','611'=>'Dividendos',
+                                        '612'=>'Act. Empresariales y Profesionales','614'=>'Intereses',
+                                        '615'=>'Premios','616'=>'Sin obligaciones fiscales',
+                                        '620'=>'Soc. Cooperativas','621'=>'Incorporación Fiscal',
+                                        '622'=>'Act. Agrícolas/Ganaderas','625'=>'Plataformas Tecnológicas',
+                                        '626'=>'RESICO',
+                                    ];
+                                    @endphp
+                                    @forelse ($razonesDisponibles as $rs)
+                                        <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;
+                                                      border:1px solid #e0e7ef;border-radius:6px;margin-bottom:4px;
+                                                      cursor:pointer;font-weight:400;background:#fff;">
+                                            <input type="radio" name="razon_social_id" value="{{ $rs->id }}"
+                                                   data-uso="{{ $rs->uso_cfdi_default }}"
+                                                   data-regimen="{{ $rs->regimen_fiscal }}"
+                                                   {{ $loop->first ? 'checked' : '' }}
+                                                   style="margin-top:3px;flex-shrink:0;">
+                                            <span>
+                                                <span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">{{ $rs->rfc }}</span>
+                                                <span style="display:block;font-size:11px;color:#4a5568;">{{ $rs->razon_social }}</span>
+                                                <span style="display:block;font-size:10px;color:#b0bec5;">
+                                                    {{ $rs->contacto?->nombre_completo }}
+                                                    &nbsp;·&nbsp; Régimen {{ $rs->regimen_fiscal }}
+                                                    @if(isset($nombreRegimen[$rs->regimen_fiscal]))
+                                                        — {{ $nombreRegimen[$rs->regimen_fiscal] }}
+                                                    @endif
+                                                </span>
+                                            </span>
+                                        </label>
+                                    @empty
+                                    @endforelse
+                                    <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;
+                                                  border:1px solid #e0e7ef;border-radius:6px;cursor:pointer;
+                                                  font-weight:400;background:#fff;">
+                                        <input type="radio" name="razon_social_id" value=""
+                                               data-uso="S01" data-regimen="616"
+                                               {{ $razonesDisponibles->isEmpty() ? 'checked' : '' }}>
+                                        <span>
+                                            <span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">XAXX010101000</span>
+                                            <span style="display:block;font-size:11px;color:#8a9ab0;">Público en general · Régimen 616</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="form-group">
+                                        <label style="font-size:11px;font-weight:700;color:#4a5568;">Uso CFDI</label>
+                                        <select id="uso-cfdi-select-recibo" name="uso_cfdi" class="form-control input-sm" style="border-radius:5px;">
+                                            <option value="D10">D10 — Pagos por servicios educativos</option>
+                                            <option value="D08">D08 — Transportación escolar obligatoria</option>
+                                            <option value="D01">D01 — Honorarios médicos y gastos hospitalarios</option>
+                                            <option value="G03">G03 — Gastos en general</option>
+                                            <option value="G01">G01 — Adquisición de mercancias</option>
+                                            <option value="CP01">CP01 — Pagos</option>
+                                            <option value="S01">S01 — Sin efectos fiscales</option>
+                                        </select>
+                                        <p id="nota-publico-recibo" style="display:none;margin:4px 0 0;font-size:10px;
+                                                                             color:#856404;background:#fff3cd;
+                                                                             border-radius:4px;padding:4px 7px;">
+                                            <i class="fa fa-info-circle"></i>
+                                            El SAT sólo permite <strong>S01</strong> para "Público en General" (régimen 616).
+                                        </p>
+                                        <p id="nota-regimen-recibo" style="display:none;margin:4px 0 0;font-size:10px;
+                                                                             color:#721c24;background:#f8d7da;
+                                                                             border-radius:4px;padding:4px 7px;">
+                                            <i class="fa fa-exclamation-triangle"></i>
+                                            El régimen registrado no permite <strong>D10</strong> ni deducciones personales.
+                                            Actualiza el régimen en los datos de facturación, o usa <strong>G03 / S01</strong>.
+                                        </p>
+                                    </div>
+                                    <button type="submit" class="btn btn-block btn-flat"
+                                            style="background:#7b2d8b;color:#fff;border-radius:6px;font-weight:600;margin-top:10px;">
+                                        <i class="fa fa-file-text-o"></i> Emitir CFDI
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        <script>
+                        (function () {
+                            var regimenesDeduccion = ['605','606','608','611','612','614','615','621','625','626'];
+
+                            var $radios          = $('input[name="razon_social_id"]');
+                            var $select          = $('#uso-cfdi-select-recibo');
+                            var $notaPublico     = $('#nota-publico-recibo');
+                            var $notaRegimen     = $('#nota-regimen-recibo');
+
+                            function actualizarUso() {
+                                var $checked  = $radios.filter(':checked');
+                                var uso       = $checked.data('uso') || 'S01';
+                                var regimen   = String($checked.data('regimen') || '');
+                                var esPublico = $checked.val() === '';
+
+                                $notaPublico.hide();
+                                $notaRegimen.hide();
+
+                                if (esPublico) {
+                                    $select.val('S01').prop('disabled', true);
+                                    $notaPublico.show();
+                                    return;
+                                }
+
+                                $select.prop('disabled', false);
+
+                                var admiteDeduccion = regimenesDeduccion.indexOf(regimen) !== -1;
+
+                                $select.find('option[value="D10"], option[value="D08"], option[value="D01"]')
+                                       .prop('disabled', !admiteDeduccion);
+
+                                if (!admiteDeduccion) {
+                                    $notaRegimen.show();
+                                    $select.val(['D10','D08','D01'].indexOf(uso) !== -1 ? 'G03' : uso);
+                                } else {
+                                    $select.val(uso);
+                                }
+                            }
+
+                            $radios.on('change', actualizarUso);
+                            actualizarUso();
+                        }());
+                        </script>
+                    </div>
+                </div>
+                @endif
 
                 <div class="box-body" style="padding: 25px;">
                     {{-- Bloque de datos rápidos --}}
@@ -130,11 +295,12 @@
                     </div>
                 </div>
 
-                <div class="box-footer" style="background: #fafafa; padding: 15px 25px; text-center">
+                <div class="box-footer" style="background: #fafafa; padding: 15px 25px;">
                     <a href="{{ route('alumnos.estado-cuenta', $alumno?->id) }}" class="btn btn-default btn-flat btn-sm">
                         <i class="fa fa-list-alt"></i> Ver estado de cuenta del alumno
                     </a>
                 </div>
+
             </div>
 
         </div>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>KotanEscolar | Iniciar sesión</title>
+    <title>Genki School Tuxtla | Iniciar sesión</title>
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
 
     {{-- 1. SCRIPT DE CLOUDFLARE (En el head) --}}
@@ -463,7 +463,7 @@
         </div>
 
         <div class="footer-bottom">
-            &copy; {{ date('Y') }} KotanEscolar. Todos los derechos reservados.
+            &copy; {{ date('Y') }} Genki School Tuxtla. Todos los derechos reservados.
         </div>
     </footer>
 

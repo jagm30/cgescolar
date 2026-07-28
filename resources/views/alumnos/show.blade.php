@@ -1456,7 +1456,7 @@
                         </button>
                     @endif
 
-                    @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
+                    @if (auth()->user()->esAdministrador())
                         <button type="button" class="accion-btn btn-eliminar-alumno-show"
                                 style="width:100%;text-align:left;background:none;border:none;cursor:pointer;color:#c0392b;"
                                 data-id="{{ $alumno->id }}"
