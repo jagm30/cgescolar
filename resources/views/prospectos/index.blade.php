@@ -285,6 +285,7 @@
                     <th>Prospecto</th>
                     <th>Contacto</th>
                     <th>Nivel</th>
+                    <th>Grado</th>
                     <th>Canal</th>
                     <th>Ciclo</th>
                     <th>Etapa</th>
@@ -322,6 +323,13 @@
                         <td>
                             <span style="font-size:12px;color:#555;">
                                 {{ optional($prospecto->nivelInteres)->nombre ?: '—' }}
+                            </span>
+                        </td>
+
+                        {{-- GRADO --}}
+                        <td>
+                            <span style="font-size:12px;color:#555;">
+                                {{ optional($prospecto->gradoInteres)->numero ? $prospecto->gradoInteres->numero . '°' : '—' }}
                             </span>
                         </td>
 

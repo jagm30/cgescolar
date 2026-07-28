@@ -24,34 +24,34 @@
     <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
                 display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
                 box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
-                <i class="fa fa-users text-blue"></i> Alumnos
-            </h4>
-            <div style="display:flex;gap:7px;flex-wrap:wrap;">
-                <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
-                             padding:2px 10px;font-size:12px;font-weight:600;">
-                    <i class="fa fa-users"></i> {{ $statsTotal ?? $alumnos->total() }} total
-                </span>
-                <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
-                             padding:2px 10px;font-size:12px;font-weight:600;">
-                    <i class="fa fa-check-circle"></i> {{ $statsActivos ?? '—' }} activos
-                </span>
-                <span style="background:#fef6e7;color:#b45309;border:1px solid #fcd97d;border-radius:20px;
-                             padding:2px 10px;font-size:12px;font-weight:600;">
-                    <i class="fa fa-graduation-cap"></i> {{ $statsInscritos ?? '—' }} inscritos
-                </span>
-                <span style="background:#f5eef8;color:#7d3c98;border:1px solid #ebdef0;border-radius:20px;
-                             padding:2px 10px;font-size:12px;font-weight:600;">
-                    <i class="fa fa-th-large"></i> {{ $grupos->count() }} grupos
-                </span>
-            </div>
-        </div>
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-users text-blue"></i> Alumnos
+        </h4>
         <div style="display:flex;gap:6px;flex-shrink:0;">
             <a href="{{ route('alumnos.reporte-inscritos') }}" target="_blank"
                class="btn btn-default btn-sm btn-flat"
                style="border-radius:20px;white-space:nowrap;">
                 <i class="fa fa-file-pdf-o"></i> Reporte inscritos
+            </a>
+            <a id="btn-cumpleaneros"
+               href="{{ route('alumnos.reporte-cumpleaneros', array_merge(request()->only(['buscar','nivel_id','grupo_id','estado']), ['mes' => now()->month])) }}"
+               target="_blank"
+               class="btn btn-warning btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;background:#e67e22;border-color:#ca6f1e;color:#fff;">
+                <i class="fa fa-birthday-cake"></i> Cumpleañeros
+                <select id="sel-mes-cumple" onclick="event.preventDefault(); event.stopPropagation();"
+                        onchange="actualizarUrlCumple(this.value)"
+                        style="margin-left:5px;font-size:11px;padding:1px 3px;border-radius:4px;
+                               border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.2);
+                               color:#fff;cursor:pointer;vertical-align:middle;">
+                    @php $meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; @endphp
+                    @foreach($meses as $i => $nombre)
+                        <option value="{{ $i + 1 }}" {{ now()->month == $i + 1 ? 'selected' : '' }}
+                                style="color:#333;background:#fff;">
+                            {{ $nombre }}
+                        </option>
+                    @endforeach
+                </select>
             </a>
             <a href="{{ route('alumnos.exportar-excel', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}"
                class="btn btn-success btn-sm btn-flat"
@@ -323,8 +323,10 @@
                                                 <i class="fa fa-id-card alm-dropdown-icon alm-dropdown-icon-teal"></i> Imprimir credencial
                                             </a>
                                         </li>
+                                        @endif
 
-                                        {{-- 6. ELIMINAR --}}
+                                        {{-- 6. ELIMINAR — solo administrador --}}
+                                        @if (auth()->user()->esAdministrador())
                                         <li role="separator" class="divider"></li>
                                         <li>
                                             <a href="javascript:void(0)"
@@ -414,6 +416,14 @@
 
         @push('scripts')
             <script>
+                // ── REPORTE CUMPLEAÑEROS: actualizar mes en la URL ──
+                var urlBaseCumple = '{{ route('alumnos.reporte-cumpleaneros', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}';
+
+                function actualizarUrlCumple(mes) {
+                    var sep = urlBaseCumple.indexOf('?') === -1 ? '?' : '&';
+                    document.getElementById('btn-cumpleaneros').href = urlBaseCumple + sep + 'mes=' + mes;
+                }
+
                 // ── 1. TU LÓGICA EXISTENTE PARA FILAS CLICKEABLES (Vanilla JS) ──
                 document.querySelectorAll('.alm-table tbody tr[data-href]').forEach(function(row) {
                     row.addEventListener('click', function(e) {

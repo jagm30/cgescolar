@@ -123,6 +123,45 @@
            onmouseout="this.style.background='rgba(255,255,255,.15)'">
             <i class="fa fa-file-pdf-o"></i> Recibo PDF
         </a>
+        @if($cfdiVigente)
+        <a href="{{ route('cfdis.descargar', [$cfdiVigente->id, 'pdf']) }}"
+           style="background:rgba(155,60,180,.55);color:#fff;font-size:12px;font-weight:700;
+                  padding:6px 14px;border-radius:10px;border:1px solid rgba(200,100,220,.5);
+                  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+                  transition:background .15s;"
+           onmouseover="this.style.background='rgba(155,60,180,.75)'"
+           onmouseout="this.style.background='rgba(155,60,180,.55)'">
+            <i class="fa fa-file-pdf-o"></i> Factura PDF
+        </a>
+        <a href="{{ route('cfdis.descargar', [$cfdiVigente->id, 'xml']) }}"
+           style="background:rgba(255,255,255,.1);color:#f0c8ff;font-size:12px;font-weight:700;
+                  padding:6px 14px;border-radius:10px;border:1px solid rgba(200,100,220,.4);
+                  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+                  transition:background .15s;"
+           onmouseover="this.style.background='rgba(255,255,255,.2)'"
+           onmouseout="this.style.background='rgba(255,255,255,.1)'">
+            <i class="fa fa-code"></i> Factura XML
+        </a>
+        @elseif($cfdiGlobal)
+        <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'pdf']) }}"
+           style="background:rgba(30,100,180,.45);color:#fff;font-size:12px;font-weight:700;
+                  padding:6px 14px;border-radius:10px;border:1px solid rgba(80,140,220,.5);
+                  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+                  transition:background .15s;"
+           onmouseover="this.style.background='rgba(30,100,180,.65)'"
+           onmouseout="this.style.background='rgba(30,100,180,.45)'">
+            <i class="fa fa-globe"></i> Fact. Global PDF
+        </a>
+        <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'xml']) }}"
+           style="background:rgba(255,255,255,.1);color:#cce0ff;font-size:12px;font-weight:700;
+                  padding:6px 14px;border-radius:10px;border:1px solid rgba(80,140,220,.4);
+                  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+                  transition:background .15s;"
+           onmouseover="this.style.background='rgba(255,255,255,.2)'"
+           onmouseout="this.style.background='rgba(255,255,255,.1)'">
+            <i class="fa fa-code"></i> Fact. Global XML
+        </a>
+        @endif
     </div>
 </div>
 
@@ -524,17 +563,37 @@
                         RFC del receptor
                     </label>
 
+                    @php
+                    $nombreRegimen = [
+                        '601'=>'General Personas Morales','603'=>'PM Fines no Lucrativos',
+                        '605'=>'Sueldos y Salarios','606'=>'Arrendamiento',
+                        '608'=>'Demás ingresos','611'=>'Dividendos',
+                        '612'=>'Act. Empresariales y Profesionales','614'=>'Intereses',
+                        '615'=>'Premios','616'=>'Sin obligaciones fiscales',
+                        '620'=>'Soc. Cooperativas','621'=>'Incorporación Fiscal',
+                        '622'=>'Act. Agrícolas/Ganaderas','625'=>'Plataformas Tecnológicas',
+                        '626'=>'RESICO',
+                    ];
+                    @endphp
                     @forelse($razonesDisponibles as $rs)
                     <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;
                                   border:1px solid #e0e7ef;border-radius:6px;margin-bottom:4px;
                                   cursor:pointer;font-weight:400;background:#fafbfc;">
                         <input type="radio" name="razon_social_id" value="{{ $rs->id }}"
+                               data-uso="{{ $rs->uso_cfdi_default }}"
+                               data-regimen="{{ $rs->regimen_fiscal }}"
                                {{ $loop->first && $razonesDisponibles->isNotEmpty() ? 'checked' : '' }}
                                style="margin-top:3px;flex-shrink:0;">
                         <span>
                             <span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">{{ $rs->rfc }}</span>
                             <span style="display:block;font-size:11px;color:#4a5568;">{{ $rs->razon_social }}</span>
-                            <span style="display:block;font-size:10px;color:#b0bec5;">{{ $rs->contacto?->nombre_completo }}</span>
+                            <span style="display:block;font-size:10px;color:#b0bec5;">
+                                {{ $rs->contacto?->nombre_completo }}
+                                &nbsp;·&nbsp; Régimen {{ $rs->regimen_fiscal }}
+                                @if(isset($nombreRegimen[$rs->regimen_fiscal]))
+                                    — {{ $nombreRegimen[$rs->regimen_fiscal] }}
+                                @endif
+                            </span>
                         </span>
                     </label>
                     @empty
@@ -545,10 +604,11 @@
                                   border:1px solid #e0e7ef;border-radius:6px;cursor:pointer;
                                   font-weight:400;background:#fafbfc;">
                         <input type="radio" name="razon_social_id" value=""
+                               data-uso="S01" data-regimen="616"
                                {{ $razonesDisponibles->isEmpty() ? 'checked' : '' }}>
                         <span>
                             <span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">XAXX010101000</span>
-                            <span style="display:block;font-size:11px;color:#8a9ab0;">Público en general</span>
+                            <span style="display:block;font-size:11px;color:#8a9ab0;">Público en general · Régimen 616</span>
                         </span>
                     </label>
                 </div>
@@ -558,12 +618,26 @@
                     <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
                         Uso CFDI
                     </label>
-                    <select name="uso_cfdi" class="form-control input-sm" style="border-radius:5px;">
-                        <option value="D10">D10 — Servicios educativos</option>
-                        <option value="S01">S01 — Sin efectos fiscales</option>
+                    <select id="uso-cfdi-select" name="uso_cfdi" class="form-control input-sm" style="border-radius:5px;">
+                        <option value="D10">D10 — Pagos por servicios educativos</option>
+                        <option value="D08">D08 — Transportación escolar obligatoria</option>
+                        <option value="D01">D01 — Honorarios médicos y gastos hospitalarios</option>
                         <option value="G03">G03 — Gastos en general</option>
-                        <option value="CN01">CN01 — Nómina</option>
+                        <option value="G01">G01 — Adquisición de mercancias</option>
+                        <option value="CP01">CP01 — Pagos</option>
+                        <option value="S01">S01 — Sin efectos fiscales</option>
                     </select>
+                    <p id="nota-publico-general" style="display:none;margin:4px 0 0;font-size:10px;color:#856404;
+                                                         background:#fff3cd;border-radius:4px;padding:4px 7px;">
+                        <i class="fa fa-info-circle"></i>
+                        El SAT sólo permite <strong>S01</strong> para "Público en General" (régimen 616).
+                    </p>
+                    <p id="nota-regimen-incompatible" style="display:none;margin:4px 0 0;font-size:10px;color:#721c24;
+                                                              background:#f8d7da;border-radius:4px;padding:4px 7px;">
+                        <i class="fa fa-exclamation-triangle"></i>
+                        El régimen fiscal registrado para este RFC no permite <strong>D10</strong> ni deducciones personales.
+                        Actualiza el régimen en los datos de facturación del contacto, o selecciona <strong>G03 / S01</strong>.
+                    </p>
                 </div>
 
                 <button type="submit" class="btn btn-sm btn-flat btn-block"
@@ -571,6 +645,52 @@
                     <i class="fa fa-file-text-o"></i> Emitir CFDI
                 </button>
             </form>
+            <script>
+            (function () {
+                // Regímenes del SAT que admiten D10 y otras deducciones personales (c_UsoCFDI CFDI 4.0)
+                var regimenesDeduccion = ['605','606','608','611','612','614','615','621','625','626'];
+
+                var $radios  = $('input[name="razon_social_id"]');
+                var $select  = $('#uso-cfdi-select');
+                var $notaPublico    = $('#nota-publico-general');
+                var $notaRegimen    = $('#nota-regimen-incompatible');
+
+                function actualizarUso() {
+                    var $checked  = $radios.filter(':checked');
+                    var uso       = $checked.data('uso') || 'S01';
+                    var regimen   = String($checked.data('regimen') || '');
+                    var esPublico = $checked.val() === '';
+
+                    $notaPublico.hide();
+                    $notaRegimen.hide();
+
+                    if (esPublico) {
+                        $select.val('S01').prop('disabled', true);
+                        $notaPublico.show();
+                        return;
+                    }
+
+                    $select.prop('disabled', false);
+
+                    var admiteDeduccion = regimenesDeduccion.indexOf(regimen) !== -1;
+
+                    // Deshabilitar opciones de deducción cuando el régimen no las admite
+                    $select.find('option[value="D10"], option[value="D08"], option[value="D01"]')
+                           .prop('disabled', !admiteDeduccion);
+
+                    if (!admiteDeduccion) {
+                        $notaRegimen.show();
+                        // Si el uso guardado es una deducción inválida, bajar a G03
+                        $select.val(['D10','D08','D01'].indexOf(uso) !== -1 ? 'G03' : uso);
+                    } else {
+                        $select.val(uso);
+                    }
+                }
+
+                $radios.on('change', actualizarUso);
+                actualizarUso();
+            }());
+            </script>
         </div>
         @endif
         @endif

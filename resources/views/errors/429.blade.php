@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Demasiados intentos | KotanEscolar</title>
+    <title>Demasiados intentos | Genki School Tuxtla</title>
 
     <!-- Icono de la pestaña -->
     <link rel="icon" type="image/png" href="{{ asset('dist/img/credit/Kotan2.png') }}">

@@ -1520,12 +1520,31 @@
                 var $form = $(this);
                 var $paneles = $('.ctc-panel');
 
-                $('#btn-guardar').prop('disabled', true)
-                    .html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
-
                 if ($paneles.length === 0) return; // sin contactos, enviar directo
 
                 e.preventDefault();
+
+                // ── Validación client-side antes de disparar AJAX ──
+                var errorValidacion = null;
+                $paneles.each(function() {
+                    var $panel = $(this);
+                    if (!$panel.find('.ctc-nombre').val().trim()) {
+                        errorValidacion = 'El nombre del contacto es obligatorio.';
+                        return false;
+                    }
+                    if (!$panel.find('.ctc-telefono').val().trim()) {
+                        errorValidacion = 'El teléfono del contacto es obligatorio.';
+                        return false;
+                    }
+                });
+
+                if (errorValidacion) {
+                    alertaCtc(errorValidacion, 'danger');
+                    return;
+                }
+
+                $('#btn-guardar').prop('disabled', true)
+                    .html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
 
                 var peticiones = $paneles.map(function() {
                     var $panel = $(this);
@@ -1543,9 +1562,9 @@
                             ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
                             ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
                             telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
-                            email:               $panel.find('.ctc-email').val().trim(),
+                            email:               $panel.find('.ctc-email').val().trim() || null,
                             // Datos adicionales
-                            telefono_2:          $panel.find('.ctc-telefono2').val().trim(),
+                            telefono_2:          $panel.find('.ctc-telefono2').val().trim() || null,
                             fecha_nacimiento:    $panel.find('.ctc-fecha-nacimiento').val() || null,
                             lugar_trabajo:       $panel.find('.ctc-lugar-trabajo').val().trim(),
                             puesto:              $panel.find('.ctc-puesto').val().trim(),
@@ -1563,9 +1582,18 @@
                     });
                 }).get();
 
-                $.when.apply($, peticiones).always(function() {
-                    $form[0].submit();
-                });
+                $.when.apply($, peticiones)
+                    .then(function() {
+                        $form[0].submit();
+                    })
+                    .fail(function(xhr) {
+                        $('#btn-guardar').prop('disabled', false)
+                            .html('<i class="fa fa-save"></i> Guardar cambios');
+                        var errores = xhr.responseJSON && xhr.responseJSON.errors
+                            ? Object.values(xhr.responseJSON.errors).flat()[0]
+                            : null;
+                        alertaCtc(errores || xhr.responseJSON?.message || 'Error al guardar los datos del contacto.', 'danger');
+                    });
             });
 
             // ══════════════════════════════════════════════════
@@ -1593,9 +1621,9 @@
                         ap_paterno:          $panel.find('.ctc-ap-paterno').val().trim(),
                         ap_materno:          $panel.find('.ctc-ap-materno').val().trim(),
                         telefono_celular:    $panel.find('.ctc-telefono').val().trim(),
-                        email:               $panel.find('.ctc-email').val().trim(),
+                        email:               $panel.find('.ctc-email').val().trim() || null,
                         // Datos adicionales
-                        telefono_2:          $panel.find('.ctc-telefono2').val().trim(),
+                        telefono_2:          $panel.find('.ctc-telefono2').val().trim() || null,
                         fecha_nacimiento:    $panel.find('.ctc-fecha-nacimiento').val() || null,
                         lugar_trabajo:       $panel.find('.ctc-lugar-trabajo').val().trim(),
                         puesto:              $panel.find('.ctc-puesto').val().trim(),

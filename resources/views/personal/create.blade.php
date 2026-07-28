@@ -209,7 +209,7 @@
                             <label class="checkbox-custom">
                                 <input type="checkbox" name="tiene_acceso_sistema" id="chk-acceso" value="1"
                                     {{ old('tiene_acceso_sistema') ? 'checked' : '' }}>
-                                Dar acceso a KotanEscolar (Crear usuario)
+                                Dar acceso a Genki School Tuxtla (Crear usuario)
                             </label>
                             <p class="text-muted" style="margin: 5px 0 0 28px; font-size: 12px;">
                                 Al marcar esta opción, el empleado será enviado a la lista de "Usuarios Pendientes Portal"

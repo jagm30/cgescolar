@@ -390,4 +390,5 @@
                     });
             }
         });
-    @endpush
+    </script>
+@endpush

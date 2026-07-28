@@ -48,6 +48,13 @@ class CfdiService
             );
         }
 
+        $pago->loadMissing([
+            'detalles.cargo.concepto',
+            'detalles.cargo.inscripcion.alumno',
+            'detalles.cargo.inscripcion.ciclo',
+            'detalles.cargo.inscripcion.grupo.grado.nivel',
+        ]);
+
         $rs       = $razonSocialId ? RazonSocialContacto::with('contacto')->findOrFail($razonSocialId) : null;
         $receptor = $rs
             ? $this->receptorDesdeRazonSocial($rs)
@@ -142,6 +149,12 @@ class CfdiService
     {
         $m = strtolower($mensaje);
 
+        // CFDI40161: UsoCFDI incompatible con régimen — el cliente fue creado en factura.com
+        // con un régimen distinto al actual; hay que eliminarlo del caché para recrearlo.
+        if (str_contains($m, 'cfdi40161') || str_contains($m, 'usocfdi')) {
+            return true;
+        }
+
         return str_contains($m, 'receptor') && (
             str_contains($m, 'catálogo')       ||
             str_contains($m, 'catalogo')       ||
@@ -164,10 +177,28 @@ class CfdiService
     ): array {
         $conceptos = $pago->detalles->map(function ($detalle) {
             $alumno      = $detalle->cargo?->inscripcion?->alumno;
+            $ciclo       = $detalle->cargo?->inscripcion?->ciclo;
+            $nivel       = $detalle->cargo?->inscripcion?->grupo?->grado?->nivel;
             $descripcion = $detalle->cargo?->etiqueta ?? 'Servicio educativo';
+
+            if ($ciclo) {
+                $descripcion .= ' — Ciclo Escolar: ' . $ciclo->nombre;
+            }
 
             if ($alumno) {
                 $descripcion .= ' — ' . trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
+            }
+
+            if ($alumno?->curp) {
+                $descripcion .= ' — CURP: ' . $alumno->curp;
+            }
+
+            if ($nivel) {
+                $descripcion .= ' — ' . $nivel->nombre;
+            }
+
+            if ($nivel?->revoe) {
+                $descripcion .= ' — RVOE: ' . $nivel->revoe;
             }
 
             return [

@@ -80,5 +80,5 @@
     <div class="pull-right hidden-xs">
         <b>Versión</b> 1.0
     </div>
-    <strong>Copyright &copy; {{ date('Y') }} KotanEscolar.</strong> Todos los derechos reservados.
+    <strong>Copyright &copy; {{ date('Y') }} Genki School Tuxtla.</strong> Todos los derechos reservados.
 </footer>
