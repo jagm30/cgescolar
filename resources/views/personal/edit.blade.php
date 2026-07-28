@@ -213,7 +213,7 @@
                             <label class="checkbox-custom">
                                 <input type="checkbox" name="tiene_acceso_sistema" id="chk-acceso" value="1"
                                     {{ old('tiene_acceso_sistema', $empleado->tiene_acceso_sistema) ? 'checked' : '' }}>
-                                Dar acceso a KotanEscolar (Usuario del sistema)
+                                Dar acceso a Genki School Tuxtla (Usuario del sistema)
                             </label>
                             <p class="text-muted" style="margin: 5px 0 0 28px; font-size: 12px;">
                                 Si desmarcas esta opción, el empleado perderá inmediatamente el acceso al sistema (su

@@ -88,6 +88,8 @@ class CfdiController extends Controller
         $pago = Pago::with([
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
+            'detalles.cargo.inscripcion.ciclo',
+            'detalles.cargo.inscripcion.grupo.grado.nivel',
             'cfdis' => fn($q) => $q->where('estado', 'vigente'),
         ])->findOrFail($pagoId);
 
@@ -112,10 +114,15 @@ class CfdiController extends Controller
         }
 
         $razonSocialId = $request->filled('razon_social_id') ? (int) $request->razon_social_id : null;
+        $emailContacto = null;
 
-        $receptor = $razonSocialId
-            ? $this->receptorDesdeRazonSocial(RazonSocialContacto::with('contacto')->findOrFail($razonSocialId), $factura)
-            : $this->receptorPublicoGeneral($config, $factura);
+        if ($razonSocialId) {
+            $rs            = RazonSocialContacto::with('contacto')->findOrFail($razonSocialId);
+            $receptor      = $this->receptorDesdeRazonSocial($rs, $factura);
+            $emailContacto = $rs->contacto?->email ?: null;
+        } else {
+            $receptor = $this->receptorPublicoGeneral($config, $factura);
+        }
 
         $fechaEmision = $request->filled('fecha_emision')
             ? Carbon::parse($request->fecha_emision, config('app.timezone'))
@@ -166,6 +173,14 @@ class CfdiController extends Controller
             }
 
             return $this->respuestaError('Error al emitir CFDI: ' . $e->getMessage());
+        }
+
+        if ($emailContacto && $resultado['cfdi']->factura_uid) {
+            try {
+                $this->despacharCfdiPorCorreo($resultado['cfdi'], $emailContacto, $factura);
+            } catch (\Throwable) {
+                // El CFDI ya fue timbrado; el fallo del correo no revierte la emisión.
+            }
         }
 
         return $this->respuestaExito(
@@ -270,29 +285,12 @@ class CfdiController extends Controller
         }
 
         try {
-            $pdf     = $factura->descargar($cfdi->factura_uid, 'pdf');
-            $xml     = $factura->descargar($cfdi->factura_uid, 'xml');
-            $folio       = $cfdi->folio ?? "CFDI-{$cfdiId}";
-            $setting     = Setting::find(1);
-            $escuela     = $setting?->nombre_escuela ?? config('app.name');
-            $logoRuta    = $setting?->logo_ruta ?? 'logo-escuela.png';
-            $logoPath    = public_path('imgs_escuela/reportes/' . $logoRuta);
-
-            Mail::send(
-                'emails.cfdi',
-                ['folio' => $folio, 'nombreEscuela' => $escuela, 'logoPath' => $logoPath],
-                function ($msg) use ($request, $folio, $escuela, $pdf, $xml) {
-                    $msg->to($request->email)
-                        ->subject("Factura electrónica {$folio} — {$escuela}")
-                        ->attachData($pdf, "{$folio}.pdf", ['mime' => 'application/pdf'])
-                        ->attachData($xml, "{$folio}.xml", ['mime' => 'application/xml']);
-                }
-            );
+            $this->despacharCfdiPorCorreo($cfdi, $request->email, $factura);
 
             return $this->respuestaExito(
                 redirectRoute: 'pagos.show',
                 jsonData: ['ok' => true],
-                mensaje: "Factura {$folio} enviada a {$request->email}.",
+                mensaje: "Factura {$cfdi->folio} enviada a {$request->email}.",
                 routeParams: [$cfdi->pago_id]
             );
         } catch (\Throwable $e) {
@@ -470,6 +468,29 @@ class CfdiController extends Controller
 
     // ── Helpers privados ──────────────────────────────────────────────────────
 
+    /** Descarga el PDF y XML de factura.com y los envía como adjuntos al email indicado. */
+    private function despacharCfdiPorCorreo(Cfdi $cfdi, string $email, FacturaComService $factura): void
+    {
+        $pdf      = $factura->descargar($cfdi->factura_uid, 'pdf');
+        $xml      = $factura->descargar($cfdi->factura_uid, 'xml');
+        $folio    = $cfdi->folio ?? "CFDI-{$cfdi->id}";
+        $setting  = Setting::find(1);
+        $escuela  = $setting?->nombre_escuela ?? config('app.name');
+        $logoRuta = $setting?->logo_ruta ?? 'logo-escuela.png';
+        $logoPath = public_path('imgs_escuela/reportes/' . $logoRuta);
+
+        Mail::send(
+            'emails.cfdi',
+            ['folio' => $folio, 'nombreEscuela' => $escuela, 'logoPath' => $logoPath],
+            function ($msg) use ($email, $folio, $escuela, $pdf, $xml) {
+                $msg->to($email)
+                    ->subject("Factura electrónica {$folio} — {$escuela}")
+                    ->attachData($pdf, "{$folio}.pdf", ['mime' => 'application/pdf'])
+                    ->attachData($xml, "{$folio}.xml", ['mime' => 'application/xml']);
+            }
+        );
+    }
+
     private function receptorDesdeRazonSocial(RazonSocialContacto $rs, FacturaComService $factura): array
     {
         if (! $rs->factura_uid) {
@@ -535,10 +556,28 @@ class CfdiController extends Controller
         $fechaEmision ??= now();
         $conceptos = $pago->detalles->map(function ($detalle) {
             $alumno      = $detalle->cargo?->inscripcion?->alumno;
+            $ciclo       = $detalle->cargo?->inscripcion?->ciclo;
+            $nivel       = $detalle->cargo?->inscripcion?->grupo?->grado?->nivel;
             $descripcion = $detalle->cargo?->etiqueta ?? 'Servicio educativo';
+
+            if ($ciclo) {
+                $descripcion .= ' — Ciclo Escolar: ' . $ciclo->nombre;
+            }
 
             if ($alumno) {
                 $descripcion .= ' — ' . trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
+            }
+
+            if ($alumno?->curp) {
+                $descripcion .= ' — CURP: ' . $alumno->curp;
+            }
+
+            if ($nivel) {
+                $descripcion .= ' — ' . $nivel->nombre;
+            }
+
+            if ($nivel?->revoe) {
+                $descripcion .= ' — RVOE: ' . $nivel->revoe;
             }
 
             return [

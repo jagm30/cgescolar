@@ -650,6 +650,69 @@ class AlumnoController extends Controller
         return $export->descargar($request, $this->cicloActualId());
     }
 
+    /** GET /alumnos/reporte-cumpleaneros */
+    public function reporteCumpleaneros(Request $request)
+    {
+        $cicloId = $this->cicloActualId();
+        $ciclo   = CicloEscolar::findOrFail($cicloId);
+        $setting = Setting::first();
+        $mes     = (int) ($request->mes ?? now()->month);
+
+        $alumnos = Alumno::with([
+            'inscripciones' => fn ($q) => $q
+                ->where('activo', true)
+                ->with('grupo.grado.nivel'),
+        ])
+            ->whereMonth('fecha_nacimiento', $mes)
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
+            ))
+            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->where('grupo_id', $request->grupo_id)
+            ))
+            ->when($request->filled('buscar'), fn ($q) => $q->where(fn ($q) => $q
+                ->where('nombre', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('matricula', 'like', "%{$request->buscar}%")
+                ->orWhere('curp', 'like', "%{$request->buscar}%")
+            ))
+            ->orderByRaw('DAY(fecha_nacimiento)')
+            ->orderBy('ap_paterno')
+            ->get();
+
+        $nombreMes = ucfirst(\Carbon\Carbon::create()->month($mes)->translatedFormat('F'));
+
+        $fotosPorAlumno = $alumnos
+            ->filter(fn ($a) => $a->foto_url)
+            ->mapWithKeys(fn ($a) => [
+                $a->id => $this->imagenBase64(storage_path('app/public/' . $a->foto_url)),
+            ]);
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('alumnos.reportes.cumpleaneros_pdf', [
+            'alumnos'        => $alumnos,
+            'fotosPorAlumno' => $fotosPorAlumno,
+            'ciclo'          => $ciclo,
+            'mes'            => $mes,
+            'nombreMes'      => $nombreMes,
+            'base64'         => $this->logoBase64($setting),
+            'setting'        => $setting,
+            'filtros'        => $request->only(['nivel_id', 'grupo_id', 'estado', 'buscar']),
+        ]);
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Cumpleaneros_{$nombreMes}.pdf");
+    }
+
     /** GET /alumnos/reporte-inscritos */
     public function reporteInscritos()
     {
@@ -985,6 +1048,17 @@ class AlumnoController extends Controller
         }
 
         return '';
+    }
+
+    private function imagenBase64(string $path): string
+    {
+        if (! file_exists($path)) {
+            return '';
+        }
+
+        $type = pathinfo($path, PATHINFO_EXTENSION);
+
+        return 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
     }
 
     private function generarMatricula(int $cicloId): string
