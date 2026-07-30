@@ -289,7 +289,6 @@
     <div class="fac-hero">
         <div class="fac-hero-icon"><i class="fa fa-file-text-o"></i></div>
         <div>
-            <div class="fac-hero-titulo">Facturación</div>
             <div class="fac-hero-sub">
                 Aquí puedes solicitar facturas electrónicas (CFDI) de tus pagos o descargar las que ya emitiste.
             </div>

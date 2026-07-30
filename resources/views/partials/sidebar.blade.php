@@ -175,11 +175,6 @@
                     </a>
                 </li>
 
-                <li class="{{ request()->routeIs('portal.estado-cuenta') ? 'active' : '' }}">
-                    <a href="{{ route('portal.hijos') }}">
-                        <i class="fa fa-file-text-o"></i> <span>Estados de cuenta</span>
-                    </a>
-                </li>
 
                 <li class="{{ request()->routeIs('portal.facturas') ? 'active' : '' }}">
                     <a href="{{ route('portal.facturas') }}">

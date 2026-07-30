@@ -159,6 +159,8 @@ class UsuarioController extends Controller
                 'rol'      => 'required|string',
                 'password' => 'required|string|min:6',
                 'seccion'  => 'nullable|string|in:maternal,preescolar,primaria,secundaria,todas',
+            ], [
+                'email.unique' => "El correo '{$request->email}' ya está registrado en el sistema.",
             ]);
 
             // Director de sección solo puede crear cuentas de padre
@@ -385,6 +387,7 @@ class UsuarioController extends Controller
     /** POST /usuarios/generar-masivos (PADRES Y PERSONAL) */
     public function generarUsuariosMasivos(Request $request)
     {
+        try {
         $contactoIds  = $request->input('contacto_ids', []);
         $enviarCorreo = (bool) $request->input('enviar_correo', true);
 
@@ -392,6 +395,30 @@ class UsuarioController extends Controller
         $personalDatos = auth()->user()->esDirectorSeccion()
             ? []
             : $request->input('personal_datos', []);
+
+        // Validar correos duplicados antes de crear cualquier usuario
+        $emailsRepetidos = [];
+
+        foreach ($contactoIds as $id) {
+            $contacto = ContactoFamiliar::find($id);
+            if ($contacto && !$contacto->usuario_id && Usuario::where('email', $contacto->email)->exists()) {
+                $emailsRepetidos[] = $contacto->email;
+            }
+        }
+
+        foreach ($personalDatos as $empData) {
+            $empleado = Personal::find($empData['id']);
+            if ($empleado && !$empleado->usuario_id && Usuario::where('email', $empleado->email)->exists()) {
+                $emailsRepetidos[] = $empleado->email;
+            }
+        }
+
+        if (!empty($emailsRepetidos)) {
+            return response()->json([
+                'status'  => 'error',
+                'mensaje' => 'Los siguientes correos ya están registrados en el sistema: ' . implode(', ', $emailsRepetidos),
+            ], 422);
+        }
 
         $usuariosCreados = [];
         $enviados = 0;
@@ -479,6 +506,20 @@ class UsuarioController extends Controller
             'mensaje'  => $mensajeNotificacion,
             'pdf_url'  => route('usuarios.credencialesPdf'),
         ]);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            $mensaje = str_contains($e->getMessage(), 'Duplicate entry')
+                ? 'Uno o más correos electrónicos ya están registrados en el sistema. Verifica los datos antes de continuar.'
+                : 'Error de base de datos: ' . $e->getMessage();
+
+            return response()->json(['status' => 'error', 'mensaje' => $mensaje], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'mensaje' => 'Error inesperado: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /** POST /usuarios/{id}/resetear-password-pdf */

@@ -187,18 +187,13 @@
 
 @section('content')
 
-    {{-- Cabecera de la sección --}}
-    <div style="margin-bottom:16px;">
-        <div style="font-size:22px;font-weight:800;color:#1a2634;margin-bottom:2px;">
-            Mis hijos
-        </div>
-        <div style="font-size:14px;color:#7b8794;">
-            @if ($alumnos->count() > 0)
-                {{ $alumnos->count() }} alumno(s) vinculado(s) a tu cuenta.
-            @else
-                No tienes alumnos vinculados todavía.
-            @endif
-        </div>
+    {{-- Subtítulo con conteo --}}
+    <div style="margin-bottom:16px;font-size:14px;color:#7b8794;">
+        @if ($alumnos->count() > 0)
+            {{ $alumnos->count() }} alumno(s) vinculado(s) a tu cuenta.
+        @else
+            No tienes alumnos vinculados todavía.
+        @endif
     </div>
 
     @forelse ($alumnos as $alumno)
