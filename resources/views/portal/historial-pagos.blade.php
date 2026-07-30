@@ -239,7 +239,6 @@
     <div class="hp-hero">
         <div class="hp-hero-nombre">{{ $alumno->nombre_completo }}</div>
         <div class="hp-hero-sub">
-            <span><i class="fa fa-credit-card"></i> Historial de pagos</span>
             @if ($pagos->count() > 0)
                 <span style="background:rgba(255,255,255,.2);padding:2px 10px;border-radius:20px;font-size:12px;">
                     {{ $pagos->count() }} pago(s) registrado(s)

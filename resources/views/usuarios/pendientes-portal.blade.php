@@ -372,7 +372,7 @@
                         if (res.status === 'success') {
                             location.reload();
                         } else {
-                            alert("Hubo un problema: " + res.mensaje);
+                            alert("Hubo un problema:\n" + (res.mensaje || res.message || 'Error desconocido. Revisa el log del servidor.'));
                         }
                     })
                     .catch(err => {

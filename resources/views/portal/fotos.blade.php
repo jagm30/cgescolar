@@ -290,7 +290,6 @@
 
     {{-- ── Cabecera ── --}}
     <div class="ft-hero">
-        <div class="ft-hero-titulo"><i class="fa fa-camera" style="margin-right:8px;"></i>Fotografías</div>
         <div class="ft-hero-sub">Sube o actualiza las fotos de tus hijos y contactos familiares.</div>
     </div>
 

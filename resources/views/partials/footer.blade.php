@@ -2,7 +2,7 @@
     /* ==========================================
        NUEVA IDENTIDAD VISUAL: KOTAN ESCOLAR
        ========================================== */
-       
+
     /* 1. Barra de Navegación Superior (Navbar) */
     .skin-blue .main-header .navbar {
         background-color: #0b3c50 !important; /* Azul oscuro elegante */
@@ -30,8 +30,8 @@
     }
 
     /* 4. Hover y Elemento Activo en el Sidebar */
-    .skin-blue .sidebar-menu>li:hover>a, 
-    .skin-blue .sidebar-menu>li.active>a, 
+    .skin-blue .sidebar-menu>li:hover>a,
+    .skin-blue .sidebar-menu>li.active>a,
     .skin-blue .sidebar-menu>li.menu-open>a {
         color: #ffffff !important;
         background: #082b3a !important; /* Fondo resaltado */
@@ -39,7 +39,7 @@
     }
 
     /* 5. Color de los iconos al hacer Hover/Activo */
-    .skin-blue .sidebar-menu>li:hover>a>i, 
+    .skin-blue .sidebar-menu>li:hover>a>i,
     .skin-blue .sidebar-menu>li.active>a>i {
         color: #48c4a1 !important; /* Iconos color menta */
     }
@@ -51,11 +51,11 @@
     .skin-blue .sidebar-menu .treeview-menu>li>a {
         color: #8aa4af !important;
     }
-    .skin-blue .sidebar-menu .treeview-menu>li.active>a, 
+    .skin-blue .sidebar-menu .treeview-menu>li.active>a,
     .skin-blue .sidebar-menu .treeview-menu>li>a:hover {
         color: #ffffff !important;
     }
-    .skin-blue .sidebar-menu .treeview-menu>li.active>a>i, 
+    .skin-blue .sidebar-menu .treeview-menu>li.active>a>i,
     .skin-blue .sidebar-menu .treeview-menu>li>a:hover>i {
         color: #48c4a1 !important;
     }
@@ -67,7 +67,7 @@
         font-weight: 700;
         letter-spacing: 1px;
     }
-    
+
     /* 8. Panel de usuario arriba del sidebar */
     .skin-blue .sidebar-form, .skin-blue .user-panel {
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);

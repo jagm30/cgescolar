@@ -367,7 +367,6 @@ $misCantidad = $razonesSociales->where('contacto_id', $miContactoId)->count();
     <div class="rs-hero">
         <div class="rs-hero-icon"><i class="fa fa-building-o"></i></div>
         <div>
-            <div class="rs-hero-titulo">Datos fiscales</div>
             <div class="rs-hero-sub">Registra tu RFC para solicitar facturas de los pagos escolares.</div>
         </div>
     </div>

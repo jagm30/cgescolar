@@ -847,7 +847,7 @@
                             $('#modal-crear-usuario').modal('hide');
                             location.reload();
                         } else {
-                            alert("No se pudo crear el usuario: \n" + res.mensaje);
+                            alert("No se pudo crear el usuario:\n" + (res.mensaje || res.message || 'Error desconocido. Revisa el log del servidor.'));
                         }
                     })
                     .catch(err => {
@@ -885,7 +885,13 @@
                         if (res.status === 'success') {
                             $('#modal-editar-usuario').modal('hide');
                             location.reload();
+                        } else {
+                            alert("No se pudo actualizar el usuario:\n" + (res.mensaje || res.message || 'Error desconocido. Revisa el log del servidor.'));
                         }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert("Ocurrió un error de red o de servidor.");
                     });
             });
 
