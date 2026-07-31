@@ -363,7 +363,7 @@
                             <div>
                                 <div class="fac-pago-fecha">
                                     <i class="fa fa-calendar-check-o" style="color:#059669;margin-right:5px;"></i>
-                                    {{ $pago['fecha_pago']?->format('d \d\e F \d\e Y') ?? '—' }}
+                                    {{ $pago['fecha_pago']?->locale('es')->translatedFormat('d \d\e F \d\e Y') ?? '—' }}
                                 </div>
                                 @if ($pago['folio_recibo'])
                                     <div class="fac-pago-folio">Folio: {{ $pago['folio_recibo'] }}</div>

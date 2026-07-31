@@ -530,9 +530,10 @@
     </div>
 
     {{-- ══════════════════════════════════════════
-         SECCIÓN 3 — Medicamentos autorizados
+         SECCIÓN 3 — Medicamentos autorizados (oculta)
     ══════════════════════════════════════════ --}}
-    <div class="portal-card" style="margin-bottom:16px;">
+    {{-- <div class="portal-card" style="margin-bottom:16px;display:none;"> --}}
+    <div class="portal-card" style="margin-bottom:16px;display:none;">
         <div class="exp-section-header">
             <div class="exp-section-title">
                 <div class="exp-section-icon" style="background:#f3e8fd;color:#8e44ad;">
