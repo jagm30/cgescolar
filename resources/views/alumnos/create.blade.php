@@ -195,7 +195,7 @@
                                             class="text-red">*</span></label>
                                     <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control"
                                         value="{{ old('fecha_nacimiento', $alumnoPrecargado['fecha_nacimiento'] ?? '') }}"
-                                        max="{{ now()->subYears(2)->format('Y-m-d') }}">
+                                        max="{{ now()->subYears(1)->format('Y-m-d') }}">
                                     @error('fecha_nacimiento')
                                         <span class="help-block"><i class="fa fa-exclamation-circle"></i>
                                             {{ $message }}</span>
@@ -1472,7 +1472,7 @@
                 hoy = new Date();
                 fecha = new Date(v);
                 anios = (hoy - fecha) / (1000 * 60 * 60 * 24 * 365);
-                if (anios < 2) return 'El alumno debe tener al menos 2 años.';
+                if (anios < 1) return 'El alumno debe tener al menos 1 año.';
                 if (anios > 25) return 'Verifica la fecha de nacimiento.';
                 return null;
             },

@@ -188,7 +188,7 @@
                             <label for="fecha_nacimiento">Fecha de nacimiento <span class="text-red">*</span></label>
                             <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control"
                                 value="{{ old('fecha_nacimiento', $alumno->fecha_nacimiento?->format('Y-m-d')) }}"
-                                max="{{ now()->subYears(2)->format('Y-m-d') }}">
+                                max="{{ now()->subYears(1)->format('Y-m-d') }}">
                             @error('fecha_nacimiento')
                                 <span class="help-block"><i class="fa fa-exclamation-circle"></i>
                                     {{ $message }}</span>
