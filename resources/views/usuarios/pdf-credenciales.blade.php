@@ -98,6 +98,13 @@
                         style="text-transform: capitalize;">{{ $cred['rol'] ?? 'Padre de Familia' }}</span>
                 </div>
 
+                @if (!empty($cred['alumnos']))
+                <div class="data-row">
+                    <span class="data-label">Alumno(s)</span>
+                    <span class="data-value">{{ $cred['alumnos'] }}</span>
+                </div>
+                @endif
+
                 <div class="data-row">
                     <span class="data-label">Correo Electrónico (Usuario)</span>
                     <span class="data-value">{{ $cred['email'] }}</span>
