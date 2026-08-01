@@ -155,6 +155,11 @@
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <h4 style="margin:0; font-weight:800; color:#2c3e50;">
                         <i class="fa fa-user-plus text-orange"></i> Pendientes
+                        <span style="display:inline-block; background:#e67e22; color:#fff; font-size:12px;
+                                     font-weight:700; padding:2px 10px; border-radius:20px; margin-left:6px;
+                                     vertical-align:middle;">
+                            {{ $pendientes->count() }}
+                        </span>
                     </h4>
 
                     {{-- FILTRO POR TIPO (oculto para director: solo ve padres) --}}
@@ -197,6 +202,7 @@
                                 <th width="40" class="text-center"><input type="checkbox" id="check-all"></th>
                                 <th>Nombre Completo</th>
                                 <th>Origen / Referencia</th>
+                                <th>Alumno(s)</th>
                                 <th>Correo Electrónico</th>
                                 <th>Rol en el Sistema</th>
                                 <th class="text-center">Acciones</th>
@@ -215,6 +221,9 @@
                                             class="{{ $p->tipo === 'personal' ? 'con-badge-personal' : 'con-badge-familia' }}">
                                             {{ $p->referencia }}
                                         </span>
+                                    </td>
+                                    <td style="font-size:12px; color:#475569;">
+                                        {{ $p->alumnos ?? '—' }}
                                     </td>
                                     <td style="font-family:monospace; color: #64748b;">{{ $p->email }}</td>
                                     <td>
@@ -239,7 +248,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center" style="padding: 30px; color: #94a3b8;">
+                                    <td colspan="7" class="text-center" style="padding: 30px; color: #94a3b8;">
                                         No hay usuarios pendientes de creación.
                                     </td>
                                 </tr>

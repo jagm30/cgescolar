@@ -81,6 +81,10 @@ class UsuarioController extends Controller
                     }
                 }
 
+                $alumnos = $c->familia?->alumnos
+                    ->map(fn($a) => trim("{$a->nombre} {$a->ap_paterno} {$a->ap_materno}"))
+                    ->implode(', ') ?: '—';
+
                 return (object)[
                     'id'              => $c->id,
                     'tipo'            => 'contacto',
@@ -88,12 +92,13 @@ class UsuarioController extends Controller
                     'referencia'      => $c->familia->apellido_familia ?? 'Sin Familia',
                     'email'           => $c->email,
                     'nivel_ids'       => $nivelIds->unique()->values()->implode(','),
+                    'alumnos'         => $alumnos,
                 ];
             });
 
         // Director de sección solo gestiona padres de familia
         if ($usuario->esDirectorSeccion()) {
-            $pendientes = $padres->sortBy('nombre_completo');
+            $pendientes = $padres->sortBy('referencia');
             $rolesDisponibles = ['padre' => 'Padre de Familia'];
         } else {
             $empleados = Personal::where('tiene_acceso_sistema', true)
@@ -109,7 +114,7 @@ class UsuarioController extends Controller
                     ];
                 });
 
-            $pendientes = $padres->concat($empleados)->sortBy('nombre_completo');
+            $pendientes = $padres->concat($empleados)->sortBy('referencia');
 
             $rolesDisponibles = [
                 'recepcion'              => 'Recepción',
@@ -425,11 +430,22 @@ class UsuarioController extends Controller
         $fallidos = 0;
 
         foreach ($contactoIds as $id) {
-            $contacto = ContactoFamiliar::with('familia')->findOrFail($id);
+            $contacto = ContactoFamiliar::with('familia.alumnos')->findOrFail($id);
             if ($contacto->usuario_id) continue;
 
             $passwordPlana  = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
             $nombreCompleto = trim($contacto->nombre . ' ' . $contacto->ap_paterno . ' ' . $contacto->ap_materno);
+
+            $alumnosCollection = $contacto->familia?->alumnos ?? collect();
+
+            $alumnos = $alumnosCollection
+                ->map(fn($a) => trim("{$a->nombre} {$a->ap_paterno} {$a->ap_materno}"))
+                ->implode(', ') ?: null;
+
+            $primerAlumno      = $alumnosCollection->first();
+            $apellidosAlumno   = $primerAlumno
+                ? trim("{$primerAlumno->ap_paterno} {$primerAlumno->ap_materno}")
+                : null;
 
             $usuario = Usuario::create([
                 'nombre'        => $nombreCompleto,
@@ -454,7 +470,7 @@ class UsuarioController extends Controller
                 }
             }
 
-            $usuariosCreados[] = ['nombre' => $nombreCompleto, 'email' => $usuario->email, 'password' => $passwordPlana, 'rol' => 'padre'];
+            $usuariosCreados[] = ['nombre' => $nombreCompleto, 'email' => $usuario->email, 'password' => $passwordPlana, 'rol' => 'padre', 'alumnos' => $alumnos, 'apellidos_alumno' => $apellidosAlumno];
         }
 
         foreach ($personalDatos as $empData) {
@@ -578,9 +594,10 @@ class UsuarioController extends Controller
         session()->forget('credenciales_nuevas');
 
         if (count($credenciales) === 1) {
-            $nombreLimpio  = preg_replace('/[^A-Za-z0-9áéíóúÁÉÍÓÚñÑ\s]/u', '', $credenciales[0]['nombre']);
+            $base = $credenciales[0]['apellidos_alumno'] ?? $credenciales[0]['nombre'];
+            $nombreLimpio  = preg_replace('/[^A-Za-z0-9áéíóúÁÉÍÓÚñÑ\s]/u', '', $base);
             $nombreLimpio  = str_replace(' ', '_', trim($nombreLimpio));
-            $nombreArchivo = "user_{$nombreLimpio}.pdf";
+            $nombreArchivo = "acceso_{$nombreLimpio}.pdf";
         } else {
             $nombreArchivo = 'credenciales_' . now()->format('Y-m-d') . '_(' . count($credenciales) . '_usuarios).pdf';
         }
