@@ -163,6 +163,7 @@
                         <th>Nivel / Grupo</th>
                         <th>Plan de pagos</th>
                         <th>Familia</th>
+                        <th class="text-center">Portal</th>
                         <th>Estado</th>
                         <th class="text-center">Acciones</th>
                     </tr>
@@ -240,6 +241,21 @@
                                     </a>
                                 @else
                                     <span class="alm-familia-none">—</span>
+                                @endif
+                            </td>
+
+                            {{-- PORTAL --}}
+                            <td class="text-center">
+                                @if($alumno->contactos->isNotEmpty())
+                                    <span title="Tiene acceso al portal de padres"
+                                        style="color: #27ae60; font-size: 16px;">
+                                        <i class="fa fa-check-circle"></i>
+                                    </span>
+                                @else
+                                    <span title="Sin usuario en el portal"
+                                        style="color: #bdc3c7; font-size: 16px;">
+                                        <i class="fa fa-times-circle"></i>
+                                    </span>
                                 @endif
                             </td>
 
