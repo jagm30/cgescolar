@@ -315,6 +315,7 @@
                                         <th style="width: 50px; text-align: center;">#</th>
                                         <th>Matrícula</th>
                                         <th>Nombre Completo</th>
+                                        <th class="text-center" style="width: 80px;">Portal</th>
                                         <th class="text-center" style="width: 100px;">Acciones</th>
                                     </tr>
                                 </thead>
@@ -369,6 +370,19 @@
                                                             ({{ strtoupper(str_replace('_', ' ', $inscripcion->alumno->estado)) }})
                                                         </small>
                                                     @endif
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if($inscripcion->alumno->contactos->isNotEmpty())
+                                                    <span title="Tiene acceso al portal de padres"
+                                                        style="color: #27ae60; font-size: 16px;">
+                                                        <i class="fa fa-check-circle"></i>
+                                                    </span>
+                                                @else
+                                                    <span title="Sin usuario en el portal"
+                                                        style="color: #bdc3c7; font-size: 16px;">
+                                                        <i class="fa fa-times-circle"></i>
+                                                    </span>
                                                 @endif
                                             </td>
                                             <td class="text-center">
