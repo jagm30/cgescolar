@@ -12,6 +12,8 @@ use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -135,6 +137,44 @@ test('portal padre no marca cargos como pagado sin pago real', function () {
     $response->assertSuccessful();
     $response->assertJsonPath('resumen.total_pagado', 0);
     $response->assertJsonPath('cargos.0.estado', 'pendiente');
+});
+
+test('padre actualiza su foto de usuario al actualizar su contacto familiar', function () {
+    Storage::fake('public');
+    $contexto = crearPortalPadreContexto();
+    $contacto = ContactoFamiliar::where('usuario_id', $contexto['padre']->id)->firstOrFail();
+
+    $response = $this->actingAs($contexto['padre'])
+        ->post(route('portal.fotos.contacto', $contacto->id), [
+            'foto' => UploadedFile::fake()->image('perfil.jpg'),
+        ]);
+
+    $response->assertSuccessful();
+
+    $ruta = $contacto->fresh()->foto_url;
+
+    expect($contexto['padre']->fresh()->foto_perfil)->toBe($ruta);
+    Storage::disk('public')->assertExists($ruta);
+});
+
+test('portal padre notifica solo los pagos vencidos desde hace un mes o mas', function () {
+    $contexto = crearPortalPadreContexto();
+    $cargo = Cargo::first();
+
+    $cargo->update(['fecha_vencimiento' => today()->subMonth()->toDateString()]);
+
+    $this->actingAs($contexto['padre'])
+        ->get(route('portal.dashboard'))
+        ->assertSuccessful()
+        ->assertSee('1 pago(s) vencido(s) desde hace un mes o más')
+        ->assertSee('$1,500.00');
+
+    $cargo->update(['fecha_vencimiento' => today()->subMonth()->addDay()->toDateString()]);
+
+    $this->actingAs($contexto['padre'])
+        ->get(route('portal.dashboard'))
+        ->assertSuccessful()
+        ->assertDontSee('pago(s) vencido(s) desde hace un mes o más');
 });
 
 test('padre no puede consultar alumnos de otra familia', function () {

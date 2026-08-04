@@ -49,6 +49,42 @@
                 </li>
                 @endif
 
+                @if (auth()->check() && auth()->user()->esPadre())
+                    <li class="dropdown notifications-menu">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-label="Notificaciones">
+                            <i class="fa fa-bell-o"></i>
+                            @if ($notificacionesPortal['cargos_vencidos'] > 0)
+                                <span class="label label-danger">{{ $notificacionesPortal['cargos_vencidos'] }}</span>
+                            @endif
+                        </a>
+                        <ul class="dropdown-menu">
+                            @if ($notificacionesPortal['cargos_vencidos'] > 0)
+                                <li class="header">
+                                    Tienes {{ $notificacionesPortal['cargos_vencidos'] }} pago(s) vencido(s)
+                                </li>
+                                <li>
+                                    <ul class="menu">
+                                        @foreach (collect($notificacionesPortal['pagos'])->take(5) as $pago)
+                                            <li>
+                                                <a href="{{ $pago['url'] }}">
+                                                    <i class="fa fa-exclamation-circle text-red"></i>
+                                                    <strong>{{ $pago['alumno'] }}</strong><br>
+                                                    {{ $pago['concepto'] }} · ${{ number_format($pago['monto'], 2) }}
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </li>
+                                <li class="footer">
+                                    <a href="{{ route('portal.hijos') }}">Ver estados de cuenta</a>
+                                </li>
+                            @else
+                                <li class="header">No tienes pagos vencidos desde hace un mes o más.</li>
+                            @endif
+                        </ul>
+                    </li>
+                @endif
+
                 {{-- Menú de usuario --}}
                 {{-- Los usuarios del sistema no tienen foto.
                      La foto es exclusiva de contacto_familiar (credenciales) y alumno. --}}

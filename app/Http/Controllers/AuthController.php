@@ -24,13 +24,36 @@ class AuthController extends Controller
     /** POST /login */
     public function login(Request $request)
     {
-        $request->validate([
+        $reglas = [
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'El correo electronico es obligatorio.',
+        ];
+
+        $mensajes = [
+            'email.required' => 'El correo electrónico es obligatorio.',
             'password.required' => 'La contraseña es obligatoria.',
-        ]);
+        ];
+
+        if (! app()->isLocal()) {
+            $reglas['cf-turnstile-response'] = ['required'];
+            $mensajes['cf-turnstile-response.required'] = 'Por favor, completa la verificación de seguridad.';
+        }
+
+        $request->validate($reglas, $mensajes);
+
+        if (! app()->isLocal()) {
+            $turnstileResponse = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                'secret' => config('services.turnstile.secret_key'),
+                'response' => $request->input('cf-turnstile-response'),
+                'remoteip' => $request->ip(),
+            ]);
+
+            if (! $turnstileResponse->json('success')) {
+                return back()
+                    ->withInput($request->only('email'))
+                    ->withErrors(['cf-turnstile-response' => 'La validación de seguridad falló o expiró. Inténtalo de nuevo.']);
+            }
+        }
 
         $usuario = Usuario::where('email', $request->email)
             ->where('activo', true)

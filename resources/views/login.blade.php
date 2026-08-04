@@ -7,7 +7,12 @@
     <title>CGESscolar | Iniciar sesion</title>
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-    <!-- Bootstrap 3.3.7 -->
+
+    @if (! app()->isLocal())
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
+
+    <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}">
     <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="../../bower_components/font-awesome/css/font-awesome.min.css">
@@ -59,19 +64,27 @@
                 <div class="row">
                     <div class="col-xs-7">
                     </div>
-                    <!-- /.col -->
-                    <div class="col-xs-5">
-                        <button type="submit" class="btn btn-primary btn-block btn-flat">Iniciar Sesión</button>
+
+                    @if (! app()->isLocal())
+                        <div class="form-group text-center"
+                            style="margin-bottom: 20px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                            <div class="cf-turnstile" data-sitekey="{{ config('services.turnstile.site_key') }}" data-theme="light">
+                            </div>
+
+                            @error('cf-turnstile-response')
+                                <span class="text-danger"
+                                    style="font-size: 12px; display: block; font-weight: 600; margin-top: 5px;">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    @endif
+
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <button type="submit" class="btn btn-primary btn-block">Iniciar Sesión</button>
+                        </div>
                     </div>
-                    <!-- /.col -->
-                </div>
-            </form>
-
-
-
-            <a href="#">Olvide mi contraseña</a><br>
-            <a href="register.html" class="text-center">Registrar nuevo usuario</a>
-
+                </form>
+            </div>
         </div>
         <!-- /.login-box-body -->
     </div>
