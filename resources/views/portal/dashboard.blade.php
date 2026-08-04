@@ -430,6 +430,38 @@
         @csrf
     </form>
 
+    @if ($resumen['cargos_vencidos'] > 0)
+        <div class="modal fade" id="modal-pagos-vencidos" tabindex="-1" role="dialog"
+            aria-labelledby="modal-pagos-vencidos-titulo" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header" style="background:#dc5450;color:#fff;border-radius:4px 4px 0 0;">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar" style="color:#fff;opacity:.9;">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="modal-pagos-vencidos-titulo" style="font-weight:700;">
+                            <i class="fa fa-bell"></i> Aviso de pagos vencidos
+                        </h4>
+                    </div>
+                    <div class="modal-body" style="font-size:16px;line-height:1.6;">
+                        <p>
+                            Tienes <strong>{{ $resumen['cargos_vencidos'] }} pago(s) vencido(s)</strong>.
+                        </p>
+                        <p style="margin-bottom:0;">
+                            El total pendiente es de <strong>${{ number_format($resumen['total_pendiente'], 2) }}</strong>.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Más tarde</button>
+                        <a href="{{ route('portal.hijos') }}" class="btn btn-danger">
+                            <i class="fa fa-file-text-o"></i> Ver estados de cuenta
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
 @endsection
 
 @if ($resumen['cargos_vencidos'] > 0)

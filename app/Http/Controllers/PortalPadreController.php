@@ -54,7 +54,7 @@ class PortalPadreController extends Controller
             'medicamentosAutorizados.contactoAutoriza',
         ])->findOrFail($alumnoId);
 
-        $contacto         = auth()->user()->contactoFamiliar()->first();
+        $contacto = auth()->user()->contactoFamiliar()->first();
         $contactosFamilia = $contacto?->familia_id
             ? ContactoFamiliar::where('familia_id', $contacto->familia_id)
                 ->orderBy('ap_paterno')
@@ -72,23 +72,23 @@ class PortalPadreController extends Controller
         $this->verificarAccesoAlumno($alumnoId);
 
         $datos = $request->validate([
-            'tipo_sangre'             => ['nullable', 'string', 'max:5'],
-            'peso_kg'                 => ['nullable', 'numeric', 'min:1', 'max:300'],
-            'talla_cm'                => ['nullable', 'numeric', 'min:30', 'max:250'],
-            'medico_nombre'           => ['nullable', 'string', 'max:255'],
-            'medico_telefono'         => ['nullable', 'string', 'max:20'],
-            'hospital_preferente'     => ['nullable', 'string', 'max:255'],
-            'discapacidad'            => ['nullable', 'string', 'max:1000'],
+            'tipo_sangre' => ['nullable', 'string', 'max:5'],
+            'peso_kg' => ['nullable', 'numeric', 'min:1', 'max:300'],
+            'talla_cm' => ['nullable', 'numeric', 'min:30', 'max:250'],
+            'medico_nombre' => ['nullable', 'string', 'max:255'],
+            'medico_telefono' => ['nullable', 'string', 'max:20'],
+            'hospital_preferente' => ['nullable', 'string', 'max:255'],
+            'discapacidad' => ['nullable', 'string', 'max:1000'],
             'observaciones_generales' => ['nullable', 'string', 'max:2000'],
         ], [
-            'peso_kg.min'  => 'El peso debe ser mayor a 1 kg.',
-            'peso_kg.max'  => 'El peso no puede superar 300 kg.',
+            'peso_kg.min' => 'El peso debe ser mayor a 1 kg.',
+            'peso_kg.max' => 'El peso no puede superar 300 kg.',
             'talla_cm.min' => 'La talla debe ser mayor a 30 cm.',
             'talla_cm.max' => 'La talla no puede superar 250 cm.',
         ]);
 
         $alumno = Alumno::findOrFail($alumnoId);
-        $datos  = array_merge($datos, ['actualizado_por' => auth()->id(), 'actualizado_at' => now()]);
+        $datos = array_merge($datos, ['actualizado_por' => auth()->id(), 'actualizado_at' => now()]);
 
         $ficha = $alumno->fichaMedica;
         if ($ficha) {
@@ -108,18 +108,18 @@ class PortalPadreController extends Controller
         $request->merge(['requiere_accion' => $request->boolean('requiere_accion')]);
 
         $datos = $request->validate([
-            'tipo'             => ['required', 'string', 'in:padecimiento,alergia_alimento,alergia_medicamento,alergia_ambiental,discapacidad,otro'],
-            'nombre'           => ['required', 'string', 'max:255'],
-            'descripcion'      => ['nullable', 'string', 'max:1000'],
-            'nivel_riesgo'     => ['required', 'string', 'in:leve,moderado,grave,critico'],
-            'requiere_accion'  => ['nullable', 'boolean'],
+            'tipo' => ['required', 'string', 'in:padecimiento,alergia_alimento,alergia_medicamento,alergia_ambiental,discapacidad,otro'],
+            'nombre' => ['required', 'string', 'max:255'],
+            'descripcion' => ['nullable', 'string', 'max:1000'],
+            'nivel_riesgo' => ['required', 'string', 'in:leve,moderado,grave,critico'],
+            'requiere_accion' => ['nullable', 'boolean'],
             'accion_requerida' => ['nullable', 'string', 'max:1000', 'required_if:requiere_accion,1'],
         ], [
-            'tipo.required'                => 'El tipo de condición es obligatorio.',
-            'tipo.in'                      => 'Selecciona un tipo de condición válido.',
-            'nombre.required'              => 'El nombre de la condición es obligatorio.',
-            'nivel_riesgo.required'        => 'El nivel de riesgo es obligatorio.',
-            'nivel_riesgo.in'              => 'Selecciona un nivel de riesgo válido.',
+            'tipo.required' => 'El tipo de condición es obligatorio.',
+            'tipo.in' => 'Selecciona un tipo de condición válido.',
+            'nombre.required' => 'El nombre de la condición es obligatorio.',
+            'nivel_riesgo.required' => 'El nivel de riesgo es obligatorio.',
+            'nivel_riesgo.in' => 'Selecciona un nivel de riesgo válido.',
             'accion_requerida.required_if' => 'Describe la acción a tomar si marcas que requiere intervención.',
         ]);
 
@@ -148,20 +148,20 @@ class PortalPadreController extends Controller
 
         $datos = $request->validate([
             'autorizado_por_contacto' => ['required', 'exists:contacto_familiar,id'],
-            'nombre_medicamento'       => ['required', 'string', 'max:255'],
-            'dosis'                    => ['required', 'string', 'max:255'],
-            'frecuencia'               => ['required', 'string', 'max:255'],
-            'horario'                  => ['nullable', 'string', 'max:255'],
-            'requiere_refrigeracion'   => ['nullable', 'boolean'],
-            'instrucciones'            => ['nullable', 'string', 'max:1000'],
-            'vigencia_fin'             => ['nullable', 'date', 'after:today'],
+            'nombre_medicamento' => ['required', 'string', 'max:255'],
+            'dosis' => ['required', 'string', 'max:255'],
+            'frecuencia' => ['required', 'string', 'max:255'],
+            'horario' => ['nullable', 'string', 'max:255'],
+            'requiere_refrigeracion' => ['nullable', 'boolean'],
+            'instrucciones' => ['nullable', 'string', 'max:1000'],
+            'vigencia_fin' => ['nullable', 'date', 'after:today'],
         ], [
             'autorizado_por_contacto.required' => 'Selecciona el contacto que autoriza el medicamento.',
-            'autorizado_por_contacto.exists'   => 'El contacto seleccionado no existe.',
-            'nombre_medicamento.required'       => 'El nombre del medicamento es obligatorio.',
-            'dosis.required'                    => 'La dosis es obligatoria.',
-            'frecuencia.required'               => 'La frecuencia de administración es obligatoria.',
-            'vigencia_fin.after'                => 'La fecha de vigencia debe ser posterior a hoy.',
+            'autorizado_por_contacto.exists' => 'El contacto seleccionado no existe.',
+            'nombre_medicamento.required' => 'El nombre del medicamento es obligatorio.',
+            'dosis.required' => 'La dosis es obligatoria.',
+            'frecuencia.required' => 'La frecuencia de administración es obligatoria.',
+            'vigencia_fin.after' => 'La fecha de vigencia debe ser posterior a hoy.',
         ]);
 
         $alumno = Alumno::findOrFail($alumnoId);
@@ -200,20 +200,20 @@ class PortalPadreController extends Controller
         }
 
         $cargos = Cargo::with([
-                'concepto',
-                'detallesPagosVigentes',
-                'descuentos',
-                'condonacionDetalles',
-            ])
+            'concepto',
+            'detallesPagosVigentes',
+            'descuentos',
+            'condonacionDetalles',
+        ])
             ->where('inscripcion_id', $inscripcion->id)
             ->orderBy('fecha_vencimiento')
             ->get()
             ->map(function (Cargo $cargo) {
-                $descuentoBeca       = (float) $cargo->detallesPagosVigentes->sum('descuento_beca');
+                $descuentoBeca = (float) $cargo->detallesPagosVigentes->sum('descuento_beca');
                 $descuentoProntoPago = (float) $cargo->detallesPagosVigentes->sum('descuento_pronto_pago');
-                $descuentoOtros      = (float) $cargo->detallesPagosVigentes->sum('descuento_otros');
-                $recargoAplicado     = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
-                $condonacion         = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
+                $descuentoOtros = (float) $cargo->detallesPagosVigentes->sum('descuento_otros');
+                $recargoAplicado = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
+                $condonacion = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
 
                 // Monto neto = lo que realmente debe pagar tras aplicar todos los ajustes
                 $montoNeto = $cargo->monto_original
@@ -227,35 +227,35 @@ class PortalPadreController extends Controller
                 $montoCobrado = (float) $cargo->detallesPagosVigentes->sum('monto_final');
 
                 return [
-                    'id'               => $cargo->id,
-                    'concepto'         => $cargo->concepto->nombre,
-                    'periodo'          => $cargo->periodo,
-                    'periodo_label'    => $cargo->periodo_label,
-                    'monto_original'   => $cargo->monto_original,
-                    'monto_neto'       => $montoNeto,
-                    'monto_cobrado'    => $montoCobrado,
-                    'saldo_pendiente'  => max(0, $montoNeto - $montoCobrado),
-                    'estado'           => $cargo->detallesPagosVigentes->isNotEmpty() || $cargo->estado === 'condonado'
+                    'id' => $cargo->id,
+                    'concepto' => $cargo->concepto->nombre,
+                    'periodo' => $cargo->periodo,
+                    'periodo_label' => $cargo->periodo_label,
+                    'monto_original' => $cargo->monto_original,
+                    'monto_neto' => $montoNeto,
+                    'monto_cobrado' => $montoCobrado,
+                    'saldo_pendiente' => max(0, $montoNeto - $montoCobrado),
+                    'estado' => $cargo->detallesPagosVigentes->isNotEmpty() || $cargo->estado === 'condonado'
                         ? $cargo->estado_real
                         : 'pendiente',
-                    'fecha_vencimiento'     => $cargo->fecha_vencimiento,
-                    'puede_facturar'        => $cargo->detallesPagosVigentes->isNotEmpty(),
-                    'descuento_beca'        => $descuentoBeca,
+                    'fecha_vencimiento' => $cargo->fecha_vencimiento,
+                    'puede_facturar' => $cargo->detallesPagosVigentes->isNotEmpty(),
+                    'descuento_beca' => $descuentoBeca,
                     'descuento_pronto_pago' => $descuentoProntoPago,
-                    'descuento_otros'       => $descuentoOtros,
-                    'recargo_aplicado'      => $recargoAplicado,
-                    'condonacion'           => $condonacion,
+                    'descuento_otros' => $descuentoOtros,
+                    'recargo_aplicado' => $recargoAplicado,
+                    'condonacion' => $condonacion,
                 ];
             });
 
-        $totalCobrado  = $cargos->sum('monto_cobrado');
+        $totalCobrado = $cargos->sum('monto_cobrado');
         $totalPendiente = $cargos->sum('saldo_pendiente');
 
         $resumen = [
-            'total_cargado'   => $totalCobrado + $totalPendiente,
+            'total_cargado' => $totalCobrado + $totalPendiente,
             'total_pendiente' => $totalPendiente,
-            'total_pagado'    => $totalCobrado,
-            'total_cargos'    => $cargos->count(),
+            'total_pagado' => $totalCobrado,
+            'total_cargos' => $cargos->count(),
             'cargos_vencidos' => $cargos->filter(fn (array $cargo) => str_contains($cargo['estado'], 'vencido'))->count(),
         ];
 
@@ -280,25 +280,25 @@ class PortalPadreController extends Controller
                 ->orderByDesc('fecha_pago')
                 ->get()
                 ->map(fn (Pago $pago) => [
-                    'id'           => $pago->id,
+                    'id' => $pago->id,
                     'folio_recibo' => $pago->folio_recibo,
-                    'conceptos'    => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
-                    'monto_total'  => $pago->monto_total,
-                    'fecha_pago'   => $pago->fecha_pago,
-                    'forma_pago'   => $pago->forma_pago,
-                    'tiene_factura'  => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
-                    'cfdi_id'        => $pago->cfdis->where('estado', 'vigente')->first()?->id,
+                    'conceptos' => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
+                    'monto_total' => $pago->monto_total,
+                    'fecha_pago' => $pago->fecha_pago,
+                    'forma_pago' => $pago->forma_pago,
+                    'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                    'cfdi_id' => $pago->cfdis->where('estado', 'vigente')->first()?->id,
                     'puede_facturar' => $this->pagoPuedeFacturarse($pago),
                 ]);
 
             return ['alumno' => $alumno, 'pagos' => $pagos];
         });
 
-        $contacto        = auth()->user()->contactoFamiliar()->with('familia')->first();
+        $contacto = auth()->user()->contactoFamiliar()->with('familia')->first();
         $razonesSociales = $contacto?->familia_id
             ? RazonSocialContacto::whereIn('contacto_id',
-                    ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
-                )
+                ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
+            )
                 ->where('activo', true)
                 ->orderByDesc('es_principal')
                 ->get(['id', 'rfc', 'razon_social', 'uso_cfdi_default', 'es_principal'])
@@ -323,10 +323,10 @@ class PortalPadreController extends Controller
                 'monto_total' => $pago->monto_total,
                 'fecha_pago' => $pago->fecha_pago,
                 'forma_pago' => $pago->forma_pago,
-                'tiene_factura'   => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
-                'cfdi_id'         => $pago->cfdis->where('estado', 'vigente')->first()?->id,
-                'cfdi_uuid'       => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
-                'puede_facturar'  => $this->pagoPuedeFacturarse($pago),
+                'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                'cfdi_id' => $pago->cfdis->where('estado', 'vigente')->first()?->id,
+                'cfdi_uuid' => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
+                'puede_facturar' => $this->pagoPuedeFacturarse($pago),
             ]);
 
         $alumno = Alumno::findOrFail($alumnoId);
@@ -335,11 +335,11 @@ class PortalPadreController extends Controller
             return response()->json($pagos);
         }
 
-        $contacto         = auth()->user()->contactoFamiliar()->with('familia')->first();
-        $razonesSociales  = $contacto?->familia_id
+        $contacto = auth()->user()->contactoFamiliar()->with('familia')->first();
+        $razonesSociales = $contacto?->familia_id
             ? RazonSocialContacto::whereIn('contacto_id',
-                    ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
-                )
+                ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
+            )
                 ->where('activo', true)
                 ->orderByDesc('es_principal')
                 ->get(['id', 'rfc', 'razon_social', 'uso_cfdi_default', 'es_principal'])
@@ -356,7 +356,7 @@ class PortalPadreController extends Controller
         $razonesSociales = $contacto?->familia_id
             ? RazonSocialContacto::with('contacto')
                 ->whereIn('contacto_id',
-                    \App\Models\ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
+                    ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
                 )
                 ->where('activo', true)
                 ->orderByDesc('es_principal')
@@ -370,7 +370,7 @@ class PortalPadreController extends Controller
 
         return view('portal.razones-sociales', [
             'razonesSociales' => $razonesSociales,
-            'miContactoId'    => $contacto?->id,
+            'miContactoId' => $contacto?->id,
         ]);
     }
 
@@ -384,18 +384,18 @@ class PortalPadreController extends Controller
         }
 
         $data = $request->validate([
-            'rfc'              => ['required', 'string', 'between:12,13', 'regex:/^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/'],
-            'razon_social'     => ['required', 'string', 'max:300'],
-            'regimen_fiscal'   => ['required', 'string', 'max:10'],
+            'rfc' => ['required', 'string', 'between:12,13', 'regex:/^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$/'],
+            'razon_social' => ['required', 'string', 'max:300'],
+            'regimen_fiscal' => ['required', 'string', 'max:10'],
             'domicilio_fiscal' => ['required', 'string', 'size:5', 'regex:/^[0-9]{5}$/'],
             'uso_cfdi_default' => ['required', 'string', 'max:10'],
-            'es_principal'     => ['boolean'],
+            'es_principal' => ['boolean'],
         ], [
-            'rfc.regex'                 => 'El formato del RFC no es válido.',
-            'razon_social.required'     => 'La razón social es obligatoria.',
-            'regimen_fiscal.required'   => 'El régimen fiscal es obligatorio.',
-            'domicilio_fiscal.size'     => 'El código postal debe tener exactamente 5 dígitos.',
-            'domicilio_fiscal.regex'    => 'El código postal debe contener solo números.',
+            'rfc.regex' => 'El formato del RFC no es válido.',
+            'razon_social.required' => 'La razón social es obligatoria.',
+            'regimen_fiscal.required' => 'El régimen fiscal es obligatorio.',
+            'domicilio_fiscal.size' => 'El código postal debe tener exactamente 5 dígitos.',
+            'domicilio_fiscal.regex' => 'El código postal debe contener solo números.',
             'uso_cfdi_default.required' => 'El uso de CFDI es obligatorio.',
         ]);
 
@@ -415,14 +415,14 @@ class PortalPadreController extends Controller
         }
 
         $rs = RazonSocialContacto::create([
-            'contacto_id'     => $contacto->id,
-            'rfc'             => $rfc,
-            'razon_social'    => $data['razon_social'],
-            'regimen_fiscal'  => $data['regimen_fiscal'],
+            'contacto_id' => $contacto->id,
+            'rfc' => $rfc,
+            'razon_social' => $data['razon_social'],
+            'regimen_fiscal' => $data['regimen_fiscal'],
             'domicilio_fiscal' => $data['domicilio_fiscal'],
             'uso_cfdi_default' => $data['uso_cfdi_default'],
-            'es_principal'    => $esPrincipal,
-            'registrado_por'  => auth()->id(),
+            'es_principal' => $esPrincipal,
+            'registrado_por' => auth()->id(),
         ]);
 
         return response()->json(['status' => 'success', 'mensaje' => "RFC {$rs->rfc} registrado correctamente.", 'razon_social' => $rs], 201);
@@ -434,16 +434,16 @@ class PortalPadreController extends Controller
         $rs = $this->razonSocialDelPadre($id);
 
         $data = $request->validate([
-            'razon_social'     => ['required', 'string', 'max:300'],
-            'regimen_fiscal'   => ['required', 'string', 'max:10'],
+            'razon_social' => ['required', 'string', 'max:300'],
+            'regimen_fiscal' => ['required', 'string', 'max:10'],
             'domicilio_fiscal' => ['required', 'string', 'size:5', 'regex:/^[0-9]{5}$/'],
             'uso_cfdi_default' => ['required', 'string', 'max:10'],
-            'es_principal'     => ['boolean'],
+            'es_principal' => ['boolean'],
         ], [
-            'razon_social.required'     => 'La razón social es obligatoria.',
-            'regimen_fiscal.required'   => 'El régimen fiscal es obligatorio.',
-            'domicilio_fiscal.size'     => 'El código postal debe tener exactamente 5 dígitos.',
-            'domicilio_fiscal.regex'    => 'El código postal debe contener solo números.',
+            'razon_social.required' => 'La razón social es obligatoria.',
+            'regimen_fiscal.required' => 'El régimen fiscal es obligatorio.',
+            'domicilio_fiscal.size' => 'El código postal debe tener exactamente 5 dígitos.',
+            'domicilio_fiscal.regex' => 'El código postal debe contener solo números.',
             'uso_cfdi_default.required' => 'El uso de CFDI es obligatorio.',
         ]);
 
@@ -455,11 +455,11 @@ class PortalPadreController extends Controller
         }
 
         $rs->update([
-            'razon_social'     => $data['razon_social'],
-            'regimen_fiscal'   => $data['regimen_fiscal'],
+            'razon_social' => $data['razon_social'],
+            'regimen_fiscal' => $data['regimen_fiscal'],
             'domicilio_fiscal' => $data['domicilio_fiscal'],
             'uso_cfdi_default' => $data['uso_cfdi_default'],
-            'es_principal'     => $esPrincipal,
+            'es_principal' => $esPrincipal,
         ]);
 
         return response()->json(['status' => 'success', 'mensaje' => "RFC {$rs->rfc} actualizado correctamente.", 'razon_social' => $rs->fresh()]);
@@ -504,7 +504,7 @@ class PortalPadreController extends Controller
     {
         $request->validate([
             'razon_social_id' => ['nullable', 'integer', 'exists:razon_social_contacto,id'],
-            'uso_cfdi'        => ['required', 'string', 'max:10'],
+            'uso_cfdi' => ['required', 'string', 'max:10'],
         ]);
 
         $contacto = auth()->user()->contactoFamiliar;
@@ -535,7 +535,7 @@ class PortalPadreController extends Controller
 
         if (! $this->pagoPuedeFacturarse($pago)) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'mensaje' => 'Este pago ya no puede facturarse. Solo se permiten facturas dentro del mismo mes del pago y en un plazo máximo de 72 horas.',
             ], 422);
         }
@@ -545,7 +545,7 @@ class PortalPadreController extends Controller
         // Verificar que la razón social pertenece a la familia
         if ($razonSocialId) {
             $contactoIds = ContactoFamiliar::where('familia_id', $contacto?->familia_id)->pluck('id');
-            $rsValida    = RazonSocialContacto::where('id', $razonSocialId)
+            $rsValida = RazonSocialContacto::where('id', $razonSocialId)
                 ->whereIn('contacto_id', $contactoIds)
                 ->where('activo', true)
                 ->exists();
@@ -562,11 +562,11 @@ class PortalPadreController extends Controller
         }
 
         return response()->json([
-            'status'   => 'success',
-            'mensaje'  => "CFDI emitido correctamente. Folio: {$resultado['folio']}",
-            'cfdi_id'  => $resultado['cfdi']->id,
+            'status' => 'success',
+            'mensaje' => "CFDI emitido correctamente. Folio: {$resultado['folio']}",
+            'cfdi_id' => $resultado['cfdi']->id,
             'uuid_sat' => $resultado['cfdi']->uuid_sat,
-            'folio'    => $resultado['folio'],
+            'folio' => $resultado['folio'],
         ]);
     }
 
@@ -587,14 +587,14 @@ class PortalPadreController extends Controller
         try {
             $contenido = $factura->descargar($cfdi->factura_uid, $formato);
         } catch (\Throwable $e) {
-            return back()->with('error', 'Error al descargar la factura: ' . $e->getMessage());
+            return back()->with('error', 'Error al descargar la factura: '.$e->getMessage());
         }
 
-        $nombre   = ($cfdi->folio ?? $cfdi->uuid_sat ?? "CFDI-{$cfdiId}") . ".{$formato}";
+        $nombre = ($cfdi->folio ?? $cfdi->uuid_sat ?? "CFDI-{$cfdiId}").".{$formato}";
         $mimeType = $formato === 'pdf' ? 'application/pdf' : 'application/xml';
 
         return response($contenido, 200, [
-            'Content-Type'        => $mimeType,
+            'Content-Type' => $mimeType,
             'Content-Disposition' => "attachment; filename=\"{$nombre}\"",
         ]);
     }
@@ -605,7 +605,7 @@ class PortalPadreController extends Controller
         $contacto = auth()->user()->contactoFamiliar;
 
         if (! $contacto) {
-            $alumnos   = collect();
+            $alumnos = collect();
             $contactos = collect();
         } else {
             $alumnos = Alumno::query()
@@ -640,7 +640,7 @@ class PortalPadreController extends Controller
         );
 
         $contacto = auth()->user()->contactoFamiliar;
-        $alumno   = Alumno::where('id', $alumnoId)
+        $alumno = Alumno::where('id', $alumnoId)
             ->whereHas('contactos', fn ($q) => $q
                 ->where('contacto_familiar.id', $contacto?->id)
                 ->where('alumno_contacto.tiene_acceso_portal', true)
@@ -656,9 +656,9 @@ class PortalPadreController extends Controller
         $alumno->update(['foto_url' => $ruta]);
 
         return response()->json([
-            'status'   => 'success',
-            'mensaje'  => 'Foto de ' . $alumno->nombre . ' actualizada.',
-            'foto_url' => asset('storage/' . $ruta),
+            'status' => 'success',
+            'mensaje' => 'Foto de '.$alumno->nombre.' actualizada.',
+            'foto_url' => asset('storage/'.$ruta),
         ]);
     }
 
@@ -670,7 +670,7 @@ class PortalPadreController extends Controller
             ['foto.required' => 'Selecciona una imagen.', 'foto.mimes' => 'Solo JPG, PNG o WEBP.', 'foto.max' => 'Máximo 2 MB.']
         );
 
-        $contacto        = auth()->user()->contactoFamiliar;
+        $contacto = auth()->user()->contactoFamiliar;
         $contactoDestino = ContactoFamiliar::where('id', $contactoId)
             ->where('familia_id', $contacto?->familia_id)
             ->firstOrFail();
@@ -682,10 +682,14 @@ class PortalPadreController extends Controller
         $ruta = $request->file('foto')->store('contactos/fotos', 'public');
         $contactoDestino->update(['foto_url' => $ruta]);
 
+        if ($contactoDestino->usuario_id) {
+            $contactoDestino->usuario()->update(['foto_perfil' => $ruta]);
+        }
+
         return response()->json([
-            'status'   => 'success',
-            'mensaje'  => 'Foto de ' . $contactoDestino->nombre . ' actualizada.',
-            'foto_url' => asset('storage/' . $ruta),
+            'status' => 'success',
+            'mensaje' => 'Foto de '.$contactoDestino->nombre.' actualizada.',
+            'foto_url' => asset('storage/'.$ruta),
         ]);
     }
 
@@ -697,9 +701,9 @@ class PortalPadreController extends Controller
     private function pagoPuedeFacturarse(Pago $pago): bool
     {
         $fechaPago = Carbon::parse($pago->fecha_pago)->startOfDay();
-        $ahora     = now();
+        $ahora = now();
 
-        $mismoMes  = $fechaPago->month === $ahora->month && $fechaPago->year === $ahora->year;
+        $mismoMes = $fechaPago->month === $ahora->month && $fechaPago->year === $ahora->year;
         $dentro72h = $ahora->diffInHours($fechaPago) <= 72;
 
         return $mismoMes && $dentro72h;
@@ -778,22 +782,22 @@ class PortalPadreController extends Controller
             ->whereHas('inscripcion', fn ($query) => $query->whereIn('alumno_id', $alumnoIds))
             ->get();
 
-        $totalCobrado   = 0.0;
+        $totalCobrado = 0.0;
         $totalPendiente = 0.0;
-        $vencidos       = 0;
+        $vencidos = 0;
 
         foreach ($cargos as $cargo) {
-            $descuentos  = (float) $cargo->detallesPagosVigentes->sum('descuento_beca')
+            $descuentos = (float) $cargo->detallesPagosVigentes->sum('descuento_beca')
                          + (float) $cargo->detallesPagosVigentes->sum('descuento_pronto_pago')
                          + (float) $cargo->detallesPagosVigentes->sum('descuento_otros');
-            $recargo     = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
+            $recargo = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
             $condonacion = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
-            $cobrado     = (float) $cargo->detallesPagosVigentes->sum('monto_final');
+            $cobrado = (float) $cargo->detallesPagosVigentes->sum('monto_final');
 
-            $neto      = $cargo->monto_original - $descuentos - $condonacion + $recargo;
+            $neto = $cargo->monto_original - $descuentos - $condonacion + $recargo;
             $pendiente = max(0.0, $neto - $cobrado);
 
-            $totalCobrado   += $cobrado;
+            $totalCobrado += $cobrado;
             $totalPendiente += $pendiente;
 
             if (str_contains($cargo->estado_real, 'vencido')) {
@@ -802,10 +806,10 @@ class PortalPadreController extends Controller
         }
 
         return [
-            'hijos'           => $alumnos->count(),
-            'inscritos'       => $alumnos->filter(fn (Alumno $alumno) => $alumno->inscripciones->where('activo', true)->isNotEmpty())->count(),
-            'total_cargado'   => $totalCobrado + $totalPendiente,
-            'total_pagado'    => $totalCobrado,
+            'hijos' => $alumnos->count(),
+            'inscritos' => $alumnos->filter(fn (Alumno $alumno) => $alumno->inscripciones->where('activo', true)->isNotEmpty())->count(),
+            'total_cargado' => $totalCobrado + $totalPendiente,
+            'total_pagado' => $totalCobrado,
             'total_pendiente' => $totalPendiente,
             'cargos_vencidos' => $vencidos,
         ];

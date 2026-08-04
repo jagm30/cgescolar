@@ -8,7 +8,9 @@
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
 
     {{-- 1. SCRIPT DE CLOUDFLARE (En el head) --}}
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @if (! app()->environment('local'))
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
 
     <link rel="icon" type="image/png" href="{{ asset('dist/img/Kontan2.png') }}">
     <link rel="stylesheet" href="../../bower_components/bootstrap/dist/css/bootstrap.min.css">
@@ -431,6 +433,7 @@
                             style="cursor: pointer; pointer-events: auto;" title="Mostrar/Ocultar contraseña"></span>
                     </div>
 
+                    @if (! app()->environment('local'))
                     {{-- WIDGET DE TURNSTILE --}}
                     <div class="form-group text-center"
                         style="margin-bottom: 20px; min-height: 65px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
@@ -442,6 +445,7 @@
                                 style="font-size: 12px; display: block; font-weight: 600; margin-top: 5px;">{{ $message }}</span>
                         @enderror
                     </div>
+                    @endif
 
                     <div class="row">
                         <div class="col-xs-12">
