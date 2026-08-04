@@ -44,7 +44,6 @@ function crearContextoPlanPago(): array
 
     $grado = Grado::create([
         'nivel_id' => $nivel->id,
-        'nombre' => '1',
         'numero' => 1,
     ]);
 
@@ -192,6 +191,9 @@ test('no permite duplicar el mismo plan para el mismo alcance cuando conserva ca
     ];
 
     $this->actingAs($contexto['admin'])->post(route('planes.asignar'), $payload);
+
+    // Simular que los cargos ya fueron cobrados para activar el bloqueo de duplicados
+    Cargo::query()->update(['estado' => 'pagado']);
 
     $response = $this->from(route('planes.asignar.form'))
         ->actingAs($contexto['admin'])

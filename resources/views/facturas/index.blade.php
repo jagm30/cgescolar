@@ -9,19 +9,6 @@
 
 @push('styles')
 <style>
-.fac-hero {
-    background: linear-gradient(135deg, #0e5fa3 0%, #2e86de 100%);
-    border-radius: 8px; padding: 20px 28px; margin-bottom: 22px;
-    display: flex; align-items: center; gap: 0;
-    box-shadow: 0 4px 16px rgba(14,95,163,.22);
-    flex-wrap: wrap;
-}
-.fac-stat { text-align: center; padding: 0 24px; border-left: 1px solid rgba(255,255,255,.18); }
-.fac-stat:first-child { border-left: none; padding-left: 0; }
-.fac-stat-num { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
-.fac-stat-lbl { font-size: 10px; color: rgba(255,255,255,.65); margin-top: 3px;
-                text-transform: uppercase; letter-spacing: .06em; }
-
 .fac-table { width: 100%; border-collapse: collapse; }
 .fac-table thead th {
     background: #f4f6f8; color: #6b7a8d;
@@ -60,125 +47,106 @@
 </div>
 @endif
 
-{{-- ══ HERO ══ --}}
-<div class="fac-hero">
-    <div class="fac-stat">
-        <div class="fac-stat-num">{{ number_format($resumen['total']) }}</div>
-        <div class="fac-stat-lbl">Total CFDIs</div>
-    </div>
-    <div class="fac-stat">
-        <div class="fac-stat-num" style="color:#a8e6cf;">{{ number_format($resumen['vigentes']) }}</div>
-        <div class="fac-stat-lbl">Vigentes</div>
-    </div>
-    <div class="fac-stat">
-        <div class="fac-stat-num" style="color:#ffcdd2;">{{ number_format($resumen['cancelados']) }}</div>
-        <div class="fac-stat-lbl">Cancelados</div>
-    </div>
-    <div class="fac-stat">
-        <div class="fac-stat-num" style="color:#bfdbfe;">{{ number_format($resumen['globales']) }}</div>
-        <div class="fac-stat-lbl">Globales vigentes</div>
+{{-- ══ ENCABEZADO + STATS ══ --}}
+<div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-file-text-o text-blue"></i> Facturas electrónicas
+        </h4>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;">
+            <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-list"></i> {{ number_format($resumen['total']) }} CFDIs
+            </span>
+            <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-check-circle"></i> {{ number_format($resumen['vigentes']) }} vigentes
+            </span>
+            @if($resumen['cancelados'] > 0)
+            <span style="background:#fdecea;color:#b91c1c;border:1px solid #fca5a5;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-ban"></i> {{ number_format($resumen['cancelados']) }} cancelados
+            </span>
+            @endif
+            <span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-globe"></i> {{ number_format($resumen['globales']) }} globales
+            </span>
+        </div>
     </div>
     @if(isset($configFiscal) && $configFiscal)
-    <div style="margin-left:auto;">
-        <a href="{{ route('pagos.index') }}"
-           class="btn btn-sm btn-flat"
-           style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
-            <i class="fa fa-arrow-left"></i> Historial de pagos
-        </a>
-    </div>
+    <a href="{{ route('pagos.index') }}" class="btn btn-default btn-sm btn-flat"
+       style="border-radius:20px;flex-shrink:0;">
+        <i class="fa fa-arrow-left"></i> Historial de pagos
+    </a>
     @endif
 </div>
 
-{{-- ══ FILTROS ══ --}}
-<div style="border:1px solid #e4eaf0;border-radius:10px;background:#fff;
-            box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:20px;">
-    <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;
-                display:flex;align-items:center;gap:8px;">
-        <i class="fa fa-filter" style="color:#2e86de;"></i>
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
-                     letter-spacing:.07em;color:#6b7a8d;">Filtros</span>
-        @if(request()->hasAny(['folio','tipo','estado','fecha_desde','fecha_hasta']))
-        <a href="{{ route('facturas.index') }}"
-           style="margin-left:auto;font-size:11px;color:#b91c1c;text-decoration:none;">
-            <i class="fa fa-times"></i> Limpiar
-        </a>
-        @endif
-    </div>
-    <form method="GET" action="{{ route('facturas.index') }}" style="padding:14px 16px;">
-        <div class="row" style="margin:0 -8px;">
-            <div class="col-sm-3" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Folio fiscal</label>
-                <input type="text" name="folio" value="{{ request('folio') }}"
-                       placeholder="A00000001"
-                       class="form-control input-sm"
-                       style="border-radius:6px;border-color:#dde4eb;">
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Tipo</label>
-                <select name="tipo" class="form-control input-sm" style="border-radius:6px;border-color:#dde4eb;">
-                    <option value="">Todos</option>
-                    <option value="individual" {{ request('tipo') === 'individual' ? 'selected' : '' }}>Individual</option>
-                    <option value="global"     {{ request('tipo') === 'global'     ? 'selected' : '' }}>Global</option>
-                </select>
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Estado</label>
-                <select name="estado" class="form-control input-sm" style="border-radius:6px;border-color:#dde4eb;">
-                    <option value="">Todos</option>
-                    <option value="vigente"   {{ request('estado') === 'vigente'   ? 'selected' : '' }}>Vigente</option>
-                    <option value="cancelado" {{ request('estado') === 'cancelado' ? 'selected' : '' }}>Cancelado</option>
-                </select>
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Fecha desde</label>
-                <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}"
-                       class="form-control input-sm" style="border-radius:6px;border-color:#dde4eb;">
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Fecha hasta</label>
-                <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}"
-                       class="form-control input-sm" style="border-radius:6px;border-color:#dde4eb;">
-            </div>
-            <div class="col-sm-1" style="padding:0 8px;display:flex;align-items:flex-end;">
-                <button type="submit" class="btn btn-primary btn-sm btn-flat" style="width:100%;border-radius:6px;">
-                    <i class="fa fa-search"></i>
-                </button>
-            </div>
-        </div>
-    </form>
-</div>
-
-{{-- ══ TABLA ══ --}}
+{{-- ══ PANEL PRINCIPAL ══ --}}
 <div style="border:1px solid #e4eaf0;border-radius:10px;background:#fff;
             box-shadow:0 1px 4px rgba(0,0,0,.04);overflow:hidden;">
 
-    <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;
-                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
-                     letter-spacing:.07em;color:#6b7a8d;">
-            <i class="fa fa-file-text-o" style="color:#2e86de;margin-right:5px;"></i>
-            Facturas
-            <span style="background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;
-                         padding:2px 9px;border-radius:10px;margin-left:4px;">
-                {{ $cfdis->total() }}
-            </span>
+    {{-- Toolbar + filtros --}}
+    <form method="GET" action="{{ route('facturas.index') }}"
+          style="display:flex;align-items:center;gap:8px;padding:10px 14px;
+                 background:#f9fafb;border-bottom:1px solid #e8ecf0;flex-wrap:wrap;">
+
+        <input type="text" name="folio" value="{{ request('folio') }}"
+               placeholder="Folio fiscal…"
+               class="form-control input-sm"
+               style="border-radius:20px;border-color:#dde4eb;max-width:150px;height:32px;">
+
+        <select name="tipo" class="form-control input-sm"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:120px;">
+            <option value="">Todos los tipos</option>
+            <option value="individual" {{ request('tipo') === 'individual' ? 'selected' : '' }}>Individual</option>
+            <option value="global"     {{ request('tipo') === 'global'     ? 'selected' : '' }}>Global</option>
+        </select>
+
+        <select name="estado" class="form-control input-sm"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:110px;">
+            <option value="">Todos</option>
+            <option value="vigente"   {{ request('estado') === 'vigente'   ? 'selected' : '' }}>Vigente</option>
+            <option value="cancelado" {{ request('estado') === 'cancelado' ? 'selected' : '' }}>Cancelado</option>
+        </select>
+
+        <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}"
+               class="form-control input-sm"
+               style="border-radius:6px;border-color:#dde4eb;max-width:130px;height:32px;"
+               title="Fecha desde">
+
+        <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}"
+               class="form-control input-sm"
+               style="border-radius:6px;border-color:#dde4eb;max-width:130px;height:32px;"
+               title="Fecha hasta">
+
+        <select name="per_page" onchange="this.form.submit()"
+                class="form-control input-sm"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:90px;">
+            @foreach([10, 25, 50] as $n)
+                <option value="{{ $n }}" {{ $perPage == $n ? 'selected' : '' }}>{{ $n }} / pág.</option>
+            @endforeach
+        </select>
+
+        <button type="submit" class="btn btn-primary btn-sm btn-flat"
+                style="border-radius:20px;padding:4px 14px;height:32px;">
+            <i class="fa fa-search"></i>
+        </button>
+
+        @if(request()->hasAny(['folio','tipo','estado','fecha_desde','fecha_hasta']))
+        <a href="{{ route('facturas.index') }}" class="btn btn-default btn-sm btn-flat"
+           style="border-radius:20px;padding:4px 10px;height:32px;" title="Quitar filtros">
+            <i class="fa fa-times"></i>
+        </a>
+        @endif
+
+        <span style="background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;
+                     padding:3px 12px;border-radius:12px;white-space:nowrap;margin-left:auto;">
+            <i class="fa fa-file-text-o"></i> {{ $cfdis->total() }} resultado(s)
         </span>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:11px;color:#8a9ab0;margin:0;">Mostrar</label>
-            <form method="GET">
-                @foreach(request()->except('per_page','page') as $k => $v)
-                    <input type="hidden" name="{{ $k }}" value="{{ $v }}">
-                @endforeach
-                <select name="per_page" onchange="this.form.submit()"
-                        class="form-control input-sm"
-                        style="border-radius:6px;border-color:#dde4eb;display:inline-block;width:auto;">
-                    @foreach([10, 25, 50] as $n)
-                        <option value="{{ $n }}" {{ $perPage == $n ? 'selected' : '' }}>{{ $n }}</option>
-                    @endforeach
-                </select>
-            </form>
-        </div>
-    </div>
+    </form>
 
     <div style="overflow-x:auto;">
         <table class="fac-table">
@@ -313,6 +281,15 @@
                        title="Descargar XML">
                         <i class="fa fa-code"></i>
                     </a>
+                    @if($cfdi->estado === 'vigente')
+                    <button type="button"
+                            class="btn btn-xs btn-flat btn-enviar-correo"
+                            style="background:#e8f5ee;color:#00875a;border:1px solid #b3e8d0;border-radius:5px;margin-right:2px;"
+                            data-cfdi-id="{{ $cfdi->id }}"
+                            title="Enviar por correo">
+                        <i class="fa fa-envelope-o"></i>
+                    </button>
+                    @endif
                     @endif
 
                     @if($cfdi->estado === 'vigente' && auth()->user()->esAdministrador())
@@ -349,6 +326,183 @@
     @endif
 
 </div>
+
+{{-- ══ MODAL ENVIAR CORREO ══ --}}
+<div class="modal fade" id="modalEnviarCorreo" tabindex="-1" role="dialog" aria-labelledby="modalEnviarCorreoLabel">
+    <div class="modal-dialog" role="document" style="max-width:460px;">
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;">
+
+            <div class="modal-header" style="background:linear-gradient(135deg,#0a7d49 0%,#27a05a 100%);border-bottom:none;padding:16px 20px;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.8;">
+                    <span>&times;</span>
+                </button>
+                <h4 class="modal-title" id="modalEnviarCorreoLabel" style="color:#fff;font-size:15px;font-weight:700;">
+                    <i class="fa fa-envelope-o"></i> Enviar factura por correo
+                </h4>
+            </div>
+
+            <div class="modal-body" style="padding:20px;">
+                <div id="mec-loading" style="text-align:center;padding:30px 0;color:#b0bec5;">
+                    <i class="fa fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top:10px;font-size:13px;">Cargando contactos…</p>
+                </div>
+
+                <div id="mec-content" style="display:none;">
+                    <form id="form-enviar-correo" method="POST">
+                        @csrf
+
+                        {{-- Contactos familiares --}}
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:11px;font-weight:700;color:#4a5568;
+                                          display:block;margin-bottom:6px;">
+                                Contactos familiares
+                            </label>
+                            <div id="mec-contactos"></div>
+                            <div id="mec-sin-contactos"
+                                 style="display:none;font-size:12px;color:#b0bec5;
+                                        padding:8px 0;font-style:italic;">
+                                <i class="fa fa-info-circle"></i>
+                                No hay contactos con correo registrado.
+                            </div>
+                        </div>
+
+                        {{-- Correo destino (editable) --}}
+                        <div style="margin-bottom:16px;">
+                            <label for="mec-email-destino"
+                                   style="font-size:11px;font-weight:700;color:#4a5568;
+                                          display:block;margin-bottom:4px;">
+                                Correo destino
+                                <span style="font-weight:400;color:#8a9ab0;">
+                                    — selecciona un contacto o escribe otro
+                                </span>
+                            </label>
+                            <input type="email" id="mec-email-destino" name="email"
+                                   class="form-control input-sm"
+                                   placeholder="correo@ejemplo.com"
+                                   style="border-radius:5px;"
+                                   required>
+                        </div>
+
+                        <div id="mec-error"
+                             style="display:none;background:#fdecea;color:#b91c1c;
+                                    padding:9px 12px;border-radius:6px;font-size:12px;
+                                    margin-bottom:12px;"></div>
+
+                        <button type="submit" id="mec-submit"
+                                class="btn btn-sm btn-flat btn-block"
+                                style="background:#00875a;color:#fff;border-radius:6px;font-weight:600;">
+                            <i class="fa fa-paper-plane"></i> Enviar
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    var formCorreoBase   = '{{ route('cfdis.form-correo', '__ID__') }}';
+    var enviarCorreoBase = '{{ route('cfdis.enviar-correo', '__ID__') }}';
+
+    $(document).on('click', '.btn-enviar-correo', function () {
+        var cfdiId = $(this).data('cfdi-id');
+
+        // Reset
+        $('#mec-loading').show();
+        $('#mec-content').hide();
+        $('#mec-error').hide().text('');
+        $('#mec-contactos').html('');
+        $('#mec-email-destino').val('');
+        $('#mec-submit').prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Enviar');
+        $('#modalEnviarCorreo').modal('show');
+
+        $.getJSON(formCorreoBase.replace('__ID__', cfdiId))
+            .done(function (data) {
+                // Renderizar contactos
+                if (data.contactos && data.contactos.length > 0) {
+                    var html = '';
+                    $.each(data.contactos, function (i, c) {
+                        var checked = c.es_defecto ? 'checked' : '';
+                        var borde   = c.es_defecto ? '#b3e8d0' : '#e0e7ef';
+                        var fondo   = c.es_defecto ? '#f0faf5' : '#fafbfc';
+                        html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;' +
+                            'border:1px solid ' + borde + ';background:' + fondo + ';' +
+                            'border-radius:6px;margin-bottom:4px;cursor:pointer;font-weight:400;">' +
+                            '<input type="radio" class="mec-radio" value="' + $('<span>').text(c.email).html() + '" ' +
+                            checked + ' style="margin-top:3px;flex-shrink:0;">' +
+                            '<span style="min-width:0;">' +
+                            '<span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">' +
+                            $('<span>').text(c.nombre).html() + '</span>' +
+                            '<span style="display:block;font-size:11px;color:#4a5568;word-break:break-all;">' +
+                            $('<span>').text(c.email).html() + '</span>' +
+                            (c.es_defecto
+                                ? '<span style="font-size:10px;background:#d1fae5;color:#065f46;' +
+                                  'padding:1px 7px;border-radius:8px;margin-top:2px;display:inline-block;">' +
+                                  'Receptor del CFDI</span>'
+                                : '') +
+                            '</span></label>';
+                    });
+                    $('#mec-contactos').html(html).show();
+                    $('#mec-sin-contactos').hide();
+
+                    // Precargar correo del radio seleccionado
+                    var defecto = $('#mec-contactos .mec-radio:checked').val();
+                    if (defecto) $('#mec-email-destino').val(defecto);
+                } else {
+                    $('#mec-contactos').hide();
+                    $('#mec-sin-contactos').show();
+                    if (data.email_defecto) $('#mec-email-destino').val(data.email_defecto);
+                }
+
+                // Clic en radio → actualiza el campo de correo
+                $('#mec-contactos').off('change').on('change', '.mec-radio', function () {
+                    $('#mec-email-destino').val($(this).val());
+                });
+
+                $('#form-enviar-correo').attr('action', enviarCorreoBase.replace('__ID__', cfdiId));
+                $('#mec-loading').hide();
+                $('#mec-content').show();
+            })
+            .fail(function () {
+                $('#mec-loading').html(
+                    '<div style="color:#b91c1c;font-size:13px;padding:20px 0;text-align:center;">' +
+                    '<i class="fa fa-exclamation-circle"></i> No se pudieron cargar los datos.</div>'
+                );
+            });
+    });
+
+    $('#form-enviar-correo').on('submit', function (e) {
+        e.preventDefault();
+        var $btn = $('#mec-submit');
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Enviando…');
+        $('#mec-error').hide().text('');
+
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: $(this).serialize(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .done(function (resp) {
+            $('#modalEnviarCorreo').modal('hide');
+            $('<div class="alert alert-success alert-dismissible" style="border-radius:8px;margin-bottom:16px;">' +
+              '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
+              '<i class="fa fa-check-circle"></i> ' + (resp.message || 'Factura enviada correctamente.') +
+              '</div>').prependTo('.content').hide().slideDown(200);
+        })
+        .fail(function (xhr) {
+            var msg = 'Error al enviar.';
+            try { msg = JSON.parse(xhr.responseText).message || msg; } catch (ex) {}
+            $('#mec-error').text(msg).show();
+            $btn.prop('disabled', false).html('<i class="fa fa-paper-plane"></i> Enviar');
+        });
+    });
+}());
+</script>
+@endpush
 
 {{-- ══ MODAL CANCELAR CFDI ══ --}}
 @if(auth()->user()->esAdministrador())

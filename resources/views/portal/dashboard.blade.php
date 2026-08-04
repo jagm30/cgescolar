@@ -38,6 +38,22 @@
             margin: 0;
         }
 
+        /* ── Alerta vencidos ── */
+        .db-alerta {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 13px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #b91c1c;
+        }
+        .db-alerta i { font-size: 22px; flex-shrink: 0; }
+
         /* ── Resumen financiero ── */
         .db-stats {
             display: grid;
@@ -246,10 +262,26 @@
 @endpush
 
 @section('content')
-    <div class="portal-hero">
-        <h3>Bienvenido, {{ auth()->user()->nombre }}</h3>
-        <p>Consulta la informacion escolar y financiera de tus hijos desde un solo lugar.</p>
+
+    {{-- ── Bienvenida ── --}}
+    <div class="db-hero">
+        <div class="db-hero-saludo">Bienvenido(a)</div>
+        <div class="db-hero-nombre">{{ auth()->user()->nombre }}</div>
+        <div class="db-hero-sub">
+            Aquí puedes consultar la información escolar y financiera de tus hijos.
+        </div>
     </div>
+
+    {{-- ── Alerta si hay cargos vencidos ── --}}
+    @if ($resumen['cargos_vencidos'] > 0)
+        <div class="db-alerta">
+            <i class="fa fa-exclamation-circle"></i>
+            <div>
+                Tienes <strong>{{ $resumen['cargos_vencidos'] }} cargo(s) vencido(s)</strong>.
+                Revisa el estado de cuenta de tus hijos para más detalles.
+            </div>
+        </div>
+    @endif
 
     {{-- ── Resumen financiero ── --}}
     <div class="db-stats">
@@ -257,105 +289,146 @@
             <div class="db-stat-icon" style="background:#e8f0fb;color:#3c8dbc;">
                 <i class="fa fa-child"></i>
             </div>
+            <div class="db-stat-label">Mis hijos</div>
+            <div class="db-stat-value">{{ $resumen['hijos'] }}</div>
         </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="portal-stat">
-                <div class="portal-stat-label">Pagado</div>
-                <div class="portal-stat-value" style="color:#00875a;">${{ number_format($resumen['total_pagado'], 2) }}</div>
+        <div class="db-stat">
+            <div class="db-stat-icon" style="background:#e8f8f0;color:#00875a;">
+                <i class="fa fa-graduation-cap"></i>
+            </div>
+            <div class="db-stat-label">Inscritos</div>
+            <div class="db-stat-value">{{ $resumen['inscritos'] }}</div>
+        </div>
+        <div class="db-stat">
+            <div class="db-stat-icon" style="background:#d1fae5;color:#065f46;">
+                <i class="fa fa-check-circle"></i>
+            </div>
+            <div class="db-stat-label">Total cobrado</div>
+            <div class="db-stat-value" style="color:#065f46;font-size:17px;">
+                ${{ number_format($resumen['total_pagado'], 2) }}
             </div>
         </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="portal-stat">
-                <div class="portal-stat-label">Pendiente</div>
-                <div class="portal-stat-value" style="color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#00875a' }};">
-                    ${{ number_format($resumen['total_pendiente'], 2) }}
-                </div>
+        <div class="db-stat">
+            <div class="db-stat-icon"
+                 style="background:{{ $resumen['total_pendiente'] > 0 ? '#fee2e2' : '#d1fae5' }};
+                        color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#065f46' }};">
+                <i class="fa fa-clock-o"></i>
+            </div>
+            <div class="db-stat-label">Por pagar</div>
+            <div class="db-stat-value"
+                 style="color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#065f46' }};font-size:17px;">
+                ${{ number_format($resumen['total_pendiente'], 2) }}
             </div>
         </div>
     </div>
 
-    <div class="portal-card">
-        <div class="portal-card-header">
-            <h4 class="portal-card-title"><i class="fa fa-users"></i> Mis hijos</h4>
-            <a href="{{ route('portal.hijos') }}" class="btn btn-primary btn-sm btn-flat">
-                <i class="fa fa-list"></i> Ver todos
+    {{-- ── Mis hijos ── --}}
+    <div class="db-section-title">
+        <span>Mis hijos</span>
+        @if ($alumnos->count() > 0)
+            <a href="{{ route('portal.hijos') }}" class="db-section-link">
+                Ver todos <i class="fa fa-chevron-right"></i>
             </a>
-        </div>
+        @endif
+    </div>
 
-        @forelse ($alumnos as $alumno)
-            @php
-                $inscripcion = $alumno->inscripciones->where('activo', true)->first();
-                $grupo = $inscripcion?->grupo;
-            @endphp
-            <div class="portal-student">
-                <div class="portal-avatar">
+    @forelse ($alumnos as $alumno)
+        @php
+            $inscripcion = $alumno->inscripciones->where('activo', true)->first();
+            $grupo       = $inscripcion?->grupo;
+        @endphp
+        <div class="db-hijo">
+            <div class="db-hijo-header">
+                <div class="db-hijo-avatar">
                     <i class="fa fa-user"></i>
                 </div>
-                <div style="flex:1;">
-                    <h4 class="portal-student-name">{{ $alumno->nombre_completo }}</h4>
-                    <div class="portal-meta">
-                        Matricula {{ $alumno->matricula }}
+                <div style="flex:1;min-width:0;">
+                    <div class="db-hijo-nombre">{{ $alumno->nombre_completo }}</div>
+                    <div class="db-hijo-grupo">
+                        <i class="fa fa-graduation-cap"></i>
                         @if ($grupo)
-                            · {{ $grupo->grado->nivel->nombre ?? '' }} {{ $grupo->grado->nombre ?? '' }} {{ $grupo->nombre }}
+                            {{ $grupo->grado->nivel->nombre ?? '' }}
+                            {{ $grupo->grado->nombre ?? '' }}
+                            {{ $grupo->nombre }}
                         @else
-                            · Sin grupo activo
+                            Sin grupo activo
                         @endif
                     </div>
-                    <div class="portal-actions">
-                        <a href="{{ route('portal.estado-cuenta', $alumno->id) }}" class="btn btn-default btn-sm btn-flat">
-                            <i class="fa fa-file-text-o"></i> Estado de cuenta
-                        </a>
-                        <a href="{{ route('portal.historial-pagos', $alumno->id) }}" class="btn btn-default btn-sm btn-flat">
-                            <i class="fa fa-credit-card"></i> Pagos
-                        </a>
-                    </div>
                 </div>
             </div>
-        @empty
-            <div style="padding:16px;">
-                <div class="portal-empty">
-                    <i class="fa fa-users" style="font-size:38px;margin-bottom:10px;"></i>
-                    <div>No hay alumnos vinculados a tu familia.</div>
-                </div>
+            <div class="db-hijo-acciones">
+                <a href="{{ route('portal.estado-cuenta', $alumno->id) }}"
+                   class="db-hijo-accion db-accion-azul">
+                    <div class="db-hijo-accion-icon"><i class="fa fa-file-text-o"></i></div>
+                    Estado de cuenta
+                </a>
+                <a href="{{ route('portal.historial-pagos', $alumno->id) }}"
+                   class="db-hijo-accion db-accion-verde">
+                    <div class="db-hijo-accion-icon"><i class="fa fa-credit-card"></i></div>
+                    Historial de pagos
+                </a>
+                <a href="{{ route('portal.hijos.expediente', $alumno->id) }}"
+                   class="db-hijo-accion db-accion-rojo">
+                    <div class="db-hijo-accion-icon"><i class="fa fa-heartbeat"></i></div>
+                    Expediente médico
+                </a>
             </div>
-        @endforelse
+        </div>
+    @empty
+        <div class="db-empty">
+            <i class="fa fa-users"></i>
+            <p>No hay alumnos vinculados a tu cuenta.<br>Contacta a la escuela para vincularlos.</p>
+        </div>
+    @endforelse
+
+    {{-- ── Accesos rápidos ── --}}
+    <div class="db-section-title" style="margin-top:6px;">
+        <span>Otros accesos</span>
+    </div>
+
+    <div class="db-accesos">
+        <a href="{{ route('portal.fotos') }}" class="db-acceso">
+            <div class="db-acceso-icon" style="background:#fef3c7;color:#d97706;">
+                <i class="fa fa-camera"></i>
+            </div>
+            <div>
+                <div class="db-acceso-titulo">Fotografías</div>
+                <div class="db-acceso-desc">Sube fotos de tus hijos y contactos</div>
+            </div>
+        </a>
+        <a href="{{ route('portal.razones-sociales') }}" class="db-acceso">
+            <div class="db-acceso-icon" style="background:#ede9fe;color:#7c3aed;">
+                <i class="fa fa-building-o"></i>
+            </div>
+            <div>
+                <div class="db-acceso-titulo">Datos fiscales</div>
+                <div class="db-acceso-desc">Gestiona tu RFC para facturación</div>
+            </div>
+        </a>
+        <a href="{{ route('portal.hijos') }}" class="db-acceso">
+            <div class="db-acceso-icon" style="background:#dbeafe;color:#1d4ed8;">
+                <i class="fa fa-id-card-o"></i>
+            </div>
+            <div>
+                <div class="db-acceso-titulo">Mis hijos</div>
+                <div class="db-acceso-desc">Datos y grupo de cada alumno</div>
+            </div>
+        </a>
+        <a href="#" class="db-acceso"
+           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+            <div class="db-acceso-icon" style="background:#fee2e2;color:#b91c1c;">
+                <i class="fa fa-sign-out"></i>
+            </div>
+            <div>
+                <div class="db-acceso-titulo">Cerrar sesión</div>
+                <div class="db-acceso-desc">Salir del portal de padres</div>
+            </div>
+        </a>
     </div>
 
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
         @csrf
     </form>
-
-    @if ($resumen['cargos_vencidos'] > 0)
-        <div class="modal fade" id="modal-pagos-vencidos" tabindex="-1" role="dialog"
-            aria-labelledby="modal-pagos-vencidos-titulo" aria-describedby="modal-pagos-vencidos-descripcion">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header" style="background:#d9534f; color:#fff;">
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar" style="color:#fff; opacity:.9;">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        <h4 class="modal-title" id="modal-pagos-vencidos-titulo">
-                            <i class="fa fa-bell"></i> Aviso de pagos vencidos
-                        </h4>
-                    </div>
-                    <div class="modal-body" id="modal-pagos-vencidos-descripcion">
-                        <p style="font-size:16px; margin-bottom:8px;">
-                            Tienes <strong>{{ $resumen['cargos_vencidos'] }} pago(s) vencido(s)</strong> desde hace un mes o más.
-                        </p>
-                        <p style="margin-bottom:0; color:#555;">
-                            El total pendiente es de <strong>${{ number_format($resumen['total_vencido'], 2) }}</strong>.
-                        </p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Más tarde</button>
-                        <a href="{{ route('portal.hijos') }}" class="btn btn-danger">
-                            <i class="fa fa-file-text-o"></i> Ver estados de cuenta
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
 @endsection
 

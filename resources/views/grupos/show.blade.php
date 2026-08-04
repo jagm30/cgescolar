@@ -197,8 +197,24 @@
                 <div class="box-body-flat">
                     <table class="table table-info-flat">
                         <tr>
-                            <th>Nivel / Grado</th>
-                            <td>{{ $grupo->grado->nivel->nombre }} - {{ $grupo->grado->numero }}°</td>
+                            <td colspan="2" style="padding: 25px 0;">
+
+                                <img src="{{ $grupo->icono ? asset('storage/' . $grupo->icono) : asset('images/grupo-default.png') }}"
+                                    alt="Icono del grupo"
+                                    style="display: block; /* <--- EL TRUCO: Lo convierte en un bloque */
+                            margin: 0 auto; /* <--- LA MAGIA: Lo centra matemáticamente a la fuerza */
+                            width: 130px;
+                            height: 130px;
+                            object-fit: cover;
+                            border-radius: 16px;
+                            border: 4px solid #1e4d7b;
+                            padding: 5px;
+                            background: #ffffff;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            </td>
+                        </tr>
+                        <th>Nivel / Grado</th>
+                        <td>{{ $grupo->grado->nivel->nombre }} - {{ $grupo->grado->numero }}°</td>
                         </tr>
                         <tr>
                             <th>Grupo</th>
@@ -207,7 +223,7 @@
                         </tr>
                         <tr>
                             <th>Docente</th>
-                            <td>{{ $grupo->docente ?? 'No asignado' }}</td>
+                            <td>{{ $grupo->docente ? $grupo->docente->nombre_completo : 'Sin asignar' }}</td>
                         </tr>
                         <tr>
                             <th>Ciclo Escolar</th>
@@ -238,29 +254,55 @@
                     @csrf
                     <div class="box-header-flat">
                         <h3 class="box-title-flat"><i class="fa fa-users"></i> Alumnos del Grupo</h3>
-                        <div class="box-tools" style="display: flex; gap: 8px; align-items: center;">
+                        <div class="box-tools" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
 
                             {{-- BOTÓN 1: PROMOCIÓN --}}
-                            <button type="button" id="btn-trigger-promocion" disabled
-                                style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                            @unless(in_array(auth()->user()->rol, ['admisiones', 'recepcion']))
+                            <button type="button" id="btn-trigger-promocion" disabled class="btn btn-default btn-sm"
+                                style="cursor: not-allowed; opacity: 0.7;">
                                 <i class="fa fa-arrow-circle-up"></i> Promocionar / Reinscribir
                             </button>
+                            @endunless
 
-                            {{-- BOTÓN 2: EGRESO (Dinámico) --}}
+                            {{-- BOTÓN 2: EGRESO --}}
                             @php
                                 $esGradoFinal =
-                                    $grupo->grado->nivel->nombre == 'Preparatoria' && $grupo->grado->nombre == '6';
+                                    $grupo->grado->nivel->nombre == 'Preparatoria' && $grupo->grado->numero == 6;
                             @endphp
 
                             @if ($esGradoFinal)
-                                <button type="button" id="btn-trigger-modal-egreso" disabled
-                                    style="background-color: #f8f9fa; color: #a0aec0; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; cursor: not-allowed; transition: all 0.3s ease;">
+                                <button type="button" id="btn-trigger-modal-egreso" disabled class="btn btn-default btn-sm"
+                                    style="cursor: not-allowed; opacity: 0.7;">
                                     <i class="fa fa-graduation-cap"></i> Egresar (Fin)
                                 </button>
                             @endif
 
-                            <a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"
-                                class="btn-flat-sm btn-flat-danger"><i class="fa fa-file-pdf-o"></i> Reporte (Activos)</a>
+                            {{-- BOTÓN 3: DROPDOWN (Estilizado para coincidir) --}}
+                            <div class="dropdown">
+                                <button class="btn btn-default btn-sm dropdown-toggle" type="button"
+                                    data-toggle="dropdown">
+                                    <i class="fa fa-print"></i>
+                                    Formatos impresos (Grupales) <i class="fa fa-caret-down"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-right" style="border-radius: 4px; margin-top: 5px;">
+                                    <li class="dropdown-header">Opciones de reporte</li>
+                                    <li><a href="{{ route('grupos.reporte', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-file-pdf-o text-danger"></i> Reporte (Activos)</a></li>
+                                    @if (auth()->user()->esAdministrador() || auth()->user()->esCajero())
+                                    <li><a href="{{ route('grupos.reporte-pagos', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-money text-success"></i> Reporte de Pagos</a></li>
+                                    @endif
+                                    @unless(auth()->user()->rol === 'admisiones')
+                                    <li><a href="{{ route('grupos.reporte-medico', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-heartbeat text-danger"></i> Expediente Médico</a></li>
+                                    <li>
+                                        <a href="{{ route('grupos.album-fotografico', $grupo->id) }}" target="_blank">
+                                            <i class="fa fa-history text-muted"></i> Álbum fotográfico de Alumnos
+                                        </a>
+                                    </li>
+                                    @endunless
+                                </ul>
+                            </div>
                         </div>
                     </div>
                     <div class="box-body-flat" style="padding: 0;">
@@ -273,6 +315,7 @@
                                         <th style="width: 50px; text-align: center;">#</th>
                                         <th>Matrícula</th>
                                         <th>Nombre Completo</th>
+                                        <th class="text-center" style="width: 80px;">Portal</th>
                                         <th class="text-center" style="width: 100px;">Acciones</th>
                                     </tr>
                                 </thead>
@@ -327,6 +370,19 @@
                                                             ({{ strtoupper(str_replace('_', ' ', $inscripcion->alumno->estado)) }})
                                                         </small>
                                                     @endif
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                @if($inscripcion->alumno->contactos->isNotEmpty())
+                                                    <span title="Tiene acceso al portal de padres"
+                                                        style="color: #27ae60; font-size: 16px;">
+                                                        <i class="fa fa-check-circle"></i>
+                                                    </span>
+                                                @else
+                                                    <span title="Sin usuario en el portal"
+                                                        style="color: #bdc3c7; font-size: 16px;">
+                                                        <i class="fa fa-times-circle"></i>
+                                                    </span>
                                                 @endif
                                             </td>
                                             <td class="text-center">
@@ -597,8 +653,10 @@
                 const $grupoSelect = $('#select-grupo-promocion');
 
                 // Resetear selects dependientes
-                $grupoSelect.html('<option value="">-- Primero selecciona un grado --</option>').prop('disabled', true);
-                $gradoSelect.html('<option value="">-- Cargando grados... --</option>').prop('disabled', true);
+                $grupoSelect.html('<option value="">-- Primero selecciona un grado --</option>').prop(
+                    'disabled', true);
+                $gradoSelect.html('<option value="">-- Cargando grados... --</option>').prop('disabled',
+                    true);
 
                 if (!cicloId) {
                     $gradoSelect.html('<option value="">-- Primero selecciona un ciclo --</option>');
@@ -607,23 +665,24 @@
 
                 // Llamada AJAX para obtener grados filtrados
                 $.getJSON('{{ route('grupos.gradosPorCiclo') }}', {
-                    ciclo_id: cicloId,
-                    grado_origen_id: gradoOrigenId
-                })
-                .done(function(grados) {
-                    $gradoSelect.html('<option value="">-- Seleccionar Grado --</option>');
-                    if (grados.length === 0) {
-                        $gradoSelect.html('<option value="">-- Sin grados disponibles --</option>');
-                        return;
-                    }
-                    grados.forEach(function(gr) {
-                        $gradoSelect.append(`<option value="${gr.id}">${gr.label}</option>`);
+                        ciclo_id: cicloId,
+                        grado_origen_id: gradoOrigenId
+                    })
+                    .done(function(grados) {
+                        $gradoSelect.html('<option value="">-- Seleccionar Grado --</option>');
+                        if (grados.length === 0) {
+                            $gradoSelect.html('<option value="">-- Sin grados disponibles --</option>');
+                            return;
+                        }
+                        grados.forEach(function(gr) {
+                            $gradoSelect.append(
+                                `<option value="${gr.id}">${gr.label}</option>`);
+                        });
+                        $gradoSelect.prop('disabled', false);
+                    })
+                    .fail(function() {
+                        $gradoSelect.html('<option value="">-- Error al cargar --</option>');
                     });
-                    $gradoSelect.prop('disabled', false);
-                })
-                .fail(function() {
-                    $gradoSelect.html('<option value="">-- Error al cargar --</option>');
-                });
             });
 
             // 2. Al cambiar GRADO: carga grupos
@@ -632,7 +691,8 @@
                 const cicloId = $('#select-ciclo-promocion').val();
                 const $grupoSelect = $('#select-grupo-promocion');
 
-                $grupoSelect.html('<option value="">-- Cargando grupos... --</option>').prop('disabled', true);
+                $grupoSelect.html('<option value="">-- Cargando grupos... --</option>').prop('disabled',
+                    true);
 
                 if (!gradoId || !cicloId) {
                     $grupoSelect.html('<option value="">-- Primero selecciona un grado --</option>');
@@ -641,23 +701,24 @@
 
                 // Llamada AJAX para obtener grupos
                 $.getJSON('{{ route('grupos.gruposPorCicloGrado') }}', {
-                    ciclo_id: cicloId,
-                    grado_id: gradoId
-                })
-                .done(function(grupos) {
-                    $grupoSelect.html('<option value="">-- Seleccionar Grupo --</option>');
-                    if (grupos.length === 0) {
-                        $grupoSelect.html('<option value="">-- Sin grupos en este grado/ciclo --</option>');
-                        return;
-                    }
-                    grupos.forEach(function(g) {
-                        $grupoSelect.append(`<option value="${g.id}">${g.label}</option>`);
+                        ciclo_id: cicloId,
+                        grado_id: gradoId
+                    })
+                    .done(function(grupos) {
+                        $grupoSelect.html('<option value="">-- Seleccionar Grupo --</option>');
+                        if (grupos.length === 0) {
+                            $grupoSelect.html(
+                                '<option value="">-- Sin grupos en este grado/ciclo --</option>');
+                            return;
+                        }
+                        grupos.forEach(function(g) {
+                            $grupoSelect.append(`<option value="${g.id}">${g.label}</option>`);
+                        });
+                        $grupoSelect.prop('disabled', false);
+                    })
+                    .fail(function() {
+                        $grupoSelect.html('<option value="">-- Error al cargar --</option>');
                     });
-                    $grupoSelect.prop('disabled', false);
-                })
-                .fail(function() {
-                    $grupoSelect.html('<option value="">-- Error al cargar --</option>');
-                });
             });
 
             // ── LÓGICA DE CONFIRMACIONES Y MODALES (BAJAS, EGRESOS, QUITAR) ──
@@ -742,7 +803,8 @@
                 $('#contador-promocion').text(ids.length);
                 $('#ids-alumnos-promocion').empty();
                 ids.forEach(id => {
-                    $('#ids-alumnos-promocion').append(`<input type="hidden" name="inscripciones_ids[]" value="${id}">`);
+                    $('#ids-alumnos-promocion').append(
+                        `<input type="hidden" name="inscripciones_ids[]" value="${id}">`);
                 });
 
                 $('#modalPromocionMasiva').modal('show');
@@ -754,7 +816,8 @@
                     let razon = $('#razon_baja_input').val();
                     let tipoTexto = (currentType === 'baja_temporal') ? 'Baja Temporal' : 'Baja Definitiva';
                     $(formToSubmit).find('input[name="observaciones"]').remove();
-                    $(formToSubmit).append(`<input type="hidden" name="observaciones" value="${tipoTexto}: ${razon}">`);
+                    $(formToSubmit).append(
+                        `<input type="hidden" name="observaciones" value="${tipoTexto}: ${razon}">`);
                 }
                 $(formToSubmit).submit();
             });
@@ -805,7 +868,8 @@
 
             $(document).on('change', '.check-item', function() {
                 if (!$(this).is(':checked')) $('#check-all').prop('checked', false);
-                if ($('.check-item:checked').length === $('.check-item').length) $('#check-all').prop('checked', true);
+                if ($('.check-item:checked').length === $('.check-item').length) $('#check-all').prop(
+                    'checked', true);
                 actualizarEstadoBoton();
             });
 

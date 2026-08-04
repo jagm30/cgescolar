@@ -504,11 +504,6 @@ $(function () {
                 $img.attr('src', resp.foto_url + '?t=' + Date.now()).show();
                 $placeholder.hide();
 
-                if (resp.foto_usuario_url) {
-                    $('.main-header .user-image, .main-header .user-header img, .main-sidebar .user-panel .image img')
-                        .attr('src', resp.foto_usuario_url + '?t=' + Date.now());
-                }
-
                 // Agregar badge de completado si no existe
                 if (!$wrap.find('.ft-avatar-badge').length) {
                     $wrap.append('<div class="ft-avatar-badge"><i class="fa fa-check"></i></div>');

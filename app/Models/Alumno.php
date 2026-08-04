@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Enums\TipoInscripcion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Alumno extends Model
 {
     protected $table = 'alumno';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -27,13 +29,20 @@ class Alumno extends Model
         'observaciones',
         'fecha_inscripcion',
         'fecha_baja',
+        // Domicilio
+        'calle',
+        'colonia',
+        'codigo_postal',
+        'ciudad',
+        'estado_residencia',
+        'religion',
     ];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
         'fecha_inscripcion' => 'date',
-        'fecha_baja'       => 'date',
-        'creado_at'        => 'datetime',
+        'fecha_baja' => 'date',
+        'creado_at' => 'datetime',
     ];
 
     // ── Scopes ──────────────────────────────────────────
@@ -58,11 +67,13 @@ class Alumno extends Model
     /** Hermanos del alumno (misma familia, diferente id) */
     public function hermanos()
     {
-        if (!$this->familia_id) return collect();
+        if (! $this->familia_id) {
+            return collect();
+        }
 
         return static::where('familia_id', $this->familia_id)
-                     ->where('id', '!=', $this->id)
-                     ->get();
+            ->where('id', '!=', $this->id)
+            ->get();
     }
 
     /**
@@ -72,16 +83,16 @@ class Alumno extends Model
     public function inscripcionActiva(): ?Inscripcion
     {
         return $this->inscripciones()
-                    ->where('activo', true)
-                    ->where('tipo', TipoInscripcion::Regular)
-                    ->whereHas('ciclo', fn($q) => $q->where('estado', 'activo'))
-                    ->latest('id')
-                    ->first()
+            ->where('activo', true)
+            ->where('tipo', TipoInscripcion::Regular)
+            ->whereHas('ciclo', fn ($q) => $q->where('estado', 'activo'))
+            ->latest('id')
+            ->first()
             ?? $this->inscripciones()
-                    ->where('activo', true)
-                    ->where('tipo', TipoInscripcion::Regular)
-                    ->latest('id')
-                    ->first();
+                ->where('activo', true)
+                ->where('tipo', TipoInscripcion::Regular)
+                ->latest('id')
+                ->first();
     }
 
     /**
@@ -90,10 +101,10 @@ class Alumno extends Model
     public function inscripcionAnticipada(): ?Inscripcion
     {
         return $this->inscripciones()
-                    ->where('activo', true)
-                    ->where('tipo', TipoInscripcion::Anticipada)
-                    ->latest('id')
-                    ->first();
+            ->where('activo', true)
+            ->where('tipo', TipoInscripcion::Anticipada)
+            ->latest('id')
+            ->first();
     }
 
     // ── Relaciones ───────────────────────────────────────
@@ -142,6 +153,7 @@ class Alumno extends Model
             'orden',
             'autorizado_recoger',
             'es_responsable_pago',
+            'tiene_acceso_portal',
             'activo',
         ])->orderByPivot('orden');
     }
@@ -156,5 +168,22 @@ class Alumno extends Model
     public function responsablePago(): BelongsToMany
     {
         return $this->contactos()->wherePivot('es_responsable_pago', true);
+    }
+
+    // ── Expediente médico ────────────────────────────────
+
+    public function fichaMedica(): HasOne
+    {
+        return $this->hasOne(FichaMedica::class, 'alumno_id');
+    }
+
+    public function condicionesMedicas(): HasMany
+    {
+        return $this->hasMany(CondicionMedica::class, 'alumno_id')->where('activo', true);
+    }
+
+    public function medicamentosAutorizados(): HasMany
+    {
+        return $this->hasMany(MedicamentoAutorizado::class, 'alumno_id')->where('activo', true);
     }
 }

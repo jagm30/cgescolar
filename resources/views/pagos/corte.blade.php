@@ -136,6 +136,11 @@
         <button onclick="window.print()" class="btn btn-sm btn-default btn-flat" style="border-radius:6px;">
             <i class="fa fa-print"></i> Imprimir
         </button>
+        <a href="{{ route('pagos.corte.pdf') }}?fecha={{ $fecha }}{{ $esAdmin && request('cajero_id') ? '&cajero_id='.request('cajero_id') : '' }}"
+           target="_blank"
+           class="btn btn-sm btn-danger btn-flat" style="border-radius:6px;">
+            <i class="fa fa-file-pdf-o"></i> PDF
+        </a>
         <a href="{{ route('pagos.index') }}?fecha_desde={{ $fecha }}&fecha_hasta={{ $fecha }}"
            class="btn btn-sm btn-default btn-flat" style="border-radius:6px;">
             <i class="fa fa-list"></i> Ver en historial

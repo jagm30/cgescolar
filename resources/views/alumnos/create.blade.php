@@ -8,6 +8,8 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
 <style>
 /* ══ Wizard nav ═══════════════════════════════════════════ */
 .wizard-step-trigger {
@@ -35,14 +37,32 @@
 .wizard-progress-wrap { background: #edf1f5; border-radius: 999px; height: 6px; overflow: hidden; margin-bottom: 20px; }
 .wizard-progress-fill { background: linear-gradient(90deg,#3c8dbc,#2c6fad); height: 6px; transition: width .25s ease; }
 /* ══ Paneles de pasos ═════════════════════════════════════ */
-.form-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; margin-bottom: 20px; background: #fff; }
-.form-panel-header { background: #f4f6f8; border-bottom: 2px solid #e0e7ef; padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; }
-.form-panel-title { font-size: 13px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; margin: 0; }
-.form-panel-body { padding: 20px 20px 16px; }
+.form-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; margin-bottom: 14px; background: #fff; }
+.form-panel-header { background: #f4f6f8; border-bottom: 2px solid #e0e6ed; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.form-panel-title { font-size: 12px; font-weight: 700; color: #6b7a8d; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 8px; margin: 0; }
+.form-panel-body { padding: 14px 16px; }
+.form-panel-body .form-group { margin-bottom: 10px; }
+.form-panel-body label { font-size: 12px; color: #6b7a8d; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 3px; }
+.form-panel-body .form-control { border-radius: 6px !important; border: 1px solid #d0dbe6; box-shadow: none; height: 32px; font-size: 13px; padding: 4px 10px; color: #1a2634; }
+#form-alumno input[type="text"],
+#form-alumno textarea { text-transform: uppercase; }
+.form-panel-body textarea.form-control { height: auto; }
+.form-panel-body .form-control:focus { border-color: #3c8dbc; box-shadow: 0 0 0 3px rgba(60,141,188,.12); }
+.form-panel-body .help-block { font-size: 11px; margin-top: 3px; }
 /* ══ Sidebar ══════════════════════════════════════════════ */
-.sidebar-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; background: #fff; margin-bottom: 16px; }
-.sidebar-header { background: linear-gradient(135deg,#1e4d7b 0%,#3c8dbc 100%); padding: 14px 18px; color: #fff; font-size: 13px; font-weight: 700; }
-.sidebar-body { padding: 16px 18px; }
+.sidebar-panel { border-radius: 8px; border: 1px solid #e0e7ef; box-shadow: 0 2px 10px rgba(0,0,0,.05); overflow: hidden; background: #fff; margin-bottom: 14px; }
+.sidebar-header { background: #f4f6f8; border-bottom: 2px solid #e0e6ed; padding: 10px 16px; color: #6b7a8d; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.sidebar-body { padding: 14px 16px; }
+/* ══ Contacto item ════════════════════════════════════════ */
+.contacto-item { border: 1px solid #e0e7ef; border-left: 3px solid #3c8dbc; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+.contacto-item-header { background: #f4f6f8; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0e6ed; }
+.contacto-item-header strong { font-size: 12px; font-weight: 700; color: #3c8dbc; text-transform: uppercase; letter-spacing: .04em; }
+.contacto-item-body { padding: 12px; }
+.contacto-item-body .form-group { margin-bottom: 8px; }
+.contacto-item-body label { font-size: 11px; color: #6b7a8d; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; margin-bottom: 2px; }
+.contacto-item-body .form-control { border-radius: 6px !important; border: 1px solid #d0dbe6; box-shadow: none; height: 30px; font-size: 12px; padding: 3px 9px; color: #1a2634; }
+.contacto-item-body textarea.form-control { height: auto; }
+.contacto-item-body .form-control:focus { border-color: #3c8dbc; box-shadow: 0 0 0 3px rgba(60,141,188,.12); }
 .wizard-summary-item { padding: 9px 0; border-bottom: 1px solid #f0f3f7; font-size: 13px; color: #4a5568; display: flex; align-items: center; gap: 10px; }
 .wizard-summary-item:last-child { border-bottom: none; }
 .wizard-summary-item.is-active { color: #3c8dbc; font-weight: 700; }
@@ -71,6 +91,19 @@
         $contactosPrecargados = old('contactos', $datosPrecargados['contactos'] ?? []);
         $prospectoIdInicial = old('prospecto_id', $alumnoPrecargado['prospecto_id'] ?? '');
     @endphp
+
+    {{-- ══ ENCABEZADO ══ --}}
+    <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-user-plus text-blue"></i> Registrar alumno
+        </h4>
+        <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-sm btn-flat"
+           style="border-radius:20px;flex-shrink:0;">
+            <i class="fa fa-arrow-left"></i> Cancelar
+        </a>
+    </div>
 
     <form method="POST" action="{{ route('alumnos.store') }}" enctype="multipart/form-data" id="form-alumno" novalidate>
         @csrf
@@ -162,7 +195,7 @@
                                             class="text-red">*</span></label>
                                     <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="form-control"
                                         value="{{ old('fecha_nacimiento', $alumnoPrecargado['fecha_nacimiento'] ?? '') }}"
-                                        max="{{ now()->subYears(2)->format('Y-m-d') }}">
+                                        max="{{ now()->subYears(1)->format('Y-m-d') }}">
                                     @error('fecha_nacimiento')
                                         <span class="help-block"><i class="fa fa-exclamation-circle"></i>
                                             {{ $message }}</span>
@@ -252,6 +285,68 @@
                                 placeholder="Notas adicionales sobre el alumno (opcional)" maxlength="1000">{{ old('observaciones', $alumnoPrecargado['observaciones'] ?? '') }}</textarea>
                         </div>
 
+                        {{-- Domicilio --}}
+                        <hr style="margin:12px 0 10px;">
+                        <p style="font-size:11px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">
+                            <i class="fa fa-map-marker" style="color:#3c8dbc;"></i> Domicilio
+                            <span style="font-weight:400;color:#b0bec5;text-transform:none;font-size:10px;"> — Opcional</span>
+                        </p>
+
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group {{ $errors->has('calle') ? 'has-error' : '' }}">
+                                    <label for="calle">Calle y número</label>
+                                    <input type="text" name="calle" id="calle" class="form-control"
+                                        placeholder="Ej: Av. Reforma 123 Int. 4"
+                                        value="{{ old('calle') }}" maxlength="200">
+                                    @error('calle') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group {{ $errors->has('colonia') ? 'has-error' : '' }}">
+                                    <label for="colonia">Colonia</label>
+                                    <input type="text" name="colonia" id="colonia" class="form-control"
+                                        placeholder="Colonia" value="{{ old('colonia') }}" maxlength="200">
+                                    @error('colonia') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group {{ $errors->has('codigo_postal') ? 'has-error' : '' }}">
+                                    <label for="codigo_postal">C.P.</label>
+                                    <input type="text" name="codigo_postal" id="codigo_postal" class="form-control"
+                                        placeholder="00000" value="{{ old('codigo_postal') }}" maxlength="10">
+                                    @error('codigo_postal') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group {{ $errors->has('ciudad') ? 'has-error' : '' }}">
+                                    <label for="ciudad">Ciudad</label>
+                                    <input type="text" name="ciudad" id="ciudad" class="form-control"
+                                        placeholder="Ciudad" value="{{ old('ciudad') }}" maxlength="100">
+                                    @error('ciudad') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group {{ $errors->has('estado_residencia') ? 'has-error' : '' }}">
+                                    <label for="estado_residencia">Estado</label>
+                                    <input type="text" name="estado_residencia" id="estado_residencia" class="form-control"
+                                        placeholder="Estado" value="{{ old('estado_residencia') }}" maxlength="100">
+                                    @error('estado_residencia') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group {{ $errors->has('religion') ? 'has-error' : '' }}">
+                                    <label for="religion">Religión</label>
+                                    <input type="text" name="religion" id="religion" class="form-control"
+                                        placeholder="Ej: Católica" value="{{ old('religion') }}" maxlength="100">
+                                    @error('religion') <span class="help-block"><i class="fa fa-exclamation-circle"></i> {{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+
                     </div>{{-- /.form-panel-body --}}
                 </div>
 
@@ -323,7 +418,8 @@
                 <div class="form-panel wizard-step-panel" data-step="4" style="display:none;">
                     <div class="form-panel-header">
                         <h3 class="form-panel-title"><i class="fa fa-phone" style="color:#3c8dbc;"></i> Paso 4: Contactos familiares</h3>
-                        <button type="button" class="btn btn-success btn-sm btn-flat" id="btn-agregar-contacto">
+                        <button type="button" class="btn btn-success btn-xs btn-flat" id="btn-agregar-contacto"
+                                style="border-radius:20px;">
                             <i class="fa fa-plus"></i> Agregar
                         </button>
                     </div>
@@ -389,8 +485,8 @@
                         <div id="bloque-familia-existente" style="display:none;">
                             <div class="form-group {{ $errors->has('familia_id') ? 'has-error' : '' }}">
                                 <label for="familia_id">Seleccionar familia <span class="text-red">*</span></label>
-                                <select name="familia_id" id="familia_id" class="form-control">
-                                    <option value="">-- Buscar familia --</option>
+                                <select name="familia_id" id="familia_id" class="form-control select2" style="width:100%;" data-placeholder="Buscar familia por apellido...">
+                                    <option value=""></option>
                                     @foreach ($familias as $familia)
                                         <option value="{{ $familia->id }}"
                                             {{ old('familia_id') == $familia->id ? 'selected' : '' }}>
@@ -419,12 +515,21 @@
                     </div>
                     <div class="form-panel-body">
                         <div class="form-group {{ $errors->has('prospecto_id') ? 'has-error' : '' }}">
-                            <label for="prospecto_id">Numero de prospecto</label>
-                            <input type="number" name="prospecto_id" id="prospecto_id" class="form-control"
-                                placeholder="ID del prospecto en admisiones" value="{{ $prospectoIdInicial }}"
-                                min="1">
+                            <label for="prospecto_id">Prospecto</label>
+                            <select name="prospecto_id" id="prospecto_id" class="form-control select2" style="width:100%;" data-placeholder="Buscar prospecto por nombre...">
+                                <option value=""></option>
+                                @foreach ($prospectos as $prospecto)
+                                    <option value="{{ $prospecto->id }}"
+                                        {{ $prospectoIdInicial == $prospecto->id ? 'selected' : '' }}>
+                                        {{ trim("{$prospecto->ap_paterno} {$prospecto->ap_materno} {$prospecto->nombre}") }}
+                                        @if($prospecto->contacto_telefono)
+                                            — {{ $prospecto->contacto_telefono }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
                             <span class="help-block">
-                                Opcional. Si se especifica, el prospecto cambia a "inscrito" automaticamente.
+                                Opcional. Si se especifica, el prospecto cambia a "inscrito" automáticamente.
                             </span>
                         </div>
                     </div>
@@ -435,7 +540,9 @@
             <div class="col-md-4">
 
                 <div class="sidebar-panel">
-                    <div class="sidebar-header"><i class="fa fa-list-ol"></i> Progreso del registro</div>
+                    <div class="sidebar-header">
+                        <i class="fa fa-list-ol" style="color:#3c8dbc;"></i> Progreso del registro
+                    </div>
                     <div class="sidebar-body">
                         <p id="wizard-step-description"
                            style="font-size:12px;color:#6b7a8d;margin:0 0 14px;padding:8px 12px;background:#f4f6f8;border-radius:6px;border-left:3px solid #3c8dbc;">
@@ -453,36 +560,37 @@
                             @endforeach
                         </div>
                         <button type="button" class="btn btn-default btn-block btn-flat" id="btn-paso-anterior"
+                            style="border-radius:20px;margin-bottom:6px;"
                             onclick="window.alumnoWizardIrPaso(window.alumnoWizardPasoActual() - 1); return false;">
                             <i class="fa fa-arrow-left"></i> Anterior
                         </button>
                         <button type="button" class="btn btn-primary btn-block btn-flat" id="btn-paso-siguiente"
+                            style="border-radius:20px;margin-bottom:6px;"
                             onclick="window.alumnoWizardIrPaso(window.alumnoWizardPasoActual() + 1); return false;">
                             Siguiente <i class="fa fa-arrow-right"></i>
                         </button>
-                        <button type="submit" class="btn btn-success btn-block btn-flat btn-lg" id="btn-guardar"
-                            style="display:none;">
+                        <button type="submit" class="btn btn-success btn-block btn-flat" id="btn-guardar"
+                            style="display:none;border-radius:20px;margin-bottom:6px;">
                             <i class="fa fa-save"></i> Registrar alumno
                         </button>
-                        <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-block btn-flat" style="margin-top:6px;">
+                        <a href="{{ route('alumnos.index') }}" class="btn btn-default btn-block btn-flat"
+                           style="border-radius:20px;">
                             <i class="fa fa-times"></i> Cancelar
                         </a>
                     </div>
                 </div>
 
                 @if (session('error'))
-                    <div class="alert alert-danger alert-dismissible" style="border-radius:8px;">
+                    <div class="alert alert-danger alert-dismissible" style="border-radius:6px;">
                         <button type="button" class="close" data-dismiss="alert">&times;</button>
                         <i class="fa fa-times-circle"></i> {{ session('error') }}
                     </div>
                 @endif
 
                 @if ($errors->any())
-                    <div class="sidebar-panel" style="border-top:3px solid #e74c3c;">
-                        <div class="form-panel-header" style="border-bottom-color:#fca5a5;background:#fdecea;">
-                            <h3 class="form-panel-title" style="color:#b91c1c;">
-                                <i class="fa fa-exclamation-triangle"></i> Corrige los errores
-                            </h3>
+                    <div class="sidebar-panel" style="border-left:3px solid #e74c3c;">
+                        <div class="sidebar-header" style="background:#fdecea;border-bottom-color:#fca5a5;color:#b91c1c;">
+                            <i class="fa fa-exclamation-triangle"></i> Corrige los errores
                         </div>
                         <div class="sidebar-body">
                             <ul style="padding-left:16px;margin:0;">
@@ -501,16 +609,15 @@
 
     {{-- -- Template oculto para contacto -- --}}
     <div id="template-contacto" style="display:none;">
-        <div class="contacto-item panel panel-default" data-index="__INDEX__">
-            <div class="panel-heading">
-                <h4 class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="contacto-titulo">Contacto #<span class="num-contacto">__NUM__</span></span>
-                    <button type="button" class="btn btn-danger btn-xs btn-eliminar-contacto">
-                        <i class="fa fa-trash"></i> Eliminar
-                    </button>
-                </h4>
+        <div class="contacto-item" data-index="__INDEX__">
+            <div class="contacto-item-header">
+                <strong><i class="fa fa-user"></i> Contacto #<span class="num-contacto">__NUM__</span></strong>
+                <button type="button" class="btn btn-danger btn-xs btn-flat btn-eliminar-contacto"
+                        style="border-radius:20px;">
+                    <i class="fa fa-trash"></i> Eliminar
+                </button>
             </div>
-            <div class="panel-body">
+            <div class="contacto-item-body">
                 <div class="row">
                     <div class="col-md-5">
                         <div class="form-group">
@@ -628,7 +735,82 @@
                     </div>
                 </div>
 
-                <div class="row">
+                {{-- Datos adicionales del contacto (opcionales) --}}
+                <div style="margin-top:6px;">
+                    <p style="font-size:11px;font-weight:700;color:#6b7a8d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">
+                        <i class="fa fa-info-circle" style="color:#3c8dbc;"></i> Datos adicionales
+                        <span style="font-weight:400;color:#b0bec5;text-transform:none;">(opcional)</span>
+                    </p>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Teléfono 2</label>
+                                    <input type="tel" name="contactos[__INDEX__][telefono_2]" class="form-control"
+                                        placeholder="10 dígitos" maxlength="20">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Fecha de nacimiento</label>
+                                    <input type="date" name="contactos[__INDEX__][fecha_nacimiento]" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Nivel de estudios</label>
+                                    <select name="contactos[__INDEX__][nivel_estudios]" class="form-control">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="Sin estudios">Sin estudios</option>
+                                        <option value="Primaria">Primaria</option>
+                                        <option value="Secundaria">Secundaria</option>
+                                        <option value="Preparatoria">Preparatoria / Bachillerato</option>
+                                        <option value="Técnico">Técnico / Carrera técnica</option>
+                                        <option value="Licenciatura">Licenciatura / Universidad</option>
+                                        <option value="Posgrado">Posgrado (Maestría / Doctorado)</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Profesión</label>
+                                    <input type="text" name="contactos[__INDEX__][profesion]" class="form-control"
+                                        placeholder="Ej: Ingeniero" maxlength="100">
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label>Lugar de trabajo</label>
+                                    <input type="text" name="contactos[__INDEX__][lugar_trabajo]" class="form-control"
+                                        placeholder="Nombre de la empresa" maxlength="200">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Puesto</label>
+                                    <input type="text" name="contactos[__INDEX__][puesto]" class="form-control"
+                                        placeholder="Ej: Gerente" maxlength="100">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="hidden" name="contactos[__INDEX__][vive]" value="0">
+                                        <input type="checkbox" name="contactos[__INDEX__][vive]" value="1" __VIVE__>
+                                        El contacto está vivo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:8px;">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Foto del contacto</label>
@@ -648,13 +830,113 @@
                         </div>
                     </div>
                 </div>
-            </div>{{-- /.panel-body --}}
+            </div>{{-- /.contacto-item-body --}}
         </div>{{-- /.contacto-item --}}
     </div>{{-- /#template-contacto --}}
+
+    {{-- -- Template oculto para contacto existente (familia seleccionada) -- --}}
+    <div id="template-contacto-existente" style="display:none;">
+        <div class="contacto-item" data-index="__INDEX__">
+            <div class="contacto-item-header">
+                <strong><i class="fa fa-user"></i> Contacto #<span class="num-contacto">__NUM__</span></strong>
+                <span class="label label-info" style="font-size:11px;font-weight:400;">Contacto existente</span>
+            </div>
+            <div class="contacto-item-body">
+                <input type="hidden" name="contactos[__INDEX__][contacto_id]" value="__CONTACTO_ID__">
+
+                {{-- Info de solo lectura --}}
+                <div class="alert alert-default" style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:4px;padding:10px 14px;margin-bottom:12px;">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Nombre</small>
+                            <strong class="ce-nombre" style="font-size:13px;"></strong>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Teléfono celular</small>
+                            <span class="ce-telefono" style="font-size:13px;"></span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Correo electrónico</small>
+                            <span class="ce-email" style="font-size:13px;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Campos editables: permisos --}}
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Parentesco <span class="text-red">*</span></label>
+                            <select name="contactos[__INDEX__][parentesco]" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="padre">Padre</option>
+                                <option value="madre">Madre</option>
+                                <option value="abuelo">Abuelo/a</option>
+                                <option value="tio">Tío/a</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Tipo <span class="text-red">*</span></label>
+                            <select name="contactos[__INDEX__][tipo]" class="form-control">
+                                <option value="">-- Seleccionar --</option>
+                                <option value="padre">Padre/Madre</option>
+                                <option value="tutor">Tutor</option>
+                                <option value="tercero_autorizado">Tercero autorizado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Orden</label>
+                            <select name="contactos[__INDEX__][orden]" class="form-control">
+                                <option value="1" __ORDEN1__>1 - Principal</option>
+                                <option value="2" __ORDEN2__>2 - Secundario</option>
+                                <option value="3" __ORDEN3__>3 - Tercero</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                <input type="hidden" name="contactos[__INDEX__][autorizado_recoger]" value="0">
+                                <input type="checkbox" name="contactos[__INDEX__][autorizado_recoger]" value="1" __RECOGER__>
+                                Autorizado para recoger
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                <input type="hidden" name="contactos[__INDEX__][es_responsable_pago]" value="0">
+                                <input type="checkbox" name="contactos[__INDEX__][es_responsable_pago]" value="1" __PAGO__>
+                                Responsable de pagos
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                <input type="hidden" name="contactos[__INDEX__][tiene_acceso_portal]" value="0">
+                                <input type="checkbox" name="contactos[__INDEX__][tiene_acceso_portal]" value="1">
+                                Acceso al portal
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>{{-- /.contacto-item-body --}}
+        </div>{{-- /.contacto-item --}}
+    </div>{{-- /#template-contacto-existente --}}
 
 @endsection
 
 @push('scripts')
+    <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
         var MAX_CONTACTOS = 3;
         var MAX_FOTO_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -670,7 +952,30 @@
         var contactosIniciales = @json($contactosPrecargados);
         var contactosInicializados = false;
 
+        $(document).on('input', '#form-alumno input[type="text"], #form-alumno textarea', function() {
+            var start = this.selectionStart;
+            var end = this.selectionEnd;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(start, end);
+        });
+
         $(document).ready(function() {
+            // ── Select2 en búsqueda de familia ──
+            $('#familia_id').select2({
+                allowClear: true,
+                width: '100%',
+                language: { noResults: function() { return 'Sin resultados'; } },
+                placeholder: 'Buscar familia por apellido...',
+            });
+
+            // ── Select2 en búsqueda de prospecto ──
+            $('#prospecto_id').select2({
+                allowClear: true,
+                width: '100%',
+                language: { noResults: function() { return 'Sin resultados'; } },
+                placeholder: 'Buscar prospecto por nombre...',
+            });
+
             if (contactosIniciales.length) {
                 contactosIniciales.slice(0, MAX_CONTACTOS).forEach(function(contacto) {
                     agregarContacto(contacto);
@@ -800,6 +1105,7 @@
         function limpiarContactos() {
             $('#contenedor-contactos').empty();
             numContactos = 0;
+            $('#btn-agregar-contacto').show();
             actualizarBtnAgregar();
         }
 
@@ -828,13 +1134,15 @@
                     }
 
                     contactos.slice(0, MAX_CONTACTOS).forEach(function(contacto) {
-                        agregarContacto(contacto);
+                        agregarContactoExistente(contacto);
                     });
+
+                    $('#btn-agregar-contacto').hide();
 
                     $('#contenedor-contactos').prepend(
                         '<div class="alert alert-info alert-sm" id="aviso-contactos-familia" style="padding:8px 12px;font-size:12px;">' +
                         '<i class="fa fa-info-circle"></i> Se cargaron los contactos de la familia seleccionada. ' +
-                        'Puedes editar la información y configurar los permisos para este alumno.</div>'
+                        'Configura los permisos para este alumno.</div>'
                     );
                 },
                 error: function() {
@@ -842,6 +1150,89 @@
                     agregarContacto();
                 }
             });
+        }
+
+        function agregarContactoExistente(contacto) {
+            if (numContactos >= MAX_CONTACTOS) {
+                return;
+            }
+
+            var index = numContactos;
+            var num   = numContactos + 1;
+
+            var nombreCompleto = [contacto.nombre, contacto.ap_paterno, contacto.ap_materno]
+                .filter(Boolean).join(' ');
+
+            var html = '<div class="contacto-item" data-index="' + index + '">' +
+                '<div class="contacto-item-header">' +
+                    '<strong><i class="fa fa-user"></i> Contacto #<span class="num-contacto">' + num + '</span></strong>' +
+                    '<span class="label label-info" style="font-size:11px;font-weight:400;">Contacto existente</span>' +
+                '</div>' +
+                '<div class="contacto-item-body">' +
+                    '<input type="hidden" name="contactos[' + index + '][contacto_id]" value="' + (contacto.contacto_id || '') + '">' +
+                    '<div class="alert alert-default" style="background:#f5f5f5;border:1px solid #e0e0e0;border-radius:4px;padding:10px 14px;margin-bottom:12px;">' +
+                        '<div class="row">' +
+                            '<div class="col-sm-4">' +
+                                '<small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Nombre</small>' +
+                                '<strong style="font-size:13px;">' + $('<div>').text(nombreCompleto || '—').html() + '</strong>' +
+                            '</div>' +
+                            '<div class="col-sm-4">' +
+                                '<small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Teléfono celular</small>' +
+                                '<span style="font-size:13px;">' + $('<div>').text(contacto.telefono_celular || '—').html() + '</span>' +
+                            '</div>' +
+                            '<div class="col-sm-4">' +
+                                '<small class="text-muted" style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Correo electrónico</small>' +
+                                '<span style="font-size:13px;">' + $('<div>').text(contacto.email || '—').html() + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="row">' +
+                        '<div class="col-md-4"><div class="form-group"><label>Parentesco <span class="text-red">*</span></label>' +
+                            '<select name="contactos[' + index + '][parentesco]" class="form-control">' +
+                                '<option value="">-- Seleccionar --</option>' +
+                                '<option value="padre">Padre</option>' +
+                                '<option value="madre">Madre</option>' +
+                                '<option value="abuelo">Abuelo/a</option>' +
+                                '<option value="tio">Tío/a</option>' +
+                                '<option value="otro">Otro</option>' +
+                            '</select>' +
+                        '</div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label>Tipo <span class="text-red">*</span></label>' +
+                            '<select name="contactos[' + index + '][tipo]" class="form-control">' +
+                                '<option value="">-- Seleccionar --</option>' +
+                                '<option value="padre">Padre/Madre</option>' +
+                                '<option value="tutor">Tutor</option>' +
+                                '<option value="tercero_autorizado">Tercero autorizado</option>' +
+                            '</select>' +
+                        '</div></div>' +
+                        '<div class="col-md-4"><div class="form-group"><label>Orden</label>' +
+                            '<select name="contactos[' + index + '][orden]" class="form-control">' +
+                                '<option value="1"' + (num === 1 ? ' selected' : '') + '>1 - Principal</option>' +
+                                '<option value="2"' + (num === 2 ? ' selected' : '') + '>2 - Secundario</option>' +
+                                '<option value="3"' + (num === 3 ? ' selected' : '') + '>3 - Tercero</option>' +
+                            '</select>' +
+                        '</div></div>' +
+                    '</div>' +
+                    '<div class="row">' +
+                        '<div class="col-md-4"><div class="checkbox"><label>' +
+                            '<input type="hidden" name="contactos[' + index + '][autorizado_recoger]" value="0">' +
+                            '<input type="checkbox" name="contactos[' + index + '][autorizado_recoger]" value="1"' + (num === 1 ? ' checked' : '') + '> Autorizado para recoger' +
+                        '</label></div></div>' +
+                        '<div class="col-md-4"><div class="checkbox"><label>' +
+                            '<input type="hidden" name="contactos[' + index + '][es_responsable_pago]" value="0">' +
+                            '<input type="checkbox" name="contactos[' + index + '][es_responsable_pago]" value="1"' + (num === 1 ? ' checked' : '') + '> Responsable de pagos' +
+                        '</label></div></div>' +
+                        '<div class="col-md-4"><div class="checkbox"><label>' +
+                            '<input type="hidden" name="contactos[' + index + '][tiene_acceso_portal]" value="0">' +
+                            '<input type="checkbox" name="contactos[' + index + '][tiene_acceso_portal]" value="1"> Acceso al portal' +
+                        '</label></div></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+            $('#contenedor-contactos').append(html);
+            numContactos++;
+            actualizarBtnAgregar();
         }
 
         $('input[name="tipo_familia"]').on('change', function() {
@@ -961,6 +1352,7 @@
             template = template.replace('__ORDEN3__', num === 3 ? 'selected' : '');
             template = template.replace('__RECOGER__', num === 1 ? 'checked' : '');
             template = template.replace('__PAGO__', num === 1 ? 'checked' : '');
+            template = template.replace('__VIVE__', 'checked'); // vive=true por defecto
 
             $contacto = $(template);
 
@@ -1080,7 +1472,7 @@
                 hoy = new Date();
                 fecha = new Date(v);
                 anios = (hoy - fecha) / (1000 * 60 * 60 * 24 * 365);
-                if (anios < 2) return 'El alumno debe tener al menos 2 años.';
+                if (anios < 1) return 'El alumno debe tener al menos 1 año.';
                 if (anios > 25) return 'Verifica la fecha de nacimiento.';
                 return null;
             },

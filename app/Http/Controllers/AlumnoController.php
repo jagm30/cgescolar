@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MotivoBaja;
 use App\Enums\TipoInscripcion;
 use App\Http\Requests\StoreAlumnoRequest;
 use App\Http\Requests\UpdateAlumnoRequest;
@@ -16,51 +17,54 @@ use App\Models\Credencial;
 use App\Models\DocumentoAlumno;
 use App\Models\Familia;
 use App\Models\Grupo;
+use App\Models\HistorialBaja;
 use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
 use App\Models\Setting;
+use App\Services\AlumnosExcelExport;
 use App\Traits\RespondsWithJson;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
 class AlumnoController extends Controller
 {
     use RespondsWithJson;
 
     /** GET /alumnos */
-    public function index(Request $request)
+    public function index(Request $request): View|JsonResponse
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
+        $cicloId = $this->cicloActualId();
 
         $query = Alumno::with([
             'familia',
-            'inscripciones' => fn($q) => $q
-                ->where('ciclo_id', $cicloId)
+            'contactos' => fn ($q) => $q->whereNotNull('usuario_id'),
+            'inscripciones' => fn ($q) => $q
+                ->where('activo', true)
                 ->with('grupo.grado.nivel'),
         ])
-            ->when($request->filled('estado'), fn($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
-                'inscripciones',
-                fn($q) => $q
-                    ->where('ciclo_id', $cicloId)
-                    ->whereHas('grupo.grado', fn($q) => $q->where('nivel_id', $request->nivel_id))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
             ))
-            ->when($request->filled('grupo_id'), fn($q) => $q->whereHas(
-                'inscripciones',
-                fn($q) => $q
-                    ->where('ciclo_id', $cicloId)
-                    ->where('grupo_id', $request->grupo_id)
+            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->where('grupo_id', $request->grupo_id)
             ))
-            ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
-                $q->where('nombre', 'like', "%{$request->buscar}%")
-                    ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
-                    ->orWhere('matricula', 'like', "%{$request->buscar}%")
-                    ->orWhere('curp', 'like', "%{$request->buscar}%");
-            }))
+            ->when($request->filled('buscar'), fn ($q) => $q->where(fn ($q) => $q
+                ->where('nombre', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('matricula', 'like', "%{$request->buscar}%")
+                ->orWhere('curp', 'like', "%{$request->buscar}%")
+            ))
             ->orderBy('ap_paterno')
             ->orderBy('nombre');
 
@@ -69,32 +73,53 @@ class AlumnoController extends Controller
         }
 
         $alumnos = $query->paginate(20);
-        $niveles = NivelEscolar::activo()->get();
-        $grupos = Grupo::with('grado')->where('ciclo_id', $cicloId)->activo()->get();
 
-        // Estadísticas globales para cabecera
-        $statsActivos = Alumno::where('estado', 'activo')->count();
-        $statsTotal = Alumno::count();
-        $statsInscritos = Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id');
-        $disenos = Credencial::all();
+        // Determina el plan efectivo por alumno a partir de sus cargos reales del ciclo actual.
+        // Mapea inscripcion_id → alumno_id. Se usa un loop explícito para preservar claves
+        // enteras (flatMap/collapse usa array_merge internamente y las re-indexaría a 0).
+        $inscIdAAlumnoId = [];
+        foreach ($alumnos as $a) {
+            foreach ($a->inscripciones as $i) {
+                $inscIdAAlumnoId[$i->id] = $a->id;
+            }
+        }
 
-        return view('alumnos.index', compact(
-            'alumnos',
-            'niveles',
-            'grupos',
-            'cicloId',
-            'statsActivos',
-            'statsTotal',
-            'statsInscritos',
-            'disenos'
-        ));
+        $planPorAlumno = collect();
+
+        if (! empty($inscIdAAlumnoId)) {
+            $planPorAlumno = Cargo::whereIn('inscripcion_id', array_keys($inscIdAAlumnoId))
+                ->whereNotNull('asignacion_id')
+                ->whereHas('asignacion.plan', fn ($q) => $q->where('ciclo_id', $cicloId))
+                ->with('asignacion.plan')
+                ->get()
+                ->unique('inscripcion_id')
+                ->mapWithKeys(fn ($c) => [
+                    $inscIdAAlumnoId[$c->inscripcion_id] => $c->asignacion?->plan,
+                ]);
+        }
+
+        return view('alumnos.index', [
+            'alumnos' => $alumnos,
+            'planPorAlumno' => $planPorAlumno,
+            'niveles' => NivelEscolar::activo()->get(),
+            'grupos' => Grupo::with('grado')
+                ->where('ciclo_id', $cicloId)
+                ->activo()
+                ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('grado', fn ($q) => $q->where('nivel_id', $request->nivel_id)))
+                ->get(),
+            'cicloId' => $cicloId,
+            'statsActivos' => Alumno::where('estado', 'activo')->count(),
+            'statsTotal' => Alumno::count(),
+            'statsInscritos' => Inscripcion::where('ciclo_id', $cicloId)->distinct('alumno_id')->count('alumno_id'),
+            'disenos' => Credencial::all(),
+        ]);
     }
 
     /** GET /alumnos/{id} */
-    public function show(int $id)
+    public function show(int $id): View|JsonResponse
     {
         $alumno = Alumno::with([
-            'familia',
+            'familia.contactos.razonesSociales',
             'inscripciones.grupo.grado.nivel',
             'contactos',
             'documentos',
@@ -103,6 +128,9 @@ class AlumnoController extends Controller
             'becas.concepto',
             'historialBajas.ciclo',
             'historialBajas.registradoPor',
+            'fichaMedica',
+            'condicionesMedicas',
+            'medicamentosAutorizados.contactoAutoriza',
         ])->findOrFail($id);
 
         if (request()->ajax()) {
@@ -113,20 +141,21 @@ class AlumnoController extends Controller
     }
 
     /** GET /alumnos/create */
-    public function create(Request $request)
+    public function create(Request $request): View
     {
-        $cicloId = auth()->user()->ciclo_seleccionado_id
-            ?? CicloEscolar::activo()->value('id');
-
-        $niveles = NivelEscolar::activo()->get();
-        $grupos = Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get();
-        $familias = Familia::where('activo', true)->orderBy('apellido_familia')->get();
+        $cicloId = $this->cicloActualId();
         $prospectoOrigen = $request->filled('prospecto_id')
             ? Prospecto::find($request->integer('prospecto_id'))
             : null;
-        $datosPrecargados = $this->obtenerDatosPrecargados($prospectoOrigen, $cicloId);
 
-        return view('alumnos.create', compact('niveles', 'grupos', 'familias', 'prospectoOrigen', 'datosPrecargados'));
+        return view('alumnos.create', [
+            'niveles' => NivelEscolar::activo()->get(),
+            'grupos' => Grupo::with('grado.nivel')->where('ciclo_id', $cicloId)->activo()->get(),
+            'familias' => Familia::withCount('alumnos')->where('activo', true)->orderBy('apellido_familia')->get(),
+            'prospectos' => Prospecto::enProceso()->orderBy('ap_paterno')->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'contacto_telefono']),
+            'prospectoOrigen' => $prospectoOrigen,
+            'datosPrecargados' => $this->obtenerDatosPrecargados($prospectoOrigen, $cicloId),
+        ]);
     }
 
     /**
@@ -134,171 +163,107 @@ class AlumnoController extends Controller
      * Registra familia (si es nueva) + alumno + inscripción +
      * contactos + documentos en una sola transacción.
      */
-    public function store(StoreAlumnoRequest $request)
+    public function store(StoreAlumnoRequest $request): RedirectResponse|JsonResponse
     {
         $data = $request->validated();
 
-        DB::beginTransaction();
-
         try {
-            // ── 1. Familia ────────────────────────────────
-            if (! empty($data['familia_id'])) {
-                $familiaId = $data['familia_id'];
-            } else {
-                $familia = Familia::create(['apellido_familia' => $data['apellido_familia']]);
-                $familiaId = $familia->id;
-            }
+            $alumno = DB::transaction(function () use ($data, $request): Alumno {
+                $familiaId = ! empty($data['familia_id'])
+                    ? (int) $data['familia_id']
+                    : Familia::create(['apellido_familia' => $data['apellido_familia']])->id;
 
-            // ── 2. Alumno ─────────────────────────────────
-            $matricula = $this->generarMatricula($data['ciclo_id']);
+                $alumno = Alumno::create([
+                    'familia_id' => $familiaId,
+                    'matricula' => $this->generarMatricula($data['ciclo_id']),
+                    'nombre' => $data['nombre'],
+                    'ap_paterno' => $data['ap_paterno'],
+                    'ap_materno' => $data['ap_materno'] ?? null,
+                    'fecha_nacimiento' => $data['fecha_nacimiento'],
+                    'curp' => $data['curp'] ?? null,
+                    'genero' => $data['genero'] ?? null,
+                    'foto_url' => null,
+                    'observaciones' => $data['observaciones'] ?? null,
+                    'fecha_inscripcion' => $data['fecha_inscripcion'],
+                    'estado' => 'activo',
+                    // Domicilio
+                    'calle' => $data['calle'] ?? null,
+                    'colonia' => $data['colonia'] ?? null,
+                    'codigo_postal' => $data['codigo_postal'] ?? null,
+                    'ciudad' => $data['ciudad'] ?? null,
+                    'estado_residencia' => $data['estado_residencia'] ?? null,
+                    'religion' => $data['religion'] ?? null,
+                ]);
 
-            $alumno = Alumno::create([
-                'familia_id' => $familiaId,
-                'matricula' => $matricula,
-                'nombre' => $data['nombre'],
-                'ap_paterno' => $data['ap_paterno'],
-                'ap_materno' => $data['ap_materno'] ?? null,
-                'fecha_nacimiento' => $data['fecha_nacimiento'],
-                'curp' => $data['curp'] ?? null,
-                'genero' => $data['genero'] ?? null,
-                'foto_url' => null, // se actualiza abajo si viene archivo
-                'observaciones' => $data['observaciones'] ?? null,
-                'fecha_inscripcion' => $data['fecha_inscripcion'],
-                'estado' => 'activo',
-            ]);
-
-            // ── 2b. Foto del alumno ───────────────────────
-            // $request->file('foto') NO está en $data (validated) porque es un
-            // archivo, no un campo de texto. Se procesa por separado DESPUÉS
-            // de tener el id del alumno recién creado.
-            if ($request->hasFile('foto')) {
-                $ruta = $request->file('foto')->store('alumnos/fotos', 'public');
-                $alumno->update(['foto_url' => $ruta]);
-            }
-
-            // ── 3. Inscripción ────────────────────────────
-            Inscripcion::create([
-                'alumno_id' => $alumno->id,
-                'ciclo_id' => $data['ciclo_id'],
-                'grupo_id' => $data['grupo_id'],
-                'fecha' => $data['fecha_inscripcion'],
-                'activo' => true,
-            ]);
-
-            // ── 4. Contactos ──────────────────────────────
-            $contactosVinculados = [];
-
-            foreach ($data['contactos'] as $index => $contactoData) {
-                $contacto = null;
-
-                if (! empty($contactoData['curp'])) {
-                    $contacto = ContactoFamiliar::where('curp', $contactoData['curp'])->first();
-                }
-                if (! $contacto && ! empty($contactoData['telefono_celular'])) {
-                    $contacto = ContactoFamiliar::where('telefono_celular', $contactoData['telefono_celular'])->first();
+                if ($request->hasFile('foto')) {
+                    $alumno->update(['foto_url' => $request->file('foto')->store('alumnos/fotos', 'public')]);
                 }
 
-                if ($contacto) {
-                    if (! $contacto->familia_id) {
-                        $contacto->update(['familia_id' => $familiaId]);
-                    }
-                } else {
-                    $contacto = ContactoFamiliar::create([
-                        'familia_id' => $familiaId,
-                        'tiene_acceso_portal' => $contactoData['tiene_acceso_portal'] ?? false,
-                        'usuario_id' => null,
-                        'nombre' => $contactoData['nombre'],
-                        'ap_paterno' => $contactoData['ap_paterno'] ?? null,
-                        'ap_materno' => $contactoData['ap_materno'] ?? null,
-                        'telefono_celular' => $contactoData['telefono_celular'],
-                        'telefono_trabajo' => $contactoData['telefono_trabajo'] ?? null,
-                        'email' => $contactoData['email'] ?? null,
-                        'curp' => $contactoData['curp'] ?? null,
-                    ]);
-                }
-
-                if ($request->hasFile("fotos_contacto.{$index}")) {
-                    $ruta = $request->file("fotos_contacto.{$index}")->store('contactos/fotos', 'public');
-                    $contacto->update(['foto_url' => $ruta]);
-                }
-
-                if (in_array($contacto->id, $contactosVinculados)) {
-                    continue;
-                }
-
-                AlumnoContacto::create([
+                Inscripcion::create([
                     'alumno_id' => $alumno->id,
-                    'contacto_id' => $contacto->id,
-                    'parentesco' => $contactoData['parentesco'],
-                    'tipo' => $contactoData['tipo'],
-                    'orden' => $contactoData['orden'],
-                    'autorizado_recoger' => $contactoData['autorizado_recoger'] ?? false,
-                    'es_responsable_pago' => $contactoData['es_responsable_pago'] ?? false,
+                    'ciclo_id' => $data['ciclo_id'],
+                    'grupo_id' => $data['grupo_id'],
+                    'fecha' => $data['fecha_inscripcion'],
                     'activo' => true,
                 ]);
 
-                $contactosVinculados[] = $contacto->id;
-            }
+                $this->procesarContactos($data['contactos'], $alumno->id, $familiaId, $request);
 
-            // ── 5. Documentos requeridos ──────────────────
-            foreach ($this->documentosPorGrupo($data['grupo_id']) as $doc) {
-                DocumentoAlumno::create([
-                    'alumno_id' => $alumno->id,
-                    'tipo_documento' => $doc,
-                    'estado' => 'pendiente',
-                ]);
-            }
+                foreach ($this->documentosPorGrupo($data['grupo_id']) as $doc) {
+                    DocumentoAlumno::create([
+                        'alumno_id' => $alumno->id,
+                        'tipo_documento' => $doc,
+                        'estado' => 'pendiente',
+                    ]);
+                }
 
-            // ── 6. Vincular prospecto si aplica ───────────
-            if (! empty($data['prospecto_id'])) {
-                Prospecto::where('id', $data['prospecto_id'])
-                    ->update(['alumno_id' => $alumno->id, 'etapa' => 'inscrito']);
-            }
+                if (! empty($data['prospecto_id'])) {
+                    Prospecto::where('id', $data['prospecto_id'])
+                        ->update(['alumno_id' => $alumno->id, 'etapa' => 'inscrito']);
+                }
 
-            // ── 7. Auditoría ──────────────────────────────
-            Auditoria::registrar('alumno', $alumno->id, 'insert', null, $alumno->toArray());
+                Auditoria::registrar('alumno', $alumno->id, 'insert', null, $alumno->toArray());
 
-            DB::commit();
-
-            $mensaje = "Alumno '{$alumno->nombre} {$alumno->ap_paterno}' registrado. Matrícula: {$alumno->matricula}";
-
-            if (request()->ajax()) {
-                return response()->json([
-                    'message' => $mensaje,
-                    'alumno' => $alumno->load(['familia', 'inscripciones.grupo', 'contactos']),
-                ], 201);
-            }
-
-            return redirect()
-                ->route('alumnos.show', $alumno->id)
-                ->with('success', $mensaje);
+                return $alumno;
+            });
         } catch (\Throwable $e) {
-            DB::rollBack();
-
-            return $this->respuestaError('Error al registrar el alumno: ' . $e->getMessage());
+            return $this->respuestaError('Error al registrar el alumno: '.$e->getMessage());
         }
+
+        $mensaje = "Alumno '{$alumno->nombre} {$alumno->ap_paterno}' registrado. Matrícula: {$alumno->matricula}";
+
+        if (request()->ajax()) {
+            return response()->json([
+                'message' => $mensaje,
+                'alumno' => $alumno->load(['familia', 'inscripciones.grupo', 'contactos']),
+            ], 201);
+        }
+
+        return redirect()->route('alumnos.show', $alumno->id)->with('success', $mensaje);
     }
 
     /** GET /alumnos/{id}/edit */
-    public function edit(int $id)
+    public function edit(int $id): View|JsonResponse
     {
-        $alumno = Alumno::with(['familia', 'contactos'])->findOrFail($id);
+        $alumno = Alumno::with(['familia', 'contactos.usuario'])->findOrFail($id);
 
         if (request()->ajax()) {
             return response()->json($alumno);
         }
-        $inscripciones = $alumno->inscripciones()->with('ciclo', 'grupo.ciclo', 'grupo.grado.nivel')->get();
-        $niveles = NivelEscolar::activo()->get();
 
-        return view('alumnos.edit', compact('alumno', 'inscripciones', 'niveles'));
+        return view('alumnos.edit', [
+            'alumno' => $alumno,
+            'inscripciones' => $alumno->inscripciones()->with('ciclo', 'grupo.ciclo', 'grupo.grado.nivel')->get(),
+            'niveles' => NivelEscolar::activo()->get(),
+            'familias' => Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']),
+        ]);
     }
 
     /** PUT /alumnos/{id} */
-    public function update(UpdateAlumnoRequest $request, int $id)
+    public function update(UpdateAlumnoRequest $request, int $id): RedirectResponse|JsonResponse
     {
         $alumno = Alumno::findOrFail($id);
         $anterior = $alumno->toArray();
-
         $campos = $request->validated();
 
         // Separar campos de inscripción — viven en tabla aparte
@@ -306,7 +271,6 @@ class AlumnoController extends Controller
         $cicloId = $campos['ciclo_id'] ?? null;
         unset($campos['grupo_id'], $campos['nivel_id'], $campos['ciclo_id']);
 
-        // Procesar foto del alumno si viene en el request
         if ($request->hasFile('foto')) {
             if ($alumno->foto_url) {
                 Storage::disk('public')->delete($alumno->foto_url);
@@ -316,7 +280,6 @@ class AlumnoController extends Controller
 
         $alumno->update($campos);
 
-        // Procesar fotos de contactos familiares (fotos_contacto[contacto_id])
         foreach ($request->file('fotos_contacto', []) as $contactoId => $fotoFile) {
             $contacto = ContactoFamiliar::find($contactoId);
             if (! $contacto) {
@@ -325,11 +288,9 @@ class AlumnoController extends Controller
             if ($contacto->foto_url) {
                 Storage::disk('public')->delete($contacto->foto_url);
             }
-            $ruta = $fotoFile->store('contactos/fotos', 'public');
-            $contacto->update(['foto_url' => $ruta]);
+            $contacto->update(['foto_url' => $fotoFile->store('contactos/fotos', 'public')]);
         }
 
-        // Actualizar inscripción si se indicó al menos un ciclo
         if ($cicloId) {
             $inscActiva = $alumno->inscripciones()
                 ->where('activo', true)
@@ -339,40 +300,19 @@ class AlumnoController extends Controller
 
             if ($inscActiva) {
                 if ((int) $inscActiva->ciclo_id === (int) $cicloId) {
-                    // Mismo ciclo: solo actualizar el grupo (puede ser null)
                     $inscActiva->update(['grupo_id' => $grupoId ?: null]);
                 } else {
-                    // Ciclo diferente: cerrar la actual y crear una nueva
                     $inscActiva->update(['activo' => false]);
-                    Inscripcion::create([
-                        'alumno_id' => $alumno->id,
-                        'ciclo_id'  => $cicloId,
-                        'grupo_id'  => $grupoId ?: null,
-                        'fecha'     => now()->toDateString(),
-                        'activo'    => true,
-                        'tipo'      => TipoInscripcion::Regular,
-                    ]);
+                    $this->crearInscripcionRegular($alumno->id, (int) $cicloId, $grupoId);
                 }
             } else {
-                // Sin inscripción activa — puede ser un alumno dado de baja que se reincorpora
-                Inscripcion::create([
-                    'alumno_id' => $alumno->id,
-                    'ciclo_id'  => $cicloId,
-                    'grupo_id'  => $grupoId ?: null,
-                    'fecha'     => now()->toDateString(),
-                    'activo'    => true,
-                    'tipo'      => TipoInscripcion::Regular,
-                ]);
+                $this->crearInscripcionRegular($alumno->id, (int) $cicloId, $grupoId);
             }
 
-            // Si el alumno estaba dado de baja y se le asigna inscripción, reactivarlo
+            // Si estaba de baja y se le asigna inscripción, reactivarlo
             if (in_array($alumno->estado, ['baja_temporal', 'baja_definitiva'])) {
-                $alumno->update([
-                    'estado'     => 'activo',
-                    'fecha_baja' => null,
-                ]);
+                $alumno->update(['estado' => 'activo', 'fecha_baja' => null]);
 
-                // Marcar la baja más reciente como reactivada
                 $alumno->historialBajas()
                     ->whereNull('fecha_reactivacion')
                     ->latest('fecha_baja')
@@ -386,22 +326,17 @@ class AlumnoController extends Controller
         $mensaje = 'Datos del alumno actualizados correctamente.';
 
         if (request()->ajax()) {
-            return response()->json([
-                'message' => $mensaje,
-                'alumno' => $alumno->fresh(),
-            ]);
+            return response()->json(['message' => $mensaje, 'alumno' => $alumno->fresh()]);
         }
 
-        return redirect()
-            ->route('alumnos.show', $alumno->id)
-            ->with('success', $mensaje);
+        return redirect()->route('alumnos.show', $alumno->id)->with('success', $mensaje);
     }
 
     /**
      * GET /alumnos/{id}/hermanos
      * Solo AJAX — usada desde la ficha del alumno.
      */
-    public function hermanos(int $id)
+    public function hermanos(int $id): JsonResponse
     {
         $alumno = Alumno::findOrFail($id);
 
@@ -411,7 +346,7 @@ class AlumnoController extends Controller
 
         $hermanos = Alumno::where('familia_id', $alumno->familia_id)
             ->where('id', '!=', $alumno->id)
-            ->with(['inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
+            ->with(['inscripciones' => fn ($q) => $q->where('activo', true)->with('grupo.grado.nivel')])
             ->get();
 
         return response()->json($hermanos);
@@ -421,186 +356,60 @@ class AlumnoController extends Controller
      * GET /alumnos/{id}/estado-cuenta
      * Devuelve cargos del ciclo activo. Usada tanto en vista como AJAX.
      */
-    public function estadoCuenta(Request $request, int $id)
+    public function estadoCuenta(Request $request, int $id): View
     {
         $alumno = Alumno::with([
             'inscripciones.grupo.grado.nivel',
             'inscripciones.ciclo',
         ])->findOrFail($id);
 
-        // Preferir la inscripción activa más reciente que tenga grupo asignado
-        // (las anticipadas sin grupo no aportan datos útiles al hero).
         $inscripcionActual = $alumno->inscripciones
             ->where('activo', true)
             ->sortByDesc('id')
             ->first(fn ($i) => $i->grupo_id !== null)
             ?? $alumno->inscripciones->where('activo', true)->sortByDesc('id')->first();
 
-        // Ciclos en los que el alumno ha estado inscrito (para el selector de filtro)
-        $ciclos = CicloEscolar::whereHas(
-            'inscripciones',
-            fn($q) => $q->where('alumno_id', $alumno->id)
-        )->orderByDesc('fecha_inicio')->get();
+        $ciclos = CicloEscolar::whereHas('inscripciones', fn ($q) => $q->where('alumno_id', $alumno->id))
+            ->orderByDesc('fecha_inicio')
+            ->get();
 
-        // Cargos con detalles de pagos vigentes y políticas del plan
-        $cargosQuery = Cargo::with([
+        $cargos = Cargo::with([
             'concepto',
+            'inscripcion:id,ciclo_id',
             'detallesPagosVigentes.pago:id,folio_recibo,fecha_pago,forma_pago,referencia,estado',
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
+            'condonacionDetalles.condonacion:id,motivo,estado',
+            'descuentos',
         ])
-            ->whereHas('inscripcion', fn($q) => $q->where('alumno_id', $alumno->id))
-            ->withSum('detallesPagosVigentes as total_abonado', 'monto_abonado');
+            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+            ->withSum('detallesPagosVigentes as total_abonado', 'monto_final')
+            ->withSum('detallesPagosVigentes as beca_ya_aplicada', 'descuento_beca')
+            ->withSum('detallesPagosVigentes as condonacion_ya_aplicada', 'descuento_otros')
+            ->when($request->filled('ciclo_id'), fn ($q) => $q->whereHas(
+                'inscripcion', fn ($sq) => $sq->where('ciclo_id', $request->ciclo_id)
+            ))
+            ->orderBy('fecha_vencimiento')
+            ->get();
 
-        if ($request->filled('ciclo_id')) {
-            $cargosQuery->whereHas(
-                'inscripcion',
-                fn($q) => $q->where('ciclo_id', $request->ciclo_id)
-            );
-        }
-
-        $cargos = $cargosQuery->orderBy('fecha_vencimiento')->get();
-
+        // Cargar todas las becas vigentes del alumno sin filtrar por ciclo de inscripción.
+        // El matching correcto ocurre en calcularBecaCargo via plan_id/concepto_id,
+        // ya que un plan de pago ya pertenece a un ciclo específico.
         $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
             ->where('alumno_id', $alumno->id)
             ->where('activo', true)
-            ->when(
-                $inscripcionActual,
-                fn($q) => $q->where('ciclo_id', $inscripcionActual->ciclo_id)
-            )
-            ->where(
-                fn($q) => $q
-                    ->whereNull('vigencia_fin')
-                    ->orWhere('vigencia_fin', '>=', now())
-            )
+            ->where(fn ($q) => $q->whereNull('vigencia_fin')->orWhere('vigencia_fin', '>=', now()))
             ->get();
+
         $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
         $becasPorConcepto = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
+        // Becas globales: sin plan ni concepto específico, aplican a todos los cargos del ciclo
+        $becasGlobales = $becas->filter(fn ($b) => $b->plan_id === null && $b->concepto_id === null);
 
-        // ── Resumen ───────────────────────────────────────
-        $hoy = now();
-        $hoyFecha = today();
-        $totalCargado = 0;
-        $totalPagado = 0;
-        $totalCondonado = 0;
-        $totalVencido = 0;
-        $totalRecargos = 0;
-        $totalDescuentos = 0;
-        $totalBecas = 0;
-        $cargosPendientes = 0;
-        $cargosVencidos = 0;
-
-        foreach ($cargos as $cargo) {
-            $abonado = (float) ($cargo->total_abonado ?? 0);
-            $montoCubierto = (float) $cargo->monto_cubierto;
-            $saldoBase = max(0, (float) $cargo->monto_original - $montoCubierto);
-            $vencido = $hoyFecha->gt($cargo->fecha_vencimiento);
-            $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
-
-            // ── Descuento de beca para este concepto ──
-            $becaDescuento = 0.0;
-            $becaPorcentaje = null;
-
-            if ($esPendiente) {
-                $becaItem = $cargo->asignacion?->plan_id
-                    ? $becasPorPlan->get($cargo->asignacion->plan_id)
-                    : null;
-                $becaItem ??= $becasPorConcepto->get($cargo->concepto_id);
-                if ($becaItem) {
-                    $becaDescuento = min(
-                        $becaItem->calcularDescuento((float) $cargo->monto_original),
-                        $saldoBase
-                    );
-                    $becaPorcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
-                        ? (float) $becaItem->catalogoBeca->valor
-                        : null;
-                }
-            }
-
-            // ── Calcular recargo / descuento según política del plan ──
-            $descuento = 0.0;
-            $recargo = 0.0;
-
-            if ($esPendiente && $cargo->asignacion?->plan) {
-                $plan = $cargo->asignacion->plan;
-
-                if ($vencido) {
-                    // Meses de retraso: meses completos desde el vencimiento + 1
-                    $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
-
-                    // Cargo vencido → aplicar recargo si existe política activa
-                    $pr = $plan->politicasRecargo->firstWhere('activo', true);
-                    if ($pr) {
-                        $recargo = $pr->calcular($saldoBase, $mesesRetraso);
-                    }
-                } else {
-                    $mesesRetraso = 0;
-
-                    // Cargo vigente → aplicar descuento si existe política que aplique hoy
-                    $pd = $plan->politicasDescuentoActivas->first(fn($p) => $p->aplicaHoy());
-                    if ($pd) {
-                        $descuento = $pd->calcular($saldoBase);
-                    }
-                }
-            } else {
-                $mesesRetraso = 0;
-            }
-
-            // Guardar valores calculados en el modelo (accesibles en la vista)
-            $cargo->beca_descuento_calc = $becaDescuento;
-            $cargo->beca_porcentaje = $becaPorcentaje;
-            $cargo->descuento_calc = $descuento;
-            $cargo->recargo_calc = $recargo;
-            $cargo->meses_retraso = $mesesRetraso;
-            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento + $recargo);
-
-            // ── Acumuladores ──
-            $totalCargado += (float) $cargo->monto_original;
-
-            if ($cargo->estado === 'condonado') {
-                $totalCondonado += (float) $cargo->monto_original;
-            }
-
-            $totalPagado += $abonado;
-
-            if ($esPendiente) {
-                $totalBecas += $becaDescuento;
-                if ($vencido) {
-                    $totalVencido += $cargo->monto_a_pagar_hoy;
-                    $totalRecargos += $recargo;
-                    $cargosVencidos++;
-                } else {
-                    $totalDescuentos += $descuento;
-                    $cargosPendientes++;
-                }
-            }
-        }
-
-        $totalCubierto = $cargos->sum(fn(Cargo $cargo) => min((float) $cargo->monto_original, (float) $cargo->monto_cubierto));
-        $saldoPendienteBase = max(0, $totalCargado - $totalCubierto - $totalCondonado);
-
-        $resumen = [
-            'total_cargado' => $totalCargado,
-            'total_pagado' => $totalPagado,
-            'total_condonado' => $totalCondonado,
-            'saldo_pendiente' => $saldoPendienteBase,
-            'total_vencido' => $totalVencido,
-            'total_recargos' => $totalRecargos,
-            'total_descuentos' => $totalDescuentos,
-            'total_becas' => $totalBecas,
-            'total_a_pagar_hoy' => max(0, $saldoPendienteBase - $totalBecas + $totalRecargos - $totalDescuentos),
-            'total_cargos' => $cargos->count(),
-            'cargos_pendientes' => $cargosPendientes,
-            'cargos_vencidos' => $cargosVencidos,
-        ];
+        $resumen = $this->calcularResumenCargos($cargos, $becasPorPlan, $becasPorConcepto, $becasGlobales);
 
         return view('alumnos.estado-cuenta', compact(
-            'alumno',
-            'inscripcionActual',
-            'ciclos',
-            'cargos',
-            'resumen',
-            'becas'
+            'alumno', 'inscripcionActual', 'ciclos', 'cargos', 'resumen', 'becas'
         ));
     }
 
@@ -608,7 +417,7 @@ class AlumnoController extends Controller
      * POST /alumnos/{id}/inscripcion-anticipada
      * Registra una inscripción anticipada al ciclo siguiente para un alumno ya inscrito.
      */
-    public function registrarAnticipada(Request $request, int $id)
+    public function registrarAnticipada(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $request->validate([
             'ciclo_id' => 'required|exists:ciclo_escolar,id',
@@ -618,7 +427,6 @@ class AlumnoController extends Controller
 
         $alumno = Alumno::findOrFail($id);
 
-        // Verificar que no exista ya una inscripción (regular o anticipada) en ese ciclo
         $yaInscrito = $alumno->inscripciones()
             ->where('ciclo_id', $request->ciclo_id)
             ->where('activo', true)
@@ -628,8 +436,8 @@ class AlumnoController extends Controller
             return $this->respuestaError('El alumno ya tiene una inscripción activa en el ciclo seleccionado.');
         }
 
-        // El ciclo destino debe estar en configuración (no puede ser el ciclo activo)
         $cicloDestino = CicloEscolar::findOrFail($request->ciclo_id);
+
         if ($cicloDestino->estado === 'activo') {
             return $this->respuestaError('Para inscribir en el ciclo activo usa la inscripción regular.');
         }
@@ -648,13 +456,611 @@ class AlumnoController extends Controller
         $mensaje = "Inscripción anticipada al ciclo '{$cicloDestino->nombre}' registrada correctamente.";
 
         if (request()->ajax()) {
-            return response()->json(['message' => $mensaje, 'inscripcion' => $inscripcion->load('ciclo', 'grupo.grado.nivel')], 201);
+            return response()->json([
+                'message' => $mensaje,
+                'inscripcion' => $inscripcion->load('ciclo', 'grupo.grado.nivel'),
+            ], 201);
         }
 
         return back()->with('success', $mensaje);
     }
 
-    // ── Helpers privados ─────────────────────────────────
+    /**
+     * DELETE /inscripciones/{id}
+     * Desactiva la inscripción sin borrarla (preserva cargos financieros).
+     */
+    public function quitarDelGrupo(int $id): RedirectResponse
+    {
+        $inscripcion = Inscripcion::with('alumno')->findOrFail($id);
+        $inscripcion->update(['activo' => false]);
+
+        return back()->with('success', "Se ha quitado a {$inscripcion->alumno->nombre} del grupo correctamente.");
+    }
+
+    /**
+     * PATCH /alumnos/{id}/dar-baja
+     */
+    public function darBaja(Request $request, int $id): RedirectResponse
+    {
+        $request->validate([
+            'tipo_baja' => 'required|in:baja_temporal,baja_definitiva',
+            'motivo_categoria' => 'required|in:cambio_escuela,traslado,economico,familiar,salud,conducta,rendimiento,otro',
+            'motivo_detalle' => 'nullable|string|max:1000',
+        ]);
+
+        $alumno = Alumno::findOrFail($id);
+        $cicloActual = CicloEscolar::where('estado', 'activo')->first();
+
+        DB::transaction(function () use ($request, $alumno, $cicloActual) {
+            $alumno->update(['estado' => $request->tipo_baja, 'fecha_baja' => today()]);
+            $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
+
+            HistorialBaja::create([
+                'alumno_id' => $alumno->id,
+                'ciclo_id' => $cicloActual?->id,
+                'registrado_por' => auth()->id(),
+                'tipo' => $request->tipo_baja,
+                'motivo_categoria' => $request->motivo_categoria,
+                'motivo_detalle' => $request->motivo_detalle,
+                'fecha_baja' => today(),
+            ]);
+        });
+
+        return back()->with('success', 'Se registró la baja correctamente en el expediente.');
+    }
+
+    /**
+     * GET /alumnos/bajas
+     * Reporte de alumnos dados de baja con historial de motivos.
+     */
+    public function reporteBajas(Request $request): View
+    {
+        $bajas = HistorialBaja::with(['alumno', 'ciclo', 'registradoPor'])
+            ->whereNull('fecha_reactivacion')
+            ->when($request->filled('tipo'), fn ($q) => $q->where('tipo', $request->tipo))
+            ->when($request->filled('motivo_categoria'), fn ($q) => $q->where('motivo_categoria', $request->motivo_categoria))
+            ->when($request->filled('ciclo_id'), fn ($q) => $q->where('ciclo_id', $request->ciclo_id))
+            ->when($request->filled('buscar'), fn ($q) => $q->whereHas('alumno', fn ($sq) => $sq
+                ->where('nombre', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('matricula', 'like', "%{$request->buscar}%")
+            ))
+            ->orderByDesc('fecha_baja')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('alumnos.bajas', [
+            'bajas' => $bajas,
+            'ciclos' => CicloEscolar::orderByDesc('fecha_inicio')->get(),
+            'motivos' => MotivoBaja::cases(),
+        ]);
+    }
+
+    /** POST /alumnos/promocionar-masivo */
+    public function promocionarMasivo(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'inscripciones_ids' => 'required|array',
+            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
+            'grado_destino_id' => 'required|exists:grados,id',
+            'grupo_origen_id' => 'required',
+        ]);
+
+        $contador = 0;
+
+        try {
+            DB::transaction(function () use ($request, &$contador) {
+                foreach ($request->inscripciones_ids as $inscripcionId) {
+                    $inscripcionActual = Inscripcion::findOrFail($inscripcionId);
+                    $alumno = $inscripcionActual->alumno;
+
+                    $inscripcionActual->update(['activo' => false]);
+
+                    $anticipada = $alumno->inscripciones()
+                        ->where('ciclo_id', $request->ciclo_destino_id)
+                        ->where('tipo', TipoInscripcion::Anticipada)
+                        ->where('activo', true)
+                        ->first();
+
+                    if ($anticipada) {
+                        $anticipada->update(['tipo' => TipoInscripcion::Regular]);
+                    } else {
+                        $this->crearInscripcionRegular($alumno->id, $request->ciclo_destino_id, null);
+                    }
+
+                    $alumno->update(['estado' => 'activo']);
+                    $contador++;
+                }
+            });
+
+            return redirect()
+                ->route('grupos.show', $request->grupo_origen_id)
+                ->with('success', "¡Éxito! Se han promocionado {$contador} alumnos correctamente.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Hubo un error al promocionar: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * POST /grupos/{id}/egresar-todo
+     * Procesa a múltiples alumnos de un grupo (egreso o cierre de ciclo).
+     */
+    public function egresarTodo(Request $request, int $grupo_id): RedirectResponse
+    {
+        $ids = $request->input('inscripciones_ids', []);
+
+        if (empty($ids)) {
+            return back()->with('error', 'No seleccionaste ningún alumno para procesar.');
+        }
+
+        try {
+            DB::transaction(function () use ($ids) {
+                Inscripcion::whereIn('id', $ids)
+                    ->with('alumno', 'grupo.grado')
+                    ->get()
+                    ->each(function (Inscripcion $inscripcion) {
+                        if ($inscripcion->grupo->grado->nombre == '6') {
+                            $inscripcion->alumno->update(['estado' => 'egresado', 'fecha_baja' => now()]);
+                        }
+                        $inscripcion->update(['activo' => false]);
+                    });
+            });
+
+            return back()->with('success', '¡Proceso completado! Se actualizaron '.count($ids).' alumnos.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al procesar: '.$e->getMessage());
+        }
+    }
+
+    /** GET /alumnos/{id}/reporte */
+    public function reporteAlumno(Request $request, int $id)
+    {
+        $alumno = Alumno::with([
+            'familia.alumnos',
+            'inscripciones.grupo.grado.nivel',
+            'inscripciones.ciclo',
+            'contactos.razonesSociales',
+            'fichaMedica',
+            'condicionesMedicas',
+            'medicamentosAutorizados.contactoAutoriza',
+        ])->findOrFail($id);
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $setting = Setting::first();
+
+        $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
+            'alumno' => $alumno,
+            'base64' => $this->logoBase64($setting),
+            'setting' => $setting,
+            'cicloActualId' => $this->cicloActualId(),
+        ]);
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
+    }
+
+    /** GET /alumnos/exportar-excel */
+    public function exportarExcel(Request $request, AlumnosExcelExport $export)
+    {
+        return $export->descargar($request, $this->cicloActualId());
+    }
+
+    /** GET /alumnos/reporte-cumpleaneros */
+    public function reporteCumpleaneros(Request $request)
+    {
+        $cicloId = $this->cicloActualId();
+        $ciclo   = CicloEscolar::findOrFail($cicloId);
+        $setting = Setting::first();
+        $mes     = (int) ($request->mes ?? now()->month);
+
+        $alumnos = Alumno::with([
+            'inscripciones' => fn ($q) => $q
+                ->where('activo', true)
+                ->with('grupo.grado.nivel'),
+        ])
+            ->whereMonth('fecha_nacimiento', $mes)
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
+            ))
+            ->when($request->filled('grupo_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->where('grupo_id', $request->grupo_id)
+            ))
+            ->when($request->filled('buscar'), fn ($q) => $q->where(fn ($q) => $q
+                ->where('nombre', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('matricula', 'like', "%{$request->buscar}%")
+                ->orWhere('curp', 'like', "%{$request->buscar}%")
+            ))
+            ->orderByRaw('DAY(fecha_nacimiento)')
+            ->orderBy('ap_paterno')
+            ->get();
+
+        $nombreMes = ucfirst(\Carbon\Carbon::create()->month($mes)->translatedFormat('F'));
+
+        $fotosPorAlumno = $alumnos
+            ->filter(fn ($a) => $a->foto_url)
+            ->mapWithKeys(fn ($a) => [
+                $a->id => $this->imagenBase64(storage_path('app/public/' . $a->foto_url)),
+            ]);
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('alumnos.reportes.cumpleaneros_pdf', [
+            'alumnos'        => $alumnos,
+            'fotosPorAlumno' => $fotosPorAlumno,
+            'ciclo'          => $ciclo,
+            'mes'            => $mes,
+            'nombreMes'      => $nombreMes,
+            'base64'         => $this->logoBase64($setting),
+            'setting'        => $setting,
+            'filtros'        => $request->only(['nivel_id', 'grupo_id', 'estado', 'buscar']),
+        ]);
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Cumpleaneros_{$nombreMes}.pdf");
+    }
+
+    /** GET /alumnos/reporte-inscritos */
+    public function reporteInscritos()
+    {
+        $cicloId = $this->cicloActualId();
+        $ciclo = CicloEscolar::findOrFail($cicloId);
+        $setting = Setting::first();
+
+        $niveles = NivelEscolar::activo()
+            ->with(['grados.grupos' => fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->activo()
+                ->withCount(['inscripciones as total_inscritos' => fn ($q) => $q->activa()]),
+            ])
+            ->get();
+
+        $datos = $niveles->map(function (NivelEscolar $nivel) {
+            $grupos = $nivel->grados->flatMap(fn ($grado) => $grado->grupos);
+
+            $filas = $grupos->map(fn (Grupo $grupo) => [
+                'grupo' => $grupo->nombre,
+                'total' => (int) ($grupo->total_inscritos ?? 0),
+            ])->filter(fn ($f) => $f['total'] > 0)->values();
+
+            return [
+                'nivel' => $nivel->nombre,
+                'filas' => $filas,
+                'total' => $filas->sum('total'),
+            ];
+        })->filter(fn ($d) => $d['total'] > 0)->values();
+
+        $granTotal = $datos->sum('total');
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('alumnos.reportes.inscritos_pdf', [
+            'ciclo' => $ciclo,
+            'datos' => $datos,
+            'granTotal' => $granTotal,
+            'base64' => $this->logoBase64($setting),
+            'setting' => $setting,
+        ]);
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream("Inscritos_{$ciclo->nombre}.pdf");
+    }
+
+    // ── Helpers privados ──────────────────────────────────────────────────────
+
+    private function cicloActualId(): int
+    {
+        return auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+    }
+
+    private function crearInscripcionRegular(int $alumnoId, int $cicloId, ?int $grupoId): Inscripcion
+    {
+        return Inscripcion::create([
+            'alumno_id' => $alumnoId,
+            'ciclo_id' => $cicloId,
+            'grupo_id' => $grupoId,
+            'fecha' => now()->toDateString(),
+            'activo' => true,
+            'tipo' => TipoInscripcion::Regular,
+        ]);
+    }
+
+    private function procesarContactos(array $contactos, int $alumnoId, int $familiaId, Request $request): void
+    {
+        $vinculados = [];
+
+        foreach ($contactos as $index => $datos) {
+            // Si viene un contacto_id, reutilizar el registro existente directamente
+            if (! empty($datos['contacto_id'])) {
+                $contacto = ContactoFamiliar::find((int) $datos['contacto_id']);
+            } else {
+                $contacto = $this->buscarContactoExistente($datos, $vinculados);
+            }
+
+            if ($contacto) {
+                if (! $contacto->familia_id) {
+                    $contacto->update(['familia_id' => $familiaId]);
+                }
+            } else {
+                $contacto = ContactoFamiliar::create([
+                    'familia_id' => $familiaId,
+                    'tiene_acceso_portal' => $datos['tiene_acceso_portal'] ?? false,
+                    'usuario_id' => null,
+                    'nombre' => $datos['nombre'],
+                    'ap_paterno' => $datos['ap_paterno'] ?? null,
+                    'ap_materno' => $datos['ap_materno'] ?? null,
+                    'telefono_celular' => $datos['telefono_celular'],
+                    'telefono_trabajo' => $datos['telefono_trabajo'] ?? null,
+                    'telefono_2' => $datos['telefono_2'] ?? null,
+                    'fecha_nacimiento' => $datos['fecha_nacimiento'] ?? null,
+                    'email' => $datos['email'] ?? null,
+                    'curp' => $datos['curp'] ?? null,
+                    'lugar_trabajo' => $datos['lugar_trabajo'] ?? null,
+                    'puesto' => $datos['puesto'] ?? null,
+                    'nivel_estudios' => $datos['nivel_estudios'] ?? null,
+                    'profesion' => $datos['profesion'] ?? null,
+                    'vive' => $datos['vive'] ?? true,
+                ]);
+            }
+
+            if ($request->hasFile("fotos_contacto.{$index}")) {
+                $contacto->update([
+                    'foto_url' => $request->file("fotos_contacto.{$index}")->store('contactos/fotos', 'public'),
+                ]);
+            }
+
+            if (in_array($contacto->id, $vinculados)) {
+                continue;
+            }
+
+            AlumnoContacto::create([
+                'alumno_id' => $alumnoId,
+                'contacto_id' => $contacto->id,
+                'parentesco' => $datos['parentesco'],
+                'tipo' => $datos['tipo'],
+                'orden' => $datos['orden'],
+                'autorizado_recoger' => $datos['autorizado_recoger'] ?? false,
+                'es_responsable_pago' => $datos['es_responsable_pago'] ?? false,
+                'tiene_acceso_portal' => $datos['tiene_acceso_portal'] ?? false,
+                'activo' => true,
+            ]);
+
+            $vinculados[] = $contacto->id;
+        }
+    }
+
+    /**
+     * Busca un contacto ya existente por CURP o teléfono, excluyendo los
+     * contactos ya vinculados en esta misma solicitud. Sin esta exclusión,
+     * dos contactos distintos del mismo formulario que comparten teléfono
+     * (ej. ambos padres con el mismo celular de casa) se fusionarían en un
+     * solo registro y el segundo contacto se perdería.
+     */
+    private function buscarContactoExistente(array $datos, array $idsExcluidos): ?ContactoFamiliar
+    {
+        if (! empty($datos['curp'])) {
+            $contacto = ContactoFamiliar::where('curp', $datos['curp'])
+                ->whereNotIn('id', $idsExcluidos)
+                ->first();
+
+            if ($contacto) {
+                return $contacto;
+            }
+        }
+
+        if (! empty($datos['telefono_celular'])) {
+            return ContactoFamiliar::where('telefono_celular', $datos['telefono_celular'])
+                ->whereNotIn('id', $idsExcluidos)
+                ->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Calcula el resumen financiero de los cargos.
+     * Como efecto secundario, anota en cada $cargo las propiedades
+     * calculadas que necesita la vista (beca_descuento_calc, recargo_calc, etc.).
+     */
+    private function calcularResumenCargos(
+        Collection $cargos,
+        Collection $becasPorPlan,
+        Collection $becasPorConcepto,
+        Collection $becasGlobales = new Collection,
+    ): array {
+        $hoyFecha = today();
+        $totales = [
+            'total_cargado' => 0.0,
+            'total_pagado' => 0.0,
+            'total_condonado' => 0.0,
+            'total_vencido' => 0.0,
+            'total_recargos' => 0.0,
+            'total_descuentos' => 0.0,
+            'total_becas' => 0.0,
+            'total_condonaciones' => 0.0,
+            'total_cargos' => $cargos->count(),
+            'cargos_pendientes' => 0,
+            'cargos_vencidos' => 0,
+        ];
+
+        foreach ($cargos as $cargo) {
+            $abonado = (float) ($cargo->total_abonado ?? 0);
+            $saldoBase = max(0, (float) $cargo->monto_original - (float) $cargo->monto_cubierto);
+            $vencido = $hoyFecha->gt($cargo->fecha_vencimiento);
+            $esPendiente = ! in_array($cargo->estado_real, ['pagado', 'condonado']) && $saldoBase > 0;
+
+            $becaYaAplicada = (float) ($cargo->beca_ya_aplicada ?? 0);
+            [$becaDescuento, $becaPorcentaje] = $esPendiente
+                ? $this->calcularBecaCargo($cargo, $saldoBase, $becaYaAplicada, $becasPorPlan, $becasPorConcepto, $becasGlobales)
+                : [0.0, null];
+
+            [$descuento, $recargo, $mesesRetraso] = ($esPendiente && $cargo->asignacion?->plan)
+                ? $this->calcularPoliticaCargo($cargo, $saldoBase, $vencido, $hoyFecha)
+                : [0.0, 0.0, 0];
+
+            // Descuento por condonación (misma lógica que CobrosController::enriquecerCargo):
+            // se calcula una sola vez sobre monto_original y se resta lo ya acreditado en
+            // abonos anteriores, para no volver a otorgarla en cada abono parcial.
+            $condonacionYaAplicada = (float) ($cargo->condonacion_ya_aplicada ?? 0);
+            $condonacionTotal = (float) $cargo->descuentos->sum('monto_aplicado');
+            $condonacionDesc = $esPendiente
+                ? min($saldoBase, max(0, round($condonacionTotal - $condonacionYaAplicada, 2)))
+                : 0.0;
+
+            // Anotar en el modelo para la vista
+            $cargo->beca_descuento_calc = $becaDescuento;
+            $cargo->beca_porcentaje = $becaPorcentaje;
+            $cargo->descuento_calc = $descuento;
+            $cargo->recargo_calc = $recargo;
+            $cargo->meses_retraso = $mesesRetraso;
+            $cargo->descuento_condonacion_calc = $condonacionDesc;
+            $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento - $condonacionDesc + $recargo);
+
+            $totales['total_cargado'] += (float) $cargo->monto_original;
+            $totales['total_pagado'] += $abonado;
+
+            if ($cargo->estado === 'condonado') {
+                $totales['total_condonado'] += (float) $cargo->monto_original;
+            }
+
+            if ($esPendiente) {
+                $totales['total_becas'] += $becaDescuento;
+                $totales['total_condonaciones'] += $condonacionDesc;
+                if ($vencido) {
+                    $totales['total_vencido'] += $cargo->monto_a_pagar_hoy;
+                    $totales['total_recargos'] += $recargo;
+                    $totales['cargos_vencidos']++;
+                } else {
+                    $totales['total_descuentos'] += $descuento;
+                    $totales['cargos_pendientes']++;
+                }
+            }
+        }
+
+        $totalCubierto = $cargos->sum(fn (Cargo $c) => min((float) $c->monto_original, (float) $c->monto_cubierto));
+        $saldoPendienteBase = max(0, $totales['total_cargado'] - $totalCubierto - $totales['total_condonado']);
+
+        return array_merge($totales, [
+            'saldo_pendiente' => $saldoPendienteBase,
+            'total_a_pagar_hoy' => max(0, $saldoPendienteBase - $totales['total_becas'] - $totales['total_condonaciones'] + $totales['total_recargos'] - $totales['total_descuentos']),
+        ]);
+    }
+
+    /**
+     * Resuelve el descuento de beca aplicable a un cargo (plan → concepto → global).
+     * $becaYaAplicada resta lo ya acreditado en abonos anteriores para no volver a
+     * otorgar la beca sobre el saldo restante (mismo criterio que
+     * CobrosController::calcularBecaCobro).
+     */
+    private function calcularBecaCargo(
+        Cargo $cargo,
+        float $saldoBase,
+        float $becaYaAplicada,
+        Collection $becasPorPlan,
+        Collection $becasPorConcepto,
+        Collection $becasGlobales = new Collection,
+    ): array {
+        // 1. Beca asociada al plan de pago del cargo
+        $becaItem = $cargo->asignacion?->plan_id
+            ? $becasPorPlan->get($cargo->asignacion->plan_id)
+            : null;
+
+        // 2. Beca asociada al concepto específico
+        $becaItem ??= $becasPorConcepto->get($cargo->concepto_id);
+
+        // 3. Beca global del alumno (sin plan ni concepto específico)
+        //    Se aplica solo si pertenece al mismo ciclo del cargo (via inscripcion)
+        if (! $becaItem && $becasGlobales->isNotEmpty()) {
+            $cicloDelCargo = $cargo->inscripcion?->ciclo_id;
+            $becaItem = $becasGlobales->first(
+                fn ($b) => $cicloDelCargo && $b->ciclo_id === $cicloDelCargo
+            );
+        }
+
+        if (! $becaItem) {
+            return [0.0, null];
+        }
+
+        $descuentoTotal = $becaItem->calcularDescuento((float) $cargo->monto_original);
+        $descuento = min($saldoBase, max(0, round($descuentoTotal - $becaYaAplicada, 2)));
+        $porcentaje = $becaItem->catalogoBeca->tipo === 'porcentaje'
+            ? (float) $becaItem->catalogoBeca->valor
+            : null;
+
+        return [$descuento, $porcentaje];
+    }
+
+    /** Resuelve el recargo o descuento por política del plan de pago. */
+    private function calcularPoliticaCargo(Cargo $cargo, float $saldoBase, bool $vencido, Carbon $hoyFecha): array
+    {
+        $plan = $cargo->asignacion->plan;
+
+        if ($vencido) {
+            $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
+            $pr = $plan->politicasRecargo->firstWhere('activo', true);
+
+            return [0.0, $pr ? $pr->calcular($saldoBase, $mesesRetraso) : 0.0, $mesesRetraso];
+        }
+
+        $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
+
+        return [$pd ? $pd->calcular($saldoBase) : 0.0, 0.0, 0];
+    }
+
+    /** Devuelve el logo codificado en base64.
+     *  Usa el logo de configuración (imgs_escuela/reportes/{logo_ruta}),
+     *  con fallback al archivo estático logo_reportes.png.
+     */
+    private function logoBase64(?Setting $setting = null): string
+    {
+        $candidatos = array_filter([
+            $setting?->logo_ruta
+                ? public_path('imgs_escuela/reportes/'.$setting->logo_ruta)
+                : null,
+            public_path('imgs_escuela/reportes/logo_reportes.png'),
+        ]);
+
+        foreach ($candidatos as $path) {
+            if (file_exists($path)) {
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+
+                return 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
+            }
+        }
+
+        return '';
+    }
+
+    private function imagenBase64(string $path): string
+    {
+        if (! file_exists($path)) {
+            return '';
+        }
+
+        $type = pathinfo($path, PATHINFO_EXTENSION);
+
+        return 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
+    }
 
     private function generarMatricula(int $cicloId): string
     {
@@ -665,7 +1071,7 @@ class AlumnoController extends Controller
             ->value('matricula');
         $siguiente = $ultimo ? (int) substr($ultimo, -4) + 1 : 1;
 
-        return $año . '-' . str_pad($siguiente, 4, '0', STR_PAD_LEFT);
+        return $año.'-'.str_pad($siguiente, 4, '0', STR_PAD_LEFT);
     }
 
     private function documentosPorGrupo(int $grupoId): array
@@ -685,11 +1091,7 @@ class AlumnoController extends Controller
     private function obtenerDatosPrecargados(?Prospecto $prospecto, int $cicloId): array
     {
         if (! $prospecto) {
-            return [
-                'alumno' => [],
-                'apellido_familia' => '',
-                'contactos' => [],
-            ];
+            return ['alumno' => [], 'apellido_familia' => '', 'contactos' => []];
         }
 
         $nombre = $prospecto->nombre;
@@ -715,7 +1117,7 @@ class AlumnoController extends Controller
                 'nivel_id' => $prospecto->nivel_interes_id,
                 'prospecto_id' => $prospecto->id,
             ],
-            'apellido_familia' => $apellidoFamilia ? 'Familia ' . $apellidoFamilia : '',
+            'apellido_familia' => $apellidoFamilia ? 'Familia '.$apellidoFamilia : '',
             'contactos' => [[
                 'nombre' => $contactoNombre,
                 'ap_paterno' => $contactoApPaterno,
@@ -734,6 +1136,51 @@ class AlumnoController extends Controller
         ];
     }
 
+    /** DELETE /alumnos/{alumno} */
+    public function destroy(int $alumno): JsonResponse|RedirectResponse
+    {
+        $alumno = Alumno::findOrFail($alumno);
+
+        $tieneCargos = Cargo::where(function ($q) use ($alumno): void {
+            $q->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+                ->orWhereHas('asignacion', fn ($q) => $q->where('alumno_id', $alumno->id));
+        })->exists();
+
+        if ($tieneCargos) {
+            return $this->respuestaError(
+                'No es posible eliminar al alumno porque tiene cargos o pagos registrados.'
+            );
+        }
+
+        DB::transaction(function () use ($alumno): void {
+            $alumno->condicionesMedicas()->delete();
+            $alumno->medicamentosAutorizados()->delete();
+            $alumno->fichaMedica()?->delete();
+            $alumno->documentos()->delete();
+            $alumno->historialBajas()->delete();
+            $alumno->becas()->delete();
+            $alumno->asignacionesPlanes()->delete();
+            $alumno->inscripciones()->delete();
+            $alumno->contactos()->detach();
+
+            if ($alumno->foto_url) {
+                Storage::disk('public')->delete($alumno->foto_url);
+            }
+
+            Auditoria::registrar('alumno', $alumno->id, 'delete', [
+                'nombre' => $alumno->nombre_completo,
+                'matricula' => $alumno->matricula,
+            ], null);
+
+            $alumno->delete();
+        });
+
+        return $this->respuestaExito(
+            mensaje: 'Alumno eliminado correctamente.',
+            redirectRoute: 'alumnos.index'
+        );
+    }
+
     private function separarNombreCompleto(?string $nombreCompleto): array
     {
         $partes = preg_split('/\s+/', trim((string) $nombreCompleto), -1, PREG_SPLIT_NO_EMPTY);
@@ -741,262 +1188,16 @@ class AlumnoController extends Controller
         if (empty($partes)) {
             return ['', '', ''];
         }
-
         if (count($partes) === 1) {
             return [$partes[0], '', ''];
         }
-
         if (count($partes) === 2) {
             return [$partes[0], $partes[1], ''];
         }
 
         $apMaterno = array_pop($partes);
         $apPaterno = array_pop($partes);
-        $nombre = implode(' ', $partes);
 
-        return [$nombre, $apPaterno, $apMaterno];
-    }
-
-    // ── NUEVAS FUNCIONES DE GESTIÓN DE INSCRIPCIÓN Y EGRESO ──
-
-    /**
-     * DELETE /inscripciones/{id}
-     * Quita al alumno de un grupo específico desactivando su inscripción.
-     */
-    public function quitarDelGrupo(int $id)
-    {
-        $inscripcion = Inscripcion::findOrFail($id);
-        $nombre = $inscripcion->alumno->nombre;
-
-        // En lugar de borrar la fila (lo cual rompe los cargos financieros),
-        // simplemente la desactivamos para que desaparezca de la lista del grupo.
-        $inscripcion->update(['activo' => false]);
-
-        return back()->with('success', "Se ha quitado a $nombre del grupo correctamente.");
-    }
-
-    /**
-     * PATCH /alumnos/{id}/dar-baja
-     */
-    public function darBaja(Request $request, int $id)
-    {
-        $request->validate([
-            'tipo_baja'        => 'required|in:baja_temporal,baja_definitiva',
-            'motivo_categoria' => 'required|in:cambio_escuela,traslado,economico,familiar,salud,conducta,rendimiento,otro',
-            'motivo_detalle'   => 'nullable|string|max:1000',
-        ]);
-
-        $alumno = Alumno::findOrFail($id);
-        $cicloActual = CicloEscolar::where('estado', 'activo')->first();
-
-        // Obtenemos la observación actual por si ya tenía algo escrito antes
-        $obsAnterior = $alumno->observaciones ? $alumno->observaciones . ' | ' : '';
-
-
-        DB::transaction(function () use ($request, $alumno, $cicloActual) {
-            $alumno->update([
-                'estado'     => $request->tipo_baja,
-                'fecha_baja' => today(),
-            ]);
-
-            $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
-
-            \App\Models\HistorialBaja::create([
-                'alumno_id'        => $alumno->id,
-                'ciclo_id'         => $cicloActual?->id,
-                'registrado_por'   => auth()->id(),
-                'tipo'             => $request->tipo_baja,
-                'motivo_categoria' => $request->motivo_categoria,
-                'motivo_detalle'   => $request->motivo_detalle,
-                'fecha_baja'       => today(),
-            ]);
-        });
-
-        return back()->with('success', 'Se registró la baja correctamente en el expediente.');
-    }
-
-    /**
-     * GET /alumnos/bajas
-     * Reporte de alumnos dados de baja con historial de motivos.
-     */
-    public function reporteBajas(Request $request)
-    {
-        $query = \App\Models\HistorialBaja::with(['alumno', 'ciclo', 'registradoPor'])
-            ->whereNull('fecha_reactivacion');
-
-        if ($request->filled('tipo')) {
-            $query->where('tipo', $request->tipo);
-        }
-
-        if ($request->filled('motivo_categoria')) {
-            $query->where('motivo_categoria', $request->motivo_categoria);
-        }
-
-        if ($request->filled('ciclo_id')) {
-            $query->where('ciclo_id', $request->ciclo_id);
-        }
-
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->whereHas('alumno', function ($q) use ($buscar) {
-                $q->where('nombre', 'like', "%{$buscar}%")
-                  ->orWhere('ap_paterno', 'like', "%{$buscar}%")
-                  ->orWhere('matricula', 'like', "%{$buscar}%");
-            });
-        }
-
-        $bajas  = $query->orderByDesc('fecha_baja')->paginate(25)->withQueryString();
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
-        $motivos = \App\Enums\MotivoBaja::cases();
-
-        return view('alumnos.bajas', compact('bajas', 'ciclos', 'motivos'));
-    }
-
-    public function promocionarMasivo(Request $request)
-    {
-        $request->validate([
-            'inscripciones_ids' => 'required|array',
-            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
-            'grado_destino_id' => 'required|exists:grados,id',
-            'grupo_origen_id' => 'required',
-        ]);
-
-        $contador = 0;
-
-        try {
-            DB::transaction(function () use ($request, &$contador) {
-                foreach ($request->inscripciones_ids as $inscripcionId) {
-                    // 1. Obtener la inscripción actual
-                    $inscripcionActual = Inscripcion::findOrFail($inscripcionId);
-                    $alumno = $inscripcionActual->alumno;
-
-                    // 2. Cerrar la inscripción actual
-                    $inscripcionActual->update(['activo' => false]);
-
-                    // 3. Si ya tiene inscripción anticipada en el ciclo destino, convertirla a regular
-                    $anticipada = $alumno->inscripciones()
-                        ->where('ciclo_id', $request->ciclo_destino_id)
-                        ->where('tipo', TipoInscripcion::Anticipada)
-                        ->where('activo', true)
-                        ->first();
-
-                    if ($anticipada) {
-                        $anticipada->update(['tipo' => TipoInscripcion::Regular]);
-                    } else {
-                        // No tenía anticipada: crear inscripción regular nueva
-                        Inscripcion::create([
-                            'alumno_id' => $alumno->id,
-                            'ciclo_id' => $request->ciclo_destino_id,
-                            'grupo_id' => null,
-                            'fecha' => now()->toDateString(),
-                            'activo' => true,
-                            'tipo' => TipoInscripcion::Regular,
-                        ]);
-                    }
-
-                    // 4. El alumno sigue activo
-                    $alumno->update(['estado' => 'activo']);
-
-                    $contador++;
-                }
-            });
-
-            return redirect()->route('grupos.show', $request->grupo_origen_id)
-                ->with('success', "¡Éxito! Se han promocionado $contador alumnos correctamente.");
-        } catch (\Exception $e) {
-            return back()->with('error', 'Hubo un error al promocionar: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * POST /grupos/{id}/egresar-todo
-     * Procesa a múltiples alumnos de un grupo (egreso o cierre de ciclo).
-     */
-    public function egresarTodo(Request $request, int $grupo_id)
-    {
-        // Recibimos los IDs de los checkboxes marcados
-        $ids = $request->input('inscripciones_ids');
-
-        if (! $ids || count($ids) == 0) {
-            return back()->with('error', 'No seleccionaste ningún alumno para procesar.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $inscripciones = Inscripcion::whereIn('id', $ids)->with('alumno', 'grupo.grado')->get();
-
-            foreach ($inscripciones as $inscripcion) {
-                $alumno = $inscripcion->alumno;
-
-                // Si el grado es de sexto, cambia el estado general a egresado
-                if ($inscripcion->grupo->grado->nombre == '6') {
-                    $alumno->update([
-                        'estado' => 'egresado',
-                        'fecha_baja' => now(),
-                    ]);
-                }
-
-                // Cerramos la inscripción del ciclo actual para todos los seleccionados
-                $inscripcion->update(['activo' => false]);
-            }
-
-            DB::commit();
-
-            return back()->with('success', '¡Proceso completado! Se actualizaron ' . count($ids) . ' alumnos.');
-        } catch (\Exception $e) {
-            DB::rollback();
-
-            return back()->with('error', 'Error al procesar: ' . $e->getMessage());
-        }
-    }
-
-    public function reporteAlumno(Request $request, int $id)
-    {
-        //Nombre de la escuela para el encabezado del reporte
-        $setting = Setting::first();
-
-        // 1. Obtener datos del alumno
-        $alumno = Alumno::with([
-            'familia.alumnos',
-            'familia.contactos',
-            'inscripciones.grupo.grado.nivel',
-            'inscripciones.ciclo',
-            'contactos',
-        ])->findOrFail($id);
-
-        // 2. Preparar el logo en Base64 (usando el nombre correcto de tu archivo)
-        $path = public_path('imgs_escuela/reportes/logo_reportes.png');
-
-        // 3. Obtenemos el ciclo actual global
-        $cicloActualId = auth()->user()->ciclo_seleccionado_id ?? \App\Models\CicloEscolar::activo()->value('id');
-
-        // Validamos que el archivo exista para no romper el sistema
-        $base64 = '';
-        if (file_exists($path)) {
-            $type = pathinfo($path, PATHINFO_EXTENSION);
-            $data = file_get_contents($path);
-            $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
-        }
-
-        // 3. Limpiar buffer para DomPDF
-        if (ob_get_length()) {
-            ob_end_clean();
-        }
-
-        // 4. Cargar la vista y pasar ambas variables
-        $pdf = Pdf::loadView('alumnos.reportes.perfil_pdf', [
-            'alumno' => $alumno,
-            'base64' => $base64,
-            'setting' => $setting,
-            'cicloActualId' => $cicloActualId
-        ]);
-
-        // 5. Configuración del PDF
-        $pdf->setOption('isPhpEnabled', true);
-        $pdf->setOption('isHtml5ParserEnabled', true);
-        $pdf->setPaper('letter', 'portrait');
-
-        return $pdf->stream("Reporte_{$alumno->nombre}_{$alumno->ap_paterno}.pdf");
+        return [implode(' ', $partes), $apPaterno, $apMaterno];
     }
 }

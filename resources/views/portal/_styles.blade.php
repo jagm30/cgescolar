@@ -2,19 +2,21 @@
     .portal-hero {
         background: linear-gradient(135deg, #1f4e78 0%, #3c8dbc 100%);
         border-radius: 8px;
-        padding: 20px 24px;
-        margin-bottom: 20px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
         color: #fff;
         box-shadow: 0 4px 14px rgba(60, 141, 188, .22);
     }
 
     .portal-hero h3 {
-        margin: 0 0 4px;
+        margin: 0 0 2px;
         font-weight: 700;
+        font-size: 16px;
     }
 
     .portal-hero p {
         margin: 0;
+        font-size: 12px;
         color: rgba(255, 255, 255, .78);
     }
 
@@ -22,15 +24,14 @@
         background: #fff;
         border: 1px solid #e4eaf0;
         border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 16px;
-        min-height: 96px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
         box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
     }
 
     .portal-stat-label {
         color: #7b8794;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
@@ -38,17 +39,17 @@
 
     .portal-stat-value {
         color: #172b3a;
-        font-size: 26px;
+        font-size: 20px;
         font-weight: 800;
         line-height: 1.1;
-        margin-top: 8px;
+        margin-top: 4px;
     }
 
     .portal-card {
         background: #fff;
         border: 1px solid #e4eaf0;
         border-radius: 8px;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
         overflow: hidden;
         box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
     }
@@ -56,24 +57,25 @@
     .portal-card-header {
         background: #f8fafc;
         border-bottom: 1px solid #eef2f6;
-        padding: 12px 16px;
+        padding: 8px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 10px;
     }
 
     .portal-card-title {
         color: #172b3a;
+        font-size: 13px;
         font-weight: 700;
         margin: 0;
     }
 
     .portal-student {
-        padding: 16px;
+        padding: 10px 14px;
         display: flex;
-        gap: 14px;
-        align-items: flex-start;
+        gap: 10px;
+        align-items: center;
         border-bottom: 1px solid #f0f3f7;
     }
 
@@ -82,8 +84,8 @@
     }
 
     .portal-avatar {
-        width: 54px;
-        height: 54px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
         background: #e8f0fb;
         color: #3c8dbc;
@@ -91,27 +93,27 @@
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 24px;
+        font-size: 16px;
     }
 
     .portal-student-name {
         color: #172b3a;
-        font-size: 16px;
+        font-size: 13px;
         font-weight: 700;
         margin: 0;
     }
 
     .portal-meta {
         color: #7b8794;
-        font-size: 12px;
-        margin-top: 4px;
+        font-size: 11px;
+        margin-top: 2px;
     }
 
     .portal-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px;
+        gap: 6px;
+        margin-top: 6px;
     }
 
     .portal-pill {
@@ -146,7 +148,7 @@
         border: 2px dashed #dfe6ee;
         border-radius: 8px;
         color: #91a0ad;
-        padding: 46px 20px;
+        padding: 24px 20px;
         text-align: center;
         background: #fff;
     }

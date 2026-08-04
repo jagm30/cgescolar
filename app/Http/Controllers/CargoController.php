@@ -271,9 +271,14 @@ class CargoController extends Controller
         );
     }
 
+    /**
+     * monto_abonado ya incluye beca, pronto pago y condonación (se suman al
+     * efectivo recibido al momento del cobro), así que no deben volver a
+     * sumarse aquí — ver Cargo::getMontoCubiertoAttribute().
+     */
     private function montoCubiertoSql(): string
     {
-        return '(select coalesce(sum(pago_detalle.monto_abonado + pago_detalle.descuento_beca + pago_detalle.descuento_otros), 0)
+        return '(select coalesce(sum(pago_detalle.monto_abonado), 0)
             from pago_detalle
             inner join pago on pago.id = pago_detalle.pago_id
             where pago_detalle.cargo_id = cargo.id

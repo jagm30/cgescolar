@@ -20,7 +20,9 @@ use App\Models\PlanPagoConcepto;
 use App\Models\PoliticaDescuento;
 use App\Models\PoliticaRecargo;
 use App\Traits\RespondsWithJson;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -40,7 +42,9 @@ class PlanPagoController extends Controller
         $planes = PlanPago::with(['nivel', 'conceptos', 'politicasDescuentoActivas', 'politicaRecargoActiva'])
             ->withCount('asignaciones')
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('nivel_id'), fn ($q) => $q->where('nivel_id', $request->nivel_id))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->where(
+                fn ($q) => $q->where('nivel_id', $request->nivel_id)->orWhereNull('nivel_id')
+            ))
             ->orderBy('nivel_id')
             ->orderBy('nombre')
             ->paginate($planesPerPage, ['*'], 'planes_page');
@@ -100,6 +104,33 @@ class PlanPagoController extends Controller
             'niveles',
             'conceptos'
         ));
+    }
+
+    /** GET /planes/pdf */
+    public function exportarPdf(Request $request)
+    {
+        $cicloId    = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+        $cicloActual = CicloEscolar::find($cicloId);
+
+        $planes = PlanPago::with([
+                'nivel',
+                'planPagoConceptos.concepto',
+                'politicasDescuentoActivas',
+                'politicaRecargoActiva',
+            ])
+            ->where('ciclo_id', $cicloId)
+            ->when($request->filled('nivel_id'), fn($q) => $q->where('nivel_id', $request->nivel_id))
+            ->orderByRaw('nivel_id IS NULL')
+            ->orderBy('nivel_id')
+            ->orderBy('nombre')
+            ->get();
+
+        $pdf = Pdf::loadView('planes.pdf-planes', compact('planes', 'cicloActual'))
+            ->setPaper('letter', 'portrait');
+
+        $nombreCiclo = str_replace(['/', ' '], '_', $cicloActual->nombre ?? 'ciclo');
+
+        return $pdf->download("Planes_Pago_{$nombreCiclo}.pdf");
     }
 
     public function show(int $id)
@@ -434,13 +465,14 @@ class PlanPagoController extends Controller
             ->where('alumno_id', $alumnoId)
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
+            ->orderByRaw('grupo_id IS NULL')
             ->first();
 
         if (! $inscripcion) {
             return response()->json(['message' => 'Sin inscripción activa en este ciclo.'], 404);
         }
 
-        $nivelId = $inscripcion->grupo->grado->nivel_id;
+        $nivelId = $inscripcion->grupo?->grado?->nivel_id;
 
         $asignaciones = AsignacionPlan::with([
             'conceptosSeleccionados.concepto',
@@ -462,6 +494,62 @@ class PlanPagoController extends Controller
         }
 
         return response()->json(['asignaciones' => $asignaciones]);
+    }
+
+    /**
+     * GET /planes/{planId}/alumnos-asignados (AJAX)
+     * Resuelve todos los alumnos asignados a un plan (individual/grupo/nivel)
+     * y retorna los alumnos + conceptos del plan.
+     */
+    public function alumnosPorPlan(int $planId): JsonResponse
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+
+        $plan = PlanPago::with('planPagoConceptos.concepto')->findOrFail($planId);
+
+        $asignaciones = AsignacionPlan::where('plan_id', $planId)->get();
+
+        $alumnoIds = collect();
+
+        foreach ($asignaciones as $asignacion) {
+            if ($asignacion->origen === 'individual' && $asignacion->alumno_id) {
+                $alumnoIds->push($asignacion->alumno_id);
+            } elseif ($asignacion->origen === 'grupo' && $asignacion->grupo_id) {
+                $ids = Inscripcion::where('grupo_id', $asignacion->grupo_id)
+                    ->where('ciclo_id', $cicloId)
+                    ->where('activo', true)
+                    ->pluck('alumno_id');
+                $alumnoIds = $alumnoIds->merge($ids);
+            } elseif ($asignacion->origen === 'nivel' && $asignacion->nivel_id) {
+                $ids = Inscripcion::whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $asignacion->nivel_id))
+                    ->where('ciclo_id', $cicloId)
+                    ->where('activo', true)
+                    ->pluck('alumno_id');
+                $alumnoIds = $alumnoIds->merge($ids);
+            }
+        }
+
+        $alumnoIds = $alumnoIds->unique()->values();
+
+        $alumnos = Alumno::whereIn('id', $alumnoIds)
+            ->orderBy('ap_paterno')->orderBy('nombre')
+            ->get(['id', 'nombre', 'ap_paterno', 'ap_materno', 'matricula'])
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'nombre_completo' => trim("{$a->ap_paterno} {$a->ap_materno} {$a->nombre}"),
+                'matricula' => $a->matricula,
+            ]);
+
+        $conceptos = $plan->planPagoConceptos->map(fn ($c) => [
+            'concepto_id' => $c->concepto_id,
+            'nombre' => $c->concepto->nombre,
+            'monto' => (float) $c->monto,
+        ]);
+
+        return response()->json([
+            'alumnos' => $alumnos,
+            'conceptos' => $conceptos,
+        ]);
     }
 
     public function clonarMasivo(Request $request)
@@ -540,16 +628,20 @@ class PlanPagoController extends Controller
             ->where('activo', true)
             ->get();
 
-        // Transformar planes a estructura simples para JavaScript
+        // Transformar planes a estructura simple para JavaScript
         $planesData = $planes->map(function ($p) {
             return [
                 'id' => $p->id,
                 'nombre' => $p->nombre,
+                'periodicidad' => $p->periodicidad,
+                'fecha_inicio' => $p->fecha_inicio?->format('Y-m-d'),
+                'fecha_fin' => $p->fecha_fin?->format('Y-m-d'),
                 'conceptos' => $p->planPagoConceptos->map(function ($c) {
                     return [
-                        'id' => $c->id, // plan_pago_concepto.id
-                        'concepto_id' => $c->concepto_id, // concepto_cobro.id
+                        'id' => $c->id,
+                        'concepto_id' => $c->concepto_id,
                         'nombre' => $c->concepto->nombre,
+                        'tipo' => $c->concepto->tipo,
                         'monto' => (float) $c->monto,
                     ];
                 })->all(),
@@ -558,12 +650,20 @@ class PlanPagoController extends Controller
 
         $alumnos = Alumno::where('estado', 'activo')->orderBy('ap_paterno')->orderBy('nombre')->get();
 
-        $grupos = Grupo::with(['grado.nivel'])->get();
+        $grupos = Grupo::with(['grado.nivel'])
+            ->whereHas('inscripciones', function ($query) use ($cicloId) {
+                $query->where('ciclo_id', $cicloId)->where('activo', true);
+            })
+            ->orderBy('grado_id')
+            ->orderBy('nombre')
+            ->get();
         $niveles = NivelEscolar::activo()->get();
 
         $asignaciones = AsignacionPlan::with(['plan', 'alumno', 'grupo', 'nivel'])
             ->orderBy('id', 'desc')
             ->paginate(10);
+
+        $preAlumnoId = (int) request('alumno_id') ?: null;
 
         return view('planes.asignar', compact(
             'planes',
@@ -571,7 +671,8 @@ class PlanPagoController extends Controller
             'alumnos',
             'grupos',
             'niveles',
-            'asignaciones'
+            'asignaciones',
+            'preAlumnoId'
         ));
     }
 
@@ -580,11 +681,12 @@ class PlanPagoController extends Controller
         $asignacion->loadMissing(['plan', 'conceptosSeleccionados']);
 
         $plan = $asignacion->plan;
-        $periodos = $this->calcularPeriodos(
-            $plan->fecha_inicio->format('Y-m-d'),
-            $plan->fecha_fin->format('Y-m-d'),
-            $plan->periodicidad
-        );
+
+        // Respetar fechas personalizadas de la asignación; caer a las del plan si no se proporcionaron
+        $fechaInicio = ($asignacion->fecha_inicio ?? $plan->fecha_inicio)->format('Y-m-d');
+        $fechaFin = ($asignacion->fecha_fin ?? $plan->fecha_fin)->format('Y-m-d');
+
+        $periodos = $this->calcularPeriodos($fechaInicio, $fechaFin, $plan->periodicidad);
         $inscripciones = $this->obtenerInscripcionesParaAsignacion($asignacion);
         $cargosAfectados = 0;
 
@@ -658,7 +760,10 @@ class PlanPagoController extends Controller
         return Inscripcion::query()
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
-            ->when($asignacion->origen === 'individual', fn ($query) => $query->where('alumno_id', $asignacion->alumno_id))
+            ->when($asignacion->origen === 'individual', fn ($query) => $query
+                ->where('alumno_id', $asignacion->alumno_id)
+                ->orderByRaw('grupo_id IS NULL')
+                ->limit(1))
             ->when($asignacion->origen === 'grupo', fn ($query) => $query->where('grupo_id', $asignacion->grupo_id))
             ->when($asignacion->origen === 'nivel', fn ($query) => $query->whereHas(
                 'grupo.grado',

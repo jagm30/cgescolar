@@ -9,6 +9,8 @@
 @endsection
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
 <style>
 /* ── Alumno cabecera ──────────────────────── */
 .alumno-header {
@@ -245,12 +247,14 @@
 
             @forelse($cargos as $i => $cargo)
             @php
-                $tieneRecargo   = $cargo->recargo_calc        > 0;
-                $tieneDescuento = $cargo->descuento_calc      > 0;
-                $tieneBeca      = ($cargo->beca_descuento_calc ?? 0) > 0;
-                $tieneAjuste    = $tieneRecargo || $tieneDescuento || $tieneBeca;
-                $becaDescuento  = (float) ($cargo->beca_descuento_calc ?? 0);
-                $becaPorcentaje = $cargo->beca_porcentaje ?? null;
+                $tieneRecargo      = $cargo->recargo_calc              > 0;
+                $tieneDescuento    = $cargo->descuento_calc            > 0;
+                $tieneBeca         = ($cargo->beca_descuento_calc ?? 0) > 0;
+                $tieneCondonacion  = ($cargo->descuento_condonacion_calc ?? 0) > 0;
+                $tieneAjuste       = $tieneRecargo || $tieneDescuento || $tieneBeca || $tieneCondonacion;
+                $becaDescuento     = (float) ($cargo->beca_descuento_calc ?? 0);
+                $becaPorcentaje    = $cargo->beca_porcentaje ?? null;
+                $montoCondonacion  = (float) ($cargo->descuento_condonacion_calc ?? 0);
             @endphp
             <div class="cargo-item {{ $cargo->vencido ? 'vencido-card' : '' }}"
                  id="cargo-card-{{ $cargo->id }}"
@@ -259,6 +263,7 @@
                  data-beca="{{ $becaDescuento }}"
                  data-recargo="{{ $cargo->recargo_calc }}"
                  data-descuento="{{ $cargo->descuento_calc }}"
+                 data-condonacion="{{ $montoCondonacion }}"
                  data-pagar-hoy="{{ $cargo->monto_a_pagar_hoy }}"
                  data-descuento-tipo="{{ $cargo->descuento_tipo ?? '' }}"
                  data-descuento-valor="{{ $cargo->descuento_valor ?? 0 }}">
@@ -283,7 +288,12 @@
 
                     {{-- Datos --}}
                     <div style="flex:1;min-width:0;">
-                        <div class="cargo-concepto">{{ $cargo->concepto->nombre }}</div>
+                        <div class="cargo-concepto">
+                            {{ $cargo->concepto->nombre }}
+                            @if($cargo->periodo_label)
+                            <span style="font-weight:400;color:#6b7a8d;">· {{ $cargo->periodo_label }}</span>
+                            @endif
+                        </div>
                         <div class="cargo-meta">
                             <span style="background:#f0f0f0;padding:1px 7px;border-radius:8px;font-size:10px;">
                                 {{ $cargo->inscripcion->ciclo->nombre ?? '' }}
@@ -293,12 +303,6 @@
                             <span style="background:#e8f0fb;color:#2c6fad;padding:1px 7px;border-radius:8px;font-size:10px;">
                                 <i class="fa fa-list" style="font-size:9px;"></i>
                                 {{ $cargo->asignacion->plan->nombre }}
-                            </span>
-                            @endif
-                            @if($cargo->periodo_label)
-                            &nbsp;
-                            <span style="background:#e8f0fb;color:#2c6fad;padding:1px 7px;border-radius:8px;font-size:10px;">
-                                {{ $cargo->periodo_label }}
                             </span>
                             @endif
                             &nbsp;·&nbsp;
@@ -321,6 +325,17 @@
                                          padding:2px 8px;border:1px solid #b2dfb2;">
                                 <i class="fa fa-graduation-cap"></i>
                                 Beca{{ $becaPorcentaje !== null ? ' '.$becaPorcentaje.'%' : '' }}: -${{ number_format($becaDescuento, 2) }}
+                            </span>
+                        </div>
+                        @endif
+                        {{-- Badge condonación --}}
+                        @if($tieneCondonacion)
+                        <div style="margin-top:4px;">
+                            <span style="display:inline-block;background:#f3e8fd;color:#6b21a8;
+                                         font-size:11px;font-weight:600;border-radius:10px;
+                                         padding:2px 8px;border:1px solid #d8b4fe;">
+                                <i class="fa fa-scissors"></i>
+                                Condonación: -${{ number_format($montoCondonacion, 2) }}
                             </span>
                         </div>
                         @endif
@@ -387,59 +402,68 @@
                     <input type="hidden" name="items[{{ $i }}][tipo]" value="cargo">
                     <input type="hidden" name="items[{{ $i }}][cargo_id]" value="{{ $cargo->id }}">
 
-                    @if($tieneBeca)
-                    <div style="margin-bottom:10px;padding:8px 12px;border-radius:6px;font-size:12px;
-                                background:#dff0d8;color:#2d6a2d;border:1px solid #b2dfb2;">
-                        <i class="fa fa-graduation-cap"></i>
-                        <strong>Descuento por beca aplicado:</strong>
-                        Se aplica automáticamente un descuento de <strong>-${{ number_format($becaDescuento, 2) }}</strong>
-                        @if($becaPorcentaje !== null)({{ number_format($becaPorcentaje, 0) }}% del saldo)@endif
-                        según la beca asignada.
-                    </div>
-                    @endif
-                    @if($tieneRecargo || $tieneDescuento)
-                    <div style="margin-bottom:10px;padding:8px 12px;border-radius:6px;font-size:12px;
-                                {{ $tieneRecargo
-                                    ? 'background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;'
-                                    : 'background:#eafaf1;color:#1e8449;border:1px solid #c3e6cb;' }}">
-                        @if($tieneRecargo)
-                            <i class="fa fa-exclamation-triangle"></i>
-                            <strong>Recargo por mora aplicado:</strong>
-                            Cargo vencido hace {{ $cargo->dias_atraso }} días ({{ $cargo->meses_retraso }} {{ $cargo->meses_retraso === 1 ? 'mes' : 'meses' }}).
-                            Se añade automáticamente un recargo de <strong>+${{ number_format($cargo->recargo_calc, 2) }}</strong>
-                            según la política del plan de pagos.
-                        @else
+                    @if($tieneCondonacion || $tieneBeca || $tieneRecargo || $tieneDescuento)
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                        @if($tieneCondonacion)
+                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+                                     padding:3px 9px;border-radius:10px;background:#f3e8fd;color:#5b1d9a;border:1px solid #d8b4fe;">
+                            <i class="fa fa-scissors"></i>
+                            Condonación: -${{ number_format($montoCondonacion, 2) }}
+                        </span>
+                        @endif
+                        @if($tieneBeca)
+                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+                                     padding:3px 9px;border-radius:10px;background:#dff0d8;color:#2d6a2d;border:1px solid #b2dfb2;">
+                            <i class="fa fa-graduation-cap"></i>
+                            Beca: -${{ number_format($becaDescuento, 2) }}@if($becaPorcentaje !== null) ({{ number_format($becaPorcentaje, 0) }}%)@endif
+                        </span>
+                        @endif
+                        @if($tieneDescuento)
+                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+                                     padding:3px 9px;border-radius:10px;background:#eafaf1;color:#1e8449;border:1px solid #c3e6cb;">
                             <i class="fa fa-tag"></i>
-                            <strong>Descuento de pronto pago:</strong>
-                            Se aplica automáticamente un descuento de <strong>-${{ number_format($cargo->descuento_calc, 2) }}</strong>
-                            según la política del plan de pagos vigente hoy.
+                            Pronto pago: -${{ number_format($cargo->descuento_calc, 2) }}
+                        </span>
+                        @endif
+                        @if($tieneRecargo)
+                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+                                     padding:3px 9px;border-radius:10px;background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;">
+                            <i class="fa fa-exclamation-triangle"></i>
+                            Recargo mora: +${{ number_format($cargo->recargo_calc, 2) }}
+                            ({{ number_format($cargo->dias_atraso, 0) }} días · {{ $cargo->meses_retraso }} {{ $cargo->meses_retraso === 1 ? 'mes' : 'meses' }})
+                        </span>
                         @endif
                     </div>
                     @endif
 
-                    {{-- Valores de beca y pronto pago: ocultos para el form, visibles como etiqueta --}}
+                    {{-- Valores ocultos para el form (calculados automáticamente) --}}
                     <input type="hidden" name="items[{{ $i }}][descuento_beca]"        value="{{ $becaDescuento }}">
                     <input type="hidden" name="items[{{ $i }}][descuento_pronto_pago]" value="{{ $cargo->descuento_calc }}">
+                    <input type="hidden" name="items[{{ $i }}][descuento_otros]"       value="0" class="item-desc" data-idx="{{ $i }}">
+                    <input type="hidden" name="items[{{ $i }}][recargo]"               value="{{ $cargo->recargo_calc }}" class="item-desc" data-idx="{{ $i }}">
 
                     <div class="row">
                         {{-- Monto a abonar --}}
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
                                 Monto a cobrar
                             </label>
                             <div class="input-group">
                                 <span class="input-group-addon" style="background:#3c8dbc;color:#fff;font-weight:700;border:2px solid #3c8dbc;border-right:none;">$</span>
                                 <input type="number"
-                                       name="items[{{ $i }}][monto_abonado]"
                                        class="form-control monto-input item-monto"
-                                       value="{{ $cargo->pendiente }}"
+                                       value="{{ $cargo->monto_a_pagar_hoy }}"
                                        min="0.01"
-                                       max="{{ $cargo->pendiente }}"
                                        step="0.01"
                                        data-idx="{{ $i }}">
                             </div>
+                            {{-- Campo oculto: mantiene el saldo base para el seguimiento del estado del cargo --}}
+                            <input type="hidden"
+                                   name="items[{{ $i }}][monto_abonado]"
+                                   class="item-monto-oculto"
+                                   value="{{ $cargo->pendiente }}">
                             <div style="font-size:11px;color:#aaa;margin-top:4px;">
-                                Saldo base: ${{ number_format($cargo->pendiente, 2) }}
+                                Saldo pendiente: ${{ number_format($cargo->pendiente, 2) }}
                             </div>
                         </div>
 
@@ -459,7 +483,7 @@
                         </div>
 
                         {{-- Etiqueta: Descuento pronto pago --}}
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div style="font-size:12px;font-weight:600;margin-bottom:6px;
                                         color:{{ $tieneDescuento ? '#27ae60' : '#aaa' }};">
                                 <i class="fa fa-tag"></i> Pronto pago
@@ -474,45 +498,8 @@
                             @endif
                         </div>
 
-                        {{-- Descuento extra (manual) --}}
-                        <div class="col-md-2">
-                            <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
-                                Desc. extra
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-addon" style="font-size:11px;">$</span>
-                                <input type="number"
-                                       name="items[{{ $i }}][descuento_otros]"
-                                       class="form-control input-sm item-desc"
-                                       value="0" min="0" step="0.01"
-                                       data-idx="{{ $i }}">
-                            </div>
-                        </div>
-
-                        {{-- Recargo --}}
-                        <div class="col-md-1">
-                            <label style="font-size:12px;{{ $tieneRecargo ? 'color:#e74c3c;' : 'color:#555;' }}font-weight:600;display:block;margin-bottom:4px;">
-                                Recargo
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-addon"
-                                      style="font-size:10px;padding:6px 4px;{{ $tieneRecargo ? 'background:#fdecea;color:#e74c3c;border-color:#f5c6cb;' : '' }}">$</span>
-                                <input type="number"
-                                       name="items[{{ $i }}][recargo]"
-                                       class="form-control input-sm item-desc"
-                                       value="{{ $cargo->recargo_calc }}" min="0" step="0.01"
-                                       data-idx="{{ $i }}"
-                                       style="{{ $tieneRecargo ? 'border-color:#f5c6cb;color:#c0392b;font-weight:600;' : '' }}">
-                            </div>
-                            @if($tieneRecargo)
-                            <div style="font-size:10px;color:#e74c3c;margin-top:3px;">
-                                Mora auto
-                            </div>
-                            @endif
-                        </div>
-
                         {{-- Total del ítem --}}
-                        <div class="col-md-2" style="text-align:right;padding-top:20px;">
+                        <div class="col-md-3" style="text-align:right;padding-top:20px;">
                             <div style="font-size:11px;color:#aaa;margin-bottom:2px;">Total ítem</div>
                             <div style="font-size:18px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
                                  id="total-item-{{ $i }}">
@@ -715,10 +702,10 @@
         <div class="col-md-4">
             <div class="form-group">
                 <label style="font-size:12px;">Concepto <span class="text-red">*</span></label>
-                <select name="items[__IDX__][concepto_id]" class="form-control input-sm nuevo-concepto-sel">
+                <select name="items[__IDX__][concepto_id]" class="form-control nuevo-concepto-sel nuevo-concepto-sel-s2" style="width:100%;">
                     <option value="">-- Selecciona --</option>
                     @foreach($conceptos as $c)
-                    <option value="{{ $c->id }}">{{ $c->nombre }}</option>
+                    <option value="{{ $c->id }}" data-monto="{{ $c->monto ?? '' }}">{{ $c->nombre }}</option>
                     @endforeach
                 </select>
             </div>
@@ -759,6 +746,7 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
 <script>
 $(function() {
 
@@ -804,25 +792,51 @@ $(function() {
 
     // ── Recalcular total de ítem al cambiar inputs ────
     $(document).on('input', '.item-monto, .item-desc', function() {
-        var idx   = $(this).data('idx');
+        var idx = $(this).data('idx');
+        // Si el cajero modificó el monto visible o el recargo, sincronizar el campo base oculto
+        if ($(this).hasClass('item-monto') || $(this).closest('.cargo-detalle').length) {
+            sincronizarBaseDesdeVisible(idx);
+        }
         recalcularItem(idx);
         actualizarResumen();
     });
+
+    /**
+     * Recalcula el campo oculto monto_abonado (base para el estado del cargo) a partir
+     * del monto visible ingresado por el cajero. Fórmula: base = visible + beca + pp - recargo
+     * Esto garantiza que al restar los descuentos y sumar el recargo en el backend
+     * se obtenga exactamente el monto visible como monto_final.
+     */
+    function sincronizarBaseDesdeVisible(idx) {
+        var $det = $('[data-idx="' + idx + '"].item-monto').closest('.cargo-detalle');
+        if (!$det.length) return; // solo aplica a cargos existentes, no a nuevos conceptos
+        var visible    = parseFloat($det.find('.item-monto').val()) || 0;
+        var dBeca      = parseFloat($det.find('input[name*="[descuento_beca]"]').val())        || 0;
+        var dPP        = parseFloat($det.find('input[name*="[descuento_pronto_pago]"]').val()) || 0;
+        var dCond      = parseFloat($det.closest('.cargo-item').data('condonacion'))            || 0;
+        var recarg     = parseFloat($det.find('input[name*="[recargo]"]').val())                || 0;
+        $det.find('.item-monto-oculto').val(Math.max(0.01, visible + dBeca + dPP + dCond - recarg).toFixed(2));
+    }
 
     function recalcularItem(idx) {
         var $row   = $('[data-idx="' + idx + '"]').closest('.cargo-detalle, .nuevo-concepto-panel');
         var monto  = parseFloat($row.find('input[name*="[monto_abonado]"]').val()) || 0;
 
         // Recalcular pronto pago proporcional al monto ingresado (solo cargos existentes)
-        var $card = $row.closest('.cargo-item');
+        // Nota: la beca NO se reescala aquí — su crédito disponible ya viene topado
+        // desde el servidor (ver CobrosController::calcularBecaCobro) para no volver
+        // a otorgarla sobre el remanente en cada abono parcial.
+        var $card     = $row.closest('.cargo-item');
+        var dCond     = parseFloat($card.data('condonacion')) || 0;
+        var montoBase = Math.max(0, monto - dCond); // base efectiva descontando la condonación
         if ($card.length) {
             var tipo  = $card.data('descuento-tipo');
             var valor = parseFloat($card.data('descuento-valor')) || 0;
             var nuevoPP = 0;
             if (tipo === 'porcentaje' && valor > 0) {
-                nuevoPP = Math.round(monto * valor / 100 * 100) / 100;
+                nuevoPP = Math.round(montoBase * valor / 100 * 100) / 100;
             } else if (tipo === 'monto_fijo' && valor > 0) {
-                nuevoPP = Math.min(valor, monto);
+                nuevoPP = Math.min(valor, montoBase);
             }
             $row.find('input[name*="[descuento_pronto_pago]"]').val(nuevoPP.toFixed(2));
             var $lbl = $('#label-pronto-pago-' + idx);
@@ -835,7 +849,7 @@ $(function() {
         var dProntoPago = parseFloat($row.find('input[name*="[descuento_pronto_pago]"]').val()) || 0;
         var dOtros      = parseFloat($row.find('input[name*="[descuento_otros]"]').val()) || 0;
         var recarg      = parseFloat($row.find('input[name*="[recargo]"]').val()) || 0;
-        var total       = Math.max(0, monto - dBeca - dProntoPago - dOtros + recarg);
+        var total       = Math.max(0, monto - dBeca - dProntoPago - dOtros - dCond + recarg);
         $('#total-item-' + idx).text('$' + total.toFixed(2));
         return total;
     }
@@ -852,11 +866,19 @@ $(function() {
         var idx = nuevoIdx++;
         var tpl = $('#tpl-nuevo').html().replace(/__IDX__/g, idx);
         $('#contenedor-nuevos').append(tpl);
+        // Inicializar buscador en el select recién insertado
+        $('#nuevo-panel-' + idx).find('.nuevo-concepto-sel-s2').select2({
+            placeholder: 'Buscar concepto...',
+            allowClear: true,
+            width: '100%',
+            language: { noResults: function() { return 'Sin resultados'; } }
+        });
         nuevosItems[idx] = true;
         actualizarBtnCobrar();
     });
 
     window.quitarNuevo = function(idx) {
+        $('#nuevo-panel-' + idx).find('.nuevo-concepto-sel-s2').select2('destroy');
         $('#nuevo-panel-' + idx).remove();
         delete nuevosItems[idx];
         actualizarResumen();
@@ -1001,6 +1023,15 @@ $(function() {
         $('#btn-cobrar').prop('disabled', !(hayItems && hayFormaPago));
     }
 
+    // Al seleccionar concepto → cargar monto del catálogo (editable)
+    $(document).on('change', '.nuevo-concepto-sel-s2', function() {
+        var $panel = $(this).closest('.nuevo-concepto-panel');
+        var monto  = $(this).find('option:selected').data('monto');
+        if (monto && parseFloat(monto) > 0) {
+            $panel.find('.item-monto').val(parseFloat(monto).toFixed(2)).trigger('input');
+        }
+    });
+
     // También actualizar al cambiar selects de nuevo concepto
     $(document).on('change', '.nuevo-concepto-sel', function() {
         actualizarResumen();
@@ -1038,19 +1069,27 @@ $(function() {
         });
         if (!ok) { e.preventDefault(); return false; }
 
+        // ── Sincronizar monto_abonado antes de leer (incluye condonación) ──
+        $('.cargo-item.seleccionado').each(function() {
+            var idx = $(this).find('.item-monto').data('idx');
+            if (idx !== undefined) sincronizarBaseDesdeVisible(idx);
+        });
+
         // ── Reindexar: solo enviar items seleccionados ──
         // Recolectar datos de cargos seleccionados
         var itemsData = [];
 
         $('.cargo-item.seleccionado').each(function() {
-            var $d = $(this).find('.cargo-detalle');
+            var $d    = $(this).find('.cargo-detalle');
+            var dCond = parseFloat($(this).data('condonacion')) || 0;
+            var dOtros = parseFloat($d.find('input[name*="[descuento_otros]"]').val()) || 0;
             itemsData.push({
                 tipo:                  'cargo',
                 cargo_id:              $d.find('input[name*="[cargo_id]"]').val(),
                 monto_abonado:         $d.find('input[name*="[monto_abonado]"]').val() || '0',
                 descuento_beca:        $d.find('input[name*="[descuento_beca]"]').val() || '0',
                 descuento_pronto_pago: $d.find('input[name*="[descuento_pronto_pago]"]').val() || '0',
-                descuento_otros:       $d.find('input[name*="[descuento_otros]"]').val() || '0',
+                descuento_otros:       (dOtros + dCond).toFixed(2),
                 recargo:               $d.find('input[name*="[recargo]"]').val() || '0',
             });
         });

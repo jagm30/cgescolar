@@ -238,6 +238,7 @@ class BecaController extends Controller
             ->where('alumno_id', $alumnoId)
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
+            ->orderByRaw('grupo_id IS NULL')
             ->first();
 
         if (! $inscripcion) {

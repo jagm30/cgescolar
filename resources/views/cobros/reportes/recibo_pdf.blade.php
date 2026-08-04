@@ -2,15 +2,24 @@
 <html lang="es">
 
 <head>
-
     <head>
         <meta charset="UTF-8">
 
-        {{-- Obtenemos la configuración de la escuela al inicio --}}
         @php
-            $escuelaInfo = \App\Models\Setting::find(1);
+            $escuelaInfo   = \App\Models\Setting::find(1);
             $nombreEscuela = $escuelaInfo->nombre_escuela ?? config('app.school_name');
-            $logoRuta = $escuelaInfo->logo_ruta ?? 'logo-escuela.png';
+            $logoRuta      = $escuelaInfo->logo_ruta      ?? 'logo-escuela.png';
+
+            $mesesEs = [
+                1  => 'Enero',   2  => 'Febrero',  3  => 'Marzo',
+                4  => 'Abril',   5  => 'Mayo',      6  => 'Junio',
+                7  => 'Julio',   8  => 'Agosto',    9  => 'Septiembre',
+                10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+            ];
+
+            $inscripcion = $pago->detalles->first()?->cargo?->inscripcion;
+            $grupo       = $inscripcion?->grupo;
+            $grado       = $grupo?->grado;
         @endphp
 
         <title>Recibo de Pago - Folio {{ $pago->folio_recibo }}</title>
@@ -27,8 +36,8 @@
             .header-table {
                 width: 100%;
                 border-bottom: 3px solid #1e4d7b;
-                padding-bottom: 10px;
-                margin-bottom: 25px;
+                padding-bottom: 6px;
+                margin-bottom: 10px;
             }
 
             .header-table td {
@@ -46,7 +55,7 @@
             .school-subtitle {
                 color: #666;
                 font-size: 11px;
-                margin-top: 4px;
+                margin-top: 2px;
                 text-transform: uppercase;
             }
 
@@ -54,11 +63,11 @@
             .section-title {
                 background-color: #1e4d7b;
                 color: #ffffff;
-                padding: 6px 10px;
+                padding: 4px 10px;
                 font-size: 12px;
                 font-weight: bold;
                 text-transform: uppercase;
-                margin-bottom: 10px;
+                margin-bottom: 4px;
                 border-radius: 3px;
             }
 
@@ -66,13 +75,13 @@
             table.info-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 20px;
+                margin-bottom: 8px;
             }
 
             table.info-table th {
                 text-align: left;
                 background-color: #f4f6f9;
-                padding: 8px 10px;
+                padding: 3px 8px;
                 border: 1px solid #d0dde8;
                 color: #1e4d7b;
                 font-size: 11px;
@@ -80,29 +89,29 @@
             }
 
             table.info-table td {
-                padding: 8px 10px;
+                padding: 3px 8px;
                 border: 1px solid #d0dde8;
                 font-size: 12px;
             }
 
-            /* ── TABLA DE CONCEPTOS (DESGLOSE) ── */
+            /* ── TABLA DE CONCEPTOS ── */
             table.concepts-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 30px;
+                margin-bottom: 10px;
             }
 
             table.concepts-table th {
                 background-color: #f4f6f9;
                 color: #1e4d7b;
-                padding: 10px;
+                padding: 3px 8px;
                 font-size: 11px;
                 border-bottom: 2px solid #d0dde8;
                 text-transform: uppercase;
             }
 
             table.concepts-table td {
-                padding: 10px;
+                padding: 3px 8px;
                 border-bottom: 1px solid #eee;
                 font-size: 12px;
             }
@@ -114,24 +123,12 @@
                 color: #1e4d7b;
                 border-top: 2px solid #1e4d7b;
                 border-bottom: none;
+                padding: 3px 8px;
             }
 
             /* ── UTILIDADES ── */
-            .text-center {
-                text-align: center;
-            }
-
-            .text-right {
-                text-align: right;
-            }
-
-            .text-green {
-                color: #27ae60;
-            }
-
-            .text-red {
-                color: #e74c3c;
-            }
+            .text-center { text-align: center; }
+            .text-right  { text-align: right; }
 
             .text-muted {
                 color: #888;
@@ -154,46 +151,72 @@
             }
 
             .school-logo {
-                width: 80px;
+                width: 120px;
                 height: auto;
                 display: block;
                 margin: 0 auto;
+            }
+
+            /* ── LÍNEA DE CORTE ── */
+            .linea-corte {
+                border: none;
+                border-top: 1.5px dashed #aaa;
+                margin: 12px 0;
+                text-align: center;
+            }
+            .linea-corte span {
+                display: inline-block;
+                background: #fff;
+                padding: 0 10px;
+                font-size: 9px;
+                color: #bbb;
+                position: relative;
+                top: -7px;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+            }
+
+            /* ── PIE ── */
+            .pie-pagina {
+                text-align: center;
+                border-top: 1px solid #eee;
+                padding-top: 6px;
+                margin-top: 14px;
+                font-size: 10px;
+                color: #999;
             }
         </style>
     </head>
 
 <body>
 
+@foreach (['COPIA PADRE DE FAMILIA', 'COPIA ARCHIVO'] as $tipoCopia)
 
     {{-- ── 1. ENCABEZADO Y FOLIO ── --}}
     <table class="header-table">
         <tr>
             <td style="width: 20%; text-align: left;">
-                {{-- Busca el logo definido en la base de datos o el fallback --}}
-                @if (file_exists(public_path('imgs_escuela/' . $logoRuta)))
-                    <img src="{{ public_path('imgs_escuela/' . $logoRuta) }}" class="school-logo" alt="Logo">
-                @elseif (file_exists(public_path('imgs_escuela/reportes/logo-escuela.png')))
-                    <img src="{{ public_path('imgs_escuela/reportes/logo-escuela.png') }}" class="school-logo"
-                        alt="Logo">
+                @if (file_exists(public_path('imgs_escuela/reportes/' . $logoRuta)))
+                    <img src="{{ public_path('imgs_escuela/reportes/' . $logoRuta) }}" class="school-logo" alt="Logo">
                 @else
-                    <div
-                        style="width: 80px; height: 80px; background: #e0e0e0; text-align:center; line-height:80px; color:#666; margin: 0 auto;">
+                    <div style="width: 80px; height: 80px; background: #e0e0e0; text-align:center; line-height:80px; color:#666; margin: 0 auto;">
                         LOGO
                     </div>
                 @endif
             </td>
             <td style="width: 50%; text-align: center;">
-                {{-- Nombre dinámico de la escuela --}}
                 <div class="school-title">{{ $nombreEscuela }}</div>
-                <div class="school-subtitle">Recibo Oficial de Cobro</div>
+                <div class="school-subtitle">
+                    Recibo Oficial de Cobro &nbsp;&mdash;&nbsp; {{ $tipoCopia }}
+                </div>
             </td>
             <td style="width: 30%; text-align: right;">
                 <div style="margin-bottom: 6px;">
                     <b style="color: #1e4d7b; font-size: 16px;">FOLIO: {{ $pago->folio_recibo }}</b>
                 </div>
-                <div style="color: #666; font-size: 11px;">
-                    <b>Fecha de Emisión:</b><br>
-                    {{ $pago->fecha_pago->format('d/m/Y H:i') }}
+                <div style="color: #666; font-size: 11px; line-height: 1.7;">
+                    <b>Fecha de Cobro:</b> {{ $pago->fecha_pago->format('d/m/Y') }}<br>
+                    <b>Fecha de Registro:</b> {{ $pago->creado_at?->format('d/m/Y H:i') ?? '—' }}
                 </div>
             </td>
         </tr>
@@ -203,79 +226,64 @@
     <div class="section-title">1. Datos del Alumno</div>
     <table class="info-table">
         <tr>
-            <th style="width: 20%;">Nombre Completo</th>
-            <td style="width: 50%;">
+            <th style="width: 18%;">Alumno</th>
+            <td style="width: 40%;">
                 <b>{{ $alumno->nombre ?? 'N/A' }} {{ $alumno->ap_paterno ?? '' }} {{ $alumno->ap_materno ?? '' }}</b>
             </td>
-            <th style="width: 15%;">Matrícula</th>
-            <td style="width: 15%; text-align: center;">
+            <th style="width: 13%;">Matrícula</th>
+            <td style="width: 29%; text-align: center;">
                 <b>{{ $alumno->matricula ?? 'N/A' }}</b>
             </td>
         </tr>
-    </table>
-
-    {{-- ── 3. DETALLES DE LA OPERACIÓN ── --}}
-    <div class="section-title">2. Detalles de la Operación</div>
-    <table class="info-table">
         <tr>
-            <th style="width: 20%;">Método de Pago</th>
-            <td style="width: 30%;">{{ strtoupper($pago->forma_pago) }}</td>
-            <th style="width: 20%;">Atendido Por</th>
-            <td style="width: 30%;">{{ $pago->cajero->nombre ?? 'Sistema' }}</td>
+            <th>Grado</th>
+            <td>{{ $grado?->numero ?? '—' }}</td>
+            <th>Grupo</th>
+            <td>{{ $grupo?->nombre ?? '—' }}</td>
         </tr>
         <tr>
-            <th>Referencia</th>
-            <td>{{ $pago->referencia ?? 'N/A' }}</td>
-            <th>Estado</th>
+            <th>Forma de Pago</th>
+            <td>{{ strtoupper($pago->forma_pago) }}
+                @if($pago->referencia) &nbsp;<span style="color:#888;">— Ref: {{ $pago->referencia }}</span>@endif
+            </td>
+            <th>Cajero / Estado</th>
             <td>
-                <span class="badge badge-green">✔ PAGADO</span>
+                {{ $pago->cajero->nombre ?? 'Sistema' }}
+                &nbsp;<span class="badge badge-green">PAGADO</span>
             </td>
         </tr>
     </table>
 
-    {{-- ── 4. DESGLOSE DEL COBRO ── --}}
-    <div class="section-title">3. Desglose de Conceptos</div>
+    {{-- ── 3. CONCEPTOS COBRADOS ── --}}
+    <div class="section-title">2. Conceptos Cobrados</div>
     <table class="concepts-table">
         <thead>
             <tr>
-                <th style="width: 35%; text-align: left;">Concepto</th>
-                <th style="width: 15%; text-align: center;">Periodo</th>
-                <th style="width: 15%;" class="text-right">Monto Base</th>
-                <th style="width: 10%;" class="text-right">Desc.</th>
-                <th style="width: 10%;" class="text-right">Recargo</th>
-                <th style="width: 15%;" class="text-right">Subtotal</th>
+                <th style="width: 55%; text-align: left;">Concepto</th>
+                <th style="width: 20%; text-align: center;">Periodo</th>
+                <th style="width: 25%;" class="text-right">Monto Cobrado</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($pago->detalles as $detalle)
+                @php
+                    $periodoLabel = null;
+                    if ($detalle->cargo->periodo) {
+                        [$anio, $mes] = explode('-', $detalle->cargo->periodo);
+                        $periodoLabel = ($mesesEs[(int) $mes] ?? '') . ' ' . $anio;
+                    }
+
+                    $esAbono = (float) $detalle->monto_abonado < (float) $detalle->cargo->monto_original;
+                @endphp
                 <tr>
                     <td>
                         <b>{{ $detalle->cargo->concepto->nombre }}</b>
-                    </td>
-                    <td class="text-center">{{ $detalle->cargo->periodo }}</td>
-
-                    <td class="text-right">${{ number_format($detalle->monto_abonado, 2) }}</td>
-
-                    {{-- Descuentos --}}
-                    <td class="text-right text-green">
-                        @php $total_descuento = $detalle->descuento_beca + $detalle->descuento_otros; @endphp
-                        @if ($total_descuento > 0)
-                            -${{ number_format($total_descuento, 2) }}
-                        @else
-                            $0.00
+                        @if ($esAbono)
+                            &nbsp;<span class="badge" style="background:#f39c12; color:#fff;">ABONO</span>
+                            <br><span class="text-muted">Monto base: ${{ number_format($detalle->cargo->monto_original, 2) }}</span>
                         @endif
                     </td>
-
-                    {{-- Recargos --}}
-                    <td class="text-right text-red">
-                        @if ($detalle->recargo_aplicado > 0)
-                            +${{ number_format($detalle->recargo_aplicado, 2) }}
-                        @else
-                            $0.00
-                        @endif
-                    </td>
-
-                    {{-- Subtotal Final --}}
+                    <td class="text-center">{{ $periodoLabel ?? '—' }}</td>
                     <td class="text-right" style="font-weight: bold;">
                         ${{ number_format($detalle->monto_final, 2) }}
                     </td>
@@ -284,37 +292,38 @@
         </tbody>
         <tfoot>
             <tr class="total-row">
-                <td colspan="5" class="text-right" style="padding: 12px 10px;">TOTAL PAGADO:</td>
-                <td class="text-right" style="padding: 12px 10px; font-size: 16px;">
+                <td colspan="2" class="text-right">TOTAL PAGADO:</td>
+                <td class="text-right" style="font-size: 16px;">
                     ${{ number_format($pago->monto_total, 2) }}
                 </td>
             </tr>
         </tfoot>
     </table>
 
-    {{-- ── 5. SECCIÓN DE FIRMAS ── --}}
-    <table style="width: 100%; margin-top: 60px;">
+    {{-- ── 4. FIRMA / SELLO ── --}}
+    <table style="width: 100%; margin-top: 20px;">
         <tr>
-            <td style="width: 50%; text-align: center;">
+            <td style="text-align: center;">
                 _______________________________________<br>
-                <b>Firma de Recepción (Caja)</b><br>
+                <b>Firma / Sello de Cajero</b><br>
                 <span class="text-muted">{{ $pago->cajero->nombre ?? config('app.name') }}</span>
-            </td>
-            <td style="width: 50%; text-align: center;">
-                _______________________________________<br>
-                <b>Firma de Conformidad</b><br>
-                <span class="text-muted">Alumno / Tutor</span>
             </td>
         </tr>
     </table>
 
-    {{-- Pie de página del documento --}}
-    <div
-        style="position: absolute; bottom: -20px; width: 100%; text-align: center; border-top: 1px solid #eee; padding-top: 10px; font-size: 10px; color: #999;">
-        Este documento es un comprobante de pago interno. No tiene validez como comprobante fiscal (CFDI) a menos que se
-        indique lo contrario.<br>
-        Impreso el: {{ date('d/m/Y H:i') }}
+    {{-- Pie de página ── --}}
+    <div class="pie-pagina">
+        Este documento es un comprobante de pago interno. No tiene validez como comprobante fiscal (CFDI) a menos que se indique lo contrario.
     </div>
+
+    {{-- Línea de corte solo entre las dos copias --}}
+    @if ($loop->first)
+        <div class="linea-corte">
+            <span>-- recortar aqui --</span>
+        </div>
+    @endif
+
+@endforeach
 
 </body>
 

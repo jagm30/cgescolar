@@ -4,12 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\Cargo;
+use App\Models\Cfdi;
+use App\Models\CondicionMedica;
+use App\Models\ContactoFamiliar;
 use App\Models\Inscripcion;
+use App\Models\MedicamentoAutorizado;
 use App\Models\Pago;
+use App\Models\RazonSocialContacto;
+use App\Services\CfdiService;
+use App\Services\FacturaComService;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class PortalPadreController extends Controller
 {
@@ -32,6 +43,143 @@ class PortalPadreController extends Controller
         return view('portal.hijos', compact('alumnos'));
     }
 
+    /** GET /portal/hijos/{alumnoId}/expediente */
+    public function expedienteMedico(int $alumnoId): View
+    {
+        $this->verificarAccesoAlumno($alumnoId);
+
+        $alumno = Alumno::with([
+            'fichaMedica',
+            'condicionesMedicas',
+            'medicamentosAutorizados.contactoAutoriza',
+        ])->findOrFail($alumnoId);
+
+        $contacto         = auth()->user()->contactoFamiliar()->first();
+        $contactosFamilia = $contacto?->familia_id
+            ? ContactoFamiliar::where('familia_id', $contacto->familia_id)
+                ->orderBy('ap_paterno')
+                ->get(['id', 'nombre', 'ap_paterno', 'ap_materno'])
+            : collect();
+
+        $fm = $alumno->fichaMedica;
+
+        return view('portal.expediente-medico', compact('alumno', 'fm', 'contactosFamilia'));
+    }
+
+    /** POST /portal/hijos/{alumnoId}/ficha-medica */
+    public function actualizarFichaMedica(Request $request, int $alumnoId): JsonResponse
+    {
+        $this->verificarAccesoAlumno($alumnoId);
+
+        $datos = $request->validate([
+            'tipo_sangre'             => ['nullable', 'string', 'max:5'],
+            'peso_kg'                 => ['nullable', 'numeric', 'min:1', 'max:300'],
+            'talla_cm'                => ['nullable', 'numeric', 'min:30', 'max:250'],
+            'medico_nombre'           => ['nullable', 'string', 'max:255'],
+            'medico_telefono'         => ['nullable', 'string', 'max:20'],
+            'hospital_preferente'     => ['nullable', 'string', 'max:255'],
+            'discapacidad'            => ['nullable', 'string', 'max:1000'],
+            'observaciones_generales' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'peso_kg.min'  => 'El peso debe ser mayor a 1 kg.',
+            'peso_kg.max'  => 'El peso no puede superar 300 kg.',
+            'talla_cm.min' => 'La talla debe ser mayor a 30 cm.',
+            'talla_cm.max' => 'La talla no puede superar 250 cm.',
+        ]);
+
+        $alumno = Alumno::findOrFail($alumnoId);
+        $datos  = array_merge($datos, ['actualizado_por' => auth()->id(), 'actualizado_at' => now()]);
+
+        $ficha = $alumno->fichaMedica;
+        if ($ficha) {
+            $ficha->update($datos);
+        } else {
+            $alumno->fichaMedica()->create($datos);
+        }
+
+        return response()->json(['status' => 'success', 'mensaje' => 'Ficha médica actualizada.']);
+    }
+
+    /** POST /portal/hijos/{alumnoId}/condiciones-medicas */
+    public function storeCondicion(Request $request, int $alumnoId): JsonResponse
+    {
+        $this->verificarAccesoAlumno($alumnoId);
+
+        $request->merge(['requiere_accion' => $request->boolean('requiere_accion')]);
+
+        $datos = $request->validate([
+            'tipo'             => ['required', 'string', 'in:padecimiento,alergia_alimento,alergia_medicamento,alergia_ambiental,discapacidad,otro'],
+            'nombre'           => ['required', 'string', 'max:255'],
+            'descripcion'      => ['nullable', 'string', 'max:1000'],
+            'nivel_riesgo'     => ['required', 'string', 'in:leve,moderado,grave,critico'],
+            'requiere_accion'  => ['nullable', 'boolean'],
+            'accion_requerida' => ['nullable', 'string', 'max:1000', 'required_if:requiere_accion,1'],
+        ], [
+            'tipo.required'                => 'El tipo de condición es obligatorio.',
+            'tipo.in'                      => 'Selecciona un tipo de condición válido.',
+            'nombre.required'              => 'El nombre de la condición es obligatorio.',
+            'nivel_riesgo.required'        => 'El nivel de riesgo es obligatorio.',
+            'nivel_riesgo.in'              => 'Selecciona un nivel de riesgo válido.',
+            'accion_requerida.required_if' => 'Describe la acción a tomar si marcas que requiere intervención.',
+        ]);
+
+        $alumno = Alumno::findOrFail($alumnoId);
+        $alumno->condicionesMedicas()->create($datos);
+
+        return response()->json(['status' => 'success', 'mensaje' => 'Condición médica registrada.']);
+    }
+
+    /** DELETE /portal/condiciones-medicas/{id} */
+    public function destroyCondicion(int $id): JsonResponse
+    {
+        $condicion = CondicionMedica::findOrFail($id);
+        $this->verificarAccesoAlumno($condicion->alumno_id);
+        $condicion->delete();
+
+        return response()->json(['status' => 'success', 'mensaje' => 'Condición médica eliminada.']);
+    }
+
+    /** POST /portal/hijos/{alumnoId}/medicamentos */
+    public function storeMedicamento(Request $request, int $alumnoId): JsonResponse
+    {
+        $this->verificarAccesoAlumno($alumnoId);
+
+        $request->merge(['requiere_refrigeracion' => $request->boolean('requiere_refrigeracion')]);
+
+        $datos = $request->validate([
+            'autorizado_por_contacto' => ['required', 'exists:contacto_familiar,id'],
+            'nombre_medicamento'       => ['required', 'string', 'max:255'],
+            'dosis'                    => ['required', 'string', 'max:255'],
+            'frecuencia'               => ['required', 'string', 'max:255'],
+            'horario'                  => ['nullable', 'string', 'max:255'],
+            'requiere_refrigeracion'   => ['nullable', 'boolean'],
+            'instrucciones'            => ['nullable', 'string', 'max:1000'],
+            'vigencia_fin'             => ['nullable', 'date', 'after:today'],
+        ], [
+            'autorizado_por_contacto.required' => 'Selecciona el contacto que autoriza el medicamento.',
+            'autorizado_por_contacto.exists'   => 'El contacto seleccionado no existe.',
+            'nombre_medicamento.required'       => 'El nombre del medicamento es obligatorio.',
+            'dosis.required'                    => 'La dosis es obligatoria.',
+            'frecuencia.required'               => 'La frecuencia de administración es obligatoria.',
+            'vigencia_fin.after'                => 'La fecha de vigencia debe ser posterior a hoy.',
+        ]);
+
+        $alumno = Alumno::findOrFail($alumnoId);
+        $alumno->medicamentosAutorizados()->create($datos);
+
+        return response()->json(['status' => 'success', 'mensaje' => 'Medicamento autorizado registrado.']);
+    }
+
+    /** DELETE /portal/medicamentos/{id} */
+    public function destroyMedicamento(int $id): JsonResponse
+    {
+        $medicamento = MedicamentoAutorizado::findOrFail($id);
+        $this->verificarAccesoAlumno($medicamento->alumno_id);
+        $medicamento->delete();
+
+        return response()->json(['status' => 'success', 'mensaje' => 'Medicamento eliminado.']);
+    }
+
     public function estadoCuenta(int $alumnoId): View|JsonResponse|RedirectResponse
     {
         $this->verificarAccesoAlumno($alumnoId);
@@ -51,29 +199,63 @@ class PortalPadreController extends Controller
             return back()->with('error', 'No tiene inscripcion activa.');
         }
 
-        $cargos = Cargo::with(['concepto', 'detallesPagosVigentes'])
+        $cargos = Cargo::with([
+                'concepto',
+                'detallesPagosVigentes',
+                'descuentos',
+                'condonacionDetalles',
+            ])
             ->where('inscripcion_id', $inscripcion->id)
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(fn (Cargo $cargo) => [
-                'id' => $cargo->id,
-                'concepto' => $cargo->concepto->nombre,
-                'periodo' => $cargo->periodo,
-                'monto_original' => $cargo->monto_original,
-                'saldo_abonado' => $cargo->saldo_abonado,
-                'saldo_pendiente' => max(0, $cargo->saldo_pendiente_base),
-                'estado' => $cargo->detallesPagosVigentes->isNotEmpty() || $cargo->estado === 'condonado'
-                    ? $cargo->estado_real
-                    : 'pendiente',
-                'fecha_vencimiento' => $cargo->fecha_vencimiento,
-                'puede_facturar' => $cargo->detallesPagosVigentes->isNotEmpty(),
-            ]);
+            ->map(function (Cargo $cargo) {
+                $descuentoBeca       = (float) $cargo->detallesPagosVigentes->sum('descuento_beca');
+                $descuentoProntoPago = (float) $cargo->detallesPagosVigentes->sum('descuento_pronto_pago');
+                $descuentoOtros      = (float) $cargo->detallesPagosVigentes->sum('descuento_otros');
+                $recargoAplicado     = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
+                $condonacion         = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
+
+                // Monto neto = lo que realmente debe pagar tras aplicar todos los ajustes
+                $montoNeto = $cargo->monto_original
+                    - $descuentoBeca
+                    - $descuentoProntoPago
+                    - $descuentoOtros
+                    - $condonacion
+                    + $recargoAplicado;
+
+                // Monto cobrado = dinero real recibido en caja (monto_final ya incluye descuentos y recargos)
+                $montoCobrado = (float) $cargo->detallesPagosVigentes->sum('monto_final');
+
+                return [
+                    'id'               => $cargo->id,
+                    'concepto'         => $cargo->concepto->nombre,
+                    'periodo'          => $cargo->periodo,
+                    'periodo_label'    => $cargo->periodo_label,
+                    'monto_original'   => $cargo->monto_original,
+                    'monto_neto'       => $montoNeto,
+                    'monto_cobrado'    => $montoCobrado,
+                    'saldo_pendiente'  => max(0, $montoNeto - $montoCobrado),
+                    'estado'           => $cargo->detallesPagosVigentes->isNotEmpty() || $cargo->estado === 'condonado'
+                        ? $cargo->estado_real
+                        : 'pendiente',
+                    'fecha_vencimiento'     => $cargo->fecha_vencimiento,
+                    'puede_facturar'        => $cargo->detallesPagosVigentes->isNotEmpty(),
+                    'descuento_beca'        => $descuentoBeca,
+                    'descuento_pronto_pago' => $descuentoProntoPago,
+                    'descuento_otros'       => $descuentoOtros,
+                    'recargo_aplicado'      => $recargoAplicado,
+                    'condonacion'           => $condonacion,
+                ];
+            });
+
+        $totalCobrado  = $cargos->sum('monto_cobrado');
+        $totalPendiente = $cargos->sum('saldo_pendiente');
 
         $resumen = [
-            'total_cargado' => $cargos->sum('monto_original'),
-            'total_pendiente' => $cargos->sum('saldo_pendiente'),
-            'total_pagado' => $cargos->sum('saldo_abonado'),
-            'total_cargos' => $cargos->count(),
+            'total_cargado'   => $totalCobrado + $totalPendiente,
+            'total_pendiente' => $totalPendiente,
+            'total_pagado'    => $totalCobrado,
+            'total_cargos'    => $cargos->count(),
             'cargos_vencidos' => $cargos->filter(fn (array $cargo) => str_contains($cargo['estado'], 'vencido'))->count(),
         ];
 
@@ -84,6 +266,45 @@ class PortalPadreController extends Controller
         }
 
         return view('portal.estado-cuenta', compact('alumno', 'cargos', 'inscripcion', 'resumen'));
+    }
+
+    /** GET /portal/facturas — todos los pagos de todos los hijos, para facturar */
+    public function facturas(): View
+    {
+        $alumnos = $this->alumnosDelPadre();
+
+        $alumnosConPagos = $alumnos->map(function (Alumno $alumno) {
+            $pagos = Pago::with(['detalles.cargo.concepto', 'cfdis'])
+                ->whereHas('detalles.cargo.inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
+                ->where('estado', 'vigente')
+                ->orderByDesc('fecha_pago')
+                ->get()
+                ->map(fn (Pago $pago) => [
+                    'id'           => $pago->id,
+                    'folio_recibo' => $pago->folio_recibo,
+                    'conceptos'    => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
+                    'monto_total'  => $pago->monto_total,
+                    'fecha_pago'   => $pago->fecha_pago,
+                    'forma_pago'   => $pago->forma_pago,
+                    'tiene_factura'  => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                    'cfdi_id'        => $pago->cfdis->where('estado', 'vigente')->first()?->id,
+                    'puede_facturar' => $this->pagoPuedeFacturarse($pago),
+                ]);
+
+            return ['alumno' => $alumno, 'pagos' => $pagos];
+        });
+
+        $contacto        = auth()->user()->contactoFamiliar()->with('familia')->first();
+        $razonesSociales = $contacto?->familia_id
+            ? RazonSocialContacto::whereIn('contacto_id',
+                    ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
+                )
+                ->where('activo', true)
+                ->orderByDesc('es_principal')
+                ->get(['id', 'rfc', 'razon_social', 'uso_cfdi_default', 'es_principal'])
+            : collect();
+
+        return view('portal.facturas', ['alumnosConPagos' => $alumnosConPagos, 'razonesSociales' => $razonesSociales]);
     }
 
     public function historialPagos(int $alumnoId): View|JsonResponse
@@ -98,12 +319,14 @@ class PortalPadreController extends Controller
             ->map(fn (Pago $pago) => [
                 'id' => $pago->id,
                 'folio_recibo' => $pago->folio_recibo,
-                'conceptos' => $pago->detalles->map(fn ($detalle) => $detalle->cargo->concepto->nombre)->join(', '),
+                'conceptos' => $pago->detalles->map(fn ($detalle) => $detalle->cargo->etiqueta)->join(', '),
                 'monto_total' => $pago->monto_total,
                 'fecha_pago' => $pago->fecha_pago,
                 'forma_pago' => $pago->forma_pago,
-                'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
-                'cfdi_uuid' => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
+                'tiene_factura'   => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                'cfdi_id'         => $pago->cfdis->where('estado', 'vigente')->first()?->id,
+                'cfdi_uuid'       => $pago->cfdis->where('estado', 'vigente')->first()?->uuid_sat,
+                'puede_facturar'  => $this->pagoPuedeFacturarse($pago),
             ]);
 
         $alumno = Alumno::findOrFail($alumnoId);
@@ -112,16 +335,34 @@ class PortalPadreController extends Controller
             return response()->json($pagos);
         }
 
-        return view('portal.historial-pagos', compact('alumno', 'pagos'));
+        $contacto         = auth()->user()->contactoFamiliar()->with('familia')->first();
+        $razonesSociales  = $contacto?->familia_id
+            ? RazonSocialContacto::whereIn('contacto_id',
+                    ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
+                )
+                ->where('activo', true)
+                ->orderByDesc('es_principal')
+                ->get(['id', 'rfc', 'razon_social', 'uso_cfdi_default', 'es_principal'])
+            : collect();
+
+        return view('portal.historial-pagos', compact('alumno', 'pagos', 'razonesSociales'));
     }
 
     public function razonesSociales(): View|JsonResponse
     {
-        $contacto = auth()->user()->contactoFamiliar()
-            ->with('razonesSociales')
-            ->first();
+        $contacto = auth()->user()->contactoFamiliar()->with('familia')->first();
 
-        $razonesSociales = $contacto?->razonesSociales()->activa()->get() ?? collect();
+        // Todas las razones sociales activas de todos los contactos de la familia
+        $razonesSociales = $contacto?->familia_id
+            ? RazonSocialContacto::with('contacto')
+                ->whereIn('contacto_id',
+                    \App\Models\ContactoFamiliar::where('familia_id', $contacto->familia_id)->pluck('id')
+                )
+                ->where('activo', true)
+                ->orderByDesc('es_principal')
+                ->orderBy('contacto_id')
+                ->get()
+            : collect();
 
         if (request()->ajax()) {
             return response()->json($razonesSociales);
@@ -434,29 +675,17 @@ class PortalPadreController extends Controller
             ->where('familia_id', $contacto?->familia_id)
             ->firstOrFail();
 
-        $actualizaFotoDeUsuario = $contactoDestino->usuario_id === auth()->id();
-        $fotoPerfilAnterior = $actualizaFotoDeUsuario ? auth()->user()->foto_perfil : null;
-
         if ($contactoDestino->foto_url) {
             Storage::disk('public')->delete($contactoDestino->foto_url);
-        }
-
-        if ($fotoPerfilAnterior && $fotoPerfilAnterior !== $contactoDestino->foto_url) {
-            Storage::disk('public')->delete($fotoPerfilAnterior);
         }
 
         $ruta = $request->file('foto')->store('contactos/fotos', 'public');
         $contactoDestino->update(['foto_url' => $ruta]);
 
-        if ($actualizaFotoDeUsuario) {
-            auth()->user()->update(['foto_perfil' => $ruta]);
-        }
-
         return response()->json([
             'status'   => 'success',
             'mensaje'  => 'Foto de ' . $contactoDestino->nombre . ' actualizada.',
             'foto_url' => asset('storage/' . $ruta),
-            'foto_usuario_url' => $actualizaFotoDeUsuario ? asset('storage/' . $ruta) : null,
         ]);
     }
 
@@ -480,16 +709,39 @@ class PortalPadreController extends Controller
     {
         $contacto = auth()->user()->contactoFamiliar;
 
-        if (! $contacto?->familia_id) {
+        if (! $contacto) {
             abort(403, 'No tiene acceso a este alumno.');
         }
 
-        $perteneceAFamilia = Alumno::where('id', $alumnoId)
-            ->where('familia_id', $contacto->familia_id)
+        $tieneAcceso = Alumno::where('id', $alumnoId)
+            ->whereHas('contactos', fn ($q) => $q
+                ->where('contacto_familiar.id', $contacto->id)
+                ->where('alumno_contacto.tiene_acceso_portal', true)
+                ->where('alumno_contacto.activo', true)
+            )
             ->exists();
 
-        if (! $perteneceAFamilia) {
+        if (! $tieneAcceso) {
             abort(403, 'No tiene acceso a la informacion de este alumno.');
+        }
+    }
+
+    private function verificarAccesoCfdi(Cfdi $cfdi): void
+    {
+        $contacto = auth()->user()->contactoFamiliar;
+
+        if (! $contacto?->familia_id) {
+            abort(403, 'No tiene acceso a esta factura.');
+        }
+
+        $alumnoIds = Alumno::where('familia_id', $contacto->familia_id)->pluck('id');
+
+        $perteneceAFamilia = $cfdi->pago?->detalles
+            ->filter(fn ($d) => $alumnoIds->contains($d->cargo?->inscripcion?->alumno_id))
+            ->isNotEmpty() ?? false;
+
+        if (! $perteneceAFamilia) {
+            abort(403, 'No tiene acceso a esta factura.');
         }
     }
 
@@ -497,13 +749,17 @@ class PortalPadreController extends Controller
     {
         $contacto = auth()->user()->contactoFamiliar()->first();
 
-        if (! $contacto?->familia_id) {
+        if (! $contacto) {
             return collect();
         }
 
         return Alumno::query()
-            ->where('familia_id', $contacto->familia_id)
             ->where('estado', 'activo')
+            ->whereHas('contactos', fn ($q) => $q
+                ->where('contacto_familiar.id', $contacto->id)
+                ->where('alumno_contacto.tiene_acceso_portal', true)
+                ->where('alumno_contacto.activo', true)
+            )
             ->whereHas('inscripciones', fn ($query) => $query->where('activo', true))
             ->with([
                 'inscripciones' => fn ($query) => $query->where('activo', true)->latest('id'),
@@ -518,15 +774,13 @@ class PortalPadreController extends Controller
         $alumnoIds = $alumnos->pluck('id');
 
         $cargos = Cargo::query()
-            ->with('detallesPagosVigentes')
+            ->with(['detallesPagosVigentes', 'condonacionDetalles'])
             ->whereHas('inscripcion', fn ($query) => $query->whereIn('alumno_id', $alumnoIds))
             ->get();
 
         $totalCobrado   = 0.0;
         $totalPendiente = 0.0;
-        $vencidosConUnMesDeAtraso = 0;
-        $totalVencidoConUnMesDeAtraso = 0.0;
-        $fechaLimiteAtraso = today()->subMonth();
+        $vencidos       = 0;
 
         foreach ($cargos as $cargo) {
             $descuentos  = (float) $cargo->detallesPagosVigentes->sum('descuento_beca')
@@ -542,13 +796,8 @@ class PortalPadreController extends Controller
             $totalCobrado   += $cobrado;
             $totalPendiente += $pendiente;
 
-            if (
-                $pendiente > 0
-                && str_contains($cargo->estado_real, 'vencido')
-                && $cargo->fecha_vencimiento->lessThanOrEqualTo($fechaLimiteAtraso)
-            ) {
-                $vencidosConUnMesDeAtraso++;
-                $totalVencidoConUnMesDeAtraso += $pendiente;
+            if (str_contains($cargo->estado_real, 'vencido')) {
+                $vencidos++;
             }
         }
 
@@ -558,8 +807,7 @@ class PortalPadreController extends Controller
             'total_cargado'   => $totalCobrado + $totalPendiente,
             'total_pagado'    => $totalCobrado,
             'total_pendiente' => $totalPendiente,
-            'cargos_vencidos' => $vencidosConUnMesDeAtraso,
-            'total_vencido'   => $totalVencidoConUnMesDeAtraso,
+            'cargos_vencidos' => $vencidos,
         ];
     }
 }

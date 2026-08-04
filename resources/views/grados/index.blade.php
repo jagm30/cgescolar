@@ -5,61 +5,12 @@
 
 @push('styles')
     <style>
-        /* Estructura Global */
-        .content-wrapper {
-            background-color: #f4f7f6 !important;
-        }
-
-        .con-stats {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .con-stat-card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-top: 3px solid #3c8dbc;
-            border-radius: 8px;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
-            min-width: 200px;
-        }
-
-        .con-stat-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #eaf3fb;
-            color: #3c8dbc;
-            font-size: 18px;
-        }
-
-        .con-stat-num {
-            font-size: 20px;
-            font-weight: 800;
-            color: #222;
-        }
-
-        .con-stat-lbl {
-            font-size: 11px;
-            color: #94a3b8;
-            text-transform: uppercase;
-        }
-
         /* Toolbar y Filtros */
         .con-filter-toolbar {
             display: flex;
             gap: 10px;
             background: #fff;
-            padding: 15px;
+            padding: 10px 14px;
             border-radius: 8px 8px 0 0;
             border: 1px solid #e2e8f0;
             border-bottom: none;
@@ -97,12 +48,12 @@
             color: #94a3b8;
             font-size: 11px;
             text-transform: uppercase;
-            padding: 15px;
+            padding: 8px 12px;
             border-bottom: 2px solid #f0f2f5;
         }
 
         .con-table td {
-            padding: 15px;
+            padding: 8px 12px;
             border-bottom: 1px solid #f0f3f7;
             vertical-align: middle;
         }
@@ -185,18 +136,22 @@
 
 @section('content')
 
-    <div class="con-stats">
-        <div class="con-stat-card">
-            <div class="con-stat-icon"><i class="fa fa-graduation-cap"></i></div>
-            <div>
-                <div class="con-stat-num">{{ $grados->count() }}</div>
-                <div class="con-stat-lbl">Grados Totales</div>
-            </div>
+    {{-- ══ ENCABEZADO + STATS ══ --}}
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+                <i class="fa fa-graduation-cap text-blue"></i> Grados
+            </h4>
+            <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-list-ol"></i> {{ $grados->total() }} registros
+            </span>
         </div>
-
-        <button class="btn btn-success btn-sm" data-toggle="modal" data-target="#modal-nuevo"
-            style="border-radius: 6px; font-weight: 600;">
-            <i class="fa fa-plus"></i> Nuevo Grado
+        <button class="btn btn-success btn-sm btn-flat" data-toggle="modal" data-target="#modal-nuevo"
+                style="border-radius:20px;white-space:nowrap;flex-shrink:0;">
+            <i class="fa fa-plus"></i> Nuevo grado
         </button>
     </div>
 

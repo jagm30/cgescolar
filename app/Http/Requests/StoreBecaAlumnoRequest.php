@@ -13,7 +13,7 @@ class StoreBecaAlumnoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->user()->rol === 'administrador';
+        return in_array(auth()->user()->rol, ['administrador', 'caja'], true);
     }
 
     public function rules(): array
@@ -47,6 +47,7 @@ class StoreBecaAlumnoRequest extends FormRequest
                 ->where('alumno_id', $this->alumno_id)
                 ->where('ciclo_id', $this->ciclo_id)
                 ->where('activo', true)
+                ->orderByRaw('grupo_id IS NULL')
                 ->first();
 
             if (! $inscripcion) {

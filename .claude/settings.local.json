@@ -4,7 +4,19 @@
       "Bash(php artisan:*)",
       "Bash(php -l app/Http/Controllers/PagoController.php)",
       "Bash(git checkout:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(where php:*)",
+      "Bash(php --version)",
+      "Bash(php:*)",
+      "Bash(composer show:*)",
+      "Bash(composer require:*)",
+      "Bash(sed -n '842,861p' \"D:/Downloads/dbkgenki_base.sql\")",
+      "Bash(sed -n '1295,1340p' \"D:/Downloads/dbkgenki_base.sql\")",
+      "Bash(sed -n '1640,1660p' \"D:/Downloads/dbkgenki_base.sql\")",
+      "Bash(composer dump-autoload:*)",
+      "Bash(git mv *)",
+      "Bash(mv \"C:\\\\xampp\\\\htdocs\\\\sigescolar\\\\tests\\\\Feature\\\\DiagnosticoAbonoTest.php\" \"C:\\\\xampp\\\\htdocs\\\\sigescolar\\\\tests\\\\Feature\\\\CobrosAbonoParcialConBecaTest.php\")"
     ]
   }
 }

@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDocAdmisionRequest;
 use App\Http\Requests\StoreProspectoRequest;
 use App\Http\Requests\UpdateProspectoEtapaRequest;
+use App\Jobs\NotificarEventoAdmisionJob;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\DocAdmision;
+use App\Models\Grado;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
+use App\Models\Setting;
 use App\Models\SeguimientoAdmision;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\Request;
@@ -26,7 +30,7 @@ class ProspectoController extends Controller
             ?? auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
-        $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'responsable', 'alumno'])
+        $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'gradoInteres', 'responsable', 'alumno'])
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('etapa'), fn ($q) => $q->where('etapa', $request->etapa))
             ->when($request->filled('en_proceso'), fn ($q) => $q->enProceso())
@@ -53,7 +57,7 @@ class ProspectoController extends Controller
     public function show(int $id)
     {
         $prospecto = Prospecto::with([
-            'nivelInteres', 'responsable', 'alumno',
+            'nivelInteres', 'gradoInteres', 'responsable', 'alumno',
             'seguimientos.usuario', 'documentos',
         ])->findOrFail($id);
 
@@ -69,9 +73,34 @@ class ProspectoController extends Controller
     public function create()
     {
         $niveles = NivelEscolar::activo()->get();
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $ciclos  = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $grados  = Grado::orderBy('nivel_id')->orderBy('numero')->get();
 
-        return view('prospectos.create', compact('niveles', 'ciclos'));
+        return view('prospectos.create', compact('niveles', 'ciclos', 'grados'));
+    }
+
+    public function edit(int $id)
+    {
+        $prospecto = Prospecto::with(['nivelInteres', 'gradoInteres'])->findOrFail($id);
+        $niveles   = NivelEscolar::activo()->get();
+        $ciclos    = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $grados    = Grado::orderBy('nivel_id')->orderBy('numero')->get();
+
+        return view('prospectos.edit', compact('prospecto', 'niveles', 'ciclos', 'grados'));
+    }
+
+    public function update(StoreProspectoRequest $request, int $id)
+    {
+        $prospecto = Prospecto::findOrFail($id);
+
+        $prospecto->update($request->validated());
+
+        return $this->respuestaExito(
+            redirectRoute: 'prospectos.show',
+            jsonData:      ['prospecto' => $prospecto->fresh()],
+            mensaje:       "Prospecto '{$prospecto->nombre_completo}' actualizado correctamente.",
+            routeParams:   ['prospecto' => $prospecto->id],
+        );
     }
 
     public function store(StoreProspectoRequest $request)
@@ -92,9 +121,23 @@ class ProspectoController extends Controller
             'notas' => 'Registro inicial del prospecto.',
         ]);
 
+        $prospecto->load(['nivelInteres', 'responsable']);
+
+        NotificarEventoAdmisionJob::dispatch('nuevo_prospecto', [
+            'asunto'          => "Nuevo prospecto: {$prospecto->nombre_completo}",
+            'prospecto_nombre' => $prospecto->nombre_completo,
+            'nivel'           => $prospecto->nivelInteres?->nombre,
+            'canal'           => $prospecto->canal_contacto,
+            'contacto'        => $prospecto->contacto_nombre,
+            'telefono'        => $prospecto->contacto_telefono,
+            'email_contacto'  => $prospecto->contacto_email,
+            'responsable'     => auth()->user()->nombre,
+            'fecha'           => now()->format('d/m/Y H:i'),
+        ]);
+
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
-            jsonData: ['prospecto' => $prospecto->load(['nivelInteres', 'responsable'])],
+            jsonData: ['prospecto' => $prospecto],
             mensaje: "Prospecto '{$prospecto->nombre_completo}' registrado correctamente.",
             jsonStatus: 201,
             routeParams: ['prospecto' => $prospecto->id]
@@ -121,6 +164,16 @@ class ProspectoController extends Controller
 
         Auditoria::registrar('prospecto', $prospecto->id, 'update', $anterior, $prospecto->fresh()->toArray());
 
+        NotificarEventoAdmisionJob::dispatch('cambio_etapa', [
+            'asunto'           => "Cambio de etapa: {$prospecto->nombre_completo}",
+            'prospecto_nombre' => $prospecto->nombre_completo,
+            'etapa_anterior'   => $anterior['etapa'],
+            'etapa_nueva'      => $request->etapa,
+            'notas'            => $request->notas ?? '',
+            'responsable'      => auth()->user()->nombre,
+            'fecha'            => now()->format('d/m/Y H:i'),
+        ]);
+
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
             jsonData: ['prospecto' => $prospecto->fresh()->load(['nivelInteres', 'seguimientos.usuario'])],
@@ -143,6 +196,19 @@ class ProspectoController extends Controller
             'prospecto_id' => $prospecto->id,
             'usuario_id' => auth()->id(),
         ]));
+
+        // No notificar cambios de etapa: ya se notificó en cambiarEtapa()
+        if ($data['tipo_accion'] !== 'cambio_etapa') {
+            NotificarEventoAdmisionJob::dispatch('seguimiento', [
+                'asunto'            => "Seguimiento en {$prospecto->nombre_completo}: " . ucfirst(str_replace('_', ' ', $data['tipo_accion'])),
+                'prospecto_nombre'  => $prospecto->nombre_completo,
+                'tipo_accion'       => $data['tipo_accion'],
+                'notas'             => $data['notas'],
+                'fecha_seguimiento' => $data['fecha'],
+                'responsable'       => auth()->user()->nombre,
+                'fecha'             => now()->format('d/m/Y H:i'),
+            ]);
+        }
 
         return $this->respuestaExito(
             redirectRoute: 'prospectos.show',
@@ -216,6 +282,142 @@ class ProspectoController extends Controller
             ?? auth()->user()->ciclo_seleccionado_id
             ?? CicloEscolar::activo()->value('id');
 
+        $datos = $this->compilarMetricas($cicloId);
+
+        if ($request->ajax()) {
+            return response()->json($datos);
+        }
+
+        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
+
+        $porSeguimientoUsuario = SeguimientoAdmision::with('usuario')
+            ->whereHas('prospecto', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->get()
+            ->groupBy(fn($s) => $s->usuario?->nombre ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        return view('prospectos.metricas', compact('datos', 'ciclos', 'cicloId', 'porSeguimientoUsuario'));
+    }
+
+    public function exportarPdf(int $id)
+    {
+        $prospecto = Prospecto::with([
+            'nivelInteres', 'gradoInteres', 'responsable', 'ciclo',
+            'seguimientos.usuario', 'documentos',
+        ])->findOrFail($id);
+
+        $logoBase64 = $this->logoBase64(Setting::find(1));
+
+        $pdf = Pdf::setOptions(['defaultMediaType' => 'print', 'dpi' => 150])
+            ->loadView('prospectos.seguimiento_pdf', compact('prospecto', 'logoBase64'))
+            ->setPaper('letter', 'portrait');
+
+        $nombre = str_replace(' ', '_', $prospecto->nombre_completo);
+
+        return $pdf->download("Seguimiento_{$nombre}.pdf");
+    }
+
+    public function metricasImprimir(Request $request)
+    {
+        $cicloId = $request->get('ciclo_id')
+            ?? auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        $ciclo   = CicloEscolar::find($cicloId);
+        $datos   = $this->compilarMetricas($cicloId);
+
+        $prospectos = Prospecto::with(['nivelInteres', 'gradoInteres', 'responsable'])
+            ->where('ciclo_id', $cicloId)
+            ->orderBy('etapa')
+            ->orderBy('ap_paterno')
+            ->get();
+
+        $porResponsable = Prospecto::with('responsable')
+            ->where('ciclo_id', $cicloId)
+            ->get()
+            ->groupBy(fn($p) => $p->responsable?->nombre ?? 'Sin asignar')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        $porSeguimientoUsuario = SeguimientoAdmision::with('usuario')
+            ->whereHas('prospecto', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->get()
+            ->groupBy(fn($s) => $s->usuario?->nombre ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        return view('prospectos.metricas_imprimir', compact(
+            'datos', 'ciclo', 'cicloId', 'prospectos',
+            'porResponsable', 'porSeguimientoUsuario'
+        ));
+    }
+
+    public function metricasPdf(Request $request)
+    {
+        $cicloId = $request->input('ciclo_id');
+        $ciclo   = CicloEscolar::find($cicloId);
+        $datos   = $this->compilarMetricas($cicloId);
+
+        $prospectos = Prospecto::with(['nivelInteres', 'gradoInteres', 'responsable'])
+            ->where('ciclo_id', $cicloId)
+            ->orderBy('etapa')
+            ->orderBy('ap_paterno')
+            ->get();
+
+        $porResponsable = Prospecto::with('responsable')
+            ->where('ciclo_id', $cicloId)
+            ->get()
+            ->groupBy(fn($p) => $p->responsable?->nombre ?? 'Sin asignar')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        $porSeguimientoUsuario = SeguimientoAdmision::with('usuario')
+            ->whereHas('prospecto', fn($q) => $q->where('ciclo_id', $cicloId))
+            ->get()
+            ->groupBy(fn($s) => $s->usuario?->nombre ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortByDesc(fn($v) => $v);
+
+        $chartEtapa        = $request->input('chart_etapa', '');
+        $chartCanal        = $request->input('chart_canal', '');
+        $chartResponsable  = $request->input('chart_responsable', '');
+        $logoBase64        = $this->logoBase64(Setting::find(1));
+
+        $pdf = Pdf::setOptions(['defaultMediaType' => 'print', 'dpi' => 150])
+            ->loadView('prospectos.metricas_pdf', compact(
+                'datos', 'ciclo', 'cicloId', 'prospectos',
+                'porResponsable', 'porSeguimientoUsuario',
+                'chartEtapa', 'chartCanal', 'chartResponsable',
+                'logoBase64'
+            ))
+            ->setPaper('letter', 'portrait');
+
+        return $pdf->download("Informe_Admisiones_{$ciclo?->nombre}.pdf");
+    }
+
+    private function logoBase64(?Setting $setting = null): string
+    {
+        $candidatos = array_filter([
+            $setting?->logo_ruta
+                ? public_path('imgs_escuela/reportes/' . $setting->logo_ruta)
+                : null,
+            public_path('imgs_escuela/reportes/logo_reportes.png'),
+        ]);
+
+        foreach ($candidatos as $path) {
+            if (file_exists($path)) {
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+                return 'data:image/' . $type . ';base64,' . base64_encode(file_get_contents($path));
+            }
+        }
+
+        return '';
+    }
+
+    /** Compila todas las métricas del ciclo dado. */
+    private function compilarMetricas(int $cicloId): array
+    {
         $porEtapa = Prospecto::where('ciclo_id', $cicloId)
             ->selectRaw('etapa, COUNT(*) as total')
             ->groupBy('etapa')
@@ -226,26 +428,18 @@ class ProspectoController extends Controller
             ->groupBy('canal_contacto')
             ->pluck('total', 'canal_contacto');
 
-        $totalInscritos = $porEtapa['inscrito'] ?? 0;
+        $totalInscritos  = $porEtapa['inscrito'] ?? 0;
         $totalProspectos = $porEtapa->sum();
-        $tasaConversion = $totalProspectos > 0
+        $tasaConversion  = $totalProspectos > 0
             ? round(($totalInscritos / $totalProspectos) * 100, 1) : 0;
 
-        $datos = [
-            'por_etapa' => $porEtapa,
-            'por_canal' => $porCanal,
+        return [
+            'por_etapa'        => $porEtapa,
+            'por_canal'        => $porCanal,
             'total_prospectos' => $totalProspectos,
-            'total_inscritos' => $totalInscritos,
-            'tasa_conversion' => $tasaConversion.'%',
+            'total_inscritos'  => $totalInscritos,
+            'tasa_conversion'  => $tasaConversion.'%',
         ];
-
-        if ($request->ajax()) {
-            return response()->json($datos);
-        }
-
-        $ciclos = CicloEscolar::orderByDesc('fecha_inicio')->get();
-
-        return view('prospectos.metricas', compact('datos', 'ciclos', 'cicloId'));
     }
 
     private function tiposDocumentoBase(): array

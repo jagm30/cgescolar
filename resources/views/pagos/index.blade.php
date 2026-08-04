@@ -62,136 +62,121 @@
 </div>
 @endif
 
-{{-- ══ HERO ══ --}}
-<div class="hp-hero">
-    <div class="hp-stat">
-        <div class="hp-stat-num">{{ number_format($resumen['total']) }}</div>
-        <div class="hp-stat-lbl">Total pagos</div>
+{{-- ══ ENCABEZADO + STATS ══ --}}
+<div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h4 style="margin:0;font-weight:700;color:#1e4d7b;">
+            <i class="fa fa-history text-green"></i> Historial de pagos
+        </h4>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;">
+            <span style="background:#eaf3fb;color:#2980b9;border:1px solid #d6eaf8;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-list"></i> {{ number_format($resumen['total']) }} pagos
+            </span>
+            <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-dollar"></i> ${{ number_format($resumen['total_cobrado'], 0) }} cobrado
+            </span>
+            <span style="background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-check-circle"></i> {{ number_format($resumen['vigentes']) }} vigentes
+            </span>
+            @if($resumen['anulados'] > 0)
+            <span style="background:#fdecea;color:#b91c1c;border:1px solid #fca5a5;border-radius:20px;
+                         padding:2px 10px;font-size:12px;font-weight:600;">
+                <i class="fa fa-ban"></i> {{ number_format($resumen['anulados']) }} anulados
+            </span>
+            @endif
+        </div>
     </div>
-    <div class="hp-stat">
-        <div class="hp-stat-num">${{ number_format($resumen['total_cobrado'], 0) }}</div>
-        <div class="hp-stat-lbl">Total cobrado</div>
-    </div>
-    <div class="hp-stat">
-        <div class="hp-stat-num" style="color:#a8e6cf;">{{ number_format($resumen['vigentes']) }}</div>
-        <div class="hp-stat-lbl">Vigentes</div>
-    </div>
-    <div class="hp-stat">
-        <div class="hp-stat-num" style="color:#ffcdd2;">{{ number_format($resumen['anulados']) }}</div>
-        <div class="hp-stat-lbl">Anulados</div>
-    </div>
-    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+    <div style="display:flex;gap:8px;flex-shrink:0;">
         @if(isset($configFiscal) && $configFiscal)
-        <button type="button" id="btn-factura-global"
-                class="btn btn-sm btn-flat"
-                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:6px;">
+        <button type="button" id="btn-factura-global" class="btn btn-default btn-sm btn-flat"
+                style="border-radius:20px;">
             <i class="fa fa-globe"></i> Factura global
         </button>
         @endif
-        <a href="{{ route('pagos.corte') }}"
-           class="btn btn-sm btn-flat"
-           style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;">
+        <a href="{{ route('pagos.corte') }}" class="btn btn-default btn-sm btn-flat"
+           style="border-radius:20px;">
             <i class="fa fa-print"></i> Corte del día
         </a>
     </div>
 </div>
 
-{{-- ══ FILTROS ══ --}}
-<div style="border:1px solid #e4eaf0;border-radius:10px;background:#fff;
-            box-shadow:0 1px 4px rgba(0,0,0,.04);margin-bottom:20px;">
-    <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;
-                display:flex;align-items:center;gap:8px;">
-        <i class="fa fa-filter" style="color:#3c8dbc;"></i>
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
-                     letter-spacing:.07em;color:#6b7a8d;">Filtros</span>
-        @if(request()->hasAny(['folio','fecha_desde','fecha_hasta','forma_pago','estado']))
-        <a href="{{ route('pagos.index') }}"
-           style="margin-left:auto;font-size:11px;color:#b91c1c;text-decoration:none;">
-            <i class="fa fa-times"></i> Limpiar
-        </a>
-        @endif
-    </div>
-    <form method="GET" action="{{ route('pagos.index') }}" style="padding:14px 16px;">
-        <div class="row" style="margin:0 -8px;">
-            <div class="col-sm-3" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Folio</label>
-                <input type="text" name="folio" value="{{ request('folio') }}"
-                       placeholder="REC-2025-…"
-                       class="form-control input-sm"
-                       style="border-radius:6px;border-color:#dde4eb;">
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Fecha desde</label>
-                <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}"
-                       class="form-control input-sm"
-                       style="border-radius:6px;border-color:#dde4eb;">
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Fecha hasta</label>
-                <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}"
-                       class="form-control input-sm"
-                       style="border-radius:6px;border-color:#dde4eb;">
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Forma de pago</label>
-                <select name="forma_pago" class="form-control input-sm"
-                        style="border-radius:6px;border-color:#dde4eb;">
-                    <option value="">Todas</option>
-                    <option value="efectivo"      {{ request('forma_pago') === 'efectivo'      ? 'selected' : '' }}>Efectivo</option>
-                    <option value="transferencia" {{ request('forma_pago') === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
-                    <option value="tarjeta"       {{ request('forma_pago') === 'tarjeta'       ? 'selected' : '' }}>Tarjeta</option>
-                    <option value="cheque"        {{ request('forma_pago') === 'cheque'        ? 'selected' : '' }}>Cheque</option>
-                </select>
-            </div>
-            <div class="col-sm-2" style="padding:0 8px;">
-                <label style="font-size:11px;color:#6b7a8d;font-weight:600;margin-bottom:4px;">Estado</label>
-                <select name="estado" class="form-control input-sm"
-                        style="border-radius:6px;border-color:#dde4eb;">
-                    <option value="">Todos</option>
-                    <option value="vigente" {{ request('estado') === 'vigente' ? 'selected' : '' }}>Vigente</option>
-                    <option value="anulado" {{ request('estado') === 'anulado' ? 'selected' : '' }}>Anulado</option>
-                </select>
-            </div>
-            <div class="col-sm-1" style="padding:0 8px;display:flex;align-items:flex-end;">
-                <button type="submit" class="btn btn-primary btn-sm btn-flat" style="width:100%;border-radius:6px;">
-                    <i class="fa fa-search"></i>
-                </button>
-            </div>
-        </div>
-    </form>
-</div>
-
-{{-- ══ TABLA ══ --}}
+{{-- ══ PANEL PRINCIPAL ══ --}}
 <div style="border:1px solid #e4eaf0;border-radius:10px;background:#fff;
             box-shadow:0 1px 4px rgba(0,0,0,.04);overflow:hidden;">
 
-    <div style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid #e8ecf0;
-                display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
-                     letter-spacing:.07em;color:#6b7a8d;">
-            <i class="fa fa-history" style="color:#27a05a;margin-right:5px;"></i>
-            Pagos
-            <span style="background:#e8f5ee;color:#27a05a;font-size:11px;font-weight:700;
-                         padding:2px 9px;border-radius:10px;margin-left:4px;">
-                {{ $pagos->total() }}
-            </span>
+    {{-- Toolbar + filtros ────────────────────────── --}}
+    <form method="GET" action="{{ route('pagos.index') }}"
+          style="display:flex;align-items:center;gap:8px;padding:10px 14px;
+                 background:#f9fafb;border-bottom:1px solid #e8ecf0;flex-wrap:wrap;">
+
+        <input type="text" name="folio" value="{{ request('folio') }}"
+               placeholder="Folio…"
+               class="form-control input-sm"
+               style="border-radius:20px;border-color:#dde4eb;max-width:130px;height:32px;">
+
+        <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}"
+               class="form-control input-sm"
+               style="border-radius:6px;border-color:#dde4eb;max-width:130px;height:32px;"
+               title="Fecha desde">
+
+        <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}"
+               class="form-control input-sm"
+               style="border-radius:6px;border-color:#dde4eb;max-width:130px;height:32px;"
+               title="Fecha hasta">
+
+        <select name="forma_pago" class="form-control input-sm"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:130px;">
+            <option value="">Todas las formas</option>
+            <option value="efectivo"      {{ request('forma_pago') === 'efectivo'      ? 'selected' : '' }}>Efectivo</option>
+            <option value="transferencia" {{ request('forma_pago') === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
+            <option value="tarjeta"       {{ request('forma_pago') === 'tarjeta'       ? 'selected' : '' }}>Tarjeta</option>
+            <option value="cheque"        {{ request('forma_pago') === 'cheque'        ? 'selected' : '' }}>Cheque</option>
+        </select>
+
+        <select name="estado" class="form-control input-sm"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:110px;">
+            <option value="">Todos</option>
+            <option value="vigente" {{ request('estado') === 'vigente' ? 'selected' : '' }}>Vigente</option>
+            <option value="anulado" {{ request('estado') === 'anulado' ? 'selected' : '' }}>Anulado</option>
+        </select>
+
+        <select name="per_page" onchange="this.form.submit()"
+                class="form-control input-sm"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:90px;">
+            @foreach([10, 25, 30, 50] as $n)
+                <option value="{{ $n }}" {{ $perPage == $n ? 'selected' : '' }}>{{ $n }} / pág.</option>
+            @endforeach
+        </select>
+
+        <button type="submit" class="btn btn-primary btn-sm btn-flat"
+                style="border-radius:20px;padding:4px 14px;height:32px;">
+            <i class="fa fa-search"></i>
+        </button>
+
+        @if(request()->hasAny(['folio','fecha_desde','fecha_hasta','forma_pago','estado']))
+        <a href="{{ route('pagos.index') }}" class="btn btn-default btn-sm btn-flat"
+           style="border-radius:20px;padding:4px 10px;height:32px;" title="Quitar filtros">
+            <i class="fa fa-times"></i>
+        </a>
+        @endif
+
+        <a href="{{ route('pagos.exportar', request()->only(['folio','fecha_desde','fecha_hasta','forma_pago','estado'])) }}"
+           class="btn btn-success btn-sm btn-flat"
+           style="border-radius:20px;padding:4px 14px;height:32px;"
+           title="Exportar resultados filtrados a Excel">
+            <i class="fa fa-file-excel-o"></i> Excel
+        </a>
+
+        <span style="background:#e8f5ee;color:#27a05a;font-size:12px;font-weight:600;
+                     padding:3px 12px;border-radius:12px;white-space:nowrap;margin-left:auto;">
+            <i class="fa fa-history"></i> {{ $pagos->total() }} resultado(s)
         </span>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <label style="font-size:11px;color:#8a9ab0;margin:0;">Mostrar</label>
-            <form method="GET">
-                @foreach(request()->except('per_page','page') as $k => $v)
-                    <input type="hidden" name="{{ $k }}" value="{{ $v }}">
-                @endforeach
-                <select name="per_page" onchange="this.form.submit()"
-                        class="form-control input-sm"
-                        style="border-radius:6px;border-color:#dde4eb;display:inline-block;width:auto;">
-                    @foreach([10, 25, 30, 50] as $n)
-                        <option value="{{ $n }}" {{ $perPage == $n ? 'selected' : '' }}>{{ $n }}</option>
-                    @endforeach
-                </select>
-            </form>
-        </div>
-    </div>
+    </form>
 
     <div style="overflow-x:auto;">
         <table class="hp-table">
@@ -200,11 +185,12 @@
                     <th>Folio</th>
                     <th>Fecha</th>
                     <th>Alumno(s)</th>
+                    <th>Conceptos</th>
                     <th>Cajero</th>
                     <th>Forma de pago</th>
                     <th style="text-align:right;">Monto</th>
                     <th style="text-align:center;">Estado</th>
-                    <th style="text-align:center; width:120px;"></th>
+                    <th style="text-align:center; width:160px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -250,6 +236,26 @@
                         @endif
                     @endif
                 </td>
+                <td>
+                    @php
+                        $cargosPago = $pago->detalles
+                            ->map(fn ($d) => $d->cargo)
+                            ->filter()
+                            ->unique('id')
+                            ->values();
+                    @endphp
+                    @forelse($cargosPago as $cargo)
+                        <div style="display:flex;align-items:baseline;gap:5px;margin-bottom:2px;">
+                            <span style="background:#eef2f7;color:#3d566e;font-size:11px;
+                                         font-weight:600;padding:2px 8px;border-radius:8px;
+                                         white-space:nowrap;">
+                                {{ $cargo->etiqueta }}
+                            </span>
+                        </div>
+                    @empty
+                        <span style="color:#b0bec5;">—</span>
+                    @endforelse
+                </td>
                 <td style="color:#4a5568;">
                     <div>{{ $pago->cajero?->nombre ?? '—' }}</div>
                 </td>
@@ -281,74 +287,78 @@
                         {{ ucfirst($pago->estado) }}
                     </span>
                 </td>
-                <td style="text-align:center;">
+                <td>
                     @php
                         $cfdiIndividual = $pago->cfdis->where('estado', 'vigente')->first();
                         $cfdiGlobal     = $pago->cfdiGlobal->where('estado', 'vigente')->first();
                     @endphp
 
-                    @if($cfdiIndividual)
-                        {{-- Factura individual emitida --}}
-                        <a href="{{ route('cfdis.descargar', [$cfdiIndividual->id, 'pdf']) }}"
-                           class="btn btn-xs btn-flat"
-                           style="background:#fdecea;color:#c0392b;border:1px solid #fca5a5;border-radius:5px;margin-right:2px;"
-                           title="Descargar PDF">
-                            <i class="fa fa-file-pdf-o"></i>
-                        </a>
-                        <a href="{{ route('cfdis.descargar', [$cfdiIndividual->id, 'xml']) }}"
-                           class="btn btn-xs btn-flat"
-                           style="background:#e8f0fb;color:#2980b9;border:1px solid #90c2e7;border-radius:5px;margin-right:2px;"
-                           title="Descargar XML">
-                            <i class="fa fa-code"></i>
-                        </a>
-                        <button type="button"
-                                class="btn btn-xs btn-flat btn-enviar-correo"
-                                style="background:#e8f5ee;color:#00875a;border:1px solid #b3e8d0;border-radius:5px;margin-right:2px;"
-                                data-cfdi-id="{{ $cfdiIndividual->id }}"
-                                title="Enviar por correo">
-                            <i class="fa fa-envelope-o"></i>
-                        </button>
-                    @elseif($cfdiGlobal)
-                        {{-- Incluido en factura global --}}
-                        <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'pdf']) }}"
-                           class="btn btn-xs btn-flat"
-                           style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;margin-right:2px;"
-                           title="Descargar PDF factura global {{ $cfdiGlobal->folio }}">
-                            <i class="fa fa-file-pdf-o"></i>
-                        </a>
-                        <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'xml']) }}"
-                           class="btn btn-xs btn-flat"
-                           style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;margin-right:2px;"
-                           title="Descargar XML factura global {{ $cfdiGlobal->folio }}">
-                            <i class="fa fa-code"></i>
-                        </a>
-                        <span class="hp-badge"
-                              style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;
-                                     font-size:10px;padding:2px 7px;vertical-align:middle;"
-                              title="Folio: {{ $cfdiGlobal->folio }}">
-                            <i class="fa fa-globe" style="font-size:9px;"></i> Global
-                        </span>
-                    @elseif($pago->estado === 'vigente' && isset($configFiscal) && $configFiscal)
-                        {{-- Sin factura — se puede facturar individualmente --}}
-                        <button type="button"
-                                class="btn btn-xs btn-flat btn-facturar"
-                                style="background:#7b2d8b;color:#fff;border-radius:5px;margin-right:3px;"
-                                data-pago-id="{{ $pago->id }}"
-                                title="Emitir CFDI">
-                            <i class="fa fa-file-text-o"></i>
-                        </button>
-                    @endif
+                    <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;">
 
-                    <a href="{{ route('pagos.show', $pago->id) }}"
-                       class="btn btn-xs btn-default btn-flat"
-                       style="border-radius:5px;" title="Ver detalle">
-                        <i class="fa fa-eye"></i>
-                    </a>
+                        @if($cfdiIndividual)
+                            {{-- Factura individual emitida --}}
+                            <a href="{{ route('cfdis.descargar', [$cfdiIndividual->id, 'pdf']) }}"
+                               class="btn btn-xs btn-flat"
+                               style="background:#fdecea;color:#c0392b;border:1px solid #fca5a5;border-radius:5px;"
+                               title="Descargar PDF">
+                                <i class="fa fa-file-pdf-o"></i>
+                            </a>
+                            <a href="{{ route('cfdis.descargar', [$cfdiIndividual->id, 'xml']) }}"
+                               class="btn btn-xs btn-flat"
+                               style="background:#e8f0fb;color:#2980b9;border:1px solid #90c2e7;border-radius:5px;"
+                               title="Descargar XML">
+                                <i class="fa fa-code"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-xs btn-flat btn-enviar-correo"
+                                    style="background:#e8f5ee;color:#00875a;border:1px solid #b3e8d0;border-radius:5px;"
+                                    data-cfdi-id="{{ $cfdiIndividual->id }}"
+                                    title="Enviar por correo">
+                                <i class="fa fa-envelope-o"></i>
+                            </button>
+                        @elseif($cfdiGlobal)
+                            {{-- Incluido en factura global --}}
+                            <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'pdf']) }}"
+                               class="btn btn-xs btn-flat"
+                               style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;"
+                               title="Descargar PDF factura global {{ $cfdiGlobal->folio }}">
+                                <i class="fa fa-file-pdf-o"></i>
+                            </a>
+                            <a href="{{ route('cfdis.descargar', [$cfdiGlobal->id, 'xml']) }}"
+                               class="btn btn-xs btn-flat"
+                               style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;"
+                               title="Descargar XML factura global {{ $cfdiGlobal->folio }}">
+                                <i class="fa fa-code"></i>
+                            </a>
+                            <span class="hp-badge"
+                                  style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;
+                                         font-size:10px;padding:2px 7px;"
+                                  title="Folio: {{ $cfdiGlobal->folio }}">
+                                <i class="fa fa-globe" style="font-size:9px;"></i> Global
+                            </span>
+                        @elseif($pago->estado === 'vigente' && isset($configFiscal) && $configFiscal)
+                            {{-- Sin factura — se puede facturar individualmente --}}
+                            <button type="button"
+                                    class="btn btn-xs btn-flat btn-facturar"
+                                    style="background:#7b2d8b;color:#fff;border-radius:5px;"
+                                    data-pago-id="{{ $pago->id }}"
+                                    title="Emitir CFDI">
+                                <i class="fa fa-file-text-o"></i>
+                            </button>
+                        @endif
+
+                        <a href="{{ route('pagos.show', $pago->id) }}"
+                           class="btn btn-xs btn-default btn-flat"
+                           style="border-radius:5px;" title="Ver detalle">
+                            <i class="fa fa-eye"></i>
+                        </a>
+
+                    </div>
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="8" style="padding:56px 20px;text-align:center;">
+                <td colspan="9" style="padding:56px 20px;text-align:center;">
                     <i class="fa fa-inbox" style="font-size:42px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
                     <p style="color:#b0bec5;margin:0;font-weight:600;">Sin pagos registrados</p>
                     @if(request()->hasAny(['folio','fecha_desde','fecha_hasta','forma_pago','estado']))
@@ -434,6 +444,20 @@
                                 <option value="G03">G03 — Gastos en general</option>
                                 <option value="CN01">CN01 — Nómina</option>
                             </select>
+                        </div>
+
+                        <div style="margin-bottom:16px;">
+                            <label for="mf-fecha-emision"
+                                   style="font-size:11px;font-weight:700;color:#4a5568;
+                                          display:block;margin-bottom:4px;">
+                                Fecha del CFDI
+                                <span style="font-weight:400;color:#8a9ab0;">(máx. 72 h atrás · SAT)</span>
+                            </label>
+                            <input type="datetime-local" id="mf-fecha-emision" name="fecha_emision"
+                                   class="form-control input-sm" style="border-radius:5px;">
+                            <span style="font-size:10px;color:#8a9ab0;margin-top:3px;display:block;">
+                                Regla 2.7.1.44 RMF — la fecha no puede exceder 72 horas antes del timbrado.
+                            </span>
                         </div>
 
                         <div id="mf-error"
@@ -889,8 +913,21 @@
     var emitirBase     = '{{ route('cfdis.emitir', '__ID__') }}';
     var formFacturaBase = '{{ route('pagos.form-factura', '__ID__') }}';
 
+    function toLocalDatetimeValue(date) {
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) +
+               'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    }
+
     $(document).on('click', '.btn-facturar', function () {
         var pagoId = $(this).data('pago-id');
+        var ahora  = new Date();
+        var minimo = new Date(ahora.getTime() - 72 * 60 * 60 * 1000);
+
+        $('#mf-fecha-emision')
+            .attr('min', toLocalDatetimeValue(minimo))
+            .attr('max', toLocalDatetimeValue(ahora))
+            .val(toLocalDatetimeValue(ahora));
 
         $('#mf-loading').show();
         $('#mf-content').hide();

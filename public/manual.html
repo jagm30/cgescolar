@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario — Kotan</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f9;
+            color: #2d3a4a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ── LAYOUT ── */
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 260px;
+            background: #1e2d3d;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-brand {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+        .sidebar-brand h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+        .sidebar-brand p {
+            font-size: 11px;
+            color: #7a94b0;
+            margin-top: 2px;
+        }
+        .sidebar-nav { padding: 12px 0; }
+        .nav-section {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: #4a6278;
+            padding: 14px 20px 5px;
+        }
+        .nav-item {
+            display: block;
+            padding: 8px 20px;
+            color: #a8bece;
+            text-decoration: none;
+            font-size: 13px;
+            transition: background .15s, color .15s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(60,141,188,.15);
+            color: #fff;
+            border-left-color: #3c8dbc;
+        }
+        .nav-item .ico { margin-right: 8px; width: 16px; display: inline-block; text-align: center; }
+
+        /* ── MAIN ── */
+        .main { flex: 1; padding: 32px 40px; max-width: 900px; }
+
+        /* ── HEADER ── */
+        .page-header {
+            background: #fff;
+            border: 1px solid #e0e7ef;
+            border-radius: 10px;
+            padding: 28px 32px;
+            margin-bottom: 28px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.04);
+        }
+        .page-header h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #1e4d7b;
+            margin-bottom: 6px;
+        }
+        .page-header p { color: #6b7a8d; font-size: 14px; }
+
+        /* ── SECCIONES ── */
+        .section {
+            background: #fff;
+            border: 1px solid #e0e7ef;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,.03);
+        }
+        .section-header {
+            background: #f4f6f8;
+            border-bottom: 2px solid #e0e7ef;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e4d7b;
+            margin: 0;
+        }
+        .section-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: #3c8dbc;
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .section-body { padding: 20px 24px; }
+
+        /* ── PÁRRAFOS ── */
+        .section-body p { margin-bottom: 10px; color: #3a4a5c; }
+        .section-body p:last-child { margin-bottom: 0; }
+
+        /* ── PASOS ── */
+        .steps { list-style: none; counter-reset: step; }
+        .steps li {
+            counter-increment: step;
+            padding: 9px 12px 9px 44px;
+            position: relative;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            background: #f9fbfd;
+            border: 1px solid #e8eef5;
+            font-size: 13px;
+            color: #3a4a5c;
+        }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 22px; height: 22px;
+            background: #3c8dbc;
+            color: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* ── TIPS ── */
+        .tip {
+            background: #eff8ff;
+            border-left: 4px solid #3c8dbc;
+            border-radius: 0 6px 6px 0;
+            padding: 10px 14px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #1e4d7b;
+        }
+        .tip strong { display: block; margin-bottom: 2px; }
+
+        .warn {
+            background: #fffbf0;
+            border-left: 4px solid #f39c12;
+            border-radius: 0 6px 6px 0;
+            padding: 10px 14px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #7d4e00;
+        }
+        .warn strong { display: block; margin-bottom: 2px; }
+
+        /* ── ROLES ── */
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .role-card {
+            border: 1px solid #e0e7ef;
+            border-radius: 8px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .role-card .role-ico {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .role-card h4 { font-size: 13px; font-weight: 700; color: #2d3a4a; margin-bottom: 4px; }
+        .role-card p  { font-size: 12px; color: #6b7a8d; margin: 0; }
+        .role-admin   { background: #eaf3fb; border-color: #b3d4f5; }
+        .role-caja    { background: #e8f8f0; border-color: #a9dfbf; }
+        .role-recep   { background: #fef9e7; border-color: #f9e79f; }
+        .role-padre   { background: #f5eef8; border-color: #e8b4e6; }
+
+        /* ── TABLA ── */
+        .mini-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+        .mini-table th {
+            background: #f4f6f8;
+            color: #6b7a8d;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 2px solid #e0e7ef;
+        }
+        .mini-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f3f7;
+            color: #3a4a5c;
+            vertical-align: top;
+        }
+        .mini-table tr:last-child td { border-bottom: none; }
+
+        /* ── BADGE ── */
+        .badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-blue   { background:#e8f3fb; color:#1e4d7b; }
+        .badge-green  { background:#e8f8f0; color:#065f46; }
+        .badge-yellow { background:#fef9e7; color:#7d4e00; }
+        .badge-purple { background:#f5eef8; color:#6c3483; }
+        .badge-red    { background:#fdecea; color:#991b1b; }
+
+        /* ── ÍNDICE (tabla de contenidos) ── */
+        .toc {
+            background: #f9fbfd;
+            border: 1px solid #e0e7ef;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 28px;
+        }
+        .toc h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #6b7a8d; margin-bottom: 10px; letter-spacing:.06em; }
+        .toc ol { padding-left: 18px; }
+        .toc li { margin-bottom: 5px; }
+        .toc a  { color: #3c8dbc; text-decoration: none; font-size: 13px; }
+        .toc a:hover { text-decoration: underline; }
+
+        /* ── FOOTER ── */
+        .footer { text-align: center; padding: 24px 0 40px; color: #aab; font-size: 12px; }
+
+        /* ── FLUJO VISUAL ── */
+        .flow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 10px 0;
+        }
+        .flow-step {
+            background: #eaf3fb;
+            border: 1px solid #b3d4f5;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1e4d7b;
+        }
+        .flow-arrow { color: #3c8dbc; font-weight: 700; font-size: 16px; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- ══ SIDEBAR ══ -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <h1>KOTAN</h1>
+            <p>Manual de usuario</p>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-section">General</div>
+            <a href="#inicio"  class="nav-item"><span class="ico">🏠</span> Introducción</a>
+            <a href="#acceso"  class="nav-item"><span class="ico">🔐</span> Acceso al sistema</a>
+            <a href="#roles"   class="nav-item"><span class="ico">👥</span> Roles de usuario</a>
+
+            <div class="nav-section">Configuración</div>
+            <a href="#ciclos"  class="nav-item"><span class="ico">📅</span> Ciclos escolares</a>
+            <a href="#niveles" class="nav-item"><span class="ico">🏫</span> Niveles y grados</a>
+            <a href="#grupos"  class="nav-item"><span class="ico">🗂</span> Grupos</a>
+
+            <div class="nav-section">Financiero</div>
+            <a href="#conceptos" class="nav-item"><span class="ico">💲</span> Conceptos de cobro</a>
+            <a href="#planes"    class="nav-item"><span class="ico">📄</span> Planes de pago</a>
+            <a href="#becas"     class="nav-item"><span class="ico">🎓</span> Becas</a>
+            <a href="#asignar"   class="nav-item"><span class="ico">🔗</span> Asignar plan</a>
+
+            <div class="nav-section">Alumnos</div>
+            <a href="#familias"     class="nav-item"><span class="ico">👨‍👩‍👧</span> Familias</a>
+            <a href="#alumnos"      class="nav-item"><span class="ico">🎒</span> Alumnos</a>
+            <a href="#admisiones"   class="nav-item"><span class="ico">📋</span> Admisiones</a>
+            <a href="#reinscripciones" class="nav-item"><span class="ico">🔄</span> Reinscripciones</a>
+
+            <div class="nav-section">Cobranza</div>
+            <a href="#cobros"  class="nav-item"><span class="ico">💳</span> Registrar cobro</a>
+            <a href="#pagos"   class="nav-item"><span class="ico">📊</span> Reportes de pago</a>
+            <a href="#facturas" class="nav-item"><span class="ico">🧾</span> Facturas</a>
+
+            <div class="nav-section">Portal padre</div>
+            <a href="#portal"  class="nav-item"><span class="ico">📱</span> Portal de padres</a>
+
+            <div class="nav-section">Admin</div>
+            <a href="#usuarios"     class="nav-item"><span class="ico">🔒</span> Usuarios</a>
+            <a href="#configuracion" class="nav-item"><span class="ico">⚙️</span> Configuración</a>
+        </div>
+    </nav>
+
+    <!-- ══ CONTENIDO ══ -->
+    <main class="main">
+
+        <!-- PORTADA -->
+        <div class="page-header" id="inicio">
+            <h2>📘 Manual de Usuario — Kotan</h2>
+            <p>Sistema de Gestión Escolar · Versión 1.0 · Guía rápida para el equipo operativo</p>
+        </div>
+
+        <!-- ÍNDICE -->
+        <div class="toc">
+            <h4>Contenido</h4>
+            <ol>
+                <li><a href="#acceso">Acceso al sistema</a></li>
+                <li><a href="#roles">Roles de usuario</a></li>
+                <li><a href="#ciclos">Ciclos escolares</a></li>
+                <li><a href="#niveles">Niveles y grados</a></li>
+                <li><a href="#grupos">Grupos</a></li>
+                <li><a href="#conceptos">Conceptos de cobro</a></li>
+                <li><a href="#planes">Planes de pago</a></li>
+                <li><a href="#becas">Becas</a></li>
+                <li><a href="#asignar">Asignar plan a alumnos</a></li>
+                <li><a href="#familias">Familias</a></li>
+                <li><a href="#alumnos">Alumnos</a></li>
+                <li><a href="#admisiones">Admisiones (Prospectos)</a></li>
+                <li><a href="#reinscripciones">Reinscripciones</a></li>
+                <li><a href="#cobros">Registrar un cobro</a></li>
+                <li><a href="#pagos">Reportes de pago</a></li>
+                <li><a href="#facturas">Facturas</a></li>
+                <li><a href="#portal">Portal de padres</a></li>
+                <li><a href="#usuarios">Usuarios del sistema</a></li>
+                <li><a href="#configuracion">Configuración general</a></li>
+            </ol>
+        </div>
+
+
+        <!-- ══ 1. ACCESO ══ -->
+        <div class="section" id="acceso">
+            <div class="section-header">
+                <div class="section-icon">🔐</div>
+                <h3>1. Acceso al sistema</h3>
+            </div>
+            <div class="section-body">
+                <p>Para ingresar al sistema abre el navegador y escribe la dirección que te proporcionó el administrador. Verás la pantalla de inicio de sesión.</p>
+                <ol class="steps">
+                    <li>Escribe tu <strong>correo electrónico</strong> registrado.</li>
+                    <li>Escribe tu <strong>contraseña</strong>.</li>
+                    <li>Presiona el botón <strong>Iniciar sesión</strong>.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Tip</strong>
+                    Si olvidaste tu contraseña, contacta al administrador del sistema para que la restablezca desde el módulo de Usuarios.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 2. ROLES ══ -->
+        <div class="section" id="roles">
+            <div class="section-header">
+                <div class="section-icon">👥</div>
+                <h3>2. Roles de usuario</h3>
+            </div>
+            <div class="section-body">
+                <p>Cada usuario tiene un rol que determina qué puede ver y hacer dentro del sistema.</p>
+                <div class="roles-grid">
+                    <div class="role-card role-admin">
+                        <div class="role-ico">🛡️</div>
+                        <h4>Administrador</h4>
+                        <p>Acceso completo a todos los módulos: configuración, alumnos, cobranza y usuarios.</p>
+                    </div>
+                    <div class="role-card role-caja">
+                        <div class="role-ico">💳</div>
+                        <h4>Cajero</h4>
+                        <p>Registra cobros, consulta pagos, historial y corte del día.</p>
+                    </div>
+                    <div class="role-card role-recep">
+                        <div class="role-ico">📋</div>
+                        <h4>Recepción</h4>
+                        <p>Registra alumnos, familias, admisiones y reinscripciones.</p>
+                    </div>
+                    <div class="role-card role-padre">
+                        <div class="role-ico">👨‍👩‍👧</div>
+                        <h4>Padre de familia</h4>
+                        <p>Consulta el estado de cuenta y datos de sus hijos desde el portal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 3. CICLOS ══ -->
+        <div class="section" id="ciclos">
+            <div class="section-header">
+                <div class="section-icon">📅</div>
+                <h3>3. Ciclos escolares</h3>
+            </div>
+            <div class="section-body">
+                <p>Un ciclo escolar representa el año lectivo (ej. <em>2024-2025</em>). Todo en el sistema — alumnos, grupos, cobros — está vinculado a un ciclo.</p>
+
+                <table class="mini-table">
+                    <tr><th>Estado</th><th>Significado</th></tr>
+                    <tr><td><span class="badge badge-yellow">Configuración</span></td><td>El ciclo está en preparación. Se puede configurar sin afectar el ciclo activo.</td></tr>
+                    <tr><td><span class="badge badge-green">Activo</span></td><td>Ciclo en curso. Solo puede haber uno activo a la vez.</td></tr>
+                    <tr><td><span class="badge badge-red">Cerrado</span></td><td>Ciclo finalizado. Solo lectura.</td></tr>
+                </table>
+
+                <p style="margin-top:12px;"><strong>¿Cómo crear un nuevo ciclo?</strong></p>
+                <ol class="steps">
+                    <li>Ve a <strong>Configuración → Ciclos escolares</strong>.</li>
+                    <li>Haz clic en <strong>Nuevo ciclo</strong>.</li>
+                    <li>Ingresa el nombre, fecha de inicio y fecha de fin.</li>
+                    <li>Guarda. El ciclo inicia en estado <em>Configuración</em>.</li>
+                    <li>Cuando esté listo, cámbialo a <strong>Activo</strong>.</li>
+                </ol>
+                <div class="warn">
+                    <strong>⚠️ Importante</strong>
+                    Solo puede existir un ciclo Activo a la vez. Antes de activar uno nuevo asegúrate de cerrar el anterior.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 4. NIVELES Y GRADOS ══ -->
+        <div class="section" id="niveles">
+            <div class="section-header">
+                <div class="section-icon">🏫</div>
+                <h3>4. Niveles y grados</h3>
+            </div>
+            <div class="section-body">
+                <p><strong>Niveles</strong> son las etapas educativas (Preescolar, Primaria, Secundaria). <strong>Grados</strong> son los años dentro de cada nivel (1°, 2°, 3°…).</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Configuración → Niveles</strong> y crea los niveles de tu escuela.</li>
+                    <li>Ve a <strong>Configuración → Grados</strong> y agrega los grados para cada nivel.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Tip</strong>
+                    Esta configuración normalmente se hace una sola vez. Solo es necesario modificarla si la escuela abre o cierra un nivel educativo.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 5. GRUPOS ══ -->
+        <div class="section" id="grupos">
+            <div class="section-header">
+                <div class="section-icon">🗂</div>
+                <h3>5. Grupos</h3>
+            </div>
+            <div class="section-body">
+                <p>Los grupos agrupan alumnos por grado y sección (ej. <em>3° A</em>, <em>3° B</em>). Cada grupo pertenece a un ciclo escolar.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Configuración → Grupos</strong>.</li>
+                    <li>Haz clic en <strong>Nuevo grupo</strong>.</li>
+                    <li>Selecciona el ciclo, el grado y escribe el nombre de la sección (A, B, C…).</li>
+                    <li>Guarda el grupo.</li>
+                </ol>
+                <p>Desde la lista de grupos puedes ver cuántos alumnos tiene cada grupo y descargar la lista en PDF.</p>
+            </div>
+        </div>
+
+
+        <!-- ══ 6. CONCEPTOS ══ -->
+        <div class="section" id="conceptos">
+            <div class="section-header">
+                <div class="section-icon">💲</div>
+                <h3>6. Conceptos de cobro</h3>
+            </div>
+            <div class="section-body">
+                <p>Un concepto es el tipo de cargo que se le genera a un alumno. Ejemplos: <em>Colegiatura</em>, <em>Inscripción</em>, <em>Material didáctico</em>.</p>
+
+                <table class="mini-table">
+                    <tr><th>Tipo</th><th>Cuándo usarlo</th></tr>
+                    <tr><td><span class="badge badge-blue">Colegiatura</span></td><td>Cobro mensual recurrente. Puede tener beca y recargo.</td></tr>
+                    <tr><td><span class="badge badge-green">Inscripción</span></td><td>Cobro de registro al inicio del ciclo. Se cobra una vez.</td></tr>
+                    <tr><td><span class="badge badge-yellow">Cargo único</span></td><td>Cobros eventuales: eventos, uniformes, excursiones.</td></tr>
+                    <tr><td><span class="badge badge-purple">Cargo recurrente</span></td><td>Cobros periódicos que no son colegiatura.</td></tr>
+                </table>
+
+                <ol class="steps" style="margin-top:12px;">
+                    <li>Ve a <strong>Planes y conceptos → Conceptos de cobro</strong>.</li>
+                    <li>Haz clic en <strong>Nuevo concepto</strong>.</li>
+                    <li>Escribe el nombre, selecciona el tipo y configura si aplica beca o recargo.</li>
+                    <li>Guarda.</li>
+                </ol>
+            </div>
+        </div>
+
+
+        <!-- ══ 7. PLANES DE PAGO ══ -->
+        <div class="section" id="planes">
+            <div class="section-header">
+                <div class="section-icon">📄</div>
+                <h3>7. Planes de pago</h3>
+            </div>
+            <div class="section-body">
+                <p>Un plan de pago agrupa conceptos de cobro con su monto, periodicidad y vigencia. Es la plantilla que define cuánto paga un alumno y cuándo.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Planes y conceptos → Planes de pago</strong>.</li>
+                    <li>Haz clic en <strong>Nuevo plan</strong>.</li>
+                    <li>Escribe el nombre del plan (ej. <em>Plan Primaria 2025</em>).</li>
+                    <li>Selecciona el ciclo, el nivel y la periodicidad (<em>mensual</em>, <em>bimestral</em>, etc.).</li>
+                    <li>Define la fecha de inicio y fin del plan.</li>
+                    <li>Agrega los conceptos con su monto correspondiente.</li>
+                    <li>Guarda el plan.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Periodicidad</strong>
+                    Si el plan es mensual con 5 conceptos y dura 10 meses, el sistema generará automáticamente 50 cargos al asignar el plan a un alumno.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 8. BECAS ══ -->
+        <div class="section" id="becas">
+            <div class="section-header">
+                <div class="section-icon">🎓</div>
+                <h3>8. Becas</h3>
+            </div>
+            <div class="section-body">
+                <p>Las becas son descuentos que se aplican sobre los conceptos de cobro tipo <em>Colegiatura</em>.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Planes y conceptos → Becas</strong>.</li>
+                    <li>Haz clic en <strong>Nueva beca</strong> para crear el catálogo de tipos de beca.</li>
+                    <li>Una vez creada, ve al perfil del alumno y asígnale la beca desde su expediente.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Tip</strong>
+                    El descuento se aplica automáticamente al registrar el cobro, según el porcentaje configurado en la beca del alumno.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 9. ASIGNAR PLAN ══ -->
+        <div class="section" id="asignar">
+            <div class="section-header">
+                <div class="section-icon">🔗</div>
+                <h3>9. Asignar plan a alumnos</h3>
+            </div>
+            <div class="section-body">
+                <p>Asignar un plan genera automáticamente todos los cargos para los alumnos del alcance seleccionado.</p>
+
+                <div class="flow">
+                    <span class="flow-step">Seleccionar plan</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Elegir alcance</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Ajustar fechas</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Confirmar conceptos</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Guardar</span>
+                </div>
+
+                <ol class="steps" style="margin-top:10px;">
+                    <li>Ve a <strong>Planes y conceptos → Asignar plan</strong>.</li>
+                    <li>Selecciona el <strong>Plan de pago</strong> que deseas asignar.</li>
+                    <li>Elige el <strong>Alcance</strong>: Alumno individual, Grupo completo o Nivel educativo.</li>
+                    <li>Selecciona el alumno, grupo o nivel correspondiente.</li>
+                    <li>Revisa o ajusta las <strong>fechas de inicio y fin</strong> — solo se generarán cargos para los meses dentro de ese rango.</li>
+                    <li>Verifica los conceptos seleccionados en el panel derecho.</li>
+                    <li>Haz clic en <strong>Guardar asignación</strong>.</li>
+                </ol>
+                <div class="warn">
+                    <strong>⚠️ Nota</strong>
+                    Si necesitas agregar meses adicionales al mismo plan, vuelve a asignar el plan ajustando las fechas al período faltante. El sistema detectará los meses nuevos y solo creará los cargos que no existan.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 10. FAMILIAS ══ -->
+        <div class="section" id="familias">
+            <div class="section-header">
+                <div class="section-icon">👨‍👩‍👧</div>
+                <h3>10. Familias</h3>
+            </div>
+            <div class="section-body">
+                <p>Una familia agrupa a los alumnos que comparten el mismo núcleo familiar. Es el punto de contacto principal (padres, tutores) y donde se administran los datos fiscales para facturación.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Alumnos → Familias → Nueva familia</strong>.</li>
+                    <li>Escribe el nombre o apellido familiar, teléfono y correo.</li>
+                    <li>Agrega los contactos (mamá, papá, tutor) con su relación y datos.</li>
+                    <li>Guarda la familia. Después podrás vincularla al registrar alumnos.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Tip</strong>
+                    Si varios hermanos estudian en la escuela, se registran como alumnos separados pero vinculados a la misma familia. Así los padres tienen acceso a todos desde un solo portal.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 11. ALUMNOS ══ -->
+        <div class="section" id="alumnos">
+            <div class="section-header">
+                <div class="section-icon">🎒</div>
+                <h3>11. Alumnos</h3>
+            </div>
+            <div class="section-body">
+                <p>El módulo de alumnos concentra el expediente completo de cada estudiante.</p>
+                <p><strong>Registrar un alumno nuevo:</strong></p>
+                <ol class="steps">
+                    <li>Ve a <strong>Alumnos → Registrar alumno</strong>.</li>
+                    <li>Completa los datos personales: nombre, apellidos, CURP, fecha de nacimiento.</li>
+                    <li>Selecciona el ciclo, nivel y grupo al que ingresará.</li>
+                    <li>Vincula o crea la familia correspondiente.</li>
+                    <li>Agrega los contactos de emergencia.</li>
+                    <li>Sube los documentos requeridos.</li>
+                    <li>Guarda. Se generará la matrícula automáticamente.</li>
+                </ol>
+
+                <p style="margin-top:14px;"><strong>Desde el perfil del alumno puedes:</strong></p>
+                <table class="mini-table">
+                    <tr><th>Acción</th><th>Descripción</th></tr>
+                    <tr><td>Estado de cuenta</td><td>Ver todos los cargos, pagos y saldo pendiente.</td></tr>
+                    <tr><td>Editar expediente</td><td>Actualizar datos personales, grupo o documentos.</td></tr>
+                    <tr><td>Ficha PDF</td><td>Descargar o imprimir el perfil completo del alumno.</td></tr>
+                    <tr><td>Imprimir credencial</td><td>Generar la credencial escolar con el diseño configurado.</td></tr>
+                    <tr><td>Registrar baja</td><td>Dar de baja temporal, definitiva o egresar al alumno.</td></tr>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ══ 12. ADMISIONES ══ -->
+        <div class="section" id="admisiones">
+            <div class="section-header">
+                <div class="section-icon">📋</div>
+                <h3>12. Admisiones (Prospectos)</h3>
+            </div>
+            <div class="section-body">
+                <p>El módulo de admisiones te permite dar seguimiento a los candidatos antes de inscribirse formalmente.</p>
+
+                <div class="flow">
+                    <span class="flow-step">Prospecto</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Cita</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Visita</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Documentación</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Aceptado</span>
+                    <span class="flow-arrow">→</span>
+                    <span class="flow-step">Inscrito</span>
+                </div>
+
+                <ol class="steps" style="margin-top:10px;">
+                    <li>Ve a <strong>Alumnos → Admisiones → Nuevo prospecto</strong>.</li>
+                    <li>Registra los datos del candidato y el contacto principal.</li>
+                    <li>Conforme avance el proceso, usa <strong>Agregar seguimiento</strong> para registrar llamadas, visitas o notas.</li>
+                    <li>Cambia la etapa con el botón <strong>Cambiar etapa</strong>.</li>
+                    <li>Cuando llegue a <em>Aceptado</em>, usa <strong>Registrar como alumno</strong> para convertirlo en alumno formal.</li>
+                </ol>
+            </div>
+        </div>
+
+
+        <!-- ══ 13. REINSCRIPCIONES ══ -->
+        <div class="section" id="reinscripciones">
+            <div class="section-header">
+                <div class="section-icon">🔄</div>
+                <h3>13. Reinscripciones</h3>
+            </div>
+            <div class="section-body">
+                <p>Al inicio de cada ciclo, los alumnos activos deben ser inscritos al nuevo ciclo y asignados a sus nuevos grupos.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Alumnos → Reinscripciones</strong>.</li>
+                    <li>Verás la lista de alumnos del ciclo anterior pendientes de reinscripción.</li>
+                    <li>Selecciona el alumno y asígnale el nuevo grupo para el ciclo entrante.</li>
+                    <li>Guarda. El alumno quedará inscrito en el nuevo ciclo.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Tip</strong>
+                    Puedes hacer reinscripciones anticipadas mientras el nuevo ciclo esté en estado <em>Configuración</em>, antes de que inicie formalmente.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 14. COBROS ══ -->
+        <div class="section" id="cobros">
+            <div class="section-header">
+                <div class="section-icon">💳</div>
+                <h3>14. Registrar un cobro</h3>
+            </div>
+            <div class="section-body">
+                <p>El módulo de cobros es el punto de caja donde se registran los pagos de los alumnos.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Cobranza → Cobros</strong>.</li>
+                    <li>Busca al alumno por nombre, matrícula o CURP.</li>
+                    <li>Haz clic en su nombre para abrir su estado de cuenta.</li>
+                    <li>Selecciona los cargos que deseas cobrar marcando las casillas.</li>
+                    <li>Elige el método de pago (efectivo, tarjeta, transferencia).</li>
+                    <li>Confirma el monto y haz clic en <strong>Registrar pago</strong>.</li>
+                    <li>El sistema genera automáticamente el recibo que puedes imprimir o descargar.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Descuentos automáticos</strong>
+                    Si el alumno tiene una beca asignada, el descuento se aplica automáticamente sobre los cargos de colegiatura.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 15. REPORTES PAGOS ══ -->
+        <div class="section" id="pagos">
+            <div class="section-header">
+                <div class="section-icon">📊</div>
+                <h3>15. Reportes de pago</h3>
+            </div>
+            <div class="section-body">
+                <table class="mini-table">
+                    <tr><th>Reporte</th><th>¿Para qué sirve?</th></tr>
+                    <tr>
+                        <td><strong>Historial de pagos</strong></td>
+                        <td>Lista completa de todos los pagos registrados. Filtra por fecha, alumno o concepto.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Corte del día</strong></td>
+                        <td>Resumen de ingresos del día actual. Útil para el cierre de caja.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Detalle de ingresos</strong></td>
+                        <td>Ingresos desglosados por concepto y período. Ayuda a la contabilidad.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Reporte de deudores</strong></td>
+                        <td>Lista de alumnos con cargos vencidos o pendientes de pago.</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ══ 16. FACTURAS ══ -->
+        <div class="section" id="facturas">
+            <div class="section-header">
+                <div class="section-icon">🧾</div>
+                <h3>16. Facturas</h3>
+            </div>
+            <div class="section-body">
+                <p>Cuando un padre de familia solicita factura por un pago realizado, puedes generarla desde este módulo.</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Cobranza → Facturas</strong>.</li>
+                    <li>Busca el pago al que deseas facturar.</li>
+                    <li>Verifica que la familia tenga sus <strong>datos fiscales</strong> (RFC, razón social, régimen fiscal) registrados.</li>
+                    <li>Genera la factura. El sistema la enviará automáticamente al correo del padre.</li>
+                </ol>
+                <div class="tip">
+                    <strong>💡 Datos fiscales</strong>
+                    Los padres pueden actualizar sus datos fiscales directamente desde su portal en <em>Datos fiscales</em>, o el personal de recepción puede hacerlo desde el perfil de la familia.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 17. PORTAL PADRES ══ -->
+        <div class="section" id="portal">
+            <div class="section-header">
+                <div class="section-icon">📱</div>
+                <h3>17. Portal de padres</h3>
+            </div>
+            <div class="section-body">
+                <p>El portal es el acceso exclusivo para los padres de familia. Desde aquí pueden consultar la información de sus hijos sin necesidad de llamar a la escuela.</p>
+
+                <table class="mini-table">
+                    <tr><th>Sección</th><th>¿Qué pueden ver?</th></tr>
+                    <tr><td><strong>Portal (inicio)</strong></td><td>Resumen general y accesos rápidos.</td></tr>
+                    <tr><td><strong>Mis hijos</strong></td><td>Lista de hijos inscritos, grupo asignado y estado de cuenta individual.</td></tr>
+                    <tr><td><strong>Historial de pagos</strong></td><td>Todos los pagos realizados con opción de descargar recibo.</td></tr>
+                    <tr><td><strong>Datos fiscales</strong></td><td>Registrar o actualizar RFC y razón social para facturación.</td></tr>
+                </table>
+
+                <p style="margin-top:14px;"><strong>¿Cómo activa su cuenta un padre de familia?</strong></p>
+                <ol class="steps">
+                    <li>El administrador va a <strong>Administración → Pendientes portal</strong>.</li>
+                    <li>Busca al padre en la lista y activa su acceso al portal.</li>
+                    <li>El padre recibirá un correo con sus credenciales de acceso.</li>
+                </ol>
+            </div>
+        </div>
+
+
+        <!-- ══ 18. USUARIOS ══ -->
+        <div class="section" id="usuarios">
+            <div class="section-header">
+                <div class="section-icon">🔒</div>
+                <h3>18. Usuarios del sistema</h3>
+            </div>
+            <div class="section-body">
+                <p>Solo el administrador puede crear y gestionar usuarios del sistema interno (no padres de familia).</p>
+                <ol class="steps">
+                    <li>Ve a <strong>Administración → Usuarios → Lista de usuarios</strong>.</li>
+                    <li>Haz clic en <strong>Nuevo usuario</strong>.</li>
+                    <li>Ingresa nombre, correo, contraseña y selecciona el rol (Administrador, Cajero o Recepción).</li>
+                    <li>Guarda. El usuario podrá iniciar sesión de inmediato.</li>
+                </ol>
+                <div class="warn">
+                    <strong>⚠️ Seguridad</strong>
+                    Asigna solo los permisos necesarios para cada puesto. No compartas contraseñas entre usuarios.
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ══ 19. CONFIGURACIÓN ══ -->
+        <div class="section" id="configuracion">
+            <div class="section-header">
+                <div class="section-icon">⚙️</div>
+                <h3>19. Configuración general</h3>
+            </div>
+            <div class="section-body">
+                <p>Desde <strong>Configuración</strong> el administrador puede personalizar el sistema.</p>
+                <table class="mini-table">
+                    <tr><th>Opción</th><th>¿Para qué sirve?</th></tr>
+                    <tr><td><strong>Datos del colegio</strong></td><td>Nombre, logotipo, dirección y teléfono que aparecen en recibos y reportes.</td></tr>
+                    <tr><td><strong>Editor de credenciales</strong></td><td>Diseña la plantilla de la credencial escolar: colores, logotipo y campos visibles.</td></tr>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>Manual de Usuario — Kotan Sistema de Gestión Escolar</p>
+            <p style="margin-top:4px;">Para soporte técnico contacta al administrador del sistema.</p>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    // Resaltar enlace activo al hacer scroll
+    const sections = document.querySelectorAll('.section, .page-header');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navItems.forEach(a => a.classList.remove('active'));
+                const id = entry.target.id;
+                const active = document.querySelector(`.nav-item[href="#${id}"]`);
+                if (active) active.classList.add('active');
+            }
+        });
+    }, { threshold: 0.4 });
+
+    sections.forEach(s => observer.observe(s));
+
+    // Scroll suave
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            const target = document.querySelector(a.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+</script>
+
+</body>
+</html>

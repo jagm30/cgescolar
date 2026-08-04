@@ -98,14 +98,26 @@
                         style="text-transform: capitalize;">{{ $cred['rol'] ?? 'Padre de Familia' }}</span>
                 </div>
 
+                @if (!empty($cred['alumnos']))
+                <div class="data-row">
+                    <span class="data-label">Alumno(s)</span>
+                    <span class="data-value">{{ $cred['alumnos'] }}</span>
+                </div>
+                @endif
+
                 <div class="data-row">
                     <span class="data-label">Correo Electrónico (Usuario)</span>
                     <span class="data-value">{{ $cred['email'] }}</span>
                 </div>
 
-                <div class="data-row" style="border: none;">
+                <div class="data-row">
                     <span class="data-label">Contraseña Asignada</span>
                     <span class="password-box">{{ $cred['password'] }}</span>
+                </div>
+
+                <div class="data-row" style="border: none;">
+                    <span class="data-label">Plataforma</span>
+                    <span class="data-value" style="color: #3c8dbc;">https://genki.kotanescolar.com/</span>
                 </div>
             </div>
         </div>

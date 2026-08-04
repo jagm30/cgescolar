@@ -57,7 +57,6 @@ function crearPortalPadreContexto(): array
 
     $grado = Grado::create([
         'nivel_id' => $nivel->id,
-        'nombre' => '1',
         'numero' => 1,
     ]);
 

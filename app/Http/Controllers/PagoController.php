@@ -6,14 +6,19 @@ use App\Http\Requests\AnularPagoRequest;
 use App\Http\Requests\StorePagoRequest;
 use App\Models\Auditoria;
 use App\Models\Cargo;
+use App\Models\ConceptoCobro;
 use App\Models\ConfigFiscal;
+use App\Models\NivelEscolar;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
 use App\Models\RazonSocialContacto;
 use App\Models\Usuario;
 use App\Traits\RespondsWithJson;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class PagoController extends Controller
 {
@@ -38,10 +43,10 @@ class PagoController extends Controller
             ->when($request->filled('folio'), fn ($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"));
 
         $resumen = [
-            'total'        => (clone $base)->count(),
-            'vigentes'     => (clone $base)->where('estado', 'vigente')->count(),
-            'anulados'     => (clone $base)->where('estado', 'anulado')->count(),
-            'total_cobrado'=> (clone $base)->where('estado', 'vigente')->sum('monto_total'),
+            'total' => (clone $base)->count(),
+            'vigentes' => (clone $base)->where('estado', 'vigente')->count(),
+            'anulados' => (clone $base)->where('estado', 'anulado')->count(),
+            'total_cobrado' => (clone $base)->where('estado', 'vigente')->sum('monto_total'),
         ];
 
         $pagos = (clone $base)
@@ -74,7 +79,7 @@ class PagoController extends Controller
         if (request()->ajax()) {
             return response()->json(array_merge($pago->toArray(), [
                 'total_descuentos' => $pago->total_descuentos,
-                'total_recargos'   => $pago->total_recargos,
+                'total_recargos' => $pago->total_recargos,
             ]));
         }
 
@@ -112,10 +117,10 @@ class PagoController extends Controller
             ->with('contacto')
             ->get()
             ->map(fn ($rs) => [
-                'id'          => $rs->id,
-                'rfc'         => $rs->rfc,
-                'razon_social'=> $rs->razon_social,
-                'contacto'    => $rs->contacto?->nombre_completo,
+                'id' => $rs->id,
+                'rfc' => $rs->rfc,
+                'razon_social' => $rs->razon_social,
+                'contacto' => $rs->contacto?->nombre_completo,
             ]);
 
         $alumnos = $pago->detalles
@@ -125,12 +130,12 @@ class PagoController extends Controller
             ->values();
 
         return response()->json([
-            'pago_id'        => $pago->id,
-            'folio'          => $pago->folio_recibo,
-            'monto'          => number_format($pago->monto_total, 2),
-            'ya_facturado'   => $pago->cfdis->isNotEmpty(),
-            'alumnos'        => $alumnos,
-            'razones'        => $razones,
+            'pago_id' => $pago->id,
+            'folio' => $pago->folio_recibo,
+            'monto' => number_format($pago->monto_total, 2),
+            'ya_facturado' => $pago->cfdis->isNotEmpty(),
+            'alumnos' => $alumnos,
+            'razones' => $razones,
         ]);
     }
 
@@ -278,9 +283,9 @@ class PagoController extends Controller
     /** GET /pagos/corte */
     public function corte(Request $request)
     {
-        $fecha    = $request->get('fecha', now()->toDateString());
-        $usuario  = auth()->user();
-        $esAdmin  = $usuario->esAdministrador();
+        $fecha = $request->get('fecha', now()->toDateString());
+        $usuario = auth()->user();
+        $esAdmin = $usuario->esAdministrador();
 
         $baseVigente = Pago::query()
             ->where('fecha_pago', $fecha)
@@ -301,24 +306,24 @@ class PagoController extends Controller
             ->count();
 
         $resumen = [
-            'fecha'          => $fecha,
-            'total_pagos'    => $pagos->count(),
-            'total_cargos'   => $pagos->sum(fn ($p) => $p->detalles->count()),
-            'total_cobrado'  => $pagos->sum('monto_total'),
+            'fecha' => $fecha,
+            'total_pagos' => $pagos->count(),
+            'total_cargos' => $pagos->sum(fn ($p) => $p->detalles->count()),
+            'total_cobrado' => $pagos->sum('monto_total'),
             'total_anulados' => $totalAnulados,
             'por_forma_pago' => $pagos->groupBy('forma_pago')->map(fn ($g) => [
                 'cantidad' => $g->count(),
-                'total'    => $g->sum('monto_total'),
+                'total' => $g->sum('monto_total'),
             ]),
         ];
 
         // Desglose por cajero (solo admin)
         $porCajero = $esAdmin
             ? $pagos->groupBy('cajero_id')->map(fn ($g) => [
-                'cajero'   => $g->first()->cajero,
+                'cajero' => $g->first()->cajero,
                 'cantidad' => $g->count(),
-                'total'    => $g->sum('monto_total'),
-                'pagos'    => $g,
+                'total' => $g->sum('monto_total'),
+                'pagos' => $g,
             ])->values()
             : null;
 
@@ -331,6 +336,282 @@ class PagoController extends Controller
         }
 
         return view('pagos.corte', compact('resumen', 'pagos', 'fecha', 'esAdmin', 'porCajero', 'cajeros'));
+    }
+
+    /** GET /pagos/corte/pdf */
+    public function cortePdf(Request $request)
+    {
+        $fecha = $request->get('fecha', now()->toDateString());
+        $usuario = auth()->user();
+        $esAdmin = $usuario->esAdministrador();
+
+        $baseVigente = Pago::query()
+            ->where('fecha_pago', $fecha)
+            ->where('estado', 'vigente')
+            ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
+            ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id));
+
+        $pagos = (clone $baseVigente)
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->orderBy('id')
+            ->get();
+
+        $totalAnulados = Pago::query()
+            ->where('fecha_pago', $fecha)
+            ->where('estado', 'anulado')
+            ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
+            ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id))
+            ->count();
+
+        $resumen = [
+            'fecha' => $fecha,
+            'total_pagos' => $pagos->count(),
+            'total_cargos' => $pagos->sum(fn ($p) => $p->detalles->count()),
+            'total_cobrado' => $pagos->sum('monto_total'),
+            'total_anulados' => $totalAnulados,
+            'por_forma_pago' => $pagos->groupBy('forma_pago')->map(fn ($g) => [
+                'cantidad' => $g->count(),
+                'total' => $g->sum('monto_total'),
+            ]),
+        ];
+
+        $porCajero = $esAdmin
+            ? $pagos->groupBy('cajero_id')->map(fn ($g) => [
+                'cajero' => $g->first()->cajero,
+                'cantidad' => $g->count(),
+                'total' => $g->sum('monto_total'),
+                'pagos' => $g,
+            ])->values()
+            : collect([['cajero' => $usuario, 'cantidad' => $pagos->count(), 'total' => $resumen['total_cobrado'], 'pagos' => $pagos]]);
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('pagos.reportes.corte_pdf', compact('resumen', 'pagos', 'fecha', 'esAdmin', 'porCajero'))
+            ->setPaper('letter', 'portrait');
+
+        $nombreArchivo = 'Corte_'.$fecha.'.pdf';
+
+        return $pdf->stream($nombreArchivo);
+    }
+
+    /** GET /pagos/detalle-ingresos */
+    public function detalleIngresos(Request $request): View
+    {
+        $fechaDesde = $request->get('fecha_desde', now()->startOfMonth()->toDateString());
+        $fechaHasta = $request->get('fecha_hasta', now()->toDateString());
+
+        $conceptos = ConceptoCobro::query()->orderBy('nombre')->get();
+        $niveles = NivelEscolar::query()->activo()->get();
+
+        $detalles = PagoDetalle::query()
+            ->whereHas('pago', fn ($q) => $q
+                ->where('estado', 'vigente')
+                ->whereBetween('fecha_pago', [$fechaDesde, $fechaHasta])
+                ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
+            )
+            ->when($request->filled('concepto_id'), fn ($q) => $q->whereHas(
+                'cargo', fn ($q) => $q->where('concepto_id', $request->concepto_id)
+            ))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
+                'cargo.inscripcion.grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id)
+            ))
+            ->when($request->filled('periodo'), fn ($q) => $q->whereHas(
+                'cargo', fn ($q) => $q->where('periodo', $request->periodo)
+            ))
+            ->with(['pago.cajero', 'cargo.concepto', 'cargo.inscripcion.alumno', 'cargo.inscripcion.grupo.grado.nivel'])
+            ->get();
+
+        // Agrupar por concepto + periodo (clave compuesta para máximo detalle)
+        $porConcepto = $detalles
+            ->groupBy(fn ($d) => ($d->cargo?->concepto_id ?? 0).':'.($d->cargo?->periodo ?? ''))
+            ->map(fn ($grupo) => [
+                'concepto'        => $grupo->first()->cargo?->concepto,
+                'periodo'         => $grupo->first()->cargo?->periodo,
+                'periodo_label'   => $grupo->first()->cargo?->periodo_label,
+                'cantidad'        => $grupo->count(),
+                'total_cargo'     => $grupo->sum('monto_abonado'),
+                'descuento_beca'  => $grupo->sum('descuento_beca'),
+                'descuento_pp'    => $grupo->sum('descuento_pronto_pago'),
+                'descuento_otros' => $grupo->sum('descuento_otros'),
+                'recargo'         => $grupo->sum('recargo_aplicado'),
+                'total'           => $grupo->sum('monto_final'),
+            ])
+            ->filter(fn ($g) => $g['concepto'] !== null)
+            ->sortByDesc('total')
+            ->values();
+
+        $pagosUnicos = $detalles
+            ->groupBy('pago_id')
+            ->map(fn ($g) => $g->first()->pago)
+            ->filter()
+            ->sortByDesc(fn ($p) => $p->fecha_pago)
+            ->values();
+
+        $resumen = [
+            'total_cobrado'         => $detalles->sum('monto_final'),
+            'total_cargo'           => $detalles->sum('monto_abonado'),
+            'total_descuento_beca'  => $detalles->sum('descuento_beca'),
+            'total_descuento_pp'    => $detalles->sum('descuento_pronto_pago'),
+            'total_descuento_otros' => $detalles->sum('descuento_otros'),
+            'total_recargo'         => $detalles->sum('recargo_aplicado'),
+            'total_pagos'           => $pagosUnicos->count(),
+            'total_conceptos'       => $porConcepto->count(),
+        ];
+
+        return view('pagos.detalle_ingresos', compact(
+            'conceptos', 'niveles', 'porConcepto', 'pagosUnicos',
+            'detalles', 'resumen', 'fechaDesde', 'fechaHasta'
+        ));
+    }
+
+    /** GET /pagos/detalle-ingresos/pdf */
+    public function detalleIngresosPdf(Request $request)
+    {
+        $fechaDesde = $request->get('fecha_desde', now()->startOfMonth()->toDateString());
+        $fechaHasta = $request->get('fecha_hasta', now()->toDateString());
+
+        $conceptos = ConceptoCobro::query()->orderBy('nombre')->get();
+        $niveles = NivelEscolar::query()->activo()->get();
+
+        $detalles = PagoDetalle::query()
+            ->whereHas('pago', fn ($q) => $q
+                ->where('estado', 'vigente')
+                ->whereBetween('fecha_pago', [$fechaDesde, $fechaHasta])
+                ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
+            )
+            ->when($request->filled('concepto_id'), fn ($q) => $q->whereHas(
+                'cargo', fn ($q) => $q->where('concepto_id', $request->concepto_id)
+            ))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
+                'cargo.inscripcion.grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id)
+            ))
+            ->when($request->filled('periodo'), fn ($q) => $q->whereHas(
+                'cargo', fn ($q) => $q->where('periodo', $request->periodo)
+            ))
+            ->with(['pago.cajero', 'cargo.concepto', 'cargo.inscripcion.alumno', 'cargo.inscripcion.grupo.grado.nivel'])
+            ->get();
+
+        $porConcepto = $detalles
+            ->groupBy(fn ($d) => ($d->cargo?->concepto_id ?? 0).':'.($d->cargo?->periodo ?? ''))
+            ->map(fn ($grupo) => [
+                'concepto'        => $grupo->first()->cargo?->concepto,
+                'periodo'         => $grupo->first()->cargo?->periodo,
+                'periodo_label'   => $grupo->first()->cargo?->periodo_label,
+                'cantidad'        => $grupo->count(),
+                'total_cargo'     => $grupo->sum('monto_abonado'),
+                'descuento_beca'  => $grupo->sum('descuento_beca'),
+                'descuento_pp'    => $grupo->sum('descuento_pronto_pago'),
+                'descuento_otros' => $grupo->sum('descuento_otros'),
+                'recargo'         => $grupo->sum('recargo_aplicado'),
+                'total'           => $grupo->sum('monto_final'),
+            ])
+            ->filter(fn ($g) => $g['concepto'] !== null)
+            ->sortByDesc('total')
+            ->values();
+
+        $pagosUnicos = $detalles
+            ->groupBy('pago_id')
+            ->map(fn ($g) => $g->first()->pago)
+            ->filter()
+            ->sortByDesc(fn ($p) => $p->fecha_pago)
+            ->values();
+
+        $resumen = [
+            'total_cobrado'         => $detalles->sum('monto_final'),
+            'total_cargo'           => $detalles->sum('monto_abonado'),
+            'total_descuento_beca'  => $detalles->sum('descuento_beca'),
+            'total_descuento_pp'    => $detalles->sum('descuento_pronto_pago'),
+            'total_descuento_otros' => $detalles->sum('descuento_otros'),
+            'total_recargo'         => $detalles->sum('recargo_aplicado'),
+            'total_pagos'           => $pagosUnicos->count(),
+            'total_conceptos'       => $porConcepto->count(),
+        ];
+
+        $filtroConcepto = $conceptos->firstWhere('id', $request->concepto_id);
+        $filtroNivel = $niveles->firstWhere('id', $request->nivel_id);
+        $filtroPeriodo = $request->filled('periodo')
+            ? Carbon::createFromFormat('Y-m', $request->periodo)->locale('es')
+            : null;
+        $filtroForma = $request->forma_pago;
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView('pagos.reportes.detalle_ingresos_pdf', compact(
+            'resumen', 'porConcepto', 'pagosUnicos',
+            'fechaDesde', 'fechaHasta',
+            'filtroConcepto', 'filtroNivel', 'filtroPeriodo', 'filtroForma'
+        ))->setPaper('letter', 'portrait');
+
+        $nombreArchivo = 'Detalle_Ingresos_'.$fechaDesde.'_'.$fechaHasta.'.pdf';
+
+        return $pdf->stream($nombreArchivo);
+    }
+
+    /** GET /pagos/exportar */
+    public function exportarExcel(Request $request)
+    {
+        $pagos = Pago::query()
+            ->when($request->filled('folio'), fn ($q) => $q->where('folio_recibo', 'like', "%{$request->folio}%"))
+            ->when($request->filled('fecha_desde'), fn ($q) => $q->where('fecha_pago', '>=', $request->fecha_desde))
+            ->when($request->filled('fecha_hasta'), fn ($q) => $q->where('fecha_pago', '<=', $request->fecha_hasta))
+            ->when($request->filled('forma_pago'), fn ($q) => $q->where('forma_pago', $request->forma_pago))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->with(['cajero', 'detalles.cargo.concepto', 'detalles.cargo.inscripcion.alumno'])
+            ->orderByDesc('fecha_pago')
+            ->orderByDesc('id')
+            ->get();
+
+        $nombreArchivo = 'Pagos_'.now()->format('Y-m-d').'.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$nombreArchivo}\"",
+        ];
+
+        $callback = function () use ($pagos) {
+            $handle = fopen('php://output', 'w');
+
+            // BOM para que Excel reconozca UTF-8
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, [
+                'Folio', 'Fecha', 'Alumno(s)', 'Cajero',
+                'Forma de pago', 'Referencia', 'Monto total', 'Estado',
+                'Conceptos',
+            ]);
+
+            foreach ($pagos as $pago) {
+                $alumnos = $pago->detalles
+                    ->map(fn ($d) => $d->cargo?->inscripcion?->alumno)
+                    ->filter()->unique('id')
+                    ->map(fn ($a) => trim("{$a->ap_paterno} {$a->ap_materno}, {$a->nombre}"))
+                    ->implode(' | ');
+
+                $conceptos = $pago->detalles
+                    ->map(fn ($d) => $d->cargo?->etiqueta)
+                    ->filter()->unique()->implode(' | ');
+
+                fputcsv($handle, [
+                    $pago->folio_recibo,
+                    $pago->fecha_pago->format('d/m/Y'),
+                    $alumnos ?: '—',
+                    $pago->cajero?->nombre ?? '—',
+                    ucfirst($pago->forma_pago),
+                    $pago->referencia ?? '',
+                    number_format($pago->monto_total, 2, '.', ''),
+                    ucfirst($pago->estado),
+                    $conceptos ?: '—',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     // ── Helper ───────────────────────────────────────────

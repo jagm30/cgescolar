@@ -123,11 +123,14 @@
             color: #d97706;
         }
 
-        /* Nuevos Estilos para el Estado (Cápsula Ovalada) */
+        .rol-admisiones {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
         .badge-status {
             padding: 5px 12px;
             border-radius: 20px;
-            /* Píldora */
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
@@ -174,7 +177,7 @@
             justify-content: center;
             color: #64748b;
             padding: 0;
-            margin: 0 2px;
+            margin: 0;
         }
 
         .btn-action-flat:hover {
@@ -195,17 +198,10 @@
 
 @section('content')
 
-    {{-- LÓGICA PARA ATRAPAR EL MENSAJE Y MANTENER VIVO EL PDF --}}
     @php
         $mensajeMostrar = session('mensaje') ?? session('mensaje_persistente');
         session()->forget('mensaje_persistente');
-
         $hayPdf = session()->has('credenciales_nuevas');
-
-        // ¡CRÍTICO PARA QUE EL BOTÓN FUNCIONE! Mantiene los datos vivos una petición más
-        if ($hayPdf) {
-            session()->keep(['credenciales_nuevas']);
-        }
     @endphp
 
     {{-- TARJETA DE NOTIFICACIÓN PERSISTENTE --}}
@@ -229,7 +225,6 @@
                     <span
                         style="font-size: 13px; color: #64748b; font-weight: 500; line-height: 1.4;">{{ $mensajeMostrar }}</span>
 
-                    {{-- Botón para descargar el PDF manualmente si hay uno disponible --}}
                     @if ($hayPdf)
                         <div style="margin-top: 12px;">
                             <a href="{{ route('usuarios.credencialesPdf') }}" target="_blank"
@@ -242,7 +237,6 @@
             </div>
         </div>
     @endif
-    {{-- FIN DE LA TARJETA --}}
 
     <div class="con-stats">
         <div style="display: flex; gap: 15px;">
@@ -263,12 +257,11 @@
             </a>
         </div>
 
-        {{-- Botón Crear Usuario: Forma de píldora (20px) --}}
-        <button class="btn btn-success btn-sm"
+        {{-- <button class="btn btn-success btn-sm"
             style="border-radius: 20px; font-weight: 600; padding: 6px 18px; box-shadow: 0 2px 6px rgba(0, 166, 90, 0.3);"
             data-toggle="modal" data-target="#modal-crear-usuario">
             <i class="fa fa-plus"></i> Crear Usuario
-        </button>
+        </button> --}}
     </div>
 
     <div class="row">
@@ -277,7 +270,6 @@
                 <form method="GET" action="{{ route('usuarios.index') }}"
                     style="display: flex; gap: 10px; width: 100%; align-items: center;" id="form-filtros-usuario">
 
-                    {{-- Botón Ayuda: Forma de píldora (20px) --}}
                     <button type="button" class="btn btn-info btn-sm"
                         style="border-radius: 20px; font-weight: 600; padding: 6px 18px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0, 192, 239, 0.3);"
                         data-toggle="modal" data-target="#modalAyuda" title="Ayuda del Módulo">
@@ -294,13 +286,28 @@
                     <input type="text" name="buscar" class="filter-input" placeholder="Buscar por nombre o email..."
                         value="{{ request('buscar') }}" style="flex-grow: 1;">
 
-                    <select name="rol" class="filter-select" onchange="this.form.submit()">
+                    @if (!$esDirector)
+                    <select name="rol" id="filtro-rol" class="filter-select" onchange="this.form.submit()">
                         <option value="">Cualquier Rol</option>
-                        <option value="administrador" {{ request('rol') == 'administrador' ? 'selected' : '' }}>
-                            Administrador</option>
+                        <option value="administrador" {{ request('rol') == 'administrador' ? 'selected' : '' }}>Administrador</option>
                         <option value="caja" {{ request('rol') == 'caja' ? 'selected' : '' }}>Caja</option>
                         <option value="recepcion" {{ request('rol') == 'recepcion' ? 'selected' : '' }}>Recepción</option>
+                        <option value="admisiones" {{ request('rol') == 'admisiones' ? 'selected' : '' }}>Admisiones</option>
+                        <option value="informacion_admisiones" {{ request('rol') == 'informacion_admisiones' ? 'selected' : '' }}>Información y Admisiones</option>
+                        <option value="director_seccion" {{ request('rol') == 'director_seccion' ? 'selected' : '' }}>Director de Sección</option>
                         <option value="padre" {{ request('rol') == 'padre' ? 'selected' : '' }}>Padre de Familia</option>
+                    </select>
+                    @endif
+
+                    {{-- Filtro sección escolar: siempre visible para director, aparece al seleccionar "padre" para otros roles --}}
+                    <select name="seccion_id" id="filtro-seccion" class="filter-select" onchange="this.form.submit()"
+                        style="{{ ($esDirector || request('rol') === 'padre') ? '' : 'display:none;' }}">
+                        <option value="">Todas las Secciones</option>
+                        @foreach ($niveles as $nivel)
+                            <option value="{{ $nivel->id }}" {{ request('seccion_id') == $nivel->id ? 'selected' : '' }}>
+                                {{ $nivel->nombre }}
+                            </option>
+                        @endforeach
                     </select>
 
                     <select name="activo" class="filter-select" onchange="this.form.submit()">
@@ -329,7 +336,9 @@
                             <tr>
                                 <th>Usuario</th>
                                 <th>Rol / Permisos</th>
+                                @if (!$esDirector)
                                 <th>Ciclo Actual</th>
+                                @endif
                                 <th class="text-center">Estado</th>
                                 <th width="160" class="text-center">Acciones</th>
                             </tr>
@@ -350,17 +359,30 @@
                                     </td>
                                     <td>
                                         <span
-                                            class="badge-rol {{ $usuario->rol == 'administrador' ? 'rol-admin' : ($usuario->rol == 'it' ? 'rol-it' : 'rol-padre') }}">
-                                            {{ $usuario->rol }}
+                                            class="badge-rol @if ($usuario->rol == 'administrador') rol-admin @elseif(in_array($usuario->rol, ['admisiones','informacion_admisiones','director_seccion'])) rol-admisiones @elseif($usuario->rol == 'it') rol-it @else rol-padre @endif">
+                                            @php
+                                                $etiquetaRol = match($usuario->rol) {
+                                                    'informacion_admisiones' => 'Info. y Admisiones',
+                                                    'director_seccion'       => 'Director de Sección',
+                                                    default                  => $usuario->rol,
+                                                };
+                                            @endphp
+                                            {{ $etiquetaRol }}
                                         </span>
+                                        @if ($usuario->seccion)
+                                            <span style="display:inline-block; margin-left:4px; font-size:10px; padding:2px 7px; border-radius:4px; background:#ede9fe; color:#5b21b6; font-weight:700;">
+                                                {{ $usuario->seccion }}
+                                            </span>
+                                        @endif
                                     </td>
+                                    @if (!$esDirector)
                                     <td>
                                         <span style="font-size: 12px; color: #64748b;">
                                             {{ $usuario->cicloSeleccionado->nombre ?? 'Sin seleccionar' }}
                                         </span>
                                     </td>
+                                    @endif
                                     <td class="text-center">
-                                        {{-- Nueva cápsula ovalada para el ESTADO --}}
                                         @if ($usuario->activo)
                                             <span class="badge-status badge-active">
                                                 <span class="dot-active"></span> Activo
@@ -371,14 +393,15 @@
                                             </span>
                                         @endif
                                     </td>
+
                                     <td class="text-center">
                                         <div
-                                            style="display: flex; gap: 2px; justify-content: center; align-items: center;">
+                                            style="display: flex; gap: 5px; justify-content: center; align-items: center;">
 
                                             @if ($usuario->id !== auth()->id())
                                                 <button class="btn-action-flat btn-modal-edit" title="Editar"
                                                     data-id="{{ $usuario->id }}" data-nombre="{{ $usuario->nombre }}"
-                                                    data-rol="{{ $usuario->rol }}">
+                                                    data-rol="{{ $usuario->rol }}" data-seccion="{{ $usuario->seccion ?? '' }}">
                                                     <i class="fa fa-pencil text-blue"></i>
                                                 </button>
                                             @else
@@ -390,7 +413,7 @@
 
                                             @if (!$usuario->activo)
                                                 <form action="{{ route('usuarios.reactivar', $usuario->id) }}"
-                                                    method="POST" style="display:inline;">
+                                                    method="POST" style="margin: 0; display: flex;">
                                                     @csrf
                                                     <button type="submit" class="btn-action-flat"
                                                         title="Reactivar Usuario">
@@ -406,13 +429,22 @@
 
                                             @if ($usuario->id !== auth()->id() && $usuario->activo)
                                                 <form action="{{ route('usuarios.destroy', $usuario->id) }}"
-                                                    method="POST" style="display:inline;">
+                                                    method="POST" style="margin: 0; display: flex;">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="btn-action-flat" title="Desactivar"
                                                         onclick="return confirm('¿Desactivar acceso al portal?')">
                                                         <i class="fa fa-ban text-red"></i>
                                                     </button>
                                                 </form>
+                                            @endif
+
+                                            @if ($usuario->rol === 'padre')
+                                                <button class="btn-action-flat btn-reset-password-pdf"
+                                                    title="Generar nueva contraseña y descargar PDF"
+                                                    data-id="{{ $usuario->id }}"
+                                                    data-nombre="{{ $usuario->nombre }}">
+                                                    <i class="fa fa-key text-orange"></i>
+                                                </button>
                                             @endif
 
                                             @if ($usuario->id !== auth()->id())
@@ -427,7 +459,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center" style="padding:20px; color:#94a3b8;">No se
+                                    <td colspan="{{ $esDirector ? 4 : 5 }}" class="text-center" style="padding:20px; color:#94a3b8;">No se
                                         encontraron usuarios que coincidan con la búsqueda.</td>
                                 </tr>
                             @endforelse
@@ -451,9 +483,7 @@
         </div>
     </div>
 
-    {{-- ========================================== --}}
-    {{-- ══ MODAL AYUDA ══ --}}
-    {{-- ========================================== --}}
+    {{-- MODAL AYUDA --}}
     <x-modal id="modalAyuda" title="Guía del Módulo de Usuarios" size="modal-md">
         <div style="line-height:1.7;">
 
@@ -533,7 +563,8 @@
                 </span>
                 <p style="font-size: 11px; color: #991b1b; margin: 5px 0 0; line-height: 1.4;">
                     Por seguridad, el sistema bloquea acciones directas sobre tu propia sesión activa para evitar la pérdida
-                    accidental de acceso.
+                    accidental de acceso. Adicionalmente, el perfil de "Administrador" no puede ser asignado y los roles de
+                    los "Padres de familia" no pueden ser modificados.
                 </p>
             </div>
 
@@ -560,11 +591,25 @@
             </div>
             <div class="form-group">
                 <label>Rol del Usuario <span class="text-danger">*</span></label>
-                <select name="rol" class="form-control" required>
+                <select name="rol" id="create-rol" class="form-control" required>
                     <option value="padre">Padre de Familia</option>
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
+                    <option value="admisiones">Admisiones</option>
+                    <option value="informacion_admisiones">Información y Admisiones</option>
+                    <option value="director_seccion">Director de Sección</option>
                     <option value="administrador">Administrador</option>
+                </select>
+            </div>
+            <div class="form-group" id="create-seccion-group" style="display:none;">
+                <label>Sección Escolar</label>
+                <select name="seccion" id="create-seccion" class="form-control">
+                    <option value="">-- Sin restricción --</option>
+                    <option value="maternal">Maternal</option>
+                    <option value="preescolar">Preescolar</option>
+                    <option value="primaria">Primaria</option>
+                    <option value="secundaria">Secundaria</option>
+                    <option value="todas">Todas las secciones</option>
                 </select>
             </div>
             <div class="form-group">
@@ -605,11 +650,30 @@
 
             <div class="form-group">
                 <label>Rol / Permisos <span class="text-danger">*</span></label>
-                <select name="rol" id="edit-rol" class="form-control" required>
+                <select id="edit-rol" class="form-control" required>
                     <option value="padre">Padre de Familia</option>
                     <option value="recepcion">Recepción</option>
                     <option value="caja">Caja</option>
+                    <option value="admisiones">Admisiones</option>
+                    <option value="informacion_admisiones">Información y Admisiones</option>
+                    <option value="director_seccion">Director de Sección</option>
                     <option value="administrador">Administrador</option>
+                </select>
+                <p id="help-edit-rol" class="help-block text-muted"
+                    style="display:none; font-size:11px; margin-top:4px;">
+                    <!-- Mensaje dinámico de bloqueo -->
+                </p>
+            </div>
+
+            <div class="form-group" id="edit-seccion-group" style="display:none;">
+                <label>Sección Escolar</label>
+                <select name="seccion" id="edit-seccion" class="form-control">
+                    <option value="">-- Sin restricción --</option>
+                    <option value="maternal">Maternal</option>
+                    <option value="preescolar">Preescolar</option>
+                    <option value="primaria">Primaria</option>
+                    <option value="secundaria">Secundaria</option>
+                    <option value="todas">Todas las secciones</option>
                 </select>
             </div>
 
@@ -642,6 +706,17 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            // ── FILTRO DE SECCIÓN ESCOLAR ──────────────────────────────
+            @if (!$esDirector)
+            $('#filtro-rol').on('change', function() {
+                if ($(this).val() === 'padre') {
+                    $('#filtro-seccion').show();
+                } else {
+                    $('#filtro-seccion').hide().val('');
+                }
+            });
+            @endif
+
             function generarPassword() {
                 let caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#';
                 let pass = '';
@@ -650,6 +725,19 @@
                 }
                 return pass;
             }
+
+            function toggleSeccionCreate() {
+                let rol = $('#create-rol').val();
+                $('#create-seccion-group').toggle(rol === 'director_seccion');
+            }
+
+            function toggleSeccionEdit() {
+                let rol = $('#edit-rol').val();
+                $('#edit-seccion-group').toggle(rol === 'director_seccion');
+            }
+
+            $('#create-rol').on('change', toggleSeccionCreate);
+            $('#edit-rol').on('change', toggleSeccionEdit);
 
             if ($('#chk-create-auto').is(':checked')) {
                 $('#create-password').val(generarPassword());
@@ -687,16 +775,55 @@
                 }
             });
 
+            // ── LÓGICA DE SEGURIDAD AL ABRIR EL MODAL DE EDICIÓN ──
             $('.btn-modal-edit').on('click', function() {
                 let id = $(this).data('id');
                 let nombre = $(this).data('nombre');
-                let rol = $(this).data('rol');
+                let rol = $(this).data('rol').toLowerCase();
+                let seccion = $(this).data('seccion') || '';
 
                 $('#edit-id').val(id);
                 $('#edit-nombre-lbl').val(nombre);
-                $('#edit-rol').val(rol.toLowerCase());
                 $('#edit-password').val('');
                 $('#chk-edit-auto').prop('checked', false);
+                $('#edit-seccion').val(seccion);
+                $('#edit-seccion-group').toggle(rol === 'director_seccion');
+
+                let $selectRol = $('#edit-rol');
+                let $helpMsg = $('#help-edit-rol');
+
+                // 1. Limpiamos cualquier bloqueo anterior
+                $selectRol.prop('disabled', false).attr('name', 'rol');
+                $selectRol.find('option').prop('disabled', false).show();
+                $('#hidden-rol').remove();
+                $helpMsg.hide();
+
+                // 2. Aplicamos las reglas de seguridad
+                if (rol === 'padre') {
+                    // Si es padre, no puede cambiar de rol
+                    $selectRol.val('padre').prop('disabled', true).removeAttr('name');
+                    $('#form-editar-usuario').append(
+                        '<input type="hidden" name="rol" id="hidden-rol" value="padre">');
+                    $helpMsg.html(
+                            '<i class="fa fa-lock"></i> Los padres de familia no pueden cambiar de rol.')
+                        .show();
+                } else if (rol === 'administrador') {
+                    // Un administrador editando a otro administrador (solo puede cambiar contraseña, no degradarlo)
+                    $selectRol.val('administrador').prop('disabled', true).removeAttr('name');
+                    $('#form-editar-usuario').append(
+                        '<input type="hidden" name="rol" id="hidden-rol" value="administrador">');
+                    $helpMsg.html(
+                            '<i class="fa fa-lock"></i> Los privilegios de Administrador están protegidos.')
+                        .show();
+                } else {
+                    // Es un empleado normal (Caja, Admisiones, Recepción, Director).
+                    // No pueden convertirse en Padres de familia ni ser ascendidos a Administradores desde aquí.
+                    $selectRol.find('option[value="padre"]').prop('disabled', true).hide();
+                    $selectRol.find('option[value="administrador"]').prop('disabled', true).hide();
+                    $selectRol.val(rol);
+                    toggleSeccionEdit();
+                }
+
                 $('#modal-editar-usuario').modal('show');
             });
 
@@ -718,9 +845,9 @@
                     .then(res => {
                         if (res.status === 'success') {
                             $('#modal-crear-usuario').modal('hide');
-                            location.reload(); // Recarga limpia e instantánea
+                            location.reload();
                         } else {
-                            alert("No se pudo crear el usuario: \n" + res.mensaje);
+                            alert("No se pudo crear el usuario:\n" + (res.mensaje || res.message || 'Error desconocido. Revisa el log del servidor.'));
                         }
                     })
                     .catch(err => {
@@ -757,8 +884,48 @@
                     .then(res => {
                         if (res.status === 'success') {
                             $('#modal-editar-usuario').modal('hide');
-                            location.reload(); // Recarga limpia e instantánea
+                            location.reload();
+                        } else {
+                            alert("No se pudo actualizar el usuario:\n" + (res.mensaje || res.message || 'Error desconocido. Revisa el log del servidor.'));
                         }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert("Ocurrió un error de red o de servidor.");
+                    });
+            });
+
+            // RESETEAR CONTRASEÑA + DESCARGAR PDF
+            $('.btn-reset-password-pdf').on('click', function() {
+                let id     = $(this).data('id');
+                let nombre = $(this).data('nombre');
+
+                if (!confirm(`¿Generar una nueva contraseña para "${nombre}"?\n\nLa contraseña anterior quedará inválida.`)) return;
+
+                let enviarCorreo = confirm(`¿Deseas enviar la nueva contraseña al correo de "${nombre}"?`);
+
+                let url = "{{ route('usuarios.resetearPasswordPdf', ':id') }}".replace(':id', id);
+
+                fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ enviar_correo: enviarCorreo })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.status === 'success') {
+                            location.reload();
+                        } else {
+                            alert('Error: ' + res.mensaje);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Ocurrió un error de red o de servidor.');
                     });
             });
 
@@ -795,5 +962,10 @@
                     });
             });
         });
+
+        // Auto-descarga del PDF al recargar la página si hay credenciales en sesión
+        @if ($hayPdf)
+            window.location.href = "{{ route('usuarios.credencialesPdf') }}";
+        @endif
     </script>
 @endpush

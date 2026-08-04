@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
-                        ========================================================================== */
+                                            MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -242,11 +242,11 @@
             margin: 0 !important;
         }
 
-        /* ESTO OCULTA LA CREDENCIAL EN PANTALLA MIENTRAS ESTÁS EN EL NAVEGADOR */
+/* ESTO OCULTA LA CREDENCIAL Y EL VIEWPORT EN PANTALLA MIENTRAS ESTÁS EN EL NAVEGADOR */
         @media screen {
-            .modo-visualizacion #canvas-container {
+            .modo-visualizacion #canvas-container,
+            .modo-visualizacion #scroll-viewport { /* <--- Agregamos esta línea */
                 display: none !important;
-                /* Ocultamos el contenedor de credenciales */
             }
 
             .badge-alumno {
@@ -311,74 +311,100 @@
         }
 
         /* ==========================================================================
-                                            REGLA DEFINITIVA PARA LA IMPRESORA EVOLIS
-                           ========================================================================== */
+                   REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+                   ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
-                size: {{ $diseno->orientacion == 'vertical' ? '54mm 85.6mm' : '85.6mm 54mm' }};
+                size: {{ $diseno->orientacion == 'vertical' ? '322px 502px' : '502px 322px' }};
             }
 
+            /* 1. RESTAURAMOS LA VISIBILIDAD DE ADMINLTE */
             html,
             body {
                 margin: 0 !important;
                 padding: 0 !important;
                 background-color: white !important;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            #wrapper-principal,
-            .content-wrapper,
-            .content,
-            #canvas-container {
-                margin: 0 !important;
-                padding: 0 !important;
                 display: block !important;
             }
 
-            .modo-visualizacion .credencial-canvas-instance {
+            ::-webkit-scrollbar {
+                display: none !important;
+            }
+
+            /* 2. OCULTAMOS BASURA VISUAL DE LA PLANTILLA */
+            .main-header,
+            .main-sidebar,
+            .sidebar,
+            .main-footer,
+            .no-print,
+            .col-md-3,
+            #ctx-menu,
+            .modal,
+            .control-sidebar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+/* 3. LIMPIEZA DE CONTENEDORES PADRES */
+            .wrapper, .content-wrapper, .content, section.content, #wrapper-principal, .row, .col-md-9, #scroll-viewport {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                border: none !important;
+                min-height: 0 !important;
+                height: auto !important;
+                box-shadow: none !important;
+                display: block !important;
+                overflow: visible !important; /* <--- Vital para que no corte hojas */
+            }
+
+            #canvas-container {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 0 !important;
+                line-height: 0 !important;
+                zoom: 1 !important; /* <--- Vital para matar el zoom al imprimir */
+            }
+
+            /* 4. ESPECIFICIDAD ABSOLUTA: Igualamos la tarjeta a la medida holgada de la hoja */
+            #wrapper-principal .credencial-canvas-instance {
                 margin: 0 !important;
                 padding: 0 !important;
                 border: none !important;
-                border-radius: 0 !important;
                 position: relative !important;
+                display: block !important;
+                overflow: hidden !important;
+
+                /* ¡EL TRUCO! Ahora la tarjeta mide los mismos 322px/502px que la hoja */
+                width: {{ $diseno->orientacion == 'vertical' ? '322px' : '502px' }} !important;
+                height: {{ $diseno->orientacion == 'vertical' ? '502px' : '322px' }} !important;
+
+                zoom: 1 !important;
+                transform: none !important;
+
                 page-break-after: always !important;
+                break-after: page !important;
                 page-break-inside: avoid !important;
-                zoom: 0.635 !important;
+                break-inside: avoid !important;
+            }
+
+            /* 5. ANIQUILAMOS LA HOJA BLANCA DEL FINAL CON MÁXIMA FUERZA */
+            #wrapper-principal #credencial-canvas-reverso,
+            #wrapper-principal #canvas-container>div:last-child,
+            #wrapper-principal .credencial-canvas-instance:last-child,
+            #wrapper-principal .credencial-canvas-instance:last-of-type {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
 
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-            }
-        }
-
-        /* ── IMPRESIÓN DESDE EL EDITOR: fuerza ambas caras visibles ── */
-        @media print {
-            #credencial-canvas,
-            #credencial-canvas-reverso {
-                display: block !important;
-                page-break-before: always;
-            }
-            #credencial-canvas {
-                page-break-before: avoid;
-            }
-            .col-md-3,
-            #btn-show-anverso,
-            #btn-show-reverso,
-            .no-print {
-                display: none !important;
-            }
-            .col-md-9 {
-                width: 100% !important;
-            }
-            #canvas-container {
-                padding: 10px !important;
-                background: white !important;
-                gap: 0 !important;
             }
         }
 
@@ -531,11 +557,12 @@
                                 <option value="Grupo:">Grupo:</option>
                                 <option value="Ciclo Escolar:">Ciclo Escolar:</option>
                                 <option value="Tipo de Sangre:">Tipo Sangre:</option>
-                                <option value="Tutor:">Tutor:</option>
-                                <option value="Tel. Emergencia:">Tel. Emergencia:</option>
                                 <option value="Autorizado 1:">Autorizado 1:</option>
                                 <option value="Autorizado 2:">Autorizado 2:</option>
                                 <option value="Autorizado 3:">Autorizado 3:</option>
+                                <option value="Tel. Autorizado 1:">Tel. Autorizado 1:</option>
+                                <option value="Tel. Autorizado 2:">Tel. Autorizado 2:</option>
+                                <option value="Tel. Autorizado 3:">Tel. Autorizado 3:</option>
                                 <option value="Director:">Director:</option>
                                 <option value="Firma:">Firma:</option>
                             </select>
@@ -598,18 +625,6 @@
                         <hr style="margin: 10px 0;">
                         <label style="color:#e67e22;"><i class="fa fa-home"></i> Contactos y Autorizados:</label>
                         <div class="row">
-                            <div class="col-xs-6" style="padding-right: 2px;">
-                                <button class="btn btn-default btn-block btn-sm text-left"
-                                    onclick="addElement('tutor', 'NOMBRE DEL TUTOR')"><i class="fa fa-user-circle"></i>
-                                    Tutor</button>
-                            </div>
-                            <div class="col-xs-6" style="padding-left: 2px;">
-                                <button class="btn btn-default btn-block btn-sm text-left"
-                                    onclick="addElement('tel_emergencia', '961-000-0000')"><i class="fa fa-phone"></i>
-                                    Tel. Emergencia</button>
-                            </div>
-                        </div>
-                        <div class="row" style="margin-top: 5px;">
                             <div class="col-xs-4" style="padding-right: 2px;">
                                 <button class="btn btn-default btn-block btn-sm text-left"
                                     onclick="addElement('autorizado1', 'AUTORIZADO 1')" style="padding: 5px 2px;"><i
@@ -624,6 +639,40 @@
                                 <button class="btn btn-default btn-block btn-sm text-left"
                                     onclick="addElement('autorizado3', 'AUTORIZADO 3')" style="padding: 5px 2px;"><i
                                         class="fa fa-check-square-o"></i> Aut 3</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-4" style="padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('tel_autorizado1', '961-000-0001')" style="padding: 5px 2px;"><i
+                                        class="fa fa-phone"></i> Tel 1</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px; padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('tel_autorizado2', '961-000-0002')" style="padding: 5px 2px;"><i
+                                        class="fa fa-phone"></i> Tel 2</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('tel_autorizado3', '961-000-0003')" style="padding: 5px 2px;"><i
+                                        class="fa fa-phone"></i> Tel 3</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-4" style="padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado1', 'FOTO AUT 1')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 1</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px; padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado2', 'FOTO AUT 2')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 2</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('foto_autorizado3', 'FOTO AUT 3')" style="padding: 5px 2px;"><i
+                                        class="fa fa-camera"></i> Foto 3</button>
                             </div>
                         </div>
 
@@ -664,7 +713,8 @@
 
             <div class="col-md-9">
                 @if (!isset($alumnos))
-                    <div class="text-center no-print" style="margin-bottom: 15px;">
+                    <div class="text-center no-print"
+                        style="margin-bottom: 15px; display: flex; justify-content: center; gap: 20px; align-items: center;">
                         <div class="btn-group">
                             <button type="button" id="btn-show-anverso" class="btn btn-primary active"
                                 onclick="switchFace('anverso')">
@@ -675,169 +725,302 @@
                                 <i class="fa fa-refresh"></i> Diseño Reverso
                             </button>
                         </div>
+
+                        <div class="btn-group" style="box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                            <button type="button" class="btn btn-default" onclick="changeZoom(-0.1)" title="Alejar"><i
+                                    class="fa fa-search-minus"></i></button>
+                            <button type="button" class="btn btn-default" id="btn-zoom-label" onclick="resetZoom()"
+                                title="Restablecer" style="font-weight: bold; width: 65px;">100%</button>
+                            <button type="button" class="btn btn-default" onclick="changeZoom(0.1)" title="Acercar"><i
+                                    class="fa fa-search-plus"></i></button>
+                        </div>
                     </div>
                 @endif
 
-                <div id="canvas-container">
-                    @if (isset($alumnos) && count($alumnos) > 0)
-                        {{-- MODO IMPRESIÓN (Genera Anverso y Reverso) --}}
-                        @foreach ($alumnos as $alumno)
+                <div id="scroll-viewport"
+                    style="width: 100%; height: 75vh; overflow: auto; background: #3c3f41; border-radius: 8px; box-shadow: inset 0px 0px 10px rgba(0,0,0,0.5);">
+                    <div id="canvas-container"
+                        style="background: transparent; transform-origin: top center; transition: zoom 0.2s ease;">
+                        @if (isset($alumnos) && count($alumnos) > 0)
+                            {{-- MODO IMPRESIÓN (Genera Anverso y Reverso) --}}
+                            @foreach ($alumnos as $alumno)
+                                @php
+                                    $insc = $alumno->inscripciones->first();
+                                    $nivelStr = $insc?->grupo?->grado?->nivel?->nombre ?? '';
+                                    $gradoStr = $insc?->grupo?->grado?->numero ?? '';
+                                    $grupoStr = $insc?->grupo?->nombre ?? '';
+
+                                    $autorizados = \Illuminate\Support\Facades\DB::table('alumno_contacto')
+                                        ->join(
+                                            'contacto_familiar',
+                                            'alumno_contacto.contacto_id',
+                                            '=',
+                                            'contacto_familiar.id',
+                                        )
+                                        ->where('alumno_contacto.alumno_id', $alumno->id)
+                                        ->where('alumno_contacto.activo', 1)
+                                        ->where('alumno_contacto.autorizado_recoger', 1)
+                                        ->orderBy('alumno_contacto.orden')
+                                        ->orderBy('alumno_contacto.id')
+                                        ->select(
+                                            'contacto_familiar.nombre',
+                                            'contacto_familiar.ap_paterno',
+                                            'contacto_familiar.ap_materno',
+                                            'contacto_familiar.foto_url',
+                                            'contacto_familiar.telefono_celular',
+                                        )
+                                        ->limit(3)
+                                        ->get();
+
+                                    $aut1 = isset($autorizados[0])
+                                        ? trim(
+                                            $autorizados[0]->nombre .
+                                                ' ' .
+                                                $autorizados[0]->ap_paterno .
+                                                ' ' .
+                                                ($autorizados[0]->ap_materno ?? ''),
+                                        )
+                                        : '';
+                                    $aut2 = isset($autorizados[1])
+                                        ? trim(
+                                            $autorizados[1]->nombre .
+                                                ' ' .
+                                                $autorizados[1]->ap_paterno .
+                                                ' ' .
+                                                ($autorizados[1]->ap_materno ?? ''),
+                                        )
+                                        : '';
+                                    $aut3 = isset($autorizados[2])
+                                        ? trim(
+                                            $autorizados[2]->nombre .
+                                                ' ' .
+                                                $autorizados[2]->ap_paterno .
+                                                ' ' .
+                                                ($autorizados[2]->ap_materno ?? ''),
+                                        )
+                                        : '';
+
+                                    $fotoAut1 =
+                                        isset($autorizados[0]) && !empty($autorizados[0]->foto_url)
+                                            ? asset('storage/' . $autorizados[0]->foto_url)
+                                            : '';
+                                    $fotoAut2 =
+                                        isset($autorizados[1]) && !empty($autorizados[1]->foto_url)
+                                            ? asset('storage/' . $autorizados[1]->foto_url)
+                                            : '';
+                                    $fotoAut3 =
+                                        isset($autorizados[2]) && !empty($autorizados[2]->foto_url)
+                                            ? asset('storage/' . $autorizados[2]->foto_url)
+                                            : '';
+
+                                    $telAut1 = $autorizados[0]->telefono_celular ?? '';
+                                    $telAut2 = $autorizados[1]->telefono_celular ?? '';
+                                    $telAut3 = $autorizados[2]->telefono_celular ?? '';
+
+                                    $nombreStr =
+                                        $alumno->nombre .
+                                        ' ' .
+                                        ($alumno->ap_paterno ?? '') .
+                                        ' ' .
+                                        ($alumno->ap_materno ?? '');
+                                @endphp
+
+                                <div class="no-print" style="width: 100%; text-align: center;">
+                                    <span class="badge-alumno">Alumno {{ $loop->iteration }} de {{ $loop->count }}:
+                                        {{ $alumno->nombre }} {{ $alumno->ap_paterno }}</span>
+                                </div>
+
+                                {{-- CARA 1: ANVERSO --}}
+                                <div id="credencial-canvas-anverso-{{ $alumno->id }}"
+                                    class="credencial-canvas-instance face-anverso" data-nombre="{{ trim($nombreStr) }}"
+                                    data-matricula="{{ $alumno->matricula ?? '' }}" data-nivel="{{ $nivelStr }}"
+                                    data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
+                                    data-ciclo="{{ $cicloActual->nombre ?? '' }}"
+                                    data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
+                                    data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
+                                    data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
+                                    data-autorizado3="{{ $aut3 }}" data-tel-autorizado1="{{ $telAut1 }}"
+                                    data-tel-autorizado2="{{ $telAut2 }}"
+                                    data-tel-autorizado3="{{ $telAut3 }}"
+                                    data-foto-autorizado1="{{ $fotoAut1 }}"
+                                    data-foto-autorizado2="{{ $fotoAut2 }}"
+                                    data-foto-autorizado3="{{ $fotoAut3 }}" data-director="" data-puesto_director=""
+                                    onclick="deselect(event)">
+                                    @if ($diseno->fondo_anverso)
+                                        <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}"
+                                            class="fondo-credencial">
+                                    @else
+                                        <img src="" class="fondo-credencial" style="display:none;">
+                                    @endif
+                                    <div id="group-outline-anverso-{{ $alumno->id }}" class="group-outline"></div>
+                                </div>
+
+                                {{-- CARA 2: REVERSO --}}
+                                <div id="credencial-canvas-reverso-{{ $alumno->id }}"
+                                    class="credencial-canvas-instance face-reverso" data-nombre="{{ trim($nombreStr) }}"
+                                    data-matricula="{{ $alumno->matricula ?? '' }}" data-nivel="{{ $nivelStr }}"
+                                    data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
+                                    data-ciclo="{{ $cicloActual->nombre ?? '' }}"
+                                    data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
+                                    data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
+                                    data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
+                                    data-autorizado3="{{ $aut3 }}" data-tel-autorizado1="{{ $telAut1 }}"
+                                    data-tel-autorizado2="{{ $telAut2 }}"
+                                    data-tel-autorizado3="{{ $telAut3 }}"
+                                    data-foto-autorizado1="{{ $fotoAut1 }}"
+                                    data-foto-autorizado2="{{ $fotoAut2 }}"
+                                    data-foto-autorizado3="{{ $fotoAut3 }}" data-director="" data-puesto_director=""
+                                    onclick="deselect(event)">
+                                    @if ($diseno->fondo_reverso)
+                                        <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}"
+                                            class="fondo-credencial">
+                                    @else
+                                        <img src="" class="fondo-credencial" style="display:none;">
+                                    @endif
+                                    <div id="group-outline-reverso-{{ $alumno->id }}" class="group-outline"></div>
+                                </div>
+                            @endforeach
+                        @else
+                            {{-- MODO EDITOR --}}
                             @php
-                                $insc = $alumno->inscripciones->first();
-                                $nivelStr = $insc?->grupo?->grado?->nivel?->nombre ?? '';
-                                $gradoStr = $insc?->grupo?->grado?->numero ?? '';
-                                $grupoStr = $insc?->grupo?->nombre ?? '';
+                                // Alumno de muestra para el editor (el primero del sistema, o uno fijo)
+                                $alumnoMuestra = \App\Models\Alumno::with(['inscripciones.grupo.grado.nivel'])->first();
+                                $inscM = $alumnoMuestra?->inscripciones->first();
 
-                                $contactos = $alumno->familia?->contactos ?? collect();
-                                $tutorObj = $contactos->where('es_principal', true)->first() ?? $contactos->first();
+                                // Contactos autorizados para recoger, ordenados por prioridad (alumno_contacto.orden)
+                                $autorizadosM = $alumnoMuestra
+                                    ? \Illuminate\Support\Facades\DB::table('alumno_contacto')
+                                        ->join(
+                                            'contacto_familiar',
+                                            'alumno_contacto.contacto_id',
+                                            '=',
+                                            'contacto_familiar.id',
+                                        )
+                                        ->where('alumno_contacto.alumno_id', $alumnoMuestra->id)
+                                        ->where('alumno_contacto.activo', 1)
+                                        ->where('alumno_contacto.autorizado_recoger', 1)
+                                        ->orderBy('alumno_contacto.orden')
+                                        ->orderBy('alumno_contacto.id')
+                                        ->select(
+                                            'contacto_familiar.nombre',
+                                            'contacto_familiar.ap_paterno',
+                                            'contacto_familiar.ap_materno',
+                                            'contacto_familiar.foto_url',
+                                            'contacto_familiar.telefono_celular',
+                                        )
+                                        ->limit(3)
+                                        ->get()
+                                    : collect();
 
-                                // BLINDAJE APLICADO AQUÍ:
-                                $tutorStr = $tutorObj ? $tutorObj->nombre . ' ' . $tutorObj->ap_paterno : '';
-                                $emergenciaStr = $tutorObj?->telefono_celular ?? ''; // <-- El ? evita el crash
-
-                                $autorizados = $contactos
-                                    ->filter(function ($c) {
-                                        return $c->puede_recoger ?? true;
-                                    })
-                                    ->values();
-
-                                $aut1 = isset($autorizados[0])
-                                    ? $autorizados[0]->nombre . ' ' . $autorizados[0]->ap_paterno
+                                $autM1 = isset($autorizadosM[0])
+                                    ? trim(
+                                        $autorizadosM[0]->nombre .
+                                            ' ' .
+                                            $autorizadosM[0]->ap_paterno .
+                                            ' ' .
+                                            ($autorizadosM[0]->ap_materno ?? ''),
+                                    )
                                     : '';
-                                $aut2 = isset($autorizados[1])
-                                    ? $autorizados[1]->nombre . ' ' . $autorizados[1]->ap_paterno
+                                $autM2 = isset($autorizadosM[1])
+                                    ? trim(
+                                        $autorizadosM[1]->nombre .
+                                            ' ' .
+                                            $autorizadosM[1]->ap_paterno .
+                                            ' ' .
+                                            ($autorizadosM[1]->ap_materno ?? ''),
+                                    )
                                     : '';
-                                $aut3 = isset($autorizados[2])
-                                    ? $autorizados[2]->nombre . ' ' . $autorizados[2]->ap_paterno
+                                $autM3 = isset($autorizadosM[2])
+                                    ? trim(
+                                        $autorizadosM[2]->nombre .
+                                            ' ' .
+                                            $autorizadosM[2]->ap_paterno .
+                                            ' ' .
+                                            ($autorizadosM[2]->ap_materno ?? ''),
+                                    )
                                     : '';
 
-                                $nombreStr =
-                                    $alumno->nombre .
-                                    ' ' .
-                                    ($alumno->ap_paterno ?? '') .
-                                    ' ' .
-                                    ($alumno->ap_materno ?? '');
+                                $fotoAutM1 =
+                                    isset($autorizadosM[0]) && !empty($autorizadosM[0]->foto_url)
+                                        ? asset('storage/' . $autorizadosM[0]->foto_url)
+                                        : '';
+                                $fotoAutM2 =
+                                    isset($autorizadosM[1]) && !empty($autorizadosM[1]->foto_url)
+                                        ? asset('storage/' . $autorizadosM[1]->foto_url)
+                                        : '';
+                                $fotoAutM3 =
+                                    isset($autorizadosM[2]) && !empty($autorizadosM[2]->foto_url)
+                                        ? asset('storage/' . $autorizadosM[2]->foto_url)
+                                        : '';
+
+                                $telAutM1 = $autorizadosM[0]->telefono_celular ?? '961-000-0001';
+                                $telAutM2 = $autorizadosM[1]->telefono_celular ?? '961-000-0002';
+                                $telAutM3 = $autorizadosM[2]->telefono_celular ?? '961-000-0003';
                             @endphp
 
-                            <div class="no-print" style="width: 100%; text-align: center;">
-                                <span class="badge-alumno">Alumno {{ $loop->iteration }} de {{ $loop->count }}:
-                                    {{ $alumno->nombre }} {{ $alumno->ap_paterno }}</span>
-                            </div>
-
-                            {{-- CARA 1: ANVERSO --}}
-                            <div id="credencial-canvas-anverso-{{ $alumno->id }}"
-                                class="credencial-canvas-instance face-anverso" data-nombre="{{ trim($nombreStr) }}"
-                                data-matricula="{{ $alumno->matricula ?? '' }}" data-nivel="{{ $nivelStr }}"
-                                data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
-                                data-ciclo="{{ $cicloActual->nombre ?? '' }}"
-                                data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
-                                data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
-                                data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
-                                data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
-                                data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
+                            <div id="credencial-canvas" class="credencial-canvas-instance face-anverso"
+                                data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
+                                data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
+                                data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
+                                data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
+                                data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
+                                data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
+                                data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
+                                data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
+                                data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
+                                data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
+                                data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
+                                data-tel-autorizado1="{{ $telAutM1 }}" data-tel-autorizado2="{{ $telAutM2 }}"
+                                data-tel-autorizado3="{{ $telAutM3 }}" data-foto-autorizado1="{{ $fotoAutM1 }}"
+                                data-foto-autorizado2="{{ $fotoAutM2 }}" data-foto-autorizado3="{{ $fotoAutM3 }}"
+                                data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
                                 onclick="deselect(event)">
                                 @if ($diseno->fondo_anverso)
-                                    <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial">
+                                    <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial"
+                                        id="img-fondo-editor">
                                 @else
-                                    <img src="" class="fondo-credencial" style="display:none;">
+                                    <img src="" class="fondo-credencial" id="img-fondo-editor"
+                                        style="display:none;">
                                 @endif
-                                <div id="group-outline-anverso-{{ $alumno->id }}" class="group-outline"></div>
+                                <div id="group-outline" class="group-outline"></div>
+                                <div id="guide-v" class="guide-line guide-v"></div>
+                                <div id="guide-h" class="guide-line guide-h"></div>
                             </div>
 
-                            {{-- CARA 2: REVERSO --}}
-                            <div id="credencial-canvas-reverso-{{ $alumno->id }}"
-                                class="credencial-canvas-instance face-reverso" data-nombre="{{ trim($nombreStr) }}"
-                                data-matricula="{{ $alumno->matricula ?? '' }}" data-nivel="{{ $nivelStr }}"
-                                data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
-                                data-ciclo="{{ $cicloActual->nombre ?? '' }}"
-                                data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
-                                data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
-                                data-tutor="{{ $tutorStr }}" data-emergencia="{{ $emergenciaStr }}"
-                                data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
-                                data-autorizado3="{{ $aut3 }}" data-director="" data-puesto_director=""
-                                onclick="deselect(event)">
+                            <div id="credencial-canvas-reverso" class="credencial-canvas-instance face-reverso"
+                                data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
+                                data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
+                                data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
+                                data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
+                                data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
+                                data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
+                                data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
+                                data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
+                                data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
+                                data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
+                                data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
+                                data-tel-autorizado1="{{ $telAutM1 }}" data-tel-autorizado2="{{ $telAutM2 }}"
+                                data-tel-autorizado3="{{ $telAutM3 }}" data-foto-autorizado1="{{ $fotoAutM1 }}"
+                                data-foto-autorizado2="{{ $fotoAutM2 }}" data-foto-autorizado3="{{ $fotoAutM3 }}"
+                                data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
+                                onclick="deselect(event)" style="display:none;">
                                 @if ($diseno->fondo_reverso)
-                                    <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial">
+                                    <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial"
+                                        id="img-fondo-editor-reverso">
                                 @else
-                                    <img src="" class="fondo-credencial" style="display:none;">
+                                    <img src="" class="fondo-credencial" id="img-fondo-editor-reverso"
+                                        style="display:none;">
                                 @endif
-                                <div id="group-outline-reverso-{{ $alumno->id }}" class="group-outline"></div>
+                                <div id="group-outline-reverso" class="group-outline"></div>
+                                <div id="guide-v-reverso" class="guide-line guide-v"></div>
+                                <div id="guide-h-reverso" class="guide-line guide-h"></div>
                             </div>
-                        @endforeach
-                    @else
-                        {{-- MODO EDITOR --}}
-                        @php
-                            // Alumno de muestra para el editor (el primero del sistema, o uno fijo)
-                            $alumnoMuestra = \App\Models\Alumno::with([
-                                'inscripciones.grupo.grado.nivel',
-                                'familia.contactos',
-                            ])->first();
-                            $inscM = $alumnoMuestra?->inscripciones->first();
-                            $contactosM = $alumnoMuestra?->familia?->contactos ?? collect();
-                            $tutorM = $contactosM->where('es_principal', true)->first() ?? $contactosM->first();
-                        @endphp
-
-                        <div id="credencial-canvas" class="credencial-canvas-instance face-anverso"
-                            data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
-                            data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
-                            data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
-                            data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
-                            data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
-                            data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
-                            data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
-                            data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
-                            data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
-                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
-                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
-                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
-                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
-                            data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
-                            onclick="deselect(event)">
-                            @if ($diseno->fondo_anverso)
-                                <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial"
-                                    id="img-fondo-editor">
-                            @else
-                                <img src="" class="fondo-credencial" id="img-fondo-editor"
-                                    style="display:none;">
-                            @endif
-                            <div id="group-outline" class="group-outline"></div>
-                            <div id="guide-v" class="guide-line guide-v"></div>
-                            <div id="guide-h" class="guide-line guide-h"></div>
-                        </div>
-
-                        <div id="credencial-canvas-reverso" class="credencial-canvas-instance face-reverso"
-                            data-nombre="{{ trim(($alumnoMuestra->nombre ?? 'NOMBRE') . ' ' . ($alumnoMuestra->ap_paterno ?? 'APELLIDO')) }}"
-                            data-matricula="{{ $alumnoMuestra->matricula ?? '2026-0001' }}"
-                            data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
-                            data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
-                            data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
-                            data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
-                            data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
-                            data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
-                            data-tutor="{{ $tutorM ? $tutorM->nombre . ' ' . $tutorM->ap_paterno : 'NOMBRE TUTOR' }}"
-                            data-emergencia="{{ $tutorM?->telefono_celular ?? '961-000-0000' }}"
-                            data-autorizado1="{{ isset($contactosM[0]) ? $contactosM[0]->nombre.' '.$contactosM[0]->ap_paterno : 'AUTORIZADO 1' }}"
-                            data-autorizado2="{{ isset($contactosM[1]) ? $contactosM[1]->nombre.' '.$contactosM[1]->ap_paterno : 'AUTORIZADO 2' }}"
-                            data-autorizado3="{{ isset($contactosM[2]) ? $contactosM[2]->nombre.' '.$contactosM[2]->ap_paterno : 'AUTORIZADO 3' }}"
-                            data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
-                            onclick="deselect(event)" style="display:none;">
-                            @if ($diseno->fondo_reverso)
-                                <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial"
-                                    id="img-fondo-editor-reverso">
-                            @else
-                                <img src="" class="fondo-credencial" id="img-fondo-editor-reverso"
-                                    style="display:none;">
-                            @endif
-                            <div id="group-outline-reverso" class="group-outline"></div>
-                            <div id="guide-v-reverso" class="guide-line guide-v"></div>
-                            <div id="guide-h-reverso" class="guide-line guide-h"></div>
-                        </div>
-                    @endif
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
     {{-- MENÚ CONTEXTUAL FLOTANTE --}}
     <div id="ctx-menu">
         <div class="ctx-row" onclick="ctxDuplicar()">
@@ -953,12 +1136,6 @@
                     <hr style="margin: 10px 0;">
                     <label style="color:#e67e22; font-size:12px;"><i class="fa fa-home"></i> Contactos:</label>
                     <button class="btn btn-default btn-block text-left"
-                        onclick="confirmAnchor('tutor', 'NOMBRE DEL TUTOR')"><i class="fa fa-user-circle"></i> Tutor
-                        Principal</button>
-                    <button class="btn btn-default btn-block text-left"
-                        onclick="confirmAnchor('tel_emergencia', '961-000-0000')"><i class="fa fa-phone"></i> Tel.
-                        Emergencia</button>
-                    <button class="btn btn-default btn-block text-left"
                         onclick="confirmAnchor('autorizado1', 'AUTORIZADO 1')"><i class="fa fa-check-square-o"></i>
                         Autorizado 1</button>
                     <button class="btn btn-default btn-block text-left"
@@ -966,6 +1143,15 @@
                         Autorizado 2</button>
                     <button class="btn btn-default btn-block text-left"
                         onclick="confirmAnchor('autorizado3', 'AUTORIZADO 3')"><i class="fa fa-check-square-o"></i>
+                        Autorizado 3</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('tel_autorizado1', '961-000-0001')"><i class="fa fa-phone"></i> Tel.
+                        Autorizado 1</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('tel_autorizado2', '961-000-0002')"><i class="fa fa-phone"></i> Tel.
+                        Autorizado 2</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('tel_autorizado3', '961-000-0003')"><i class="fa fa-phone"></i> Tel.
                         Autorizado 3</button>
 
                     <hr style="margin: 10px 0;">
@@ -992,10 +1178,38 @@
         let imagenTemporalReverso = null;
         let unsavedChanges = false;
         let currentFace = 'anverso';
+        let windowCurrentZoom = 1; // <-- NUEVA VARIABLE PARA EL ZOOM
+
+        // Funciones del Zoom (puedes pegarlas en cualquier parte libre de tu script)
+        function changeZoom(step) {
+            windowCurrentZoom += step;
+            if (windowCurrentZoom < 0.4) windowCurrentZoom = 0.4; // Límite de alejar
+            if (windowCurrentZoom > 2.5) windowCurrentZoom = 2.5; // Límite de acercar
+            applyZoom();
+        }
+
+        function resetZoom() {
+            windowCurrentZoom = 1;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            // Actualiza el texto del botón
+            document.getElementById('btn-zoom-label').innerText = Math.round(windowCurrentZoom * 100) + '%';
+            // Aplica el zoom visual al lienzo
+            document.getElementById('canvas-container').style.zoom = windowCurrentZoom;
+        }
+
 
         const wrapperPrincipal = document.getElementById('wrapper-principal');
         const isModeVisual = wrapperPrincipal.classList.contains('modo-visualizacion');
         if (isModeVisual) document.body.classList.add('modo-visualizacion-body');
+
+        // Cualquier tipo que empiece con "foto" (foto, foto_autorizado1, foto_autorizado2, foto_autorizado3)
+        // o el logo, se trata como elemento gráfico (imagen) en el editor.
+        function isFotoType(type) {
+            return type === 'logo' || (typeof type === 'string' && type.startsWith('foto'));
+        }
 
         function switchFace(face) {
             currentFace = face;
@@ -1060,7 +1274,7 @@
         });
 
         function checkOverflow(el) {
-            if (isModeVisual || el.dataset.type === 'foto' || el.dataset.type === 'logo') return;
+            if (isModeVisual || isFotoType(el.dataset.type)) return;
             const span = el.querySelector('.content-span');
             if (!span) return;
 
@@ -1137,13 +1351,22 @@
                     'grupo': 'grupo',
                     'ciclo': 'ciclo',
                     'sangre': 'sangre',
-                    'tutor': 'tutor',
-                    'tel_emergencia': 'emergencia',
                     'autorizado1': 'autorizado1',
                     'autorizado2': 'autorizado2',
                     'autorizado3': 'autorizado3',
+                    'tel_autorizado1': 'telAutorizado1',
+                    'tel_autorizado2': 'telAutorizado2',
+                    'tel_autorizado3': 'telAutorizado3',
                     'director': 'director',
                     'puesto_director': 'puesto_director'
+                };
+
+                // Tipos de foto -> atributo data-* correspondiente en el canvas
+                const mapFoto = {
+                    'foto': 'foto',
+                    'foto_autorizado1': 'fotoAutorizado1',
+                    'foto_autorizado2': 'fotoAutorizado2',
+                    'foto_autorizado3': 'fotoAutorizado3'
                 };
 
                 let isEmpty = false;
@@ -1158,8 +1381,8 @@
                     }
                 }
 
-                if (data.type === 'foto') {
-                    fotoUrl = canvas.dataset.foto; // ya estaba bien
+                if (mapFoto[data.type]) {
+                    fotoUrl = canvas.dataset[mapFoto[data.type]];
                     if (!fotoUrl || fotoUrl.trim() === '') isEmpty = true;
                 }
 
@@ -1175,7 +1398,7 @@
                 }
             }
 
-            if (data.type === 'foto' || data.type === 'logo') {
+            if (isFotoType(data.type)) {
                 el.style.padding = '0';
                 el.style.border = isModeVisual ? 'none' : '1px dashed #ccc';
                 el.style.display = 'flex';
@@ -1243,8 +1466,11 @@
                         const target = event.target;
                         let oldX = parseFloat(target.dataset.x) || 0;
                         let oldY = parseFloat(target.dataset.y) || 0;
-                        let x = oldX + event.dx;
-                        let y = oldY + event.dy;
+
+                        // Sincronizamos el ratón con el nivel de acercamiento
+                        let currentZoom = window.windowCurrentZoom || 1;
+                        let x = oldX + (event.dx / currentZoom);
+                        let y = oldY + (event.dy / currentZoom);
 
                         const w = target.offsetWidth;
                         const h = target.offsetHeight;
@@ -1341,7 +1567,7 @@
                         canvas.querySelector('.guide-h').style.display = 'none';
                     }
                 }
-            }).resizable({
+}).resizable({
                 margin: 4,
                 edges: {
                     left: false,
@@ -1351,20 +1577,37 @@
                 },
                 listeners: {
                     move(event) {
-                        let {
-                            x,
-                            y
-                        } = event.target.dataset;
-                        x = (parseFloat(x) || 0) + event.deltaRect.left;
-                        y = (parseFloat(y) || 0) + event.deltaRect.top;
+                        let target = event.target;
+                        let currentZoom = window.windowCurrentZoom || 1;
 
-                        Object.assign(event.target.style, {
-                            width: `${event.rect.width}px`,
-                            height: `${event.rect.height}px`
+                        // 1. Obtenemos las coordenadas X y Y reales
+                        let x = parseFloat(target.dataset.x) || 0;
+                        let y = parseFloat(target.dataset.y) || 0;
+
+                        // 2. Obtenemos el ancho/alto ACTUAL de forma segura
+                        // (Si no tiene ancho en CSS, toma el ancho natural del HTML)
+                        let currentW = parseFloat(target.style.width);
+                        if (isNaN(currentW)) currentW = target.offsetWidth;
+
+                        let currentH = parseFloat(target.style.height);
+                        if (isNaN(currentH)) currentH = target.offsetHeight;
+
+                        // 3. LA MAGIA: Sumamos estrictamente la diferencia del movimiento (delta)
+                        // dividida entre el zoom. Esto rompe el bucle de crecimiento infinito.
+                        x += (event.deltaRect.left / currentZoom);
+                        y += (event.deltaRect.top / currentZoom);
+
+                        let newW = currentW + (event.deltaRect.width / currentZoom);
+                        let newH = currentH + (event.deltaRect.height / currentZoom);
+
+                        // 4. Asignamos los valores puros al elemento
+                        Object.assign(target.style, {
+                            width: `${newW}px`,
+                            height: `${newH}px`
                         });
 
-                        updatePos(event.target, x, y);
-                        checkOverflow(event.target);
+                        updatePos(target, x, y);
+                        checkOverflow(target);
                         markAsUnsaved();
                     }
                 }
@@ -1406,7 +1649,7 @@
             document.getElementById('ctx-chevron').classList.remove('open');
 
             // Poblar valores actuales
-            const isMedia = (el.dataset.type === 'foto' || el.dataset.type === 'logo');
+            const isMedia = isFotoType(el.dataset.type);
             const propText = document.getElementById('prop-text');
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
             propText.disabled = isMedia;
@@ -1428,7 +1671,7 @@
         function updateLive() {
             if (!selected) return;
             const span = selected.querySelector('.content-span');
-            if (selected.dataset.type !== 'foto' && selected.dataset.type !== 'logo') span.innerText = document
+            if (!isFotoType(selected.dataset.type)) span.innerText = document
                 .getElementById('prop-text').value;
             selected.style.fontSize = document.getElementById('prop-size').value + 'px';
             document.getElementById('txt-size').innerText = document.getElementById('prop-size').value;
@@ -1496,7 +1739,7 @@
             const id = 'el_' + Date.now();
             let defaultW = 'auto';
             let defaultH = 'auto';
-            if (type === 'foto') {
+            if (type === 'foto' || type.startsWith('foto_autorizado')) {
                 defaultW = '100px';
                 defaultH = '130px';
             }
@@ -1528,24 +1771,67 @@
 
         function addSelectedLabel() {
             const labelToType = {
-                'Nombre:':        { type: 'nombre',          text: 'ALBERTO SAMAYOA'   },
-                'Matrícula:':     { type: 'matricula',       text: '2026-0001'          },
-                'Nivel:':         { type: 'nivel',           text: 'SECUNDARIA'         },
-                'Grado:':         { type: 'grado',           text: '1°'                 },
-                'Grupo:':         { type: 'grupo',           text: 'A'                  },
-                'Ciclo Escolar:': { type: 'ciclo',           text: '2025-2026'          },
-                'Tipo Sangre:':   { type: 'sangre',          text: 'O+'                 },
-                'Tutor:':         { type: 'tutor',           text: 'NOMBRE DEL TUTOR'   },
-                'Tel. Emergencia:':{ type: 'tel_emergencia', text: '961-000-0000'       },
-                'Autorizado 1:':  { type: 'autorizado1',     text: 'AUTORIZADO 1'       },
-                'Autorizado 2:':  { type: 'autorizado2',     text: 'AUTORIZADO 2'       },
-                'Autorizado 3:':  { type: 'autorizado3',     text: 'AUTORIZADO 3'       },
-                'Director:':      { type: 'director',        text: 'LIC. JUAN PÉREZ'    },
-                'Firma:':         null,
+                'Nombre:': {
+                    type: 'nombre',
+                    text: 'ALBERTO SAMAYOA'
+                },
+                'Matrícula:': {
+                    type: 'matricula',
+                    text: '2026-0001'
+                },
+                'Nivel:': {
+                    type: 'nivel',
+                    text: 'SECUNDARIA'
+                },
+                'Grado:': {
+                    type: 'grado',
+                    text: '1°'
+                },
+                'Grupo:': {
+                    type: 'grupo',
+                    text: 'A'
+                },
+                'Ciclo Escolar:': {
+                    type: 'ciclo',
+                    text: '2025-2026'
+                },
+                'Tipo Sangre:': {
+                    type: 'sangre',
+                    text: 'O+'
+                },
+                'Autorizado 1:': {
+                    type: 'autorizado1',
+                    text: 'AUTORIZADO 1'
+                },
+                'Autorizado 2:': {
+                    type: 'autorizado2',
+                    text: 'AUTORIZADO 2'
+                },
+                'Autorizado 3:': {
+                    type: 'autorizado3',
+                    text: 'AUTORIZADO 3'
+                },
+                'Tel. Autorizado 1:': {
+                    type: 'tel_autorizado1',
+                    text: '961-000-0001'
+                },
+                'Tel. Autorizado 2:': {
+                    type: 'tel_autorizado2',
+                    text: '961-000-0002'
+                },
+                'Tel. Autorizado 3:': {
+                    type: 'tel_autorizado3',
+                    text: '961-000-0003'
+                },
+                'Director:': {
+                    type: 'director',
+                    text: 'LIC. JUAN PÉREZ'
+                },
+                'Firma:': null,
             };
 
             const labelText = document.getElementById('select-etiquetas').value;
-            const mapping   = labelToType[labelText];
+            const mapping = labelToType[labelText];
 
             // 1. Agregar la etiqueta (label estático)
             addElement('label', labelText);
@@ -1559,27 +1845,27 @@
                 const pW = labelEl.offsetWidth || 80; // offsetWidth disponible tras render
 
                 const dataId = 'el_' + Date.now();
-                const targetCanvasId = (currentFace === 'anverso')
-                    ? 'credencial-canvas'
-                    : 'credencial-canvas-reverso';
+                const targetCanvasId = (currentFace === 'anverso') ?
+                    'credencial-canvas' :
+                    'credencial-canvas-reverso';
                 const canvas = document.getElementById(targetCanvasId);
 
                 restoreElement({
-                    id:         dataId,
-                    type:       mapping.type,
-                    x:          pX + pW,
-                    y:          pY,
-                    text:       mapping.text,
-                    fontSize:   labelEl.style.fontSize  || '14px',
-                    color:      mapping.type === 'sangre' ? '#e74c3c' : '#033b8a',
-                    width:      'auto',
-                    height:     'auto',
-                    textAlign:  'left',
+                    id: dataId,
+                    type: mapping.type,
+                    x: pX + pW,
+                    y: pY,
+                    text: mapping.text,
+                    fontSize: labelEl.style.fontSize || '14px',
+                    color: mapping.type === 'sangre' ? '#e74c3c' : '#033b8a',
+                    width: 'auto',
+                    height: 'auto',
+                    textAlign: 'left',
                     fontWeight: 'bold',
-                    fontStyle:  'normal',
+                    fontStyle: 'normal',
                     fontFamily: "'Montserrat', sans-serif",
-                    isLabel:    false,
-                    parentId:   labelId,
+                    isLabel: false,
+                    parentId: labelId,
                 }, canvas);
 
                 const dataEl = document.getElementById(dataId);
@@ -1853,9 +2139,8 @@
                 type: selected.dataset.type,
                 x: parseFloat(selected.dataset.x) + 15,
                 y: parseFloat(selected.dataset.y) + 15,
-                text: selected.classList.contains('is-label')
-                    ? (span ? span.innerText : '')
-                    : selected.dataset.type.toUpperCase(),
+                text: selected.classList.contains('is-label') ?
+                    (span ? span.innerText : '') : selected.dataset.type.toUpperCase(),
                 fontSize: selected.style.fontSize,
                 color: selected.style.color,
                 width: selected.style.width,

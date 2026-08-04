@@ -20,11 +20,20 @@ class Usuario extends Authenticatable
         'ciclo_seleccionado_id',
         'nombre',
         'email',
+        'foto_perfil',
         'password_hash',
         'rol',
+        'seccion',
         'activo',
         'ultimo_acceso',
     ];
+
+    public function getFotoUrlAttribute(): string
+    {
+        return $this->foto_perfil
+            ? asset('storage/' . $this->foto_perfil)
+            : asset('dist/img/avatar5.png');
+    }
 
     protected $hidden = [
         'password_hash',
@@ -53,7 +62,7 @@ class Usuario extends Authenticatable
 
     public function scopeInternos($query)
     {
-        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion']);
+        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion', 'admisiones', 'informacion_admisiones', 'director_seccion']);
     }
 
     // ── Helpers de rol ───────────────────────────────────
@@ -73,6 +82,21 @@ class Usuario extends Authenticatable
         return $this->rol === 'recepcion';
     }
 
+    public function esAdmisiones(): bool
+    {
+        return $this->rol === 'admisiones';
+    }
+
+    public function esInformacionAdmisiones(): bool
+    {
+        return $this->rol === 'informacion_admisiones';
+    }
+
+    public function esDirectorSeccion(): bool
+    {
+        return $this->rol === 'director_seccion';
+    }
+
     public function esPadre(): bool
     {
         return $this->rol === 'padre';
@@ -80,17 +104,20 @@ class Usuario extends Authenticatable
 
     public function esInterno(): bool
     {
-        return in_array($this->rol, ['administrador', 'caja', 'recepcion']);
+        return in_array($this->rol, ['administrador', 'caja', 'recepcion', 'admisiones', 'informacion_admisiones', 'director_seccion']);
     }
 
     public function rutaDashboard(): string
     {
         return match ($this->rol) {
-            'administrador' => route('admin.dashboard'),
-            'caja' => route('caja.dashboard'),
-            'recepcion' => route('recepcion.dashboard'),
-            'padre' => route('portal.dashboard'),
-            default => route('login'),
+            'administrador'          => route('admin.dashboard'),
+            'caja'                   => route('caja.dashboard'),
+            'recepcion'              => route('recepcion.dashboard'),
+            'admisiones'             => route('prospectos.metricas'),
+            'informacion_admisiones' => route('alumnos.index'),
+            'director_seccion'       => route('alumnos.index'),
+            'padre'                  => route('portal.dashboard'),
+            default                  => route('login'),
         };
     }
 

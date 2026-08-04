@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ContactoFamiliar extends Model
 {
     protected $table = 'contacto_familiar';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -21,14 +22,23 @@ class ContactoFamiliar extends Model
         'ap_materno',
         'telefono_celular',
         'telefono_trabajo',
+        'telefono_2',
+        'fecha_nacimiento',
         'email',
         'curp',
         'foto_url',
+        'lugar_trabajo',
+        'puesto',
+        'nivel_estudios',
+        'profesion',
+        'vive',
     ];
 
     protected $casts = [
         'tiene_acceso_portal' => 'boolean',
-        'creado_at'           => 'datetime',
+        'vive' => 'boolean',
+        'fecha_nacimiento' => 'date',
+        'creado_at' => 'datetime',
     ];
 
     // ── Helpers ──────────────────────────────────────────
@@ -40,7 +50,7 @@ class ContactoFamiliar extends Model
 
     public function tieneUsuarioCreado(): bool
     {
-        return !is_null($this->usuario_id);
+        return ! is_null($this->usuario_id);
     }
 
     public function estaPendienteDeUsuario(): bool
@@ -51,11 +61,13 @@ class ContactoFamiliar extends Model
     /** Alumnos accesibles desde el portal (todos los hijos de la familia) */
     public function alumnosDelPortal()
     {
-        if (!$this->familia_id) return collect();
+        if (! $this->familia_id) {
+            return collect();
+        }
 
         return Alumno::where('familia_id', $this->familia_id)
-                     ->where('estado', 'activo')
-                     ->get();
+            ->where('estado', 'activo')
+            ->get();
     }
 
     // ── Relaciones ───────────────────────────────────────
@@ -96,13 +108,14 @@ class ContactoFamiliar extends Model
     public function razonSocialPrincipal()
     {
         return $this->razonesSociales()
-                    ->where('es_principal', true)
-                    ->where('activo', true)
-                    ->first();
+            ->where('es_principal', true)
+            ->where('activo', true)
+            ->first();
     }
-    public function alumnoContactos(): \Illuminate\Database\Eloquent\Relations\HasMany
-{
-    return $this->hasMany(\App\Models\AlumnoContacto::class, 'contacto_id')
-                ->where('activo', true);
-}
+
+    public function alumnoContactos(): HasMany
+    {
+        return $this->hasMany(AlumnoContacto::class, 'contacto_id')
+            ->where('activo', true);
+    }
 }
