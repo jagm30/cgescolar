@@ -62,6 +62,7 @@ class AlumnoController extends Controller
             ->when($request->filled('buscar'), fn ($q) => $q->where(fn ($q) => $q
                 ->where('nombre', 'like', "%{$request->buscar}%")
                 ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_materno', 'like', "%{$request->buscar}%")
                 ->orWhere('matricula', 'like', "%{$request->buscar}%")
                 ->orWhere('curp', 'like', "%{$request->buscar}%")
             ))
@@ -523,6 +524,7 @@ class AlumnoController extends Controller
             ->when($request->filled('buscar'), fn ($q) => $q->whereHas('alumno', fn ($sq) => $sq
                 ->where('nombre', 'like', "%{$request->buscar}%")
                 ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_materno', 'like', "%{$request->buscar}%")
                 ->orWhere('matricula', 'like', "%{$request->buscar}%")
             ))
             ->orderByDesc('fecha_baja')
@@ -677,6 +679,7 @@ class AlumnoController extends Controller
             ->when($request->filled('buscar'), fn ($q) => $q->where(fn ($q) => $q
                 ->where('nombre', 'like', "%{$request->buscar}%")
                 ->orWhere('ap_paterno', 'like', "%{$request->buscar}%")
+                ->orWhere('ap_materno', 'like', "%{$request->buscar}%")
                 ->orWhere('matricula', 'like', "%{$request->buscar}%")
                 ->orWhere('curp', 'like', "%{$request->buscar}%")
             ))
