@@ -29,17 +29,32 @@
             align-items: center;
             gap: 14px;
         }
+        /* Contenedor del avatar — proporción 3:4 igual que el recortador */
         .hijo-avatar {
-            width: 56px;
+            width: 42px;
             height: 56px;
-            border-radius: 50%;
-            background: rgba(255,255,255,.22);
+            border-radius: 8px;
+            flex-shrink: 0;
+            overflow: hidden;
             border: 2px solid rgba(255,255,255,.45);
+            position: relative;
+        }
+        /* Foto real */
+        .hijo-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        /* Placeholder cuando no hay foto */
+        .hijo-avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,.22);
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            font-size: 24px;
+            font-size: 22px;
             color: #fff;
         }
         .hijo-nombre {
@@ -208,7 +223,14 @@
             {{-- ── Cabecera con nombre ── --}}
             <div class="hijo-card-header">
                 <div class="hijo-avatar">
-                    <i class="fa fa-user"></i>
+                    @if ($alumno->foto_url)
+                        <img src="{{ asset('storage/' . $alumno->foto_url) }}"
+                             alt="{{ $alumno->nombre_completo }}">
+                    @else
+                        <div class="hijo-avatar-placeholder">
+                            <i class="fa fa-user"></i>
+                        </div>
+                    @endif
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div class="hijo-nombre">{{ $alumno->nombre_completo }}</div>
