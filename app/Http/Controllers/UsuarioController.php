@@ -316,7 +316,7 @@ class UsuarioController extends Controller
                 'password' => !empty($passwordPlana) ? $passwordPlana : '*(Se mantuvo la contraseña anterior)*',
                 'rol'      => $usuario->rol
             ]];
-            session()->flash('credenciales_nuevas', $credenciales);
+            session()->put('credenciales_nuevas', $credenciales);
         }
 
         $mensajeFinal = "Usuario actualizado correctamente." . $estadoCorreo;

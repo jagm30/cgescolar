@@ -965,7 +965,7 @@
 
         // Auto-descarga del PDF al recargar la página si hay credenciales en sesión
         @if ($hayPdf)
-            window.location.href = "{{ route('usuarios.credencialesPdf') }}";
+            window.open("{{ route('usuarios.credencialesPdf') }}", '_blank');
         @endif
     </script>
 @endpush

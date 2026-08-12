@@ -670,7 +670,8 @@ class PortalPadreController extends Controller
             ['foto.required' => 'Selecciona una imagen.', 'foto.mimes' => 'Solo JPG, PNG o WEBP.', 'foto.max' => 'Máximo 2 MB.']
         );
 
-        $contacto        = auth()->user()->contactoFamiliar;
+        $usuarioActual   = auth()->user();
+        $contacto        = $usuarioActual->contactoFamiliar;
         $contactoDestino = ContactoFamiliar::where('id', $contactoId)
             ->where('familia_id', $contacto?->familia_id)
             ->firstOrFail();
@@ -681,6 +682,14 @@ class PortalPadreController extends Controller
 
         $ruta = $request->file('foto')->store('contactos/fotos', 'public');
         $contactoDestino->update(['foto_url' => $ruta]);
+
+        // Si el contacto actualizado es el propio usuario logueado, sincronizar foto de perfil
+        if ($contactoDestino->usuario_id === $usuarioActual->id) {
+            if ($usuarioActual->foto_perfil && $usuarioActual->foto_perfil !== $ruta) {
+                Storage::disk('public')->delete($usuarioActual->foto_perfil);
+            }
+            $usuarioActual->update(['foto_perfil' => $ruta]);
+        }
 
         return response()->json([
             'status'   => 'success',
