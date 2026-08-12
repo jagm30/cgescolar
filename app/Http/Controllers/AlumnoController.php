@@ -47,10 +47,25 @@ class AlumnoController extends Controller
             'familia',
             'contactos' => fn ($q) => $q->whereNotNull('usuario_id'),
             'inscripciones' => fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
                 ->where('activo', true)
                 ->with('grupo.grado.nivel'),
         ])
-            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            // Sin filtro (default) o activo explícito → activos con inscripción en ciclo actual
+            ->when(
+                !$request->filled('estado') || $request->estado === 'activo',
+                fn ($q) => $q
+                    ->where('estado', 'activo')
+                    ->whereHas('inscripciones', fn ($q) => $q
+                        ->where('ciclo_id', $cicloId)
+                        ->where('activo', true)
+                    )
+            )
+            // Otros estados (baja_temporal, egresado…) — 'todos' no aplica ningún filtro
+            ->when(
+                $request->filled('estado') && !in_array($request->estado, ['activo', 'todos']),
+                fn ($q) => $q->where('estado', $request->estado)
+            )
             ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
@@ -663,11 +678,16 @@ class AlumnoController extends Controller
 
         $alumnos = Alumno::with([
             'inscripciones' => fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
                 ->where('activo', true)
                 ->with('grupo.grado.nivel'),
         ])
+            ->where('estado', 'activo')
+            ->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->where('activo', true)
+            )
             ->whereMonth('fecha_nacimiento', $mes)
-            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
             ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas('inscripciones', fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->whereHas('grupo.grado', fn ($q) => $q->where('nivel_id', $request->nivel_id))
@@ -728,7 +748,10 @@ class AlumnoController extends Controller
             ->with(['grados.grupos' => fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
                 ->activo()
-                ->withCount(['inscripciones as total_inscritos' => fn ($q) => $q->activa()]),
+                ->withCount(['inscripciones as total_inscritos' => fn ($q) => $q
+                    ->activa()
+                    ->whereHas('alumno', fn ($q) => $q->where('estado', 'activo')),
+                ]),
             ])
             ->get();
 
