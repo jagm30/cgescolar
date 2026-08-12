@@ -360,7 +360,7 @@
                         @foreach($familia->alumnos->take(2) as $a)
                         <div class="fam-alumno-tag">
                             <span class="dot {{ $a->estado !== 'activo' ? 'baja' : '' }}"></span>
-                            {{ $a->nombre }} {{ $a->ap_paterno }}
+                            {{ $a->nombre }} {{ $a->ap_paterno }} {{ $a->ap_materno }}
                         </div>
                         @endforeach
                         @if($familia->alumnos->count() > 2)

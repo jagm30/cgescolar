@@ -110,13 +110,14 @@
 
                 {{-- Filtro estado --}}
                 <div class="btn-group alm-btn-estado-group">
-                    <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), [])) }}"
-                        class="btn btn-sm btn-flat alm-btn-estado {{ !request()->filled('estado') ? 'btn-primary' : 'btn-default' }}">
-                        Todos
-                    </a>
-                    <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), ['estado' => 'activo'])) }}"
-                        class="btn btn-sm btn-flat alm-btn-estado {{ request('estado') === 'activo' ? 'btn-success' : 'btn-default' }}">
+                    {{-- Activos: primer botón, resaltado por defecto (sin parámetro = activos) --}}
+                    <a href="{{ route('alumnos.index', request()->except('estado', 'page')) }}"
+                        class="btn btn-sm btn-flat alm-btn-estado {{ !request()->filled('estado') || request('estado') === 'activo' ? 'btn-success' : 'btn-default' }}">
                         Activos
+                    </a>
+                    <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), ['estado' => 'todos'])) }}"
+                        class="btn btn-sm btn-flat alm-btn-estado {{ request('estado') === 'todos' ? 'btn-primary' : 'btn-default' }}">
+                        Todos
                     </a>
                     <a href="{{ route('alumnos.index', array_merge(request()->except('estado', 'page'), ['estado' => 'baja_temporal'])) }}"
                         class="btn btn-sm btn-flat alm-btn-estado {{ request('estado') === 'baja_temporal' ? 'btn-warning' : 'btn-default' }}">
