@@ -336,6 +336,9 @@
                             <tr>
                                 <th>Usuario</th>
                                 <th>Rol / Permisos</th>
+                                @if ($mostrarFamilia)
+                                <th>Familia</th>
+                                @endif
                                 @if (!$esDirector)
                                 <th>Ciclo Actual</th>
                                 @endif
@@ -375,6 +378,13 @@
                                             </span>
                                         @endif
                                     </td>
+                                    @if ($mostrarFamilia)
+                                    <td>
+                                        <span style="font-size: 12px; color: #475569; font-weight: 600;">
+                                            {{ $usuario->familia->apellido_familia ?? '—' }}
+                                        </span>
+                                    </td>
+                                    @endif
                                     @if (!$esDirector)
                                     <td>
                                         <span style="font-size: 12px; color: #64748b;">

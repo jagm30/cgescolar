@@ -345,7 +345,13 @@ class AlumnoController extends Controller
             return response()->json(['message' => $mensaje, 'alumno' => $alumno->fresh()]);
         }
 
-        return redirect()->route('alumnos.show', $alumno->id)->with('success', $mensaje);
+        $redirect = redirect()->route('alumnos.show', $alumno->id)->with('success', $mensaje);
+
+        if ($request->filled('contacto_email_cambiado')) {
+            $redirect = $redirect->with('alerta_correo_usuario', $request->input('contacto_email_cambiado'));
+        }
+
+        return $redirect;
     }
 
     /**

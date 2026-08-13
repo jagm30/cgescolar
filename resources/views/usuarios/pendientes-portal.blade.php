@@ -210,12 +210,23 @@
                         </thead>
                         <tbody>
                             @forelse ($pendientes as $p)
-                                <tr class="row-pendiente" data-id="{{ $p->id }}" data-tipo="{{ $p->tipo }}"
+                                <tr class="row-pendiente"
+                                    data-id="{{ $p->id }}"
+                                    data-tipo="{{ $p->tipo }}"
+                                    data-subtipo="{{ $p->subtipo ?? 'nuevo' }}"
                                     data-nivel-ids="{{ $p->nivel_ids ?? '' }}">
                                     <td class="text-center">
                                         <input type="checkbox" class="check-user" value="{{ $p->id }}">
                                     </td>
-                                    <td><b style="color: #2c3e50;">{{ $p->nombre_completo }}</b></td>
+                                    <td>
+                                        <b style="color: #2c3e50;">{{ $p->nombre_completo }}</b>
+                                        @if (($p->subtipo ?? '') === 'correo_cambiado')
+                                            <br>
+                                            <span style="font-size:11px; color:#b45309; font-weight:600;">
+                                                <i class="fa fa-refresh"></i> Correo actualizado
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span
                                             class="{{ $p->tipo === 'personal' ? 'con-badge-personal' : 'con-badge-familia' }}">
@@ -225,7 +236,15 @@
                                     <td style="font-size:12px; color:#475569;">
                                         {{ $p->alumnos ?? '—' }}
                                     </td>
-                                    <td style="font-family:monospace; color: #64748b;">{{ $p->email }}</td>
+                                    <td style="font-family:monospace; color: #64748b;">
+                                        {{ $p->email }}
+                                        @if (!empty($p->email_anterior))
+                                            <br>
+                                            <span style="font-size:11px; color:#94a3b8; text-decoration:line-through;">
+                                                {{ $p->email_anterior }}
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if ($p->tipo === 'contacto')
                                             <span style="font-size: 12px; font-weight: 600; color: #64748b;">Padre de Familia</span>
@@ -241,9 +260,17 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn-action-flat btn-individual" title="Generar Alta">
-                                            <i class="fa fa-flash text-orange"></i>
-                                        </button>
+                                        @if (($p->subtipo ?? '') === 'correo_cambiado')
+                                            <button class="btn-action-flat btn-individual"
+                                                title="Actualizar correo y generar nueva contraseña"
+                                                style="background:#fff7ed; border-color:#fed7aa;">
+                                                <i class="fa fa-refresh" style="color:#d97706;"></i>
+                                            </button>
+                                        @else
+                                            <button class="btn-action-flat btn-individual" title="Generar Alta">
+                                                <i class="fa fa-flash text-orange"></i>
+                                            </button>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
@@ -344,12 +371,16 @@
                 let personal = [];
                 let enviarCorreo = $('#chk-enviar-correo').is(':checked');
 
+                let actualizaciones = 0;
+
                 filasDOM.each(function() {
-                    let tipo = $(this).data('tipo');
-                    let id = $(this).data('id');
+                    let tipo    = $(this).data('tipo');
+                    let subtipo = $(this).data('subtipo');
+                    let id      = $(this).data('id');
 
                     if (tipo === 'contacto') {
                         contactos.push(id);
+                        if (subtipo === 'correo_cambiado') actualizaciones++;
                     } else if (tipo === 'personal') {
                         let rol = $(this).find('.select-rol').val();
                         personal.push({ id: id, rol: rol });
@@ -357,11 +388,16 @@
                 });
 
                 let total = contactos.length + personal.length;
+                let nuevas = total - actualizaciones;
+                let partes = [];
+                if (nuevas > 0)       partes.push('Cuentas nuevas: ' + nuevas);
+                if (actualizaciones > 0) partes.push('Actualizaciones de correo: ' + actualizaciones);
+                let msgResumen = partes.join(' | ');
                 let msgCorreo = enviarCorreo
                     ? 'Se enviará correo con credenciales a cada usuario.'
                     : '⚠ No se enviará correo. Descarga el PDF para entregar las credenciales manualmente.';
 
-                if (!confirm("¿Dar de alta " + total + " cuenta(s)?\n\n" + msgCorreo)) return;
+                if (!confirm("¿Procesar " + total + " cuenta(s)?\n" + msgResumen + "\n\n" + msgCorreo)) return;
 
                 fetch("{{ route('usuarios.generarMasivos') }}", {
                         method: 'POST',

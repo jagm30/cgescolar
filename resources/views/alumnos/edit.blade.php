@@ -699,7 +699,9 @@
                 {{-- Contactos existentes --}}
                 @forelse($alumno->contactos as $contacto)
                     <div class="panel panel-default ctc-panel" style="margin-bottom:10px;"
-                        data-id="{{ $contacto->id }}">
+                        data-id="{{ $contacto->id }}"
+                        data-email-original="{{ $contacto->email }}"
+                        data-usuario-id="{{ $contacto->usuario_id ?? '' }}">
                         <div class="panel-heading" style="padding:8px 12px;background:#f5f5f5;">
                             <div style="display:flex;justify-content:space-between;align-items:center;">
                                 <strong style="font-size:13px;">
@@ -1163,6 +1165,8 @@
                         style="margin-bottom:6px;">
                     Siguiente <i class="fa fa-arrow-right"></i>
                 </button>
+                {{-- Rellenado por JS cuando algún contacto con usuario tuvo cambio de correo --}}
+                <input type="hidden" name="contacto_email_cambiado" id="input-contacto-email-cambiado" value="">
                 <button type="submit" class="btn btn-success btn-block btn-lg" id="btn-guardar"
                         style="margin-bottom:6px;">
                     <i class="fa fa-save"></i> Guardar cambios
@@ -1543,6 +1547,22 @@
                     return;
                 }
 
+                // ── Detectar cambios de correo en contactos con cuenta de usuario ──
+                // Formato por entrada: "Nombre Apellido::nuevo@email.com"
+                var nombresConEmailCambiado = [];
+                $paneles.each(function() {
+                    var $panel       = $(this);
+                    var emailOrig    = ($panel.data('email-original') || '').trim().toLowerCase();
+                    var emailActual  = $panel.find('.ctc-email').val().trim();
+                    var usuarioId    = $panel.data('usuario-id');
+                    var nombreCtc    = ($panel.find('.ctc-nombre').val().trim() + ' ' +
+                                       $panel.find('.ctc-ap-paterno').val().trim()).trim();
+
+                    if (usuarioId && emailActual && emailActual.toLowerCase() !== emailOrig) {
+                        nombresConEmailCambiado.push(nombreCtc + '::' + emailActual);
+                    }
+                });
+
                 $('#btn-guardar').prop('disabled', true)
                     .html('<i class="fa fa-spinner fa-spin"></i> Guardando...');
 
@@ -1584,6 +1604,12 @@
 
                 $.when.apply($, peticiones)
                     .then(function() {
+                        if (nombresConEmailCambiado.length > 0) {
+                            // Formato: "ApellidoFamilia||Nombre1::email1|Nombre2::email2"
+                            $('#input-contacto-email-cambiado').val(
+                                FAMILIA_NOMBRE + '||' + nombresConEmailCambiado.join('|')
+                            );
+                        }
                         $form[0].submit();
                     })
                     .fail(function(xhr) {
@@ -1688,8 +1714,9 @@
             // ══════════════════════════════════════════════════
             // CONTACTOS — AGREGAR NUEVO (AJAX)
             // ══════════════════════════════════════════════════
-            var ALUMNO_ID = {{ $alumno->id }};
-            var FAMILIA_ID = {{ $alumno->familia_id ?? 'null' }};
+            var ALUMNO_ID      = {{ $alumno->id }};
+            var FAMILIA_ID     = {{ $alumno->familia_id ?? 'null' }};
+            var FAMILIA_NOMBRE = '{{ addslashes($alumno->familia?->apellido_familia ?? '') }}';
 
             // ══════════════════════════════════════════════════
             // CAMBIAR FAMILIA
