@@ -531,6 +531,39 @@
         </div>
     @endif
 
+    @if (session('alerta_correo_usuario'))
+        @php
+            // Formato: "ApellidoFamilia||Nombre1::email1|Nombre2::email2"
+            [$familiaApellido, $entradas] = array_pad(
+                explode('||', session('alerta_correo_usuario'), 2), 2, ''
+            );
+
+            $contactosAlerta = collect(explode('|', $entradas))
+                ->map(function ($item) {
+                    [$nombre, $email] = array_pad(explode('::', $item, 2), 2, '');
+                    return ['nombre' => trim($nombre), 'email' => trim($email)];
+                })
+                ->filter(fn($c) => $c['nombre']);
+
+            $urlUsuarios  = route('usuarios.index', ['buscar' => trim($familiaApellido), 'rol' => 'padre']);
+            $nombresAlerta = $contactosAlerta->pluck('nombre')->implode(', ');
+        @endphp
+        <div class="alert alert-warning alert-dismissible"
+             style="border-radius:8px; border-left:5px solid #f0ad4e;">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <strong><i class="fa fa-exclamation-triangle"></i> Correo electrónico actualizado</strong>
+            <p style="margin:6px 0 4px;">
+                Se actualizó el correo de <strong>{{ $nombresAlerta }}</strong>.
+                Para que pueda acceder al portal con su nuevo correo,
+                es necesario <strong>generar una nueva contraseña</strong> vinculada al
+                nuevo correo electrónico.
+            </p>
+            <a href="{{ $urlUsuarios }}" class="btn btn-warning btn-xs" style="margin-top:4px;">
+                <i class="fa fa-key"></i> Ir a Usuarios para generar nueva contraseña
+            </a>
+        </div>
+    @endif
+
     @php
         use App\Enums\TipoInscripcion;
 

@@ -27,13 +27,19 @@ class UsuarioController extends Controller
         $mostrar = $request->input('mostrar', 10);
         $esDirector = auth()->user()->esDirectorSeccion();
 
-        $usuarios = Usuario::with('cicloSeleccionado')
+        $mostrarFamilia = $esDirector || $request->rol === 'padre';
+
+        $usuarios = Usuario::with([
+                'cicloSeleccionado',
+                'familia' => fn($q) => $q->select('familia.id', 'apellido_familia'),
+            ])
             ->when($esDirector, fn($q) => $q->where('rol', 'padre'))
             ->when(!$esDirector && $request->filled('rol'), fn($q) => $q->where('rol', $request->rol))
             ->when($request->filled('activo'), fn($q) => $q->where('activo', $request->activo))
             ->when($request->filled('buscar'), fn($q) => $q->where(function ($q) use ($request) {
                 $q->where('nombre', 'like', "%{$request->buscar}%")
-                  ->orWhere('email', 'like', "%{$request->buscar}%");
+                  ->orWhere('email', 'like', "%{$request->buscar}%")
+                  ->orWhereHas('familia', fn($fq) => $fq->where('apellido_familia', 'like', "%{$request->buscar}%"));
             }))
             ->when(
                 $request->filled('seccion_id') && ($request->rol === 'padre' || $esDirector),
@@ -52,9 +58,10 @@ class UsuarioController extends Controller
         $niveles = NivelEscolar::activo()->get();
 
         return view('usuarios.index', [
-            'usuarios'   => $usuarios,
-            'esDirector' => $esDirector,
-            'niveles'    => $niveles,
+            'usuarios'       => $usuarios,
+            'esDirector'     => $esDirector,
+            'niveles'        => $niveles,
+            'mostrarFamilia' => $mostrarFamilia,
         ]);
     }
 
@@ -63,38 +70,56 @@ class UsuarioController extends Controller
     {
         $usuario = auth()->user();
 
-        $padres = ContactoFamiliar::with([
-                'familia.alumnos.inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado'),
-            ])
+        $relacionesContacto = [
+            'familia.alumnos.inscripciones' => fn($q) => $q->where('activo', true)->with('grupo.grado'),
+        ];
+
+        $mapearContacto = function (ContactoFamiliar $c, string $subtipo = 'nuevo'): object {
+            $nivelIds = collect();
+
+            foreach ($c->familia?->alumnos ?? [] as $alumno) {
+                foreach ($alumno->inscripciones as $inscripcion) {
+                    $nivelId = $inscripcion->grupo?->grado?->nivel_id;
+                    if ($nivelId) {
+                        $nivelIds->push($nivelId);
+                    }
+                }
+            }
+
+            $alumnos = $c->familia?->alumnos
+                ->map(fn($a) => trim("{$a->nombre} {$a->ap_paterno} {$a->ap_materno}"))
+                ->implode(', ') ?: '—';
+
+            return (object)[
+                'id'              => $c->id,
+                'tipo'            => 'contacto',
+                'subtipo'         => $subtipo,
+                'nombre_completo' => trim("{$c->nombre} {$c->ap_paterno} {$c->ap_materno}"),
+                'referencia'      => $c->familia->apellido_familia ?? 'Sin Familia',
+                'email'           => $c->email,
+                'email_anterior'  => $subtipo === 'correo_cambiado' ? $c->usuario?->email : null,
+                'nivel_ids'       => $nivelIds->unique()->values()->implode(','),
+                'alumnos'         => $alumnos,
+            ];
+        };
+
+        // Contactos con acceso portal sin usuario aún creado
+        $sinUsuario = ContactoFamiliar::with($relacionesContacto)
             ->where('tiene_acceso_portal', true)
             ->whereNull('usuario_id')
             ->get()
-            ->map(function($c) {
-                $nivelIds = collect();
+            ->map(fn($c) => $mapearContacto($c, 'nuevo'));
 
-                foreach ($c->familia?->alumnos ?? [] as $alumno) {
-                    foreach ($alumno->inscripciones as $inscripcion) {
-                        $nivelId = $inscripcion->grupo?->grado?->nivel_id;
-                        if ($nivelId) {
-                            $nivelIds->push($nivelId);
-                        }
-                    }
-                }
+        // Contactos cuyo correo fue actualizado pero el usuario vinculado tiene el correo viejo
+        $correoDesactualizado = ContactoFamiliar::with(array_merge($relacionesContacto, ['usuario']))
+            ->where('tiene_acceso_portal', true)
+            ->whereNotNull('usuario_id')
+            ->whereNotNull('email')
+            ->get()
+            ->filter(fn($c) => $c->usuario && $c->usuario->email !== $c->email)
+            ->map(fn($c) => $mapearContacto($c, 'correo_cambiado'));
 
-                $alumnos = $c->familia?->alumnos
-                    ->map(fn($a) => trim("{$a->nombre} {$a->ap_paterno} {$a->ap_materno}"))
-                    ->implode(', ') ?: '—';
-
-                return (object)[
-                    'id'              => $c->id,
-                    'tipo'            => 'contacto',
-                    'nombre_completo' => trim("{$c->nombre} {$c->ap_paterno} {$c->ap_materno}"),
-                    'referencia'      => $c->familia->apellido_familia ?? 'Sin Familia',
-                    'email'           => $c->email,
-                    'nivel_ids'       => $nivelIds->unique()->values()->implode(','),
-                    'alumnos'         => $alumnos,
-                ];
-            });
+        $padres = $sinUsuario->concat($correoDesactualizado);
 
         // Director de sección solo gestiona padres de familia
         if ($usuario->esDirectorSeccion()) {
@@ -402,6 +427,7 @@ class UsuarioController extends Controller
             : $request->input('personal_datos', []);
 
         // Validar correos duplicados antes de crear cualquier usuario
+        // (solo aplica para contactos sin usuario vinculado; los que ya tienen usuario se actualizan)
         $emailsRepetidos = [];
 
         foreach ($contactoIds as $id) {
@@ -430,8 +456,7 @@ class UsuarioController extends Controller
         $fallidos = 0;
 
         foreach ($contactoIds as $id) {
-            $contacto = ContactoFamiliar::with('familia.alumnos')->findOrFail($id);
-            if ($contacto->usuario_id) continue;
+            $contacto = ContactoFamiliar::with('familia.alumnos', 'usuario')->findOrFail($id);
 
             $passwordPlana  = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 8);
             $nombreCompleto = trim($contacto->nombre . ' ' . $contacto->ap_paterno . ' ' . $contacto->ap_materno);
@@ -442,19 +467,30 @@ class UsuarioController extends Controller
                 ->map(fn($a) => trim("{$a->nombre} {$a->ap_paterno} {$a->ap_materno}"))
                 ->implode(', ') ?: null;
 
-            $primerAlumno      = $alumnosCollection->first();
-            $apellidosAlumno   = $primerAlumno
+            $primerAlumno    = $alumnosCollection->first();
+            $apellidosAlumno = $primerAlumno
                 ? trim("{$primerAlumno->ap_paterno} {$primerAlumno->ap_materno}")
                 : null;
 
-            $usuario = Usuario::create([
-                'nombre'        => $nombreCompleto,
-                'email'         => $contacto->email,
-                'password_hash' => Hash::make($passwordPlana),
-                'rol'           => 'padre',
-                'activo'        => true,
-            ]);
-            $contacto->update(['usuario_id' => $usuario->id]);
+            if ($contacto->usuario_id && $contacto->usuario) {
+                // Correo del contacto fue actualizado: sincronizar el usuario existente
+                $usuarioExistente = $contacto->usuario;
+                $usuarioExistente->email         = $contacto->email;
+                $usuarioExistente->nombre        = $nombreCompleto;
+                $usuarioExistente->password_hash = Hash::make($passwordPlana);
+                $usuarioExistente->save();
+                $usuario = $usuarioExistente;
+            } else {
+                // Sin usuario vinculado: crear cuenta nueva
+                $usuario = Usuario::create([
+                    'nombre'        => $nombreCompleto,
+                    'email'         => $contacto->email,
+                    'password_hash' => Hash::make($passwordPlana),
+                    'rol'           => 'padre',
+                    'activo'        => true,
+                ]);
+                $contacto->update(['usuario_id' => $usuario->id]);
+            }
 
             if ($enviarCorreo) {
                 try {
@@ -632,11 +668,10 @@ class UsuarioController extends Controller
                 ], 403);
             }
 
+            // Solo se desvincula el usuario; tiene_acceso_portal se mantiene
+            // para que el contacto reaparezca en pendientes-portal
             ContactoFamiliar::where('usuario_id', $usuario->id)
-                ->update([
-                    'usuario_id' => null,
-                    'tiene_acceso_portal' => 0 
-                ]);
+                ->update(['usuario_id' => null]);
 
             Personal::where('usuario_id', $usuario->id)
                 ->update([
