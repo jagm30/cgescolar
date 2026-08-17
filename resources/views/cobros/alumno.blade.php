@@ -440,11 +440,10 @@
                     <input type="hidden" name="items[{{ $i }}][descuento_beca]"        value="{{ $becaDescuento }}">
                     <input type="hidden" name="items[{{ $i }}][descuento_pronto_pago]" value="{{ $cargo->descuento_calc }}">
                     <input type="hidden" name="items[{{ $i }}][descuento_otros]"       value="0" class="item-desc" data-idx="{{ $i }}">
-                    <input type="hidden" name="items[{{ $i }}][recargo]"               value="{{ $cargo->recargo_calc }}" class="item-desc" data-idx="{{ $i }}">
 
                     <div class="row">
                         {{-- Monto a abonar --}}
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
                                 Monto a cobrar
                             </label>
@@ -483,7 +482,7 @@
                         </div>
 
                         {{-- Etiqueta: Descuento pronto pago --}}
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <div style="font-size:12px;font-weight:600;margin-bottom:6px;
                                         color:{{ $tieneDescuento ? '#27ae60' : '#aaa' }};">
                                 <i class="fa fa-tag"></i> Pronto pago
@@ -496,6 +495,24 @@
                             @if($tieneDescuento)
                             <div style="font-size:10px;color:#27ae60;margin-top:3px;">Auto</div>
                             @endif
+                        </div>
+
+                        {{-- Recargo por mora (editable) --}}
+                        <div class="col-md-2">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;
+                                        color:{{ $tieneRecargo ? '#c0392b' : '#aaa' }};">
+                                <i class="fa fa-exclamation-triangle"></i> Recargo
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-addon" style="background:#e74c3c;color:#fff;font-weight:700;border:2px solid #e74c3c;border-right:none;font-size:12px;">$</span>
+                                <input type="number"
+                                       class="form-control input-sm item-desc item-recargo"
+                                       name="items[{{ $i }}][recargo]"
+                                       value="{{ $cargo->recargo_calc }}"
+                                       min="0"
+                                       step="0.01"
+                                       data-idx="{{ $i }}">
+                            </div>
                         </div>
 
                         {{-- Total del ítem --}}
@@ -792,12 +809,22 @@ $(function() {
 
     // ── Recalcular total de ítem al cambiar inputs ────
     $(document).on('input', '.item-monto, .item-desc', function() {
-        var idx = $(this).data('idx');
-        // Si el cajero modificó el monto visible o el recargo, sincronizar el campo base oculto
-        if ($(this).hasClass('item-monto') || $(this).closest('.cargo-detalle').length) {
+        var idx  = $(this).data('idx');
+        var $det = $(this).closest('.cargo-detalle');
+
+        if ($(this).hasClass('item-monto')) {
+            // El cajero editó el monto a cobrar: la base oculta se recalcula a partir del visible
             sincronizarBaseDesdeVisible(idx);
+            recalcularItem(idx);
+        } else if ($det.length) {
+            // Ajustes como el recargo: el saldo base que se abona no cambia,
+            // solo el monto a cobrar visible se recalcula con el nuevo ajuste
+            var total = recalcularItem(idx);
+            $det.find('.item-monto').val(total.toFixed(2));
+        } else {
+            recalcularItem(idx);
         }
-        recalcularItem(idx);
+
         actualizarResumen();
     });
 
