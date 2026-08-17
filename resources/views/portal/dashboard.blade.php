@@ -310,14 +310,14 @@
         </div>
         <div class="db-stat">
             <div class="db-stat-icon"
-                 style="background:{{ $resumen['total_pendiente'] > 0 ? '#fee2e2' : '#d1fae5' }};
-                        color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#065f46' }};">
+                 style="background:{{ $resumen['total_vencido'] > 0 ? '#fee2e2' : '#d1fae5' }};
+                        color:{{ $resumen['total_vencido'] > 0 ? '#b91c1c' : '#065f46' }};">
                 <i class="fa fa-clock-o"></i>
             </div>
             <div class="db-stat-label">Por pagar</div>
             <div class="db-stat-value"
-                 style="color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#065f46' }};font-size:17px;">
-                ${{ number_format($resumen['total_pendiente'], 2) }}
+                 style="color:{{ $resumen['total_vencido'] > 0 ? '#b91c1c' : '#065f46' }};font-size:17px;">
+                ${{ number_format($resumen['total_vencido'], 2) }}
             </div>
         </div>
     </div>
