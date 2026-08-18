@@ -245,3 +245,4 @@ When naming new models or routes, extend this table first — do not invent syno
 - Do not leave `dd()`, `dump()`, or `ray()` calls in final code.
 - Do not add a `@csrf` token to API routes — they use Sanctum token auth.
 - Do not create a Blade file for a UI fragment used in only one place — use an `@include` with a partial or inline it.
+- **Nunca eliminar registros de la base de datos sin preguntar primero al usuario.** Antes de ejecutar cualquier `delete()`, `forceDelete()`, o migración destructiva que borre datos, pedir confirmación explícita.

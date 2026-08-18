@@ -255,6 +255,7 @@
                 $becaDescuento     = (float) ($cargo->beca_descuento_calc ?? 0);
                 $becaPorcentaje    = $cargo->beca_porcentaje ?? null;
                 $montoCondonacion  = (float) ($cargo->descuento_condonacion_calc ?? 0);
+                $mesExento         = $cargo->mes_exento ?? false;
             @endphp
             <div class="cargo-item {{ $cargo->vencido ? 'vencido-card' : '' }}"
                  id="cargo-card-{{ $cargo->id }}"
@@ -352,6 +353,15 @@
                                 @endif
                             </span>
                         </div>
+                        @elseif($mesExento && $cargo->vencido)
+                        <div style="margin-top:4px;">
+                            <span style="display:inline-block;background:#e8f5e9;color:#2e7d32;
+                                         font-size:11px;font-weight:600;border-radius:10px;
+                                         padding:2px 8px;border:1px solid #a5d6a7;">
+                                <i class="fa fa-ban"></i>
+                                Mes exento — sin recargo
+                            </span>
+                        </div>
                         @elseif($tieneDescuento)
                         <div style="margin-top:4px;">
                             <span style="display:inline-block;background:#eafaf1;color:#27ae60;
@@ -432,6 +442,12 @@
                             Recargo mora: +${{ number_format($cargo->recargo_calc, 2) }}
                             ({{ number_format($cargo->dias_atraso, 0) }} días · {{ $cargo->meses_retraso }} {{ $cargo->meses_retraso === 1 ? 'mes' : 'meses' }})
                         </span>
+                        @elseif($mesExento && $cargo->vencido)
+                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
+                                     padding:3px 9px;border-radius:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;">
+                            <i class="fa fa-ban"></i>
+                            Mes exento — sin recargo por mora
+                        </span>
                         @endif
                     </div>
                     @endif
@@ -497,22 +513,29 @@
                             @endif
                         </div>
 
-                        {{-- Recargo por mora (editable) --}}
+                        {{-- Recargo por mora (editable, bloqueado en meses exentos) --}}
                         <div class="col-md-2">
                             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;
-                                        color:{{ $tieneRecargo ? '#c0392b' : '#aaa' }};">
-                                <i class="fa fa-exclamation-triangle"></i> Recargo
+                                        color:{{ $tieneRecargo ? '#c0392b' : ($mesExento ? '#2e7d32' : '#aaa') }};">
+                                <i class="fa {{ $mesExento ? 'fa-ban' : 'fa-exclamation-triangle' }}"></i>
+                                {{ $mesExento ? 'Exento' : 'Recargo' }}
                             </label>
                             <div class="input-group">
-                                <span class="input-group-addon" style="background:#e74c3c;color:#fff;font-weight:700;border:2px solid #e74c3c;border-right:none;font-size:12px;">$</span>
+                                <span class="input-group-addon"
+                                      style="background:{{ $mesExento ? '#a5d6a7' : '#e74c3c' }};color:#fff;font-weight:700;
+                                             border:2px solid {{ $mesExento ? '#a5d6a7' : '#e74c3c' }};border-right:none;font-size:12px;">$</span>
                                 <input type="number"
                                        class="form-control input-sm item-desc item-recargo"
                                        name="items[{{ $i }}][recargo]"
                                        value="{{ $cargo->recargo_calc }}"
                                        min="0"
                                        step="0.01"
-                                       data-idx="{{ $i }}">
+                                       data-idx="{{ $i }}"
+                                       @if($mesExento) readonly title="Este mes está exento de recargo" @endif>
                             </div>
+                            @if($mesExento)
+                            <div style="font-size:10px;color:#2e7d32;margin-top:3px;">Mes exento</div>
+                            @endif
                         </div>
 
                         {{-- Total del ítem --}}

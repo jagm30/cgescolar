@@ -197,10 +197,13 @@ class PoliticaController extends Controller
             'tope_maximo'      => ['nullable', 'numeric', 'min:0'],
             'activo'           => ['boolean'],
             'acumular_mensual' => ['boolean'],
+            'meses_exentos'    => ['nullable', 'array'],
+            'meses_exentos.*'  => ['integer', 'between:1,12'],
         ], [
-            'dia_limite_pago.required' => 'El día límite de pago es obligatorio.',
-            'tipo_recargo.in'          => 'El tipo debe ser "porcentaje" o "monto_fijo".',
-            'valor.min'                => 'El valor debe ser mayor a cero.',
+            'dia_limite_pago.required'  => 'El día límite de pago es obligatorio.',
+            'tipo_recargo.in'           => 'El tipo debe ser "porcentaje" o "monto_fijo".',
+            'valor.min'                 => 'El valor debe ser mayor a cero.',
+            'meses_exentos.*.between'   => 'Los meses exentos deben estar entre 1 y 12.',
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
@@ -221,6 +224,7 @@ class PoliticaController extends Controller
             'tope_maximo'      => $data['tope_maximo'] ?? null,
             'activo'           => $data['activo'] ?? true,
             'acumular_mensual' => $data['acumular_mensual'] ?? false,
+            'meses_exentos'    => $data['meses_exentos'] ?? null,
         ]);
 
         \App\Models\Auditoria::registrar(
@@ -252,6 +256,8 @@ class PoliticaController extends Controller
             'tope_maximo'      => ['nullable', 'numeric', 'min:0'],
             'activo'           => ['boolean'],
             'acumular_mensual' => ['boolean'],
+            'meses_exentos'    => ['nullable', 'array'],
+            'meses_exentos.*'  => ['integer', 'between:1,12'],
         ]);
 
         if ($data['tipo_recargo'] === 'porcentaje' && $data['valor'] > 100) {
@@ -266,6 +272,8 @@ class PoliticaController extends Controller
 
         // El checkbox enviará 1 o nada; normalizar a booleano
         $data['acumular_mensual'] = $request->boolean('acumular_mensual');
+        // Los checkboxes de meses exentos: si no se envía ninguno, el campo llega como null
+        $data['meses_exentos'] = $request->input('meses_exentos') ?: null;
 
         $recargo->update($data);
 
