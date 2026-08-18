@@ -4,11 +4,11 @@
     <a href="#" class="logo">
         {{-- MINI LOGO: Aparece cuando el sidebar se colapsa --}}
         <span class="logo-mini">
-            <img src="{{ asset('dist/img/genki1.png') }}" alt="Genki School" style="height: 35px; width: auto;">
+            <img src="{{ asset('dist/img/logo_genki_h.png') }}" alt="Genki School" style="height: 35px; width: auto;">
         </span>
 
         {{-- LOGO NORMAL: Aparece cuando está expandido --}}
-        <span class="logo-lg"><img src="{{ asset('dist/img/genki1.png') }}" alt="Genki School"
+        <span class="logo-lg"><img src="{{ asset('dist/img/logo_genki_h.png') }}" alt="Genki School"
                 style="height: 45px; width: auto;"></span>
     </a>
     {{-- Navbar --}}

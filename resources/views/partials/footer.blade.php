@@ -8,12 +8,12 @@
         background-color: #0b3c50 !important; /* Azul oscuro elegante */
     }
     .skin-blue .main-header .logo {
-        background-color: #082b3a !important; /* Un poco más oscuro para el logo */
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        color: #0b3c50 !important;
         border-bottom: 0 solid transparent;
     }
     .skin-blue .main-header .logo:hover {
-        background-color: #061f2a !important;
+        background-color: #f0f4f6 !important;
     }
     .skin-blue .main-header .navbar .sidebar-toggle:hover {
         background-color: #082b3a !important;
