@@ -664,6 +664,33 @@
                                                 </div>
                                             </div>
 
+                                            {{-- Meses exentos de recargo --}}
+                                            <div class="row" style="margin-top:10px;">
+                                                <div class="col-md-12">
+                                                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:8px;">
+                                                        Meses exentos de recargo
+                                                        <span style="font-weight:400;color:#aaa;font-size:11px;">
+                                                            — los cargos con vencimiento en estos meses no generan recargo
+                                                        </span>
+                                                    </label>
+                                                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                                                        @php
+                                                            $nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                                                        @endphp
+                                                        @foreach($nombresMeses as $i => $mes)
+                                                            @php $numMes = $i + 1; @endphp
+                                                            <label style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid #f5c6c6;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:#666;margin:0;user-select:none;" class="mes-exento-label">
+                                                                <input type="checkbox" class="rec-mes-exento" value="{{ $numMes }}" style="margin:0;">
+                                                                {{ $mes }}
+                                                            </label>
+                                                        @endforeach
+                                                    </div>
+                                                    <div style="font-size:11px;color:#aaa;margin-top:6px;">
+                                                        Dejar sin marcar = el recargo aplica todos los meses.
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             {{-- Simulador de recargo --}}
                                             <div class="simulador" id="simulador-rec"
                                                 style="display:none;border-color:#f5c6c6;background:#fff8f8;">
@@ -716,7 +743,8 @@
                                             data-dia="{{ $rec->dia_limite_pago }}" data-tipo="{{ $rec->tipo_recargo }}"
                                             data-valor="{{ $rec->valor }}" data-tope="{{ $rec->tope_maximo }}"
                                             data-activo="{{ $rec->activo ? '1' : '0' }}"
-                                            data-acumular="{{ $rec->acumular_mensual ? '1' : '0' }}">
+                                            data-acumular="{{ $rec->acumular_mensual ? '1' : '0' }}"
+                                            data-meses-exentos="{{ json_encode($rec->meses_exentos ?? []) }}">
 
                                             <div class="politica-icono" style="background:#fdecea;">
                                                 <i class="fa fa-exclamation-triangle"
@@ -742,6 +770,15 @@
                                                     @if ($rec->tope_maximo)
                                                         <span style="color:#aaa;font-size:11px;margin-left:8px;">
                                                             · Tope: ${{ number_format($rec->tope_maximo, 2) }}
+                                                        </span>
+                                                    @endif
+                                                    @if (!empty($rec->meses_exentos))
+                                                        @php
+                                                            $nombresMesesCortos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+                                                            $etiquetas = collect($rec->meses_exentos)->map(fn($m) => $nombresMesesCortos[$m - 1])->join(', ');
+                                                        @endphp
+                                                        <span style="background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:8px;font-size:11px;margin-left:8px;">
+                                                            <i class="fa fa-ban"></i> Sin recargo: {{ $etiquetas }}
                                                         </span>
                                                     @endif
                                                     @if (!$rec->activo)
@@ -1270,8 +1307,20 @@
                 $('#rec-activo').prop('checked', true);
                 $('input[name="rec_tipo"]').prop('checked', false);
                 $('.tipo-opt').removeClass('activo-desc activo-rec');
+                $('.rec-mes-exento').prop('checked', false);
+                $('.mes-exento-label').css({ 'border-color': '#f5c6c6', 'background': '', 'color': '#666' });
                 $('#simulador-rec').hide();
             }
+
+            // Resalta visualmente los meses exentos seleccionados
+            $(document).on('change', '.rec-mes-exento', function() {
+                var $lbl = $(this).closest('label');
+                if ($(this).is(':checked')) {
+                    $lbl.css({ 'border-color': '#2e7d32', 'background': '#e8f5e9', 'color': '#2e7d32' });
+                } else {
+                    $lbl.css({ 'border-color': '#f5c6c6', 'background': '', 'color': '#666' });
+                }
+            });
 
             // ── Editar recargo ───────────────────────────────
             $('#btn-editar-rec').on('click', function() {
@@ -1285,6 +1334,19 @@
                 var acumular = $card.data('acumular') == '1';
                 $('#rec-acumular').prop('checked', acumular);
                 $('#sim-rec-meses-wrap').toggle(acumular);
+
+                // Poblar meses exentos
+                $('.rec-mes-exento').prop('checked', false);
+                $('.mes-exento-label').css({ 'border-color': '#f5c6c6', 'background': '', 'color': '#666' });
+                var mesesExentos = $card.data('meses-exentos') || [];
+                if (typeof mesesExentos === 'string') {
+                    try { mesesExentos = JSON.parse(mesesExentos); } catch(e) { mesesExentos = []; }
+                }
+                $.each(mesesExentos, function(_, mes) {
+                    var $chk = $('.rec-mes-exento[value="' + mes + '"]');
+                    $chk.prop('checked', true);
+                    $chk.closest('label').css({ 'border-color': '#2e7d32', 'background': '#e8f5e9', 'color': '#2e7d32' });
+                });
 
                 var tipo = $card.data('tipo');
                 $('input[name="rec_tipo"][value="' + tipo + '"]').prop('checked', true).trigger('change');
@@ -1326,6 +1388,11 @@
                     '/planes/' + PLAN_ID + '/politicas/recargo/' + id :
                     '/planes/' + PLAN_ID + '/politicas/recargo';
 
+                var mesesExentos = [];
+                $('.rec-mes-exento:checked').each(function() {
+                    mesesExentos.push(parseInt($(this).val()));
+                });
+
                 var datos = {
                     dia_limite_pago: dia,
                     tipo_recargo: tipo,
@@ -1334,6 +1401,10 @@
                     activo: $('#rec-activo').is(':checked') ? 1 : 0,
                     acumular_mensual: $('#rec-acumular').is(':checked') ? 1 : 0,
                 };
+                // Enviar meses exentos como array (meses_exentos[]=1&meses_exentos[]=8…)
+                if (mesesExentos.length > 0) {
+                    datos['meses_exentos'] = mesesExentos;
+                }
                 if (id) datos._method = 'PUT';
                 var $btn = $('#btn-guardar-rec');
                 $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');

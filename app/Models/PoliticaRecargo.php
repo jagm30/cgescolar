@@ -19,6 +19,7 @@ class PoliticaRecargo extends Model
         'tope_maximo',       // nullable — monto máximo de recargo
         'activo',
         'acumular_mensual',  // si true, el recargo se multiplica por los meses de retraso
+        'meses_exentos',     // array de meses (1–12) sin recargo, ej: [1, 8]
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class PoliticaRecargo extends Model
         'activo'           => 'boolean',
         'acumular_mensual' => 'boolean',
         'dia_limite_pago'  => 'integer',
+        'meses_exentos'    => 'array',
     ];
 
     public function plan(): BelongsTo
@@ -78,5 +80,16 @@ class PoliticaRecargo extends Model
         $dia ??= now()->day;
 
         return $dia > $this->dia_limite_pago;
+    }
+
+    /**
+     * Indica si el recargo aplica para el mes del cargo vencido.
+     * Los meses en meses_exentos quedan excluidos del recargo.
+     */
+    public function aplicaEnMes(int $mes): bool
+    {
+        $exentos = array_map('intval', $this->meses_exentos ?? []);
+
+        return ! in_array($mes, $exentos, strict: true);
     }
 }

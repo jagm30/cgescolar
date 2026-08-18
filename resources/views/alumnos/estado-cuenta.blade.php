@@ -335,6 +335,7 @@
                     $condonacionDesc    = (float) ($cargo->descuento_condonacion_calc ?? 0);
                     $becaPct            = $cargo->beca_porcentaje ?? null;
                     $mesesRetraso       = (int)   ($cargo->meses_retraso              ?? 0);
+                    $mesExento          = (bool)  ($cargo->mes_exento                 ?? false);
                     $estadoReal         = $cargo->estado_real;
                     $esPendienteReal    = !in_array($estadoReal, ['pagado', 'condonado']);
                     $totalDescuentos    = $becaDesc + $descuentoCalc + $condonacionDesc;
@@ -501,6 +502,10 @@
                                 <i class="fa fa-exclamation-triangle"></i> Recargo
                                 @if($mesesRetraso > 1) · {{ $mesesRetraso }} mes @endif
                             </div>
+                        @elseif($esPendienteReal && $mesExento && $vencido)
+                            <span style="color:#2e7d32;font-size:10px;font-weight:600;">
+                                <i class="fa fa-ban"></i> Exento
+                            </span>
                         @else
                             <span style="color:#dde4eb;">—</span>
                         @endif

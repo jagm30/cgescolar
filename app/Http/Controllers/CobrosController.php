@@ -315,9 +315,9 @@ class CobrosController extends Controller
         $becaYaAplicada = (float) ($cargo->beca_ya_aplicada ?? 0);
         [$becaDescuento, $becaPorcentaje] = $this->calcularBecaCobro($cargo, $pendiente, $becaYaAplicada, $becasPorPlan, $becasPorConcepto);
 
-        [$descuento, $recargo, $mesesRetraso, $pd] = ($pendiente > 0 && $cargo->asignacion?->plan)
+        [$descuento, $recargo, $mesesRetraso, $pd, $mesExento] = ($pendiente > 0 && $cargo->asignacion?->plan)
             ? $this->calcularPoliticaCobro($cargo, $pendiente, $vencido, $hoyFecha)
-            : [0.0, 0.0, 0, null];
+            : [0.0, 0.0, 0, null, false];
 
         // La condonación es un monto fijo ya registrado en descuentos (DescuentoCargo),
         // no algo que se recalcule por abono: si un abono anterior ya la incluyó en su
@@ -330,6 +330,7 @@ class CobrosController extends Controller
         $cargo->beca_descuento_calc = $becaDescuento;
         $cargo->beca_porcentaje = $becaPorcentaje;
         $cargo->recargo_calc = $recargo;
+        $cargo->mes_exento = $mesExento;
         $cargo->descuento_calc = $descuento;
         $cargo->descuento_tipo = $pd?->tipo_valor;
         $cargo->descuento_valor = $pd ? (float) $pd->valor : 0.0;
@@ -387,15 +388,20 @@ class CobrosController extends Controller
         $plan = $cargo->asignacion->plan;
 
         if ($vencido) {
-            $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
-            $pr = $plan->politicasRecargo->firstWhere('activo', true);
+            $mesesRetraso   = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
+            $pr             = $plan->politicasRecargo->firstWhere('activo', true);
+            $mesVencimiento = $cargo->fecha_vencimiento->month;
+            $mesExento      = $pr && ! $pr->aplicaEnMes($mesVencimiento);
+            $recargo        = ($pr && ! $mesExento)
+                ? $pr->calcular($pendiente, $mesesRetraso)
+                : 0.0;
 
-            return [0.0, $pr ? $pr->calcular($pendiente, $mesesRetraso) : 0.0, $mesesRetraso, null];
+            return [0.0, $recargo, $mesesRetraso, null, $mesExento];
         }
 
         $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
 
-        return [$pd ? $pd->calcular($pendiente) : 0.0, 0.0, 0, $pd];
+        return [$pd ? $pd->calcular($pendiente) : 0.0, 0.0, 0, $pd, false];
     }
 
     /**

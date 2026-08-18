@@ -946,9 +946,9 @@ class AlumnoController extends Controller
                 ? $this->calcularBecaCargo($cargo, $saldoBase, $becaYaAplicada, $becasPorPlan, $becasPorConcepto, $becasGlobales)
                 : [0.0, null];
 
-            [$descuento, $recargo, $mesesRetraso] = ($esPendiente && $cargo->asignacion?->plan)
+            [$descuento, $recargo, $mesesRetraso, $mesExento] = ($esPendiente && $cargo->asignacion?->plan)
                 ? $this->calcularPoliticaCargo($cargo, $saldoBase, $vencido, $hoyFecha)
-                : [0.0, 0.0, 0];
+                : [0.0, 0.0, 0, false];
 
             // Descuento por condonación (misma lógica que CobrosController::enriquecerCargo):
             // se calcula una sola vez sobre monto_original y se resta lo ya acreditado en
@@ -964,6 +964,7 @@ class AlumnoController extends Controller
             $cargo->beca_porcentaje = $becaPorcentaje;
             $cargo->descuento_calc = $descuento;
             $cargo->recargo_calc = $recargo;
+            $cargo->mes_exento = $mesExento;
             $cargo->meses_retraso = $mesesRetraso;
             $cargo->descuento_condonacion_calc = $condonacionDesc;
             $cargo->monto_a_pagar_hoy = max(0, $saldoBase - $becaDescuento - $descuento - $condonacionDesc + $recargo);
@@ -1048,15 +1049,18 @@ class AlumnoController extends Controller
         $plan = $cargo->asignacion->plan;
 
         if ($vencido) {
-            $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
-            $pr = $plan->politicasRecargo->firstWhere('activo', true);
+            $mesesRetraso   = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
+            $pr             = $plan->politicasRecargo->firstWhere('activo', true);
+            $mesVencimiento = $cargo->fecha_vencimiento->month;
+            $mesExento      = $pr && ! $pr->aplicaEnMes($mesVencimiento);
+            $recargo        = ($pr && ! $mesExento) ? $pr->calcular($saldoBase, $mesesRetraso) : 0.0;
 
-            return [0.0, $pr ? $pr->calcular($saldoBase, $mesesRetraso) : 0.0, $mesesRetraso];
+            return [0.0, $recargo, $mesesRetraso, $mesExento];
         }
 
         $pd = $plan->politicasDescuentoActivas->first(fn ($p) => $p->aplicaHoy());
 
-        return [$pd ? $pd->calcular($saldoBase) : 0.0, 0.0, 0];
+        return [$pd ? $pd->calcular($saldoBase) : 0.0, 0.0, 0, false];
     }
 
     /** Devuelve el logo codificado en base64.
