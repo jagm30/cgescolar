@@ -24,7 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->appendToGroup('web', \App\Http\Middleware\ForceJsonOnAjax::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (
+            \Illuminate\Session\TokenMismatchException $e,
+            \Illuminate\Http\Request $request,
+        ) {
+            return redirect()->route('login')
+                ->withErrors(['email' => 'Tu sesión expiró. Por favor inicia sesión de nuevo.']);
+        });
     })->withProviders([
         ViewServiceProvider::class,   // ← agregar esta línea
     ])->create();
