@@ -13,14 +13,29 @@ class FacturaComService
 {
     // ── Autenticación ────────────────────────────────────
 
-    private function headers(): array
+    /**
+     * Cabeceras comunes de autenticación para peticiones GET.
+     * No incluye Content-Type porque GET no lleva cuerpo
+     * y algunos servidores (incluido factura.com producción) devuelven 404
+     * cuando reciben Content-Type en una petición sin cuerpo.
+     */
+    private function authHeaders(): array
     {
         return [
             'F-Api-Key'    => config('factura.api_key'),
             'F-Secret-Key' => config('factura.secret_key'),
             'F-PLUGIN'     => config('factura.plugin'),
-            'Content-Type' => 'application/json',
         ];
+    }
+
+    /**
+     * Cabeceras para peticiones POST/PUT que envían un cuerpo JSON.
+     */
+    private function headers(): array
+    {
+        return array_merge($this->authHeaders(), [
+            'Content-Type' => 'application/json',
+        ]);
     }
 
     private function url(string $path): string
@@ -89,7 +104,7 @@ class FacturaComService
         string $email
     ): string {
         $response = Http::withHeaders($this->headers())
-            ->post($this->url('/api/v1/clients/create'), [
+            ->post($this->url('/v1/clients/create'), [
                 'rfc'    => strtoupper($rfc),
                 'razons' => strtoupper($razonSocial),
                 'codpos' => $codigoPostal,
@@ -128,7 +143,7 @@ class FacturaComService
     public function emitir(array $payload): array
     {
         $response = Http::withHeaders($this->headers())
-            ->post($this->url('/api/v4/cfdi40/create'), $payload);
+            ->post($this->url('/v4/cfdi40/create'), $payload);
 
         $json = $response->json();
 
@@ -169,7 +184,7 @@ class FacturaComService
     public function cancelar(string $uid, string $motivo = '02'): void
     {
         $response = Http::withHeaders($this->headers())
-            ->post($this->url("/api/v4/cfdi40/{$uid}/cancel"), [
+            ->post($this->url("/v4/cfdi40/{$uid}/cancel"), [
                 'motivo' => $motivo,
             ]);
 
@@ -192,8 +207,8 @@ class FacturaComService
      */
     public function enviarCorreo(string $uid): void
     {
-        $response = Http::withHeaders($this->headers())
-            ->get($this->url("/api/v4/cfdi40/{$uid}/email"));
+        $response = Http::withHeaders($this->authHeaders())
+            ->get($this->url("/v4/cfdi40/{$uid}/email"));
 
         $json = $response->json();
 
@@ -207,7 +222,7 @@ class FacturaComService
     /**
      * Verifica la conexión con factura.com y devuelve las series disponibles.
      *
-     * Llama a GET /api/v1/series para listar las series configuradas en la cuenta.
+     * Llama a GET /v1/series para listar las series configuradas en la cuenta.
      * Útil para confirmar que las credenciales son válidas y que la serie configurada existe.
      *
      * @return array  Arreglo de series: [['id' => int, 'nombre' => string], ...]
@@ -216,15 +231,19 @@ class FacturaComService
      */
     public function listarSeries(): array
     {
-        $response = Http::withHeaders($this->headers())
-            ->get($this->url('/api/v1/series'));
+        $endpoint = $this->url('/v1/series');
+        $response = Http::withHeaders($this->authHeaders())
+            ->get($endpoint);
 
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
             $raw     = $json['message'] ?? $json['error'] ?? $response->body();
             $mensaje = $this->extraerMensaje($raw);
-            throw new \RuntimeException("No se pudo conectar con factura.com: {$mensaje}");
+            $status  = $response->status();
+            throw new \RuntimeException(
+                "No se pudo conectar con factura.com [HTTP {$status} — {$endpoint}]: {$mensaje}"
+            );
         }
 
         // La API devuelve un arreglo de series u objeto con clave 'data'
@@ -255,8 +274,8 @@ class FacturaComService
      */
     public function descargar(string $uid, string $formato): string
     {
-        $response = Http::withHeaders($this->headers())
-            ->get($this->url("/api/v4/cfdi40/{$uid}/{$formato}"));
+        $response = Http::withHeaders($this->authHeaders())
+            ->get($this->url("/v4/cfdi40/{$uid}/{$formato}"));
 
         if ($response->failed()) {
             throw new \RuntimeException("No se pudo descargar el {$formato} del CFDI.");

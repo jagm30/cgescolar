@@ -612,6 +612,9 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::put('/razones-sociales/{id}', [PortalPadreController::class, 'updateRazonSocial'])->name('razones-sociales.update');
         Route::delete('/razones-sociales/{id}', [PortalPadreController::class, 'destroyRazonSocial'])->name('razones-sociales.destroy');
         Route::post('/razones-sociales/{id}/principal', [PortalPadreController::class, 'setPrincipalRazonSocial'])->name('razones-sociales.principal');
+        Route::post('/razones-sociales/{id}/constancia', [PortalPadreController::class, 'subirConstancia'])->name('razones-sociales.constancia');
+        Route::get('/familiares', [PortalPadreController::class, 'familiares'])->name('familiares');
+        Route::post('/familiares', [PortalPadreController::class, 'storeFamiliar'])->name('familiares.store');
         Route::get('/facturas', [PortalPadreController::class, 'facturas'])->name('facturas');
         Route::get('/fotos', [PortalPadreController::class, 'fotos'])->name('fotos');
         Route::post('/fotos/alumno/{alumnoId}', [PortalPadreController::class, 'subirFotoAlumno'])->name('fotos.alumno');

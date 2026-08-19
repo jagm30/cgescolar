@@ -22,6 +22,7 @@ class RazonSocialContacto extends Model
         'registrado_por',
         'activo',
         'factura_uid',
+        'constancia_path',
     ];
 
     protected $casts = [

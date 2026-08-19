@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alumno;
+use App\Models\AlumnoContacto;
 use App\Models\Cargo;
 use App\Models\Cfdi;
 use App\Models\CondicionMedica;
@@ -348,6 +349,81 @@ class PortalPadreController extends Controller
         return view('portal.historial-pagos', compact('alumno', 'pagos', 'razonesSociales'));
     }
 
+    /** GET /portal/familiares */
+    public function familiares(): View|JsonResponse
+    {
+        $contacto = auth()->user()->contactoFamiliar()->with('familia')->first();
+
+        $contactos = $contacto?->familia_id
+            ? ContactoFamiliar::with(['alumnoContactos.alumno'])
+                ->where('familia_id', $contacto->familia_id)
+                ->orderBy('nombre')
+                ->get()
+            : collect();
+
+        if (request()->ajax()) {
+            return response()->json($contactos);
+        }
+
+        return view('portal.familiares', [
+            'contactos'    => $contactos,
+            'miContactoId' => $contacto?->id,
+            'familiaId'    => $contacto?->familia_id,
+        ]);
+    }
+
+    /** POST /portal/familiares */
+    public function storeFamiliar(Request $request): JsonResponse
+    {
+        $contactoActual = auth()->user()->contactoFamiliar;
+
+        if (! $contactoActual?->familia_id) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Sin familia asociada.'], 403);
+        }
+
+        $total = ContactoFamiliar::where('familia_id', $contactoActual->familia_id)->count();
+        if ($total >= 3) {
+            return response()->json([
+                'status'  => 'error',
+                'mensaje' => 'Tu familia ya tiene 3 contactos registrados, que es el máximo permitido.',
+            ], 422);
+        }
+
+        $parentescoValidos = ['padre', 'madre', 'abuelo', 'tio', 'hermano', 'tutor', 'otro'];
+
+        $data = $request->validate([
+            'nombre'          => ['required', 'string', 'max:100'],
+            'ap_paterno'      => ['nullable', 'string', 'max:100'],
+            'ap_materno'      => ['nullable', 'string', 'max:100'],
+            'parentesco'      => ['required', 'string', 'in:' . implode(',', $parentescoValidos)],
+            'telefono_celular' => ['nullable', 'string', 'max:20'],
+            'email'           => ['nullable', 'email', 'max:150'],
+        ], [
+            'nombre.required'     => 'El nombre es obligatorio.',
+            'parentesco.required' => 'Selecciona el parentesco.',
+            'parentesco.in'       => 'El parentesco seleccionado no es válido.',
+            'email.email'         => 'El correo electrónico no tiene un formato válido.',
+        ]);
+
+        $nuevo = ContactoFamiliar::create([
+            'familia_id'          => $contactoActual->familia_id,
+            'nombre'              => $data['nombre'],
+            'ap_paterno'          => $data['ap_paterno'] ?? null,
+            'ap_materno'          => $data['ap_materno'] ?? null,
+            'telefono_celular'    => $data['telefono_celular'] ?? null,
+            'email'               => $data['email'] ?? null,
+            'tiene_acceso_portal' => false,
+        ]);
+
+        $this->vincularContactoAAlumnos($nuevo, $data['parentesco'], $contactoActual->familia_id);
+
+        return response()->json([
+            'status'   => 'success',
+            'mensaje'  => "Familiar {$nuevo->nombre_completo} agregado correctamente.",
+            'contacto' => $nuevo,
+        ], 201);
+    }
+
     public function razonesSociales(): View|JsonResponse
     {
         $contacto = auth()->user()->contactoFamiliar()->with('familia')->first();
@@ -485,7 +561,65 @@ class PortalPadreController extends Controller
         return response()->json(['status' => 'success', 'mensaje' => "RFC {$rs->rfc} marcado como principal.", 'razon_social' => $rs->fresh()]);
     }
 
+    /** POST /portal/razones-sociales/{id}/constancia */
+    public function subirConstancia(Request $request, int $id): JsonResponse
+    {
+        $rs = $this->razonSocialDelPadre($id);
+
+        $request->validate(
+            ['constancia' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048']],
+            [
+                'constancia.required' => 'Selecciona un archivo.',
+                'constancia.mimes'    => 'Solo se permiten archivos PDF, JPG o PNG.',
+                'constancia.max'      => 'El archivo no debe superar los 2 MB.',
+            ]
+        );
+
+        if ($rs->constancia_path) {
+            Storage::disk('public')->delete($rs->constancia_path);
+        }
+
+        $ruta = $request->file('constancia')->store("constancias/{$rs->contacto_id}", 'public');
+        $rs->update(['constancia_path' => $ruta]);
+
+        return response()->json([
+            'status'          => 'success',
+            'mensaje'         => 'Constancia cargada correctamente.',
+            'constancia_url'  => asset('storage/'.$ruta),
+        ]);
+    }
+
     /** Verifica que la razón social pertenezca al padre logueado. */
+    /** Crea entradas en alumno_contacto para cada alumno activo de la familia. */
+    private function vincularContactoAAlumnos(ContactoFamiliar $contacto, string $parentesco, int $familiaId): void
+    {
+        $tipoMap = [
+            'padre'  => 'padre',
+            'madre'  => 'madre',
+            'tutor'  => 'tutor',
+        ];
+        $tipo = $tipoMap[$parentesco] ?? 'tercero_autorizado';
+
+        $alumnos = Alumno::where('familia_id', $familiaId)
+            ->where('estado', 'activo')
+            ->get();
+
+        foreach ($alumnos as $alumno) {
+            $ordenActual = AlumnoContacto::where('alumno_id', $alumno->id)->max('orden') ?? 0;
+
+            AlumnoContacto::create([
+                'alumno_id'          => $alumno->id,
+                'contacto_id'        => $contacto->id,
+                'parentesco'         => $parentesco,
+                'tipo'               => $tipo,
+                'orden'              => min($ordenActual + 1, 3),
+                'autorizado_recoger' => false,
+                'es_responsable_pago' => false,
+                'activo'             => true,
+            ]);
+        }
+    }
+
     private function razonSocialDelPadre(int $id): RazonSocialContacto
     {
         $contacto = auth()->user()->contactoFamiliar;
