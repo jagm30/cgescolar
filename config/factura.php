@@ -11,12 +11,15 @@ return [
     | Obtén tu API Key y Secret Key en:
     |   Configuraciones → API → Datos de acceso
     |
-    | Sandbox:    https://sandbox.factura.com
-    | Producción: https://api.factura.com
+    | Sandbox:    https://sandbox.factura.com/api   ← incluir /api en sandbox
+    | Producción: https://api.factura.com           ← sin /api (ya está en el hostname)
+    |
+    | Los endpoints del servicio usan rutas como /v1/series, /v4/cfdi40/create, etc.
+    | El segmento /api está embebido en la URL base de sandbox pero NO en producción.
     |
     */
 
-    'url'        => env('FACTURA_URL', 'https://sandbox.factura.com'),
+    'url'        => env('FACTURA_URL', 'https://api.factura.com'),
     'api_key'    => env('FACTURA_API_KEY'),
     'secret_key' => env('FACTURA_SECRET_KEY'),
     'plugin'     => env('FACTURA_PLUGIN'),

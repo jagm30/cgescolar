@@ -274,7 +274,7 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            padding: 12px 8px;
+            padding: 14px 8px;
             border: none;
             background: transparent;
             font-size: 13px;
@@ -283,6 +283,7 @@
             border-right: 1px solid #f0f3f7;
             transition: background .15s;
             color: #4a5568;
+            min-height: 44px;
         }
         .rs-accion:last-child { border-right: none; }
         .rs-accion:hover:not(:disabled) { background: #f8fafc; }
@@ -330,9 +331,95 @@
         }
         .rs-nav-btn:hover { background: #f0f3f7; color: #1a2634; }
 
+        /* ── Panel de constancia (siempre visible en la tarjeta) ── */
+        .rs-constancia-panel {
+            border-top: 1px solid #ede9fe;
+            padding: 10px 16px 12px;
+            background: #faf5ff;
+        }
+        .rs-constancia-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .rs-constancia-panel-titulo {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #7c3aed;
+        }
+        .rs-constancia-ver {
+            font-size: 12px;
+            font-weight: 600;
+            color: #7c3aed;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            background: #ede9fe;
+            border-radius: 6px;
+            border: 1px solid #c4b5fd;
+            min-height: 36px;
+        }
+        .rs-constancia-ver:hover { background: #ddd6fe; color: #4c1d95; }
+        .rs-constancia-panel-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .rs-constancia-panel-input {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px;
+            padding: 7px 10px;
+            border: 1.5px solid #d0dae5;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            box-sizing: border-box;
+            color: #4a5568;
+        }
+        .rs-constancia-panel-input:focus { outline: none; border-color: #7c3aed; }
+        .rs-btn-subir {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #7c3aed;
+            color: #fff;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-height: 44px;
+            transition: background .15s;
+        }
+        .rs-btn-subir:hover:not(:disabled) { background: #4c1d95; }
+        .rs-btn-subir:disabled { opacity: .6; cursor: not-allowed; }
+
+        /* ── Responsive móvil ── */
         @media (max-width: 420px) {
             .rs-card-rfc { font-size: 19px; }
             .rs-grid-2   { grid-template-columns: 1fr; }
+            /* Constancia: input y botón apilados en columna */
+            .rs-constancia-panel-row { flex-direction: column; align-items: stretch; }
+            .rs-btn-subir { width: 100%; }
+            /* Formulario: botones Cancelar/Guardar apilados en pantallas muy estrechas */
+        }
+        @media (max-width: 380px) {
+            /* Botones de acción en 3 columnas: ocultar etiqueta, solo ícono */
+            .rs-card-acciones.tres .rs-accion .rs-lbl { display: none; }
+            .rs-card-acciones.tres .rs-accion { gap: 0; padding: 14px 6px; }
+            .rs-card-acciones.tres .rs-accion i { font-size: 16px; }
+            /* Botones Cancelar/Guardar: apilar */
+            .rs-form-btns { grid-template-columns: 1fr; }
         }
     </style>
 @endpush
@@ -522,14 +609,14 @@ $misCantidad = $razonesSociales->where('contacto_id', $miContactoId)->count();
                         <div class="rs-card-acciones {{ $rs->es_principal ? 'dos' : 'tres' }}">
                             @if(!$rs->es_principal)
                                 <button class="rs-accion rs-accion-principal btn-principal-rs">
-                                    <i class="fa fa-star-o"></i> Principal
+                                    <i class="fa fa-star-o"></i><span class="rs-lbl"> Principal</span>
                                 </button>
                             @endif
                             <button class="rs-accion rs-accion-editar btn-editar-rs">
-                                <i class="fa fa-pencil"></i> Editar
+                                <i class="fa fa-pencil"></i><span class="rs-lbl"> Editar</span>
                             </button>
                             <button class="rs-accion rs-accion-eliminar btn-eliminar-rs">
-                                <i class="fa fa-trash"></i> Eliminar
+                                <i class="fa fa-trash"></i><span class="rs-lbl"> Eliminar</span>
                             </button>
                         </div>
                     @endif
@@ -599,6 +686,32 @@ $misCantidad = $razonesSociales->where('contacto_id', $miContactoId)->count();
                     </div>
                     <div class="rs-alerta editar-alerta"></div>
 
+                </div>
+                @endif
+
+                {{-- ── Panel de constancia (siempre visible para el propio contacto) ── --}}
+                @if($esMia)
+                <div class="rs-constancia-panel">
+                    <div class="rs-constancia-panel-header">
+                        <span class="rs-constancia-panel-titulo">
+                            <i class="fa fa-file-text-o"></i> Constancia de Situación Fiscal
+                        </span>
+                        <a class="rs-constancia-ver"
+                           href="{{ $rs->constancia_path ? asset('storage/'.$rs->constancia_path) : '#' }}"
+                           target="_blank"
+                           style="{{ $rs->constancia_path ? '' : 'display:none;' }}">
+                            <i class="fa fa-eye"></i> Ver archivo
+                        </a>
+                    </div>
+                    <div class="rs-constancia-panel-row">
+                        <input type="file" class="rs-constancia-panel-input rs-constancia-file"
+                               accept=".pdf,.jpg,.jpeg,.png">
+                        <button type="button" class="rs-btn-subir btn-subir-constancia">
+                            <i class="fa fa-upload"></i>
+                            {{ $rs->constancia_path ? 'Cambiar' : 'Subir' }}
+                        </button>
+                    </div>
+                    <div class="rs-alerta rs-constancia-alerta" style="margin-top:8px;display:none;"></div>
                 </div>
                 @endif
 
@@ -785,7 +898,7 @@ $(function () {
                     var $acciones = $(this).find('.rs-card-acciones');
                     if (!$acciones.find('.btn-principal-rs').length) {
                         $acciones.removeClass('dos').addClass('tres')
-                            .prepend('<button class="rs-accion rs-accion-principal btn-principal-rs"><i class="fa fa-star-o"></i> Principal</button>');
+                            .prepend('<button class="rs-accion rs-accion-principal btn-principal-rs"><i class="fa fa-star-o"></i><span class="rs-lbl"> Principal</span></button>');
                     }
                     $acciones.find('.btn-principal-rs').prop('disabled', false);
                 });
@@ -803,6 +916,49 @@ $(function () {
                 btn.prop('disabled', false);
                 toast('No se pudo actualizar.', 'danger');
             });
+    });
+
+    // ── Subir constancia de situación fiscal ─────────────────
+    $(document).on('click', '.btn-subir-constancia', function () {
+        var btn     = $(this);
+        var $panel  = btn.closest('.rs-constancia-panel');
+        var $card   = btn.closest('.rs-card');
+        var rsId    = $card.data('id');
+        var $alerta = $panel.find('.rs-constancia-alerta');
+        var file    = $panel.find('.rs-constancia-file')[0].files[0];
+
+        if (!file) { mostrarAlerta($alerta, 'Selecciona un archivo.'); return; }
+        if (file.size > 2 * 1024 * 1024) { mostrarAlerta($alerta, 'El archivo no debe superar los 2 MB.'); return; }
+
+        var fd = new FormData();
+        fd.append('constancia', file);
+        fd.append('_token', '{{ csrf_token() }}');
+
+        btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Subiendo...');
+
+        $.ajax({
+            url:         '/portal/razones-sociales/' + rsId + '/constancia',
+            type:        'POST',
+            data:        fd,
+            processData: false,
+            contentType: false,
+        })
+        .done(function (resp) {
+            ocultarAlerta($alerta);
+            $panel.find('.rs-constancia-file')[0].value = '';
+            // Mostrar / actualizar enlace "Ver archivo"
+            $panel.find('.rs-constancia-ver').attr('href', resp.constancia_url).show();
+            btn.prop('disabled', false).html('<i class="fa fa-upload"></i> Cambiar');
+            toast(resp.mensaje, 'success');
+        })
+        .fail(function (xhr) {
+            var msg = xhr.responseJSON?.mensaje
+                || xhr.responseJSON?.message
+                || primerError(xhr.responseJSON?.errors)
+                || 'Error al subir el archivo.';
+            mostrarAlerta($alerta, msg);
+            btn.prop('disabled', false).html('<i class="fa fa-upload"></i> Subir');
+        });
     });
 
     // ── Helpers ───────────────────────────────────────────────
@@ -865,7 +1021,7 @@ $(function () {
             : '';
         var btnPrincipal = rs.es_principal
             ? ''
-            : '<button class="rs-accion rs-accion-principal btn-principal-rs"><i class="fa fa-star-o"></i> Principal</button>';
+            : '<button class="rs-accion rs-accion-principal btn-principal-rs"><i class="fa fa-star-o"></i><span class="rs-lbl"> Principal</span></button>';
         var claseAcciones = rs.es_principal ? 'dos' : 'tres';
 
         var html =
@@ -887,8 +1043,8 @@ $(function () {
           + '</div>'
           + '<div class="rs-card-acciones ' + claseAcciones + '">'
           + btnPrincipal
-          + '<button class="rs-accion rs-accion-editar btn-editar-rs"><i class="fa fa-pencil"></i> Editar</button>'
-          + '<button class="rs-accion rs-accion-eliminar btn-eliminar-rs"><i class="fa fa-trash"></i> Eliminar</button>'
+          + '<button class="rs-accion rs-accion-editar btn-editar-rs"><i class="fa fa-pencil"></i><span class="rs-lbl"> Editar</span></button>'
+          + '<button class="rs-accion rs-accion-eliminar btn-eliminar-rs"><i class="fa fa-trash"></i><span class="rs-lbl"> Eliminar</span></button>'
           + '</div>'
           + '</div>'
           + '<div class="rs-form-editar" style="display:none;">'
@@ -910,6 +1066,17 @@ $(function () {
           + '<button type="button" class="rs-btn rs-btn-save btn-guardar-editar"><i class="fa fa-save"></i> Guardar</button>'
           + '</div>'
           + '<div class="rs-alerta editar-alerta"></div>'
+          + '</div>'
+          + '<div class="rs-constancia-panel">'
+          + '<div class="rs-constancia-panel-header">'
+          + '<span class="rs-constancia-panel-titulo"><i class="fa fa-file-text-o"></i> Constancia de Situación Fiscal</span>'
+          + '<a class="rs-constancia-ver" href="#" target="_blank" style="display:none;"><i class="fa fa-eye"></i> Ver archivo</a>'
+          + '</div>'
+          + '<div class="rs-constancia-panel-row">'
+          + '<input type="file" class="rs-constancia-panel-input rs-constancia-file" accept=".pdf,.jpg,.jpeg,.png">'
+          + '<button type="button" class="rs-btn-subir btn-subir-constancia"><i class="fa fa-upload"></i> Subir</button>'
+          + '</div>'
+          + '<div class="rs-alerta rs-constancia-alerta" style="margin-top:8px;display:none;"></div>'
           + '</div>'
           + '</div>';
 

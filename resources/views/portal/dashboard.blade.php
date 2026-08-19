@@ -405,6 +405,15 @@
                 <div class="db-acceso-desc">Gestiona tu RFC para facturación</div>
             </div>
         </a>
+        <a href="{{ route('portal.familiares') }}" class="db-acceso">
+            <div class="db-acceso-icon" style="background:#ccfbf1;color:#0f766e;">
+                <i class="fa fa-users"></i>
+            </div>
+            <div>
+                <div class="db-acceso-titulo">Familiares</div>
+                <div class="db-acceso-desc">Contactos vinculados a la familia</div>
+            </div>
+        </a>
         <a href="{{ route('portal.hijos') }}" class="db-acceso">
             <div class="db-acceso-icon" style="background:#dbeafe;color:#1d4ed8;">
                 <i class="fa fa-id-card-o"></i>
