@@ -10,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\DocAdmision;
+use App\Models\ContactoFamiliar;
 use App\Models\Familia;
 use App\Models\Grado;
 use App\Models\NivelEscolar;
@@ -91,11 +92,12 @@ class ProspectoController extends Controller
 
     public function create()
     {
-        $niveles = NivelEscolar::activo()->get();
-        $ciclos  = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
-        $grados  = Grado::orderBy('nivel_id')->orderBy('numero')->get();
+        $niveles  = NivelEscolar::activo()->get();
+        $ciclos   = CicloEscolar::orderByDesc('fecha_inicio')->take(2)->get();
+        $grados   = Grado::orderBy('nivel_id')->orderBy('numero')->get();
+        $familias = Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']);
 
-        return view('prospectos.create', compact('niveles', 'ciclos', 'grados'));
+        return view('prospectos.create', compact('niveles', 'ciclos', 'grados', 'familias'));
     }
 
     public function edit(int $id)
@@ -156,13 +158,32 @@ class ProspectoController extends Controller
 
     public function store(StoreProspectoRequest $request)
     {
-        $data = array_merge($request->validated(), [
-            'responsable_id' => auth()->id(),
-            'etapa' => 'prospecto',
-            'ciclo_id' => $request->ciclo_id ?? CicloEscolar::activo()->value('id'),
-        ]);
+        $familiaId = $this->resolverFamilia($request);
+
+        $contactoNombreCompleto = implode(' ', array_filter([
+            strtoupper(trim($request->contacto_nombre ?? '')),
+            strtoupper(trim($request->contacto_ap_paterno ?? '')),
+            strtoupper(trim($request->contacto_ap_materno ?? '')),
+        ]));
+
+        $data = array_merge(
+            collect($request->validated())
+                ->except(['opcion_familia', 'apellido_familia', 'contacto_ap_paterno', 'contacto_ap_materno'])
+                ->all(),
+            [
+                'responsable_id'  => auth()->id(),
+                'etapa'           => 'prospecto',
+                'ciclo_id'        => $request->ciclo_id ?? CicloEscolar::activo()->value('id'),
+                'familia_id'      => $familiaId,
+                'contacto_nombre' => $contactoNombreCompleto,
+            ]
+        );
 
         $prospecto = Prospecto::create($data);
+
+        if ($familiaId) {
+            $this->crearContactoFamiliarSiEsNuevo($request, $familiaId);
+        }
 
         SeguimientoAdmision::create([
             'prospecto_id' => $prospecto->id,
@@ -530,5 +551,43 @@ class ProspectoController extends Controller
     private function normalizarTipoDocumento(string $tipoDocumento): string
     {
         return Str::lower(Str::squish($tipoDocumento));
+    }
+
+    /**
+     * Crea un ContactoFamiliar para la familia del prospecto si no existe
+     * ya un contacto con el mismo número de teléfono en esa familia.
+     */
+    private function crearContactoFamiliarSiEsNuevo(StoreProspectoRequest $request, int $familiaId): void
+    {
+        $telefono = $request->contacto_telefono;
+
+        $yaExiste = ContactoFamiliar::where('familia_id', $familiaId)
+            ->where('telefono_celular', $telefono)
+            ->exists();
+
+        if ($yaExiste) {
+            return;
+        }
+
+        ContactoFamiliar::create([
+            'familia_id'       => $familiaId,
+            'nombre'           => strtoupper(trim($request->contacto_nombre ?? '')),
+            'ap_paterno'       => strtoupper(trim($request->contacto_ap_paterno ?? '')),
+            'ap_materno'       => strtoupper(trim($request->contacto_ap_materno ?? '')),
+            'telefono_celular' => $telefono,
+            'email'            => $request->contacto_email,
+        ]);
+    }
+
+    /** Resuelve o crea la familia según la opción enviada en el formulario. */
+    private function resolverFamilia(StoreProspectoRequest $request): ?int
+    {
+        return match ($request->opcion_familia) {
+            'existente' => $request->familia_id ?: null,
+            'nueva'     => Familia::create([
+                               'apellido_familia' => strtoupper(Str::squish($request->apellido_familia)),
+                           ])->id,
+            default     => null,
+        };
     }
 }
