@@ -286,6 +286,25 @@ class PlanPagoController extends Controller
         );
     }
 
+    /** DELETE /planes/{id}/eliminar */
+    public function eliminarDefinitivo(int $id)
+    {
+        $plan = PlanPago::findOrFail($id);
+
+        if ($plan->asignaciones()->exists()) {
+            return $this->respuestaError('No se puede eliminar el plan porque tiene alumnos asignados.');
+        }
+
+        $nombre = $plan->nombre;
+        $plan->delete();
+        Auditoria::registrar('plan_pago', $id, 'delete', $plan->toArray(), []);
+
+        return $this->respuestaExito(
+            redirectRoute: 'planes.index',
+            mensaje: "Plan '{$nombre}' eliminado correctamente."
+        );
+    }
+
     /** POST /planes/asignar */
     public function asignar(StoreAsignacionPlanRequest $request)
     {

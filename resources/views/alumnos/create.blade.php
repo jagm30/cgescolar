@@ -240,15 +240,23 @@
 
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group {{ $errors->has('curp') ? 'has-error' : '' }}">
-                                    <label for="curp">CURP</label>
+                                <div class="form-group {{ $errors->has('curp') ? 'has-error' : '' }}" id="grupo-curp">
+                                    <label for="curp">CURP <span class="text-danger">*</span></label>
                                     <input type="text" name="curp" id="curp" class="form-control"
                                         placeholder="18 caracteres"
                                         value="{{ old('curp', $alumnoPrecargado['curp'] ?? '') }}" maxlength="18"
-                                        style="text-transform:uppercase">
+                                        style="text-transform:uppercase" required>
                                     <span class="help-block" id="curp-contador" style="color:#999;">
                                         <span id="curp-chars">0</span>/18 caracteres
                                     </span>
+                                    <div id="curp-duplicado" style="display:none;margin-top:6px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;">
+                                        <i class="fa fa-exclamation-triangle"></i>
+                                        <strong>CURP ya registrada.</strong>
+                                        El alumno <span id="curp-duplicado-nombre"></span>
+                                        (<span id="curp-duplicado-matricula"></span>)
+                                        ya tiene esta CURP.
+                                        <a id="curp-duplicado-link" href="#" target="_blank">Ver expediente</a>
+                                    </div>
                                     @error('curp')
                                         <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
                                             {{ $message }}</span>
@@ -470,9 +478,9 @@
 
                         <div id="bloque-familia-nueva">
                             <div class="form-group {{ $errors->has('apellido_familia') ? 'has-error' : '' }}">
-                                <label for="apellido_familia">Nombre de la familia <span class="text-red">*</span></label>
+                                <label for="apellido_familia">Nombre <span class="text-red">*</span></label>
                                 <input type="text" name="apellido_familia" id="apellido_familia" class="form-control"
-                                    placeholder="Ej: Familia Lopez Garcia"
+                                    placeholder="Ej: Lopez Garcia"
                                     value="{{ old('apellido_familia', $datosPrecargados['apellido_familia'] ?? '') }}"
                                     maxlength="200">
                                 @error('apellido_familia')
@@ -672,7 +680,7 @@
                             <label>Parentesco <span class="text-red">*</span></label>
                             <select name="contactos[__INDEX__][parentesco]" class="form-control">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="padre">Padre</option>
+                                <option value="padre" selected>Padre</option>
                                 <option value="madre">Madre</option>
                                 <option value="abuelo">Abuelo/a</option>
                                 <option value="tio">Tío/a</option>
@@ -685,7 +693,7 @@
                             <label>Tipo <span class="text-red">*</span></label>
                             <select name="contactos[__INDEX__][tipo]" class="form-control">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="padre">Padre/Madre</option>
+                                <option value="padre" selected>Padre/Madre</option>
                                 <option value="tutor">Tutor</option>
                                 <option value="tercero_autorizado">Tercero autorizado</option>
                             </select>
@@ -869,7 +877,7 @@
                             <label>Parentesco <span class="text-red">*</span></label>
                             <select name="contactos[__INDEX__][parentesco]" class="form-control">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="padre">Padre</option>
+                                <option value="padre" selected>Padre</option>
                                 <option value="madre">Madre</option>
                                 <option value="abuelo">Abuelo/a</option>
                                 <option value="tio">Tío/a</option>
@@ -882,7 +890,7 @@
                             <label>Tipo <span class="text-red">*</span></label>
                             <select name="contactos[__INDEX__][tipo]" class="form-control">
                                 <option value="">-- Seleccionar --</option>
-                                <option value="padre">Padre/Madre</option>
+                                <option value="padre" selected>Padre/Madre</option>
                                 <option value="tutor">Tutor</option>
                                 <option value="tercero_autorizado">Tercero autorizado</option>
                             </select>
@@ -1097,9 +1105,29 @@
             $nombreInput.val(archivo.name);
         });
 
-        $('#curp').on('input', function() {
+        $('#curp').on('input', function () {
             $(this).val($(this).val().toUpperCase());
-            $('#curp-chars').text($(this).val().length);
+            const val = $(this).val();
+            $('#curp-chars').text(val.length);
+
+            if (val.length < 18) {
+                $('#curp-duplicado').hide();
+                $('#grupo-curp').removeClass('has-warning');
+                return;
+            }
+
+            $.get('{{ route('alumnos.verificar-curp') }}', { curp: val }, function (res) {
+                if (res.existe) {
+                    $('#curp-duplicado-nombre').text(res.nombre_completo);
+                    $('#curp-duplicado-matricula').text(res.matricula ?? 'sin matrícula');
+                    $('#curp-duplicado-link').attr('href', res.url);
+                    $('#curp-duplicado').show();
+                    $('#grupo-curp').addClass('has-warning').removeClass('has-error');
+                } else {
+                    $('#curp-duplicado').hide();
+                    $('#grupo-curp').removeClass('has-warning');
+                }
+            });
         });
 
         function limpiarContactos() {
@@ -1190,7 +1218,7 @@
                         '<div class="col-md-4"><div class="form-group"><label>Parentesco <span class="text-red">*</span></label>' +
                             '<select name="contactos[' + index + '][parentesco]" class="form-control">' +
                                 '<option value="">-- Seleccionar --</option>' +
-                                '<option value="padre">Padre</option>' +
+                                '<option value="padre" selected>Padre</option>' +
                                 '<option value="madre">Madre</option>' +
                                 '<option value="abuelo">Abuelo/a</option>' +
                                 '<option value="tio">Tío/a</option>' +
@@ -1200,7 +1228,7 @@
                         '<div class="col-md-4"><div class="form-group"><label>Tipo <span class="text-red">*</span></label>' +
                             '<select name="contactos[' + index + '][tipo]" class="form-control">' +
                                 '<option value="">-- Seleccionar --</option>' +
-                                '<option value="padre">Padre/Madre</option>' +
+                                '<option value="padre" selected>Padre/Madre</option>' +
                                 '<option value="tutor">Tutor</option>' +
                                 '<option value="tercero_autorizado">Tercero autorizado</option>' +
                             '</select>' +
@@ -1493,7 +1521,7 @@
                 return null;
             },
             '#curp': function(v) {
-                if (!v) return null;
+                if (!v) return 'La CURP es obligatoria.';
                 if (v.length !== 18) return 'La CURP debe tener exactamente 18 caracteres.';
                 if (!/^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[A-Z0-9]{2}$/.test(v)) {
                     return 'El formato de la CURP no es válido.';

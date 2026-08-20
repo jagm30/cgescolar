@@ -46,7 +46,7 @@ class StoreAlumnoRequest extends FormRequest
             'ap_paterno' => ['required', 'string', 'max:100'],
             'ap_materno' => ['nullable', 'string', 'max:100'],
             'fecha_nacimiento' => ['required', 'date', 'before:today'],
-            'curp' => ['nullable', 'string', 'size:18', 'unique:alumno,curp', 'regex:/^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z]{2}$/'],
+            'curp' => ['required', 'string', 'size:18', 'unique:alumno,curp', 'regex:/^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z]{2}$/'],
             'genero' => ['nullable', 'in:M,F,Otro'],
             'foto_url' => ['nullable', 'string', 'max:500'],
             'observaciones' => ['nullable', 'string', 'max:1000'],

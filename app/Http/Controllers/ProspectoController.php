@@ -10,6 +10,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
 use App\Models\DocAdmision;
+use App\Models\Familia;
 use App\Models\Grado;
 use App\Models\NivelEscolar;
 use App\Models\Prospecto;
@@ -41,7 +42,22 @@ class ProspectoController extends Controller
                     ->orWhere('contacto_nombre', 'like', "%{$request->buscar}%")
                     ->orWhere('contacto_telefono', 'like', "%{$request->buscar}%");
             }))
-            ->orderByDesc('fecha_primer_contacto')
+            ->when(true, function ($q) use ($request) {
+                $dir = $request->get('dir') === 'asc' ? 'asc' : 'desc';
+
+                return match ($request->get('sort', 'fecha')) {
+                    'prospecto'   => $q->orderBy('ap_paterno', $dir)->orderBy('nombre', $dir),
+                    'etapa'       => $q->orderBy('etapa', $dir)->orderBy('ap_paterno'),
+                    'canal'       => $q->orderBy('canal_contacto', $dir)->orderBy('ap_paterno'),
+                    'contacto'    => $q->orderBy('contacto_nombre', $dir)->orderBy('ap_paterno'),
+                    'responsable' => $q->orderByRaw("(
+                                        SELECT nombre FROM usuario
+                                        WHERE id = prospecto.responsable_id
+                                        LIMIT 1
+                                    ) {$dir}")->orderBy('ap_paterno'),
+                    default       => $q->orderBy('fecha_primer_contacto', $dir),
+                };
+            })
             ->paginate($request->get('per_page', 20));
 
         if ($request->ajax()) {
@@ -59,6 +75,7 @@ class ProspectoController extends Controller
         $prospecto = Prospecto::with([
             'nivelInteres', 'gradoInteres', 'responsable', 'alumno',
             'seguimientos.usuario', 'documentos',
+            'familia.alumnos', 'familia.prospectos',
         ])->findOrFail($id);
 
         $tiposDocumento = $this->tiposDocumento();
@@ -67,7 +84,9 @@ class ProspectoController extends Controller
             return response()->json($prospecto);
         }
 
-        return view('prospectos.show', compact('prospecto', 'tiposDocumento'));
+        $familias = Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']);
+
+        return view('prospectos.show', compact('prospecto', 'tiposDocumento', 'familias'));
     }
 
     public function create()
@@ -87,6 +106,38 @@ class ProspectoController extends Controller
         $grados    = Grado::orderBy('nivel_id')->orderBy('numero')->get();
 
         return view('prospectos.edit', compact('prospecto', 'niveles', 'ciclos', 'grados'));
+    }
+
+    /** POST /prospectos/{id}/familia */
+    public function vincularFamilia(Request $request, int $id)
+    {
+        $request->validate([
+            'accion'           => ['required', 'in:vincular,nueva,desvincular'],
+            'familia_id'       => ['required_if:accion,vincular', 'nullable', 'exists:familia,id'],
+            'apellido_familia' => ['required_if:accion,nueva', 'nullable', 'string', 'max:200'],
+        ]);
+
+        $prospecto = Prospecto::findOrFail($id);
+
+        if ($request->accion === 'desvincular') {
+            $prospecto->update(['familia_id' => null]);
+            return $this->respuestaExito(redirectRoute: 'prospectos.show', mensaje: 'Familia desvinculada.', routeParams: ['prospecto' => $prospecto->id]);
+        }
+
+        if ($request->accion === 'nueva') {
+            $familia = Familia::create(['apellido_familia' => $request->apellido_familia]);
+        } else {
+            $familia = Familia::findOrFail($request->familia_id);
+        }
+
+        $prospecto->update(['familia_id' => $familia->id]);
+        Auditoria::registrar('prospecto', $prospecto->id, 'update', ['familia_id' => null], ['familia_id' => $familia->id]);
+
+        return $this->respuestaExito(
+            redirectRoute: 'prospectos.show',
+            mensaje: "Prospecto vinculado a la familia «{$familia->apellido_familia}».",
+            routeParams: ['prospecto' => $prospecto->id],
+        );
     }
 
     public function update(StoreProspectoRequest $request, int $id)

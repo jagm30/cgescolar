@@ -189,6 +189,28 @@
 .alm-acciones { flex-shrink: 0; display: flex; gap: 4px; align-items: center; }
 
 /* ════════════════════════════════════════════
+   BADGES DE PROSPECTO
+════════════════════════════════════════════ */
+.pro-badge {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+.pro-badge-prospecto    { background:#dbeafe; color:#1e40af; }
+.pro-badge-cita         { background:#cffafe; color:#0e7490; }
+.pro-badge-visita       { background:#d1fae5; color:#065f46; }
+.pro-badge-documentacion{ background:#fef9c3; color:#854d0e; }
+.pro-badge-aceptado     { background:#bbf7d0; color:#14532d; }
+.pro-badge-inscrito     { background:#ede7f6; color:#4527a0; }
+.pro-badge-en_espera    { background:#fde68a; color:#78350f; }
+.pro-badge-no_aceptado  { background:#fecaca; color:#7f1d1d; }
+.pro-badge-no_concretado{ background:#fee2e2; color:#991b1b; }
+
+/* ════════════════════════════════════════════
    SIDEBAR CARDS
 ════════════════════════════════════════════ */
 .info-card {
@@ -754,6 +776,73 @@
         </div>
         @endforelse
     </div>
+
+    {{-- ── PROSPECTOS EN PROCESO ── --}}
+    @if($familia->prospectos->isNotEmpty())
+    <div style="margin-bottom:24px;">
+        <p class="sec-title" style="margin-bottom:14px;">
+            <i class="fa fa-binoculars" style="color:#3c8dbc;"></i>
+            Prospectos
+            <span style="background:#e8f0fb;color:#3c8dbc;font-size:11px;font-weight:700;
+                         padding:2px 9px;border-radius:10px;">{{ $familia->prospectos->count() }}</span>
+        </p>
+
+        @php
+            $etapasBadge = [
+                'prospecto'      => 'pro-badge-prospecto',
+                'cita'           => 'pro-badge-cita',
+                'visita'         => 'pro-badge-visita',
+                'documentacion'  => 'pro-badge-documentacion',
+                'aceptado'       => 'pro-badge-aceptado',
+                'inscrito'       => 'pro-badge-inscrito',
+                'en_espera'      => 'pro-badge-en_espera',
+                'no_aceptado'    => 'pro-badge-no_aceptado',
+                'no_concretado'  => 'pro-badge-no_concretado',
+            ];
+            $etiquetasEtapa = [
+                'prospecto'      => 'Prospecto',
+                'cita'           => 'Cita',
+                'visita'         => 'Visita',
+                'documentacion'  => 'Documentación',
+                'aceptado'       => 'Aceptado',
+                'inscrito'       => 'Inscrito',
+                'en_espera'      => 'En espera',
+                'no_aceptado'    => 'No aceptado',
+                'no_concretado'  => 'No concretado',
+            ];
+        @endphp
+
+        <div style="border:1px solid #e4eaf0;border-radius:10px;overflow:hidden;">
+            @foreach($familia->prospectos as $prospecto)
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+                        border-bottom:1px solid #f0f3f7;background:#fff;">
+                <div style="flex:1;min-width:0;">
+                    <a href="{{ route('prospectos.show', $prospecto->id) }}"
+                       style="font-size:13px;font-weight:700;color:#2a3542;text-decoration:none;">
+                        {{ $prospecto->nombre_completo }}
+                    </a>
+                    @if($prospecto->nivelInteres || $prospecto->gradoInteres)
+                    <div style="font-size:11px;color:#8a9ab0;margin-top:2px;">
+                        {{ $prospecto->nivelInteres?->nombre }}
+                        @if($prospecto->gradoInteres)
+                            · {{ $prospecto->gradoInteres->numero }}°
+                        @endif
+                    </div>
+                    @endif
+                </div>
+                <span class="pro-badge {{ $etapasBadge[$prospecto->etapa] ?? '' }}"
+                      style="font-size:10px;padding:2px 9px;">
+                    {{ $etiquetasEtapa[$prospecto->etapa] ?? $prospecto->etapa }}
+                </span>
+                <a href="{{ route('prospectos.show', $prospecto->id) }}"
+                   class="btn btn-default btn-xs btn-flat" title="Ver prospecto">
+                    <i class="fa fa-eye"></i>
+                </a>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     {{-- ── DATOS DE FACTURACIÓN ── --}}
     @include('familias._razon_social')

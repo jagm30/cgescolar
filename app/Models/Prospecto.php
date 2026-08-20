@@ -33,6 +33,7 @@ class Prospecto extends Model
         'fecha_primer_contacto',
         'motivo_no_concrecion',
         'alumno_id',
+        'familia_id',
     ];
 
     protected $casts = [
@@ -103,10 +104,16 @@ class Prospecto extends Model
         return $this->belongsTo(Alumno::class, 'alumno_id');
     }
 
+    public function familia(): BelongsTo
+    {
+        return $this->belongsTo(Familia::class, 'familia_id');
+    }
+
     public function seguimientos(): HasMany
     {
         return $this->hasMany(SeguimientoAdmision::class, 'prospecto_id')
-            ->orderBy('fecha', 'asc');
+            ->orderByDesc('fecha')
+            ->orderByDesc('id');
     }
 
     public function documentos(): HasMany

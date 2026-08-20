@@ -30,12 +30,8 @@ class UpdateProspectoEtapaRequest extends FormRequest
                 return;
             }
 
-            if ($prospecto->etapa === 'inscrito') {
-                $validator->errors()->add('etapa', 'Este prospecto ya fue inscrito como alumno. No se puede modificar su etapa.');
-            }
-
-            if ($this->etapa === 'inscrito' && !$prospecto->alumno_id) {
-                $validator->errors()->add('etapa', 'Para marcar como inscrito primero debe completar el registro del alumno desde el modulo de alumnos.');
+            if ($prospecto->etapa === 'inscrito' && $prospecto->alumno_id) {
+                $validator->errors()->add('etapa', 'Este prospecto ya tiene un alumno registrado. No se puede modificar su etapa.');
             }
         });
     }

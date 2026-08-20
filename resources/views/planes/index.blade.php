@@ -633,6 +633,22 @@
                                                     </form>
                                                 </li>
                                             @endif
+
+                                            @if ($plan->asignaciones_count === 0)
+                                                <li role="separator" class="divider"></li>
+                                                <li>
+                                                    <form action="{{ route('planes.eliminar', $plan->id) }}"
+                                                        method="POST" style="margin: 0;">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="btn btn-link"
+                                                            style="width: 100%; text-align: left; padding: 3px 20px; color: #a00; text-decoration: none;"
+                                                            title="Eliminar plan definitivamente"
+                                                            onclick="return confirm('¿Eliminar definitivamente el plan \'{{ addslashes($plan->nombre) }}\'? Esta acción no se puede deshacer.');">
+                                                            <i class="fa fa-trash-o"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @endif
                                         </ul>
                                     </div>
                                 </div>

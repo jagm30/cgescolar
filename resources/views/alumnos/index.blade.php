@@ -156,17 +156,43 @@
         {{-- Tabla ───────────────────────────────────── --}}
         <div class="box-body no-padding">
             <table class="alm-table">
+                @php
+                    $sortActual = request('sort', 'nombre');
+                    $dirActual  = request('dir', 'asc');
+                    $sortUrl = fn(string $col) => route('alumnos.index', array_merge(
+                        request()->except(['sort', 'dir', 'page']),
+                        ['sort' => $col, 'dir' => ($sortActual === $col && $dirActual === 'asc') ? 'desc' : 'asc']
+                    ));
+                    $sortIcon = fn(string $col) => $sortActual === $col
+                        ? ($dirActual === 'asc' ? ' <i class="fa fa-sort-asc"></i>' : ' <i class="fa fa-sort-desc"></i>')
+                        : ' <i class="fa fa-sort" style="opacity:.3;"></i>';
+                @endphp
                 <thead>
                     <tr>
-                        <th></th>
-                        <th>Matrícula</th>
-                        <th>Nombre</th>
-                        <th>Nivel / Grupo</th>
-                        <th>Plan de pagos</th>
-                        <th>Familia</th>
-                        <th class="text-center">Portal</th>
-                        <th>Estado</th>
-                        <th class="text-center">Acciones</th>
+                        <th style="width:42px;"></th>
+                        <th style="width:30%;">
+                            <a href="{{ $sortUrl('nombre') }}" class="alm-sort-link">
+                                Nombre {!! $sortIcon('nombre') !!}
+                            </a>
+                        </th>
+                        <th style="width:14%;">
+                            <a href="{{ $sortUrl('nivel_grupo') }}" class="alm-sort-link">
+                                Nivel / Grupo {!! $sortIcon('nivel_grupo') !!}
+                            </a>
+                        </th>
+                        <th style="width:18%;font-size:11px;">
+                            <a href="{{ $sortUrl('plan') }}" class="alm-sort-link">
+                                Plan de pagos {!! $sortIcon('plan') !!}
+                            </a>
+                        </th>
+                        <th style="width:13%;">Familia</th>
+                        <th style="width:7%;" class="text-center">Portal</th>
+                        <th style="width:9%;">
+                            <a href="{{ $sortUrl('estado') }}" class="alm-sort-link">
+                                Estado {!! $sortIcon('estado') !!}
+                            </a>
+                        </th>
+                        <th style="width:9%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -192,16 +218,15 @@
                                 @endif
                             </td>
 
-                            {{-- MATRÍCULA --}}
-                            <td>
-                                <span class="alm-matricula">{{ $alumno->matricula }}</span>
-                            </td>
 
                             {{-- NOMBRE --}}
                             <td>
                                 <div class="alm-nombre">
                                     {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }} {{ $alumno->nombre }}
                                 </div>
+                                @if($alumno->curp)
+                                    <div style="font-size:11px;color:#c0c8d0;margin-top:2px;">{{ $alumno->curp }}</div>
+                                @endif
                             </td>
 
                             {{-- NIVEL / GRUPO --}}
@@ -209,8 +234,8 @@
                                 @if ($inscripcion)
                                     <div class="alm-nivel-tag">{{ $inscripcion->grupo->grado->nivel->nombre ?? '' }}</div>
                                     <div class="alm-grupo-txt">
-                                        {{ $inscripcion->grupo->grado->numero ?? ''}}°
-                                        <strong>{{ $inscripcion->grupo->nombre ?? '' }}</strong>
+                                        <span class="alm-grupo-grado">{{ $inscripcion->grupo->grado->numero ?? '' }}°</span>
+                                        <span class="alm-grupo-nombre">{{ $inscripcion->grupo->nombre ?? '' }}</span>
                                     </div>
                                 @else
                                     <span class="alm-badge alm-badge-sin-grupo">
@@ -223,12 +248,11 @@
                             <td>
                                 @php $plan = $planPorAlumno->get($alumno->id); @endphp
                                 @if ($plan)
-                                    <span style="font-size:12px;font-weight:600;color:#2c5282;">
-                                        <i class="fa fa-file-text-o" style="color:#3c8dbc;margin-right:4px;"></i>
+                                    <span style="font-size:11px;color:#7a90a8;">
                                         {{ $plan->nombre }}
                                     </span>
                                 @else
-                                    <span style="font-size:12px;color:#b0bec5;">—</span>
+                                    <span style="font-size:11px;color:#c0c8d0;">—</span>
                                 @endif
                             </td>
 
@@ -244,6 +268,7 @@
                                     <span class="alm-familia-none">—</span>
                                 @endif
                             </td>
+
 
                             {{-- PORTAL --}}
                             <td class="text-center">
@@ -433,6 +458,17 @@
 
         @push('scripts')
             <script>
+                // ── BÚSQUEDA EN TIEMPO REAL ──
+                (function () {
+                    var timer;
+                    document.querySelector('input[name="buscar"]').addEventListener('input', function () {
+                        clearTimeout(timer);
+                        timer = setTimeout(function () {
+                            document.getElementById('form-filtros').submit();
+                        }, 400);
+                    });
+                })();
+
                 // ── REPORTE CUMPLEAÑEROS: actualizar mes en la URL ──
                 var urlBaseCumple = '{{ route('alumnos.reporte-cumpleaneros', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}';
 

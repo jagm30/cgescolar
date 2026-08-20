@@ -154,6 +154,7 @@ class FamiliaController extends Controller
                     ->orderByDesc('es_principal')
                     ->orderBy('id'),
             ]),
+            'prospectos' => fn ($q) => $q->with(['nivelInteres', 'gradoInteres']),
         ])->findOrFail($id);
 
         if ($request->has('_modal')) {
