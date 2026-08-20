@@ -135,6 +135,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/alumnos/reporte-cumpleaneros', [AlumnoController::class, 'reporteCumpleaneros'])
         ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.reporte-cumpleaneros');
+    Route::get('/alumnos/verificar-curp', [AlumnoController::class, 'verificarCurp'])
+        ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones,director_seccion')
+        ->name('alumnos.verificar-curp');
+
     // Registrar alumnos (create/store) — admin, recepción, caja, admisiones e información y admisiones
     // IMPORTANTE: el resource (que incluye /alumnos/create) debe ir ANTES
     // de la ruta /alumnos/{alumno} para evitar que "create" se resuelva como {id}
@@ -242,6 +246,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/planes/pdf', [PlanPagoController::class, 'exportarPdf'])
         ->middleware('rol:administrador,caja')
         ->name('planes.pdf');
+
+    Route::delete('/planes/{id}/eliminar', [PlanPagoController::class, 'eliminarDefinitivo'])
+        ->middleware('rol:administrador')
+        ->name('planes.eliminar');
 
     Route::resource('planes', PlanPagoController::class)
         ->middleware('rol:administrador,caja');
@@ -378,6 +386,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/prospectos/{id}/pdf', [ProspectoController::class, 'exportarPdf'])
         ->middleware('rol:administrador,recepcion,admisiones')
         ->name('prospectos.pdf');
+
+    Route::post('/prospectos/{id}/familia', [ProspectoController::class, 'vincularFamilia'])
+        ->middleware('rol:administrador,recepcion,admisiones')
+        ->name('prospectos.familia');
 
     Route::post('/prospectos/{id}/etapa', [ProspectoController::class, 'cambiarEtapa'])
         ->middleware('rol:administrador,recepcion,admisiones')

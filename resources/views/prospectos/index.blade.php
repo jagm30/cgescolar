@@ -66,6 +66,13 @@
     border-spacing: 0;
     width: 100%;
 }
+.pro-sort-link {
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.pro-sort-link:hover { color: #3c8dbc; text-decoration: none; }
+
 .pro-table thead th {
     background: #f4f6f8;
     color: #6b7a8d;
@@ -278,19 +285,26 @@
     </form>
 
     {{-- Tabla ───────────────────────────────────────── --}}
+    @php
+        $sortActual = request('sort', 'fecha');
+        $dirActual  = request('dir', 'desc');
+        $sortUrl = fn(string $col) => route('prospectos.index', array_merge(
+            request()->except(['sort', 'dir', 'page']),
+            ['sort' => $col, 'dir' => ($sortActual === $col && $dirActual === 'desc') ? 'asc' : 'desc']
+        ));
+        $sortIcon = fn(string $col) => $sortActual === $col
+            ? ($dirActual === 'asc' ? ' <i class="fa fa-sort-asc"></i>' : ' <i class="fa fa-sort-desc"></i>')
+            : ' <i class="fa fa-sort" style="opacity:.3;"></i>';
+    @endphp
     <div class="box-body no-padding">
         <table class="pro-table">
             <thead>
                 <tr>
-                    <th>Prospecto</th>
-                    <th>Contacto</th>
-                    <th>Nivel</th>
-                    <th>Grado</th>
-                    <th>Canal</th>
-                    <th>Ciclo</th>
-                    <th>Etapa</th>
-                    <th>Fecha</th>
-                    <th>Responsable</th>
+                    <th><a href="{{ $sortUrl('prospecto') }}" class="pro-sort-link">Prospecto {!! $sortIcon('prospecto') !!}</a></th>
+                    <th><a href="{{ $sortUrl('contacto') }}" class="pro-sort-link">Contacto {!! $sortIcon('contacto') !!}</a></th>
+                    <th>Nivel / Grado</th>
+                    <th><a href="{{ $sortUrl('etapa') }}" class="pro-sort-link">Etapa {!! $sortIcon('etapa') !!}</a></th>
+                    <th><a href="{{ $sortUrl('responsable') }}" class="pro-sort-link">Responsable {!! $sortIcon('responsable') !!}</a></th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
@@ -319,32 +333,16 @@
                             @endif
                         </td>
 
-                        {{-- NIVEL --}}
+                        {{-- NIVEL / GRADO --}}
                         <td>
-                            <span style="font-size:12px;color:#555;">
+                            <div style="font-size:12px;font-weight:600;color:#1a3a5c;">
                                 {{ optional($prospecto->nivelInteres)->nombre ?: '—' }}
-                            </span>
-                        </td>
-
-                        {{-- GRADO --}}
-                        <td>
-                            <span style="font-size:12px;color:#555;">
-                                {{ optional($prospecto->gradoInteres)->numero ? $prospecto->gradoInteres->numero . '°' : '—' }}
-                            </span>
-                        </td>
-
-                        {{-- CANAL --}}
-                        <td>
-                            <span style="font-size:12px;color:#555;">
-                                {{ $prospecto->canal_contacto ? ucfirst(str_replace('_', ' ', $prospecto->canal_contacto)) : '—' }}
-                            </span>
-                        </td>
-
-                        {{-- CICLO --}}
-                        <td>
-                            <span style="font-size:12px;color:#555;">
-                                {{ optional($prospecto->ciclo)->nombre ?: '—' }}
-                            </span>
+                            </div>
+                            @if(optional($prospecto->gradoInteres)->numero)
+                                <div style="font-size:11px;color:#6b7a8d;margin-top:1px;">
+                                    {{ $prospecto->gradoInteres->numero }}° grado
+                                </div>
+                            @endif
                         </td>
 
                         {{-- ETAPA --}}
@@ -352,13 +350,6 @@
                             <span class="pro-etapa pro-etapa-{{ $prospecto->etapa }}">
                                 <i class="fa fa-circle" style="font-size:6px;"></i>
                                 {{ $etapas[$prospecto->etapa] ?? $prospecto->etapa }}
-                            </span>
-                        </td>
-
-                        {{-- FECHA --}}
-                        <td>
-                            <span style="font-size:12px;color:#6b7a8d;">
-                                {{ optional($prospecto->fecha_primer_contacto)->format('d/m/Y') ?: '—' }}
                             </span>
                         </td>
 
@@ -479,6 +470,17 @@
 
 @push('scripts')
 <script>
+// ── BÚSQUEDA EN TIEMPO REAL ──
+(function () {
+    var timer;
+    document.querySelector('input[name="buscar"]').addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            document.getElementById('form-filtros').submit();
+        }, 400);
+    });
+})();
+
 $(function () {
     var etapaSelect = $('#modal_etapa');
     var motivoGroup = $('#contenedorMotivoNoConcrecion');

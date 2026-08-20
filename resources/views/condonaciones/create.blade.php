@@ -345,6 +345,20 @@
                                     <i class="fa fa-exclamation-circle text-warning"></i>
                                     Este plan no tiene alumnos asignados en el ciclo actual.
                                 </div>
+                                <div id="buscador-alumnos-masiva" style="padding:10px 12px;border-bottom:1px solid #e0e7ef;display:none;">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                                        <input type="text" id="filtro-alumno-masiva" class="form-control"
+                                               placeholder="Buscar por nombre o matrícula…">
+                                        <span class="input-group-btn">
+                                            <button type="button" id="limpiar-filtro-masiva" class="btn btn-default"
+                                                    title="Limpiar búsqueda">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                    <div id="conteo-alumnos-masiva" style="font-size:11px;color:#aab;margin-top:5px;min-height:14px;"></div>
+                                </div>
                                 <div class="alumno-check-list" id="lista-alumnos-masiva"></div>
                             </div>
                         </div>
@@ -550,6 +564,9 @@
                 $('#panel-conceptos-masiva, #panel-alumnos-masiva').hide();
                 $('#tbody-conceptos-masiva').empty();
                 $('#lista-alumnos-masiva').empty();
+                $('#buscador-alumnos-masiva').hide();
+                $('#filtro-alumno-masiva').val('');
+                $('#conteo-alumnos-masiva').text('');
                 actualizarResumenMasiva();
                 return;
             }
@@ -561,6 +578,9 @@
             $('#panel-alumnos-masiva').show();
             $('#estado-cargando-masiva').show();
             $('#estado-sin-alumnos-masiva').hide();
+            $('#buscador-alumnos-masiva').hide();
+            $('#filtro-alumno-masiva').val('');
+            $('#conteo-alumnos-masiva').text('');
             $('#lista-alumnos-masiva').empty();
             $('#tbody-conceptos-masiva').empty();
 
@@ -602,6 +622,7 @@
                             </label>
                         `);
                     });
+                    $('#buscador-alumnos-masiva').show();
                 }
 
                 actualizarResumenMasiva();
@@ -615,8 +636,30 @@
 
         $('#check-todos-masiva').on('change', function () {
             const checked = $(this).is(':checked');
-            $('.check-alumno-masiva').prop('checked', checked);
+            $('#lista-alumnos-masiva .alumno-check-item:visible .check-alumno-masiva').prop('checked', checked);
             actualizarResumenMasiva();
+        });
+
+        $('#filtro-alumno-masiva').on('input', function () {
+            const q = $(this).val().toLowerCase().trim();
+            let visibles = 0, total = 0;
+
+            $('#lista-alumnos-masiva .alumno-check-item').each(function () {
+                const texto = $(this).text().toLowerCase();
+                const mostrar = !q || texto.includes(q);
+                $(this).toggle(mostrar);
+                if (mostrar) visibles++;
+                total++;
+            });
+
+            $('#conteo-alumnos-masiva').text(q ? `Mostrando ${visibles} de ${total} alumnos` : '');
+
+            const sinVisiblesChecked = $('#lista-alumnos-masiva .alumno-check-item:visible .check-alumno-masiva:not(:checked)').length;
+            $('#check-todos-masiva').prop('checked', visibles > 0 && sinVisiblesChecked === 0);
+        });
+
+        $('#limpiar-filtro-masiva').on('click', function () {
+            $('#filtro-alumno-masiva').val('').trigger('input');
         });
 
         $(document).on('input', '.monto-masiva', function () {

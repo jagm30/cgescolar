@@ -81,8 +81,43 @@ class AlumnoController extends Controller
                 ->orWhere('matricula', 'like', "%{$request->buscar}%")
                 ->orWhere('curp', 'like', "%{$request->buscar}%")
             ))
-            ->orderBy('ap_paterno')
-            ->orderBy('nombre');
+            ->when(true, function ($q) use ($request, $cicloId) {
+                $sort = $request->get('sort', 'nombre');
+                $dir  = $request->get('dir') === 'desc' ? 'desc' : 'asc';
+
+                return match ($sort) {
+                    'estado' => $q->orderBy('estado', $dir)
+                                  ->orderBy('ap_paterno')->orderBy('nombre'),
+                    'nivel_grupo' => $q->orderByRaw("(
+                            SELECT CONCAT(
+                                ne.nombre,
+                                LPAD(gr.numero, 3, '0'),
+                                g.nombre
+                            )
+                            FROM inscripcion i
+                            JOIN grupo g  ON g.id  = i.grupo_id
+                            JOIN grado gr ON gr.id = g.grado_id
+                            JOIN nivel_escolar ne ON ne.id = gr.nivel_id
+                            WHERE i.alumno_id = alumno.id
+                              AND i.ciclo_id  = ?
+                              AND i.activo    = 1
+                            LIMIT 1
+                        ) {$dir}", [$cicloId])
+                                      ->orderBy('ap_paterno')->orderBy('nombre'),
+                    'plan' => $q->orderByRaw("(
+                            SELECT pp.nombre
+                            FROM cargo c
+                            JOIN asignacion_plan ap ON ap.id = c.asignacion_id
+                            JOIN plan_pago pp       ON pp.id = ap.plan_id
+                            JOIN inscripcion i      ON i.id  = c.inscripcion_id
+                            WHERE i.alumno_id = alumno.id
+                              AND pp.ciclo_id = ?
+                            LIMIT 1
+                        ) {$dir}", [$cicloId])
+                                ->orderBy('ap_paterno')->orderBy('nombre'),
+                    default => $q->orderBy('ap_paterno', $dir)->orderBy('nombre', $dir),
+                };
+            });
 
         if ($request->ajax()) {
             return response()->json($query->paginate($request->get('per_page', 20)));
@@ -1153,7 +1188,7 @@ class AlumnoController extends Controller
                 'nivel_id' => $prospecto->nivel_interes_id,
                 'prospecto_id' => $prospecto->id,
             ],
-            'apellido_familia' => $apellidoFamilia ? 'Familia '.$apellidoFamilia : '',
+            'apellido_familia' => $apellidoFamilia,
             'contactos' => [[
                 'nombre' => $contactoNombre,
                 'ap_paterno' => $contactoApPaterno,
@@ -1235,5 +1270,28 @@ class AlumnoController extends Controller
         $apPaterno = array_pop($partes);
 
         return [implode(' ', $partes), $apPaterno, $apMaterno];
+    }
+
+    /** GET /alumnos/verificar-curp?curp=XXX[&exclude_id=N] */
+    public function verificarCurp(Request $request): JsonResponse
+    {
+        $curp      = strtoupper(trim($request->query('curp', '')));
+        $excludeId = (int) $request->query('exclude_id', 0);
+
+        $alumno = Alumno::where('curp', $curp)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->select('id', 'nombre', 'ap_paterno', 'ap_materno', 'matricula')
+            ->first();
+
+        if (!$alumno) {
+            return response()->json(['existe' => false]);
+        }
+
+        return response()->json([
+            'existe'          => true,
+            'nombre_completo' => trim("{$alumno->ap_paterno} {$alumno->ap_materno} {$alumno->nombre}"),
+            'matricula'       => $alumno->matricula,
+            'url'             => route('alumnos.show', $alumno->id),
+        ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Prospecto;
 
 class Familia extends Model
 {
@@ -60,5 +61,12 @@ class Familia extends Model
         return $this->hasMany(ContactoFamiliar::class, 'familia_id')
                     ->where('tiene_acceso_portal', true)
                     ->whereNull('usuario_id');
+    }
+
+    public function prospectos(): HasMany
+    {
+        return $this->hasMany(Prospecto::class, 'familia_id')
+                    ->orderBy('ap_paterno')
+                    ->orderBy('nombre');
     }
 }

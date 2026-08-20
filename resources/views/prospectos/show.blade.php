@@ -4,6 +4,8 @@
 @section('page_subtitle', $prospecto->nombre_completo)
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
 <style>
     /* ── Header compacto ── */
     .pro-header {
@@ -41,7 +43,7 @@
     .pro-badge-visita      { background:#d1fae5; color:#065f46; }
     .pro-badge-documentacion{ background:#fef9c3; color:#854d0e; }
     .pro-badge-aceptado    { background:#bbf7d0; color:#14532d; }
-    .pro-badge-inscrito      { background:#e0e7ef; color:#1e3a5f; }
+    .pro-badge-inscrito      { background:#ede7f6; color:#4527a0; }
     .pro-badge-en_espera     { background:#fde68a; color:#78350f; }
     .pro-badge-no_aceptado   { background:#fecaca; color:#7f1d1d; }
     .pro-badge-no_concretado { background:#fee2e2; color:#991b1b; }
@@ -278,6 +280,7 @@
             'en_espera'      => 'En espera',
             'no_aceptado'    => 'No aceptado',
             'no_concretado'  => 'No concretado',
+            'inscrito'       => 'Inscrito',
         ];
 
         $tiposSeguimiento = [
@@ -323,7 +326,7 @@
             <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#modalEtapa">
                 <i class="fa fa-exchange"></i> Cambiar etapa
             </button>
-            @if ($prospecto->etapa === 'aceptado' && !$prospecto->alumno_id)
+            @if (!$prospecto->alumno_id)
                 <a href="{{ route('alumnos.create', ['prospecto_id' => $prospecto->id]) }}" class="btn btn-primary btn-sm">
                     <i class="fa fa-user-plus"></i> Registrar como alumno
                 </a>
@@ -411,15 +414,28 @@
             </div>
 
             {{-- Seguimientos --}}
+            @php
+                $segOrden = request('seg_orden', 'desc');
+                $seguimientosOrdenados = $segOrden === 'asc'
+                    ? $prospecto->seguimientos->sortBy(fn($s) => [$s->fecha, $s->id])->values()
+                    : $prospecto->seguimientos->sortByDesc(fn($s) => [$s->fecha, $s->id])->values();
+                $toggleOrdenUrl = request()->fullUrlWithQuery(['seg_orden' => $segOrden === 'desc' ? 'asc' : 'desc']);
+            @endphp
             <div class="pro-panel">
                 <div class="pro-panel-header">
                     <div class="pro-panel-header-left">
                         <i class="fa fa-comments-o" style="color:#3c8dbc;"></i>
                         <span class="title">Seguimiento</span>
                     </div>
+                    <a href="{{ $toggleOrdenUrl }}"
+                       title="{{ $segOrden === 'desc' ? 'Mostrar más antiguos primero' : 'Mostrar más recientes primero' }}"
+                       style="margin-left:auto;font-size:11px;color:#6b7a8d;text-decoration:none;display:flex;align-items:center;gap:4px;">
+                        <i class="fa fa-{{ $segOrden === 'desc' ? 'sort-amount-desc' : 'sort-amount-asc' }}"></i>
+                        {{ $segOrden === 'desc' ? 'Más reciente primero' : 'Más antiguo primero' }}
+                    </a>
                 </div>
                 <div class="pro-panel-body">
-                    @forelse ($prospecto->seguimientos as $seguimiento)
+                    @forelse ($seguimientosOrdenados as $seguimiento)
                         <div class="seg-item">
                             <div class="seg-tipo">{{ $tiposSeguimiento[$seguimiento->tipo_accion] ?? ucfirst($seguimiento->tipo_accion) }}</div>
                             <div class="seg-meta">
@@ -453,6 +469,76 @@
                 <div class="res-row">
                     <span>Alumno vinculado</span>
                     <span class="res-val">{{ $prospecto->alumno_id ? 'Sí' : 'No' }}</span>
+                </div>
+            </div>
+
+            {{-- Familia --}}
+            <div class="pro-panel" style="margin-bottom:14px;">
+                <div class="pro-panel-header">
+                    <div class="pro-panel-header-left">
+                        <i class="fa fa-home" style="color:#3c8dbc;"></i>
+                        <span class="title">Familia</span>
+                    </div>
+                    <button type="button" class="btn btn-default btn-xs"
+                            data-toggle="modal" data-target="#modalFamilia">
+                        <i class="fa fa-{{ $prospecto->familia_id ? 'pencil' : 'link' }}"></i>
+                        {{ $prospecto->familia_id ? 'Cambiar' : 'Vincular' }}
+                    </button>
+                </div>
+                <div class="pro-panel-body">
+                    @if ($prospecto->familia)
+                        <a href="{{ route('familias.show', $prospecto->familia_id) }}"
+                           style="font-size:13px;font-weight:700;color:#2a3542;text-decoration:none;">
+                            <i class="fa fa-users" style="color:#3c8dbc;margin-right:5px;"></i>
+                            {{ $prospecto->familia->apellido_familia }}
+                        </a>
+
+                        @php
+                            $hermanosProspectos = $prospecto->familia->prospectos
+                                ->where('id', '!=', $prospecto->id);
+                            $hermanosAlumnos = $prospecto->familia->alumnos;
+                        @endphp
+
+                        @if($hermanosProspectos->isNotEmpty() || $hermanosAlumnos->isNotEmpty())
+                            <div style="margin-top:10px;font-size:11px;font-weight:700;color:#8a96a3;text-transform:uppercase;letter-spacing:.04em;">
+                                Miembros de la familia
+                            </div>
+                            @foreach($hermanosProspectos as $hermano)
+                                <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f0f3f7;font-size:12px;">
+                                    <i class="fa fa-user-o" style="color:#3c8dbc;width:14px;"></i>
+                                    <a href="{{ route('prospectos.show', $hermano->id) }}" style="flex:1;color:#2a3542;text-decoration:none;">
+                                        {{ $hermano->nombre_completo }}
+                                    </a>
+                                    <span class="pro-etapa pro-etapa-{{ $hermano->etapa }}" style="font-size:9px;padding:1px 6px;">
+                                        {{ $etapas[$hermano->etapa] ?? $hermano->etapa }}
+                                    </span>
+                                </div>
+                            @endforeach
+                            @foreach($hermanosAlumnos as $alumno)
+                                <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f0f3f7;font-size:12px;">
+                                    <i class="fa fa-graduation-cap" style="color:#00875a;width:14px;"></i>
+                                    <a href="{{ route('alumnos.show', $alumno->id) }}" style="flex:1;color:#2a3542;text-decoration:none;">
+                                        {{ $alumno->ap_paterno }} {{ $alumno->ap_materno }} {{ $alumno->nombre }}
+                                    </a>
+                                    <span style="font-size:9px;background:#d1fae5;color:#065f46;padding:1px 6px;border-radius:8px;font-weight:700;">Alumno</span>
+                                </div>
+                            @endforeach
+                        @endif
+
+                        <form method="POST" action="{{ route('prospectos.familia', $prospecto->id) }}"
+                              style="margin-top:10px;" onsubmit="return confirm('¿Desvincular esta familia?');">
+                            @csrf
+                            <input type="hidden" name="accion" value="desvincular">
+                            <button type="submit" class="btn btn-link btn-xs"
+                                    style="padding:0;color:#b0bec5;font-size:11px;">
+                                <i class="fa fa-unlink"></i> Desvincular familia
+                            </button>
+                        </form>
+                    @else
+                        <p class="text-muted" style="font-size:13px;margin:0;">
+                            Sin familia asignada.
+                        </p>
+                    @endif
                 </div>
             </div>
 
@@ -577,6 +663,76 @@
         </div>
     </div>
 
+    {{-- Modal: Vincular / crear familia --}}
+    <div class="modal fade" id="modalFamilia" tabindex="-1" role="dialog" aria-labelledby="modalFamiliaLabel">
+        <div class="modal-dialog" role="document">
+            <form method="POST" action="{{ route('prospectos.familia', $prospecto->id) }}" id="formFamilia">
+                @csrf
+                <input type="hidden" name="accion" id="fam_accion" value="vincular">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="modalFamiliaLabel">
+                            {{ $prospecto->familia_id ? 'Cambiar familia' : 'Vincular a familia' }}
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                        {{-- Opciones --}}
+                        <div class="form-group">
+                            <div class="radio">
+                                <label>
+                                    <input type="radio" name="opcion_familia" value="vincular" checked>
+                                    Vincular a una familia existente
+                                </label>
+                            </div>
+                            <div class="radio">
+                                <label>
+                                    <input type="radio" name="opcion_familia" value="nueva">
+                                    Crear una nueva familia
+                                </label>
+                            </div>
+                        </div>
+
+                        {{-- Panel: vincular existente --}}
+                        <div id="panel_vincular">
+                            <div class="form-group">
+                                <label for="familia_id">Familia</label>
+                                <select class="form-control select2" id="familia_id" name="familia_id" style="width:100%;" data-placeholder="Buscar familia por apellido…">
+                                    <option value=""></option>
+                                    @foreach ($familias as $fam)
+                                        <option value="{{ $fam->id }}"
+                                            {{ old('familia_id', $prospecto->familia_id) == $fam->id ? 'selected' : '' }}>
+                                            {{ $fam->apellido_familia }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        {{-- Panel: crear nueva --}}
+                        <div id="panel_nueva" style="display:none;">
+                            <div class="form-group">
+                                <label for="apellido_familia">Nombre de la familia</label>
+                                <input type="text" class="form-control" id="apellido_familia"
+                                       name="apellido_familia" maxlength="120"
+                                       placeholder="Ej: GARCÍA LÓPEZ">
+                                <p class="help-block" style="font-size:11px;">
+                                    Generalmente los apellidos paterno y materno del alumno.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn_guardar_familia">Vincular</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Modal: Cambiar etapa --}}
     <div class="modal fade" id="modalEtapa" tabindex="-1" role="dialog" aria-labelledby="modalEtapaLabel">
         <div class="modal-dialog" role="document">
@@ -618,8 +774,42 @@
 @endsection
 
 @push('scripts')
+    <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
         $(function () {
+            /* ── Modal Familia ── */
+            $('input[name="opcion_familia"]').on('change', function () {
+                var opcion = $(this).val();
+                if (opcion === 'vincular') {
+                    $('#panel_vincular').show();
+                    $('#panel_nueva').hide();
+                    $('#fam_accion').val('vincular');
+                    $('#familia_id').prop('required', true);
+                    $('#apellido_familia').prop('required', false).val('');
+                    $('#btn_guardar_familia').text('Vincular');
+                } else {
+                    $('#panel_vincular').hide();
+                    $('#panel_nueva').show();
+                    $('#fam_accion').val('nueva');
+                    $('#familia_id').val(null).trigger('change').prop('required', false);
+                    $('#apellido_familia').prop('required', true);
+                    $('#btn_guardar_familia').text('Crear y vincular');
+                }
+            });
+
+            // Inicializar Select2 en el dropdown de familias
+            $('#familia_id').select2({
+                dropdownParent: $('#modalFamilia'),
+                placeholder: 'Buscar familia por apellido…',
+                allowClear: true,
+                language: { noResults: function () { return 'Sin resultados'; } },
+            });
+
+            // Inicializar estado correcto al abrir el modal
+            $('#modalFamilia').on('show.bs.modal', function () {
+                $('input[name="opcion_familia"][value="vincular"]').prop('checked', true).trigger('change');
+            });
+
             function toggleMotivo() {
                 var show = $('#etapa').val() === 'no_concretado';
                 $('#grupo_motivo_no_concrecion').toggle(show);

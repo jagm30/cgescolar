@@ -221,7 +221,7 @@
 
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="form-group {{ $errors->has('curp') ? 'has-error' : '' }}">
+                        <div class="form-group {{ $errors->has('curp') ? 'has-error' : '' }}" id="grupo-curp">
                             <label for="curp">
                                 CURP
                                 <small class="text-muted" id="curp-lbl">
@@ -231,6 +231,14 @@
                             <input type="text" name="curp" id="curp" class="form-control"
                                 placeholder="18 caracteres" value="{{ old('curp', $alumno->curp) }}"
                                 maxlength="18" style="text-transform:uppercase">
+                            <div id="curp-duplicado" style="display:none;margin-top:6px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;color:#856404;">
+                                <i class="fa fa-exclamation-triangle"></i>
+                                <strong>CURP ya registrada.</strong>
+                                El alumno <span id="curp-duplicado-nombre"></span>
+                                (<span id="curp-duplicado-matricula"></span>)
+                                ya tiene esta CURP.
+                                <a id="curp-duplicado-link" href="#" target="_blank">Ver expediente</a>
+                            </div>
                             @error('curp')
                                 <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
                                     {{ $message }}</span>
@@ -1422,11 +1430,31 @@
             // ══════════════════════════════════════════════════
             // CURP
             // ══════════════════════════════════════════════════
-            $('#curp').on('input', function() {
+            $('#curp').on('input', function () {
                 this.value = this.value.toUpperCase();
-                var len = this.value.length;
+                const val = this.value;
+                const len = val.length;
                 $('#curp-chars').text(len);
                 $('#curp-lbl').css('color', len === 18 ? '#00a65a' : len > 0 ? '#f39c12' : '#999');
+
+                if (len < 18) {
+                    $('#curp-duplicado').hide();
+                    $('#grupo-curp').removeClass('has-warning');
+                    return;
+                }
+
+                $.get('{{ route('alumnos.verificar-curp') }}', { curp: val, exclude_id: {{ $alumno->id }} }, function (res) {
+                    if (res.existe) {
+                        $('#curp-duplicado-nombre').text(res.nombre_completo);
+                        $('#curp-duplicado-matricula').text(res.matricula ?? 'sin matrícula');
+                        $('#curp-duplicado-link').attr('href', res.url);
+                        $('#curp-duplicado').show();
+                        $('#grupo-curp').addClass('has-warning').removeClass('has-error');
+                    } else {
+                        $('#curp-duplicado').hide();
+                        $('#grupo-curp').removeClass('has-warning');
+                    }
+                });
             });
 
             // ══════════════════════════════════════════════════
