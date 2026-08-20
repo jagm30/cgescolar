@@ -4,6 +4,8 @@
 @section('page_subtitle', 'Registro de admision')
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+<link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
 <style>
     /* ── Header compacto ── */
     .pro-header {
@@ -278,14 +280,33 @@
                         <div class="pro-section-title">Datos de contacto</div>
 
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="contacto_nombre">Nombre del contacto</label>
+                                    <label for="contacto_nombre">Nombre(s)</label>
                                     <input type="text" class="form-control" id="contacto_nombre" name="contacto_nombre"
-                                        value="{{ old('contacto_nombre') }}" required maxlength="200"
+                                        value="{{ old('contacto_nombre') }}" required maxlength="100"
                                         pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ'\-\s]+" placeholder="Solo letras">
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="contacto_ap_paterno">Apellido paterno</label>
+                                    <input type="text" class="form-control" id="contacto_ap_paterno" name="contacto_ap_paterno"
+                                        value="{{ old('contacto_ap_paterno') }}" maxlength="100"
+                                        pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ'\-\s]+" placeholder="Solo letras">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="contacto_ap_materno">Apellido materno</label>
+                                    <input type="text" class="form-control" id="contacto_ap_materno" name="contacto_ap_materno"
+                                        value="{{ old('contacto_ap_materno') }}" maxlength="100"
+                                        pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ'\-\s]+" placeholder="Solo letras">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="contacto_telefono">Teléfono</label>
@@ -294,9 +315,16 @@
                                         maxlength="10" inputmode="numeric" pattern="[0-9]{10}" placeholder="10 dígitos">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-5">
                                 <div class="form-group">
-                                    <label for="fecha_primer_contacto">Primer contacto</label>
+                                    <label for="contacto_email">Correo electrónico</label>
+                                    <input type="email" class="form-control" id="contacto_email" name="contacto_email"
+                                        value="{{ old('contacto_email') }}" maxlength="200">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="fecha_primer_contacto">Fecha de primer contacto</label>
                                     <input type="date" class="form-control" id="fecha_primer_contacto"
                                         name="fecha_primer_contacto"
                                         value="{{ old('fecha_primer_contacto', now()->toDateString()) }}" required>
@@ -305,13 +333,6 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="contacto_email">Correo electrónico</label>
-                                    <input type="email" class="form-control" id="contacto_email" name="contacto_email"
-                                        value="{{ old('contacto_email') }}" maxlength="200">
-                                </div>
-                            </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="canal_contacto">Canal de contacto</label>
@@ -324,6 +345,60 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pro-section-title">Familia</div>
+
+                        {{-- Opción de familia --}}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <div style="display:flex;gap:20px;margin-bottom:10px;">
+                                        <label style="font-weight:400;font-size:13px;text-transform:none;letter-spacing:0;cursor:pointer;">
+                                            <input type="radio" name="opcion_familia" value="" id="fam_ninguna" checked style="margin-right:4px;">
+                                            Sin familia
+                                        </label>
+                                        <label style="font-weight:400;font-size:13px;text-transform:none;letter-spacing:0;cursor:pointer;">
+                                            <input type="radio" name="opcion_familia" value="existente" id="fam_existente" style="margin-right:4px;">
+                                            Vincular a familia existente
+                                        </label>
+                                        <label style="font-weight:400;font-size:13px;text-transform:none;letter-spacing:0;cursor:pointer;">
+                                            <input type="radio" name="opcion_familia" value="nueva" id="fam_nueva" style="margin-right:4px;">
+                                            Crear nueva familia
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {{-- Panel: familia existente --}}
+                                <div id="panel_fam_existente" style="display:none;">
+                                    <div class="form-group">
+                                        <label for="familia_id">Familia</label>
+                                        <select class="form-control select2" id="familia_id" name="familia_id"
+                                                style="width:100%;" data-placeholder="Buscar familia por apellido…">
+                                            <option value=""></option>
+                                            @foreach ($familias as $fam)
+                                                <option value="{{ $fam->id }}"
+                                                    {{ old('familia_id') == $fam->id ? 'selected' : '' }}>
+                                                    {{ $fam->apellido_familia }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {{-- Panel: nueva familia --}}
+                                <div id="panel_fam_nueva" style="display:none;">
+                                    <div class="form-group">
+                                        <label for="apellido_familia">Nombre de la familia</label>
+                                        <input type="text" class="form-control" id="apellido_familia"
+                                               name="apellido_familia" maxlength="200"
+                                               value="{{ old('apellido_familia') }}"
+                                               placeholder="Se genera automáticamente de los apellidos">
+                                        <p class="help-block" style="font-size:11px;margin-top:3px;">
+                                            Generado de los apellidos del prospecto. Puedes modificarlo.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -351,8 +426,59 @@
 @endsection
 
 @push('scripts')
+    <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
     <script>
         $(function() {
+            /* ── Select2 en familia existente ── */
+            $('#familia_id').select2({
+                placeholder: 'Buscar familia por apellido…',
+                allowClear: true,
+                language: { noResults: function () { return 'Sin resultados'; } },
+            });
+
+            /* ── Toggle de paneles de familia ── */
+            function togglePanelFamilia() {
+                var val = $('input[name="opcion_familia"]:checked').val();
+                $('#panel_fam_existente').toggle(val === 'existente');
+                $('#panel_fam_nueva').toggle(val === 'nueva');
+                $('#familia_id').prop('required', val === 'existente');
+                $('#apellido_familia').prop('required', val === 'nueva');
+                if (val !== 'existente') $('#familia_id').val(null).trigger('change');
+            }
+
+            $('input[name="opcion_familia"]').on('change', togglePanelFamilia);
+            togglePanelFamilia();
+
+            /* ── Auto-generar nombre de familia desde apellidos ── */
+            function generarNombreFamilia() {
+                if ($('#fam_nueva').is(':checked')) {
+                    var pat = ($('#ap_paterno').val() || '').trim();
+                    var mat = ($('#ap_materno').val() || '').trim();
+                    var nombre = [pat, mat].filter(Boolean).join(' ').toUpperCase();
+                    $('#apellido_familia').val(nombre);
+                }
+            }
+
+            $('#ap_paterno, #ap_materno').on('input', generarNombreFamilia);
+            $('#fam_nueva').on('change', generarNombreFamilia);
+
+            /* ── Auto-completar contacto al seleccionar familia existente ── */
+            $('#familia_id').on('change', function () {
+                var familiaId = $(this).val();
+                if (!familiaId || $('input[name="opcion_familia"]:checked').val() !== 'existente') return;
+
+                $.getJSON('{{ url("familias") }}/' + familiaId + '/contactos-enlace', function (contactos) {
+                    if (!contactos.length) return;
+
+                    var c = contactos[0];
+                    $('#contacto_nombre').val((c.nombre || '').toUpperCase());
+                    $('#contacto_ap_paterno').val((c.ap_paterno || '').toUpperCase());
+                    $('#contacto_ap_materno').val((c.ap_materno || '').toUpperCase());
+                    $('#contacto_telefono').val(c.telefono_celular || '');
+                    $('#contacto_email').val(c.email || '');
+                });
+            });
+
             function sanitizeName(value) {
                 return value
                     .normalize("NFD")
@@ -361,7 +487,7 @@
                     .toUpperCase();
             }
 
-            $('#nombre, #ap_paterno, #ap_materno, #contacto_nombre').on('input', function() {
+            $('#nombre, #ap_paterno, #ap_materno, #contacto_nombre, #contacto_ap_paterno, #contacto_ap_materno').on('input', function() {
                 var start = this.selectionStart;
                 var end = this.selectionEnd;
                 this.value = sanitizeName(this.value);
