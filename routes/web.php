@@ -248,7 +248,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('planes.pdf');
 
     Route::delete('/planes/{id}/eliminar', [PlanPagoController::class, 'eliminarDefinitivo'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('planes.eliminar');
 
     Route::resource('planes', PlanPagoController::class)
@@ -284,7 +284,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja');
 
     Route::delete('/cargos/{id}', [CargoController::class, 'destroy'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('cargos.destroy');
 
     // ── Pagos ────────────────────────────────────────────

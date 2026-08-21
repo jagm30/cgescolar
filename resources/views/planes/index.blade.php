@@ -955,6 +955,17 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label>Nivel Escolar</label>
+                    <select name="nivel_id" class="form-control">
+                        <option value="" {{ is_null($plan->nivel_id) ? 'selected' : '' }}>— Todas las secciones</option>
+                        @foreach ($niveles as $nivel)
+                            <option value="{{ $nivel->id }}" {{ $plan->nivel_id == $nivel->id ? 'selected' : '' }}>
+                                {{ $nivel->nombre }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Estatus</label>
                     <select name="activo" class="form-control">
                         <option value="1" {{ $plan->activo ? 'selected' : '' }}>Activo</option>

@@ -544,7 +544,7 @@
                     </td>
 
                     <td style="text-align:center;" onclick="event.stopPropagation()">
-                        @if(auth()->user()->esAdministrador())
+                        @if(auth()->user()->esAdministrador() || auth()->user()->esCajero())
                         <form method="POST" action="{{ route('cargos.destroy', $cargo->id) }}"
                               onsubmit="return confirm('¿Eliminar este cargo? Esta acción no se puede deshacer.')">
                             @csrf

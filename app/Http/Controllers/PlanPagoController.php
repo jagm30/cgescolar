@@ -253,6 +253,7 @@ class PlanPagoController extends Controller
 
         $data = $request->validate([
             'nombre' => ['sometimes', 'required', 'string', 'max:200'],
+            'nivel_id' => ['nullable', 'exists:nivel_escolar,id'],
             'fecha_inicio' => ['sometimes', 'required', 'date'],
             'fecha_fin' => ['sometimes', 'required', 'date', 'after:fecha_inicio'],
             'activo' => ['boolean'],

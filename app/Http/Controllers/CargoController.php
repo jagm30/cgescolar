@@ -6,12 +6,15 @@ use App\Models\Alumno;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
+use App\Models\Condonacion;
+use App\Models\CondonacionDetalle;
 use App\Traits\RespondsWithJson;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CargoController extends Controller
 {
@@ -121,7 +124,7 @@ class CargoController extends Controller
     /** DELETE /cargos/{id} */
     public function destroy(int $id): JsonResponse|RedirectResponse
     {
-        $cargo = Cargo::with('inscripcion')->findOrFail($id);
+        $cargo = Cargo::with(['inscripcion', 'condonacionDetalles'])->findOrFail($id);
         $alumnoId = $cargo->inscripcion->alumno_id;
 
         if ($cargo->estado_real === 'pagado') {
@@ -130,7 +133,32 @@ class CargoController extends Controller
             );
         }
 
-        $cargo->delete();
+        DB::transaction(function () use ($cargo) {
+            // Obtener IDs de condonaciones afectadas antes de borrar los detalles
+            $condonacionIds = $cargo->condonacionDetalles->pluck('condonacion_id')->unique();
+
+            // Eliminar los detalles de condonación ligados a este cargo
+            CondonacionDetalle::where('cargo_id', $cargo->id)->delete();
+
+            // Para cada condonación, eliminarla si quedó sin detalles
+            // o recalcular su monto_total si aún tiene otros detalles
+            foreach ($condonacionIds as $condonacionId) {
+                $condonacion = Condonacion::withCount('detalles')->find($condonacionId);
+
+                if (! $condonacion) {
+                    continue;
+                }
+
+                if ($condonacion->detalles_count === 0) {
+                    $condonacion->delete();
+                } else {
+                    $condonacion->monto_total = $condonacion->detalles()->sum('monto_aplicado');
+                    $condonacion->save();
+                }
+            }
+
+            $cargo->delete();
+        });
 
         return $this->respuestaExito(
             'alumnos.estado-cuenta',
