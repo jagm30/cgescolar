@@ -19,7 +19,8 @@
       "Bash(mv \"C:\\\\xampp\\\\htdocs\\\\sigescolar\\\\tests\\\\Feature\\\\DiagnosticoAbonoTest.php\" \"C:\\\\xampp\\\\htdocs\\\\sigescolar\\\\tests\\\\Feature\\\\CobrosAbonoParcialConBecaTest.php\")",
       "Bash(vendor/bin/pint *)",
       "Bash(ls -la /c/laragon/www/cgescolar/database/migrations/*.php)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ]
   }
 }
