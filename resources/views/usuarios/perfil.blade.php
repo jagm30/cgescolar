@@ -148,6 +148,17 @@
             </div>
         </div>
 
+        @php $parentesco = $usuario->parentescoFamiliar(); @endphp
+        @if ($parentesco)
+        <div class="perfil-field">
+            <div class="perfil-field-icon"><i class="fa fa-heart-o"></i></div>
+            <div>
+                <div class="perfil-field-label">Parentesco</div>
+                <div class="perfil-field-value">{{ ucfirst($parentesco) }}</div>
+            </div>
+        </div>
+        @endif
+
         @if ($usuario->ultimo_acceso)
         <div class="perfil-field">
             <div class="perfil-field-icon"><i class="fa fa-clock-o"></i></div>

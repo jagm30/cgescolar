@@ -155,4 +155,20 @@ class Usuario extends Authenticatable
             ?->alumnos()
             ?? collect();
     }
+
+    /**
+     * Parentesco del usuario padre con sus hijos (tomado del primer vínculo activo por orden).
+     * Devuelve null para usuarios internos.
+     */
+    public function parentescoFamiliar(): ?string
+    {
+        if (! $this->esPadre()) {
+            return null;
+        }
+
+        return $this->contactoFamiliar
+            ?->alumnoContactos()
+            ->orderBy('orden')
+            ->value('parentesco');
+    }
 }

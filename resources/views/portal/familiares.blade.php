@@ -123,8 +123,9 @@
             font-size: 11px; font-weight: 700; padding: 3px 9px;
             border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;
         }
-        .fm-badge-yo     { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-        .fm-badge-portal { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+        .fm-badge-yo         { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .fm-badge-portal     { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+        .fm-badge-parentesco { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
 
         /* ── Datos de contacto ── */
         .fm-card-datos {
@@ -290,8 +291,9 @@
     <div id="fm-lista">
         @forelse ($contactos as $cf)
             @php
-                $esMio    = $cf->id === $miContactoId;
+                $esMio     = $cf->id === $miContactoId;
                 $iniciales = strtoupper(mb_substr($cf->nombre ?? '', 0, 1) . mb_substr($cf->ap_paterno ?? '', 0, 1));
+                $parentescos = $cf->alumnoContactos->pluck('parentesco')->filter()->unique()->values();
             @endphp
             <div class="fm-card" data-id="{{ $cf->id }}">
 
@@ -300,6 +302,11 @@
                     <div style="flex:1;min-width:0;">
                         <div class="fm-card-nombre">{{ $cf->nombre_completo }}</div>
                         <div class="fm-card-badges">
+                            @foreach($parentescos as $p)
+                                <span class="fm-badge fm-badge-parentesco">
+                                    <i class="fa fa-heart-o"></i> {{ ucfirst($p) }}
+                                </span>
+                            @endforeach
                             @if($esMio)
                                 <span class="fm-badge fm-badge-yo">
                                     <i class="fa fa-user"></i> Yo
@@ -336,7 +343,6 @@
                             <span class="fm-alumno-chip">
                                 <i class="fa fa-graduation-cap"></i>
                                 {{ $ac->alumno?->nombre_completo ?? '—' }}
-                                @if($ac->parentesco) · {{ $ac->parentesco }} @endif
                             </span>
                         @endforeach
                     </div>
