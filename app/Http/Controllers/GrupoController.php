@@ -203,15 +203,17 @@ class GrupoController extends Controller
             ?? CicloEscolar::activo()->value('id');
 
         $data = $request->validate([
-            'icono'         => ['nullable', 'image', 'max:2048'],
+            'icono'       => ['nullable', 'image', 'max:2048'],
             'grado_id'    => ['required', 'exists:grado,id'],
             'nombre'      => ['required', 'string', 'max:10'],
+            'grupo'       => ['nullable', 'in:A,B,C,D'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
             'docente_id'  => ['nullable', 'integer', 'exists:personal,id'],
             'ciclo_id'    => ['nullable', 'exists:ciclo_escolar,id'],
         ], [
             'grado_id.required' => 'Debe seleccionar el grado.',
             'nombre.required'   => 'El nombre del grupo es obligatorio.',
+            'grupo.in'          => 'El grupo debe ser A, B, C o D.',
         ]);
 
         $data['ciclo_id'] = $cicloId;
@@ -278,8 +280,9 @@ class GrupoController extends Controller
         $anterior = $grupo->toArray();
 
         $data = $request->validate([
-            'icono' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'icono'       => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'nombre'      => ['sometimes', 'required', 'string', 'max:10'],
+            'grupo'       => ['nullable', 'in:A,B,C,D'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
             'docente_id'  => ['nullable', 'integer', 'exists:personal,id'],
             'activo'      => ['boolean'],

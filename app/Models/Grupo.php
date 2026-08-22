@@ -17,6 +17,7 @@ class Grupo extends Model
         'ciclo_id',
         'grado_id',
         'nombre',
+        'grupo',
         'cupo_maximo',
         'docente_id',
         'activo',
