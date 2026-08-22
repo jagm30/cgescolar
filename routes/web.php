@@ -101,10 +101,17 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::post('/grupos/{id}/cambiar-alumno', [GrupoController::class, 'cambiarAlumno'])
         ->middleware('rol:administrador')
         ->name('grupos.cambiar-alumno');
+    // Edición y actualización: administrador + director de sección
+    Route::resource('grupos', GrupoController::class)
+        ->middleware('rol:administrador,director_seccion')
+        ->only(['edit', 'update']);
+    // Creación, alta y eliminación: solo administrador
     Route::resource('grupos', GrupoController::class)
         ->middleware('rol:administrador')
-        ->except(['index', 'show']);
-    Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])->name('grupos.status');
+        ->only(['create', 'store', 'destroy']);
+    Route::patch('grupos/{grupo}/status', [GrupoController::class, 'toggleStatus'])
+        ->middleware('rol:administrador,director_seccion')
+        ->name('grupos.status');
     Route::post('/grupos/migrar-estructura', [GrupoController::class, 'migrarEstructura'])->name('grupos.migrar');
     Route::post('/grupos/{grupo_id}/egresar-todo', [AlumnoController::class, 'egresarTodo'])->name('grupos.egresar-todo');
     // Ruta para procesar la promoción/reinscripción masiva

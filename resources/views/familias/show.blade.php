@@ -237,14 +237,6 @@
 .info-row-label { color: #8a9ab0; font-size: 12px; }
 .info-row-value { font-weight: 600; color: #1a2634; text-align: right; }
 
-/* Estado de cuenta */
-.cuenta-alumno {
-    padding: 13px 16px; border-bottom: 1px solid #f0f3f7;
-    display: flex; align-items: center; justify-content: space-between;
-}
-.cuenta-alumno:last-child { border-bottom: none; }
-.cuenta-deuda { color: #dd4b39; font-weight: 800; font-size: 15px; }
-.cuenta-ok    { color: #00a65a; font-weight: 700; font-size: 13px; }
 </style>
 @endpush
 
@@ -267,10 +259,6 @@
     $totalAlumnos  = $familia->alumnos->count();
     $activos       = $familia->alumnos->where('estado','activo')->count();
     $totalContactos = $familia->contactos->count();
-    $deudaTotal    = $familia->alumnos->where('estado','activo')->sum(function($a) {
-        return $a->inscripciones->flatMap(fn($i) => $i->cargos ?? collect())
-            ->whereIn('estado', ['pendiente','parcial'])->sum('monto_original');
-    });
 @endphp
 
 {{-- ══ HERO ══ --}}
@@ -302,17 +290,6 @@
             <div class="fam-hero-stat-num">{{ $totalContactos }}</div>
             <div class="fam-hero-stat-lbl">Contacto{{ $totalContactos != 1 ? 's' : '' }}</div>
         </div>
-        @if($deudaTotal > 0)
-        <div class="fam-hero-stat" style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;">
-            <div class="fam-hero-stat-num" style="color:#ffcdd2;">${{ number_format($deudaTotal,0) }}</div>
-            <div class="fam-hero-stat-lbl">Saldo pendiente</div>
-        </div>
-        @else
-        <div class="fam-hero-stat" style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;">
-            <div class="fam-hero-stat-num" style="color:#c8e6c9;"><i class="fa fa-check"></i></div>
-            <div class="fam-hero-stat-lbl">Al corriente</div>
-        </div>
-        @endif
         @if(auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esAdmisiones() || auth()->user()->esInformacionAdmisiones() || auth()->user()->esDirectorSeccion())
         <div style="border-left:1px solid rgba(255,255,255,.2);padding-left:18px;align-self:center;">
             <a href="{{ route('familias.edit', $familia->id) }}"
@@ -749,10 +726,6 @@
                        class="btn btn-default btn-xs btn-flat" title="Ver ficha">
                         <i class="fa fa-eye"></i>
                     </a>
-                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                       class="btn btn-warning btn-xs btn-flat" title="Estado de cuenta">
-                        <i class="fa fa-dollar"></i>
-                    </a>
                     @can('administrador')
                     <a href="{{ route('alumnos.edit', $alumno->id) }}"
                        class="btn btn-primary btn-xs btn-flat" title="Editar alumno">
@@ -892,61 +865,6 @@
         </div>
         @endif
     </div>
-
-    {{-- Estado de cuenta --}}
-    @if($activos > 0)
-    <div class="info-card">
-        <div class="info-card-header">
-            <span class="info-card-title">
-                <i class="fa fa-dollar" style="margin-right:6px;color:#3c8dbc;"></i>Estado de cuenta
-            </span>
-            @if($deudaTotal > 0)
-            <span style="background:#fdecea;color:#b91c1c;font-size:11px;font-weight:700;
-                         padding:2px 9px;border-radius:10px;">
-                ${{ number_format($deudaTotal,2) }}
-            </span>
-            @else
-            <span style="background:#e8f8f0;color:#00875a;font-size:11px;font-weight:700;
-                         padding:2px 9px;border-radius:10px;">
-                <i class="fa fa-check"></i> Al corriente
-            </span>
-            @endif
-        </div>
-        @foreach($familia->alumnos->where('estado','activo') as $alumno)
-        @php
-            $cargos = $alumno->inscripciones
-                ->flatMap(fn($i) => $i->cargos ?? collect())
-                ->whereIn('estado', ['pendiente','parcial']);
-            $deuda  = $cargos->sum('monto_original');
-        @endphp
-        <div class="cuenta-alumno">
-            <div>
-                <div style="font-size:13px;font-weight:600;color:#1a2634;">
-                    {{ $alumno->nombre }} {{ $alumno->ap_paterno }}
-                </div>
-                <code style="font-size:10px;color:#9ab;background:#f0f3f7;padding:1px 5px;border-radius:3px;">
-                    {{ $alumno->matricula }}
-                </code>
-            </div>
-            <div style="text-align:right;">
-                @if($deuda > 0)
-                    <div class="cuenta-deuda">${{ number_format($deuda,2) }}</div>
-                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                       style="font-size:10px;color:#3c8dbc;">
-                        Ver detalle <i class="fa fa-arrow-right"></i>
-                    </a>
-                @else
-                    <div class="cuenta-ok"><i class="fa fa-check-circle"></i> Al corriente</div>
-                    <a href="{{ route('alumnos.estado-cuenta', $alumno->id) }}"
-                       style="font-size:10px;color:#aab;">
-                        Historial <i class="fa fa-arrow-right"></i>
-                    </a>
-                @endif
-            </div>
-        </div>
-        @endforeach
-    </div>
-    @endif
 
     {{-- Accesos rápidos --}}
     <div class="info-card">

@@ -408,6 +408,7 @@
                             <th style="width:150px;">Icono</th>
                             <th>Nivel / Grado</th>
                             <th>Identificador</th>
+                            <th class="text-center">Grupo</th>
                             <th class="text-center">Cupo</th>
                             <th class="text-center">Inscritos</th>
                             <th class="text-center">Disponibles</th>
@@ -434,6 +435,13 @@
                                 </td>
                                 <td>
                                     <span class="grp-badge">{{ $g['nombre'] }}</span>
+                                </td>
+                                <td class="text-center">
+                                    @if(!empty($g['grupo']))
+                                        <span class="grp-badge">{{ $g['grupo'] }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
                                 </td>
                                 <td class="text-center">{{ $g['cupo_maximo'] ?? '∞' }}</td>
                                 <td class="text-center">
@@ -465,7 +473,7 @@
                                             title="Ver alumnos">
                                             <i class="fa fa-users text-blue"></i>
                                         </a>
-                                        @unless(in_array(auth()->user()->rol, ['admisiones', 'informacion', 'recepcion']))
+                                        @if(in_array(auth()->user()->rol, ['administrador', 'director_seccion']))
                                             <button class="btn btn-default btn-xs" data-toggle="modal"
                                                 data-target="#modalEditarGrupo{{ $g['id'] }}" title="Editar">
                                                 <i class="fa fa-pencil text-orange"></i>
@@ -474,10 +482,11 @@
                                                 @csrf @method('PATCH')
                                                 <button type="submit" class="btn btn-default btn-xs"
                                                     title="{{ $g['activo'] ? 'Desactivar' : 'Activar' }}">
-                                                    <i
-                                                        class="fa fa-power-off {{ $g['activo'] ? 'text-green' : 'text-red' }}"></i>
+                                                    <i class="fa fa-power-off {{ $g['activo'] ? 'text-green' : 'text-red' }}"></i>
                                                 </button>
                                             </form>
+                                        @endif
+                                        @if(auth()->user()->esAdministrador())
                                             @if ($g['alumnos_inscritos'] == 0)
                                                 <form action="{{ route('grupos.destroy', $g['id']) }}" method="POST"
                                                     class="form-eliminar-grupo">
@@ -493,13 +502,13 @@
                                                     <i class="fa fa-trash text-muted"></i>
                                                 </button>
                                             @endif
-                                        @endunless
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" style="text-align:center;padding:50px 20px;color:#aab;">
+                                <td colspan="7" style="text-align:center;padding:50px 20px;color:#aab;">
                                     <i class="fa fa-folder-open-o"
                                         style="font-size:36px;display:block;margin-bottom:10px;color:#dde4ea;"></i>
                                     No hay grupos registrados.
@@ -585,6 +594,17 @@
                 <label>Nombre <span class="text-red">*</span></label>
                 <input type="text" name="nombre" class="form-control" maxlength="10" placeholder="Ej: A, B, UNICO"
                     required>
+            </div>
+
+            <div class="form-group">
+                <label>Grupo <small class="text-muted">(Opcional)</small></label>
+                <select name="grupo" class="form-control">
+                    <option value="">— Sin asignar —</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -706,6 +726,18 @@
                 <div class="form-group">
                     <label>Nombre del Grupo</label>
                     <input type="text" name="nombre" class="form-control" value="{{ $g['nombre'] }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Grupo</label>
+                    <select name="grupo" class="form-control">
+                        <option value="">— Sin asignar —</option>
+                        @foreach(['A','B','C','D'] as $letra)
+                            <option value="{{ $letra }}" {{ ($g['grupo'] ?? '') === $letra ? 'selected' : '' }}>
+                                {{ $letra }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div class="form-group">
