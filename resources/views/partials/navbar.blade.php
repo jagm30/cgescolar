@@ -109,6 +109,19 @@
                                             white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                                     {{ auth()->user()->email }}
                                 </div>
+                                @php $parentesco = auth()->user()->parentescoFamiliar(); @endphp
+                                @if ($parentesco)
+                                <span style="
+                                    display: inline-block; margin-top: 5px;
+                                    background: rgba(72,196,161,.3);
+                                    border: 1px solid rgba(72,196,161,.6);
+                                    color: #48c4a1;
+                                    font-size: 10px; font-weight: 700;
+                                    padding: 1px 8px; border-radius: 10px;
+                                    letter-spacing: .04em; text-transform: capitalize;">
+                                    {{ ucfirst($parentesco) }}
+                                </span>
+                                @else
                                 <span style="
                                     display: inline-block; margin-top: 5px;
                                     background: rgba(72,196,161,.3);
@@ -119,6 +132,7 @@
                                     letter-spacing: .04em; text-transform: uppercase;">
                                     {{ ucfirst(auth()->user()->rol) }}
                                 </span>
+                                @endif
                             </div>
                         </li>
 

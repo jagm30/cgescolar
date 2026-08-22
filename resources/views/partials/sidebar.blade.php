@@ -175,6 +175,11 @@
                     </a>
                 </li>
 
+                <li class="{{ request()->routeIs('portal.familiares') ? 'active' : '' }}">
+                    <a href="{{ route('portal.familiares') }}">
+                        <i class="fa fa-heart-o"></i> <span>Familiares</span>
+                    </a>
+                </li>
 
                 <li class="{{ request()->routeIs('portal.facturas') ? 'active' : '' }}">
                     <a href="{{ route('portal.facturas') }}">
