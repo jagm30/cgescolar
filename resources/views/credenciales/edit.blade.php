@@ -82,8 +82,8 @@
             background-color: white !important;
             position: relative;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            width: {{ $diseno->orientacion == 'vertical' ? '320px' : '500px' }};
-            height: {{ $diseno->orientacion == 'vertical' ? '500px' : '320px' }};
+            width: {{ $diseno->orientacion == 'vertical' ? '322px' : '502px' }};
+            height: {{ $diseno->orientacion == 'vertical' ? '502px' : '322px' }};
             overflow: hidden;
             flex-shrink: 0;
             -webkit-print-color-adjust: exact !important;
@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                        ========================================================================== */
+                                                MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                    ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -313,8 +313,8 @@
         }
 
         /* ==========================================================================
-                           REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
-                           ========================================================================== */
+                       REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+                       ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -1702,7 +1702,9 @@
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
             propText.disabled = isMedia;
             document.getElementById('prop-size').value = parseInt(el.style.fontSize) || 14;
-            document.getElementById('prop-color').value = rgbToHex(el.style.color) || '#000000';
+            const contentSpanColor = el.querySelector('.content-span')?.style.color;
+            document.getElementById('prop-color').value = rgbToHex(contentSpanColor || el.style.color) ||
+                '#000000';
             document.getElementById('txt-size').innerText = parseInt(el.style.fontSize) || 14;
             updateUIButtons();
         }
