@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                                MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                    ========================================================================== */
+                                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                        ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -313,8 +313,8 @@
         }
 
         /* ==========================================================================
-                       REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
-                       ========================================================================== */
+                           REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+                           ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -1485,6 +1485,7 @@
             let canvasW = canvas.offsetWidth;
             let canvasH = canvas.offsetHeight;
             let cachedItems = [];
+            const esElementoFoto = isFotoType(el.dataset.type);
 
             interact(el).draggable({
                 inertia: false,
@@ -1617,6 +1618,11 @@
                     right: true,
                     bottom: true
                 },
+                modifiers: esElementoFoto ? [
+                    interact.modifiers.aspectRatio({
+                        ratio: 'preserve'
+                    })
+                ] : [],
                 listeners: {
                     move(event) {
                         let target = event.target;
@@ -1782,8 +1788,9 @@
             let defaultW = 'auto';
             let defaultH = 'auto';
             if (type === 'foto' || type.startsWith('foto_autorizado')) {
-                defaultW = '100px';
-                defaultH = '130px';
+                // Tamaño infantil (2.5 x 3.0 cm), a la escala del canvas (~58px/cm)
+                defaultW = '145px';
+                defaultH = '174px';
             }
             if (type === 'logo') {
                 defaultW = '80px';
