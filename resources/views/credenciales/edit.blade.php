@@ -82,8 +82,8 @@
             background-color: white !important;
             position: relative;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            width: {{ $diseno->orientacion == 'vertical' ? '320px' : '500px' }};
-            height: {{ $diseno->orientacion == 'vertical' ? '500px' : '320px' }};
+            width: {{ $diseno->orientacion == 'vertical' ? '322px' : '502px' }};
+            height: {{ $diseno->orientacion == 'vertical' ? '502px' : '322px' }};
             overflow: hidden;
             flex-shrink: 0;
             -webkit-print-color-adjust: exact !important;
@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                            MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                ========================================================================== */
+                                                MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                    ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -242,10 +242,12 @@
             margin: 0 !important;
         }
 
-/* ESTO OCULTA LA CREDENCIAL Y EL VIEWPORT EN PANTALLA MIENTRAS ESTÁS EN EL NAVEGADOR */
+        /* ESTO OCULTA LA CREDENCIAL Y EL VIEWPORT EN PANTALLA MIENTRAS ESTÁS EN EL NAVEGADOR */
         @media screen {
+
             .modo-visualizacion #canvas-container,
-            .modo-visualizacion #scroll-viewport { /* <--- Agregamos esta línea */
+            .modo-visualizacion #scroll-viewport {
+                /* <--- Agregamos esta línea */
                 display: none !important;
             }
 
@@ -311,8 +313,8 @@
         }
 
         /* ==========================================================================
-                   REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
-                   ========================================================================== */
+                       REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+                       ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -349,8 +351,15 @@
                 padding: 0 !important;
             }
 
-/* 3. LIMPIEZA DE CONTENEDORES PADRES */
-            .wrapper, .content-wrapper, .content, section.content, #wrapper-principal, .row, .col-md-9, #scroll-viewport {
+            /* 3. LIMPIEZA DE CONTENEDORES PADRES */
+            .wrapper,
+            .content-wrapper,
+            .content,
+            section.content,
+            #wrapper-principal,
+            .row,
+            .col-md-9,
+            #scroll-viewport {
                 margin: 0 !important;
                 padding: 0 !important;
                 background: white !important;
@@ -359,7 +368,8 @@
                 height: auto !important;
                 box-shadow: none !important;
                 display: block !important;
-                overflow: visible !important; /* <--- Vital para que no corte hojas */
+                overflow: visible !important;
+                /* <--- Vital para que no corte hojas */
             }
 
             #canvas-container {
@@ -368,7 +378,8 @@
                 padding: 0 !important;
                 font-size: 0 !important;
                 line-height: 0 !important;
-                zoom: 1 !important; /* <--- Vital para matar el zoom al imprimir */
+                zoom: 1 !important;
+                /* <--- Vital para matar el zoom al imprimir */
             }
 
             /* 4. ESPECIFICIDAD ABSOLUTA: Igualamos la tarjeta a la medida holgada de la hoja */
@@ -745,10 +756,26 @@
                             {{-- MODO IMPRESIÓN (Genera Anverso y Reverso) --}}
                             @foreach ($alumnos as $alumno)
                                 @php
-                                    $insc = $alumno->inscripciones->first();
+                                    $cicloActivo = $cicloActual ?? \App\Models\CicloEscolar::activo()->first();
+
+                                    $insc = $cicloActivo
+                                        ? $alumno->inscripciones
+                                            ->where('ciclo_id', $cicloActivo->id)
+                                            ->sortByDesc('id')
+                                            ->first()
+                                        : null;
+
+                                    if (!$insc) {
+                                        $insc =
+                                            $alumno->inscripciones->sortByDesc('id')->first() ??
+                                            $alumno->inscripciones->last();
+                                    }
+
                                     $nivelStr = $insc?->grupo?->grado?->nivel?->nombre ?? '';
                                     $gradoStr = $insc?->grupo?->grado?->numero ?? '';
                                     $grupoStr = $insc?->grupo?->nombre ?? '';
+
+                                    $tipoSangreStr = $alumno->fichaMedica?->tipo_sangre ?? '';
 
                                     $autorizados = \Illuminate\Support\Facades\DB::table('alumno_contacto')
                                         ->join(
@@ -835,8 +862,7 @@
                                     class="credencial-canvas-instance face-anverso" data-nombre="{{ trim($nombreStr) }}"
                                     data-matricula="{{ $alumno->matricula ?? '' }}" data-nivel="{{ $nivelStr }}"
                                     data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
-                                    data-ciclo="{{ $cicloActual->nombre ?? '' }}"
-                                    data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
+                                    data-ciclo="{{ $cicloActual->nombre ?? '' }}" data-sangre="{{ $tipoSangreStr }}"
                                     data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
                                     data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
                                     data-autorizado3="{{ $aut3 }}" data-tel-autorizado1="{{ $telAut1 }}"
@@ -860,8 +886,7 @@
                                     class="credencial-canvas-instance face-reverso" data-nombre="{{ trim($nombreStr) }}"
                                     data-matricula="{{ $alumno->matricula ?? '' }}" data-nivel="{{ $nivelStr }}"
                                     data-grado="{{ $gradoStr }}" data-grupo="{{ $grupoStr }}"
-                                    data-ciclo="{{ $cicloActual->nombre ?? '' }}"
-                                    data-sangre="{{ $alumno->tipo_sangre ?? '' }}"
+                                    data-ciclo="{{ $cicloActual->nombre ?? '' }}" data-sangre="{{ $tipoSangreStr }}"
                                     data-foto="{{ !empty($alumno->foto_url) ? asset('storage/' . $alumno->foto_url) : '' }}"
                                     data-autorizado1="{{ $aut1 }}" data-autorizado2="{{ $aut2 }}"
                                     data-autorizado3="{{ $aut3 }}" data-tel-autorizado1="{{ $telAut1 }}"
@@ -884,8 +909,27 @@
                             {{-- MODO EDITOR --}}
                             @php
                                 // Alumno de muestra para el editor (el primero del sistema, o uno fijo)
-                                $alumnoMuestra = \App\Models\Alumno::with(['inscripciones.grupo.grado.nivel'])->first();
-                                $inscM = $alumnoMuestra?->inscripciones->first();
+                                $alumnoMuestra = \App\Models\Alumno::with([
+                                    'inscripciones.grupo.grado.nivel',
+                                    'fichaMedica',
+                                ])->first();
+
+                                $cicloActivoM = $cicloActual ?? \App\Models\CicloEscolar::activo()->first();
+
+                                $inscM = $cicloActivoM
+                                    ? $alumnoMuestra?->inscripciones
+                                        ->where('ciclo_id', $cicloActivoM->id)
+                                        ->sortByDesc('id')
+                                        ->first()
+                                    : null;
+
+                                if (!$inscM) {
+                                    $inscM =
+                                        $alumnoMuestra?->inscripciones->sortByDesc('id')->first() ??
+                                        $alumnoMuestra?->inscripciones->last();
+                                }
+
+                                $tipoSangreM = $alumnoMuestra?->fichaMedica?->tipo_sangre ?? 'O+';
 
                                 // Contactos autorizados para recoger, ordenados por prioridad (alumno_contacto.orden)
                                 $autorizadosM = $alumnoMuestra
@@ -964,8 +1008,7 @@
                                 data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
                                 data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
                                 data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
-                                data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
-                                data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
+                                data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}" data-sangre="{{ $tipoSangreM }}"
                                 data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
                                 data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
                                 data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
@@ -993,8 +1036,7 @@
                                 data-nivel="{{ $inscM?->grupo?->grado?->nivel?->nombre ?? 'PRIMARIA' }}"
                                 data-grado="{{ $inscM?->grupo?->grado?->numero ?? '1°' }}"
                                 data-grupo="{{ $inscM?->grupo?->nombre ?? 'A' }}"
-                                data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}"
-                                data-sangre="{{ $alumnoMuestra->tipo_sangre ?? 'O+' }}"
+                                data-ciclo="{{ $cicloActual->nombre ?? '2025-2026' }}" data-sangre="{{ $tipoSangreM }}"
                                 data-foto="{{ !empty($alumnoMuestra->foto_url) ? asset('storage/' . $alumnoMuestra->foto_url) : '' }}"
                                 data-autorizado1="{{ $autM1 ?: 'AUTORIZADO 1' }}"
                                 data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
@@ -1443,6 +1485,7 @@
             let canvasW = canvas.offsetWidth;
             let canvasH = canvas.offsetHeight;
             let cachedItems = [];
+            const esElementoFoto = isFotoType(el.dataset.type);
 
             interact(el).draggable({
                 inertia: false,
@@ -1567,7 +1610,7 @@
                         canvas.querySelector('.guide-h').style.display = 'none';
                     }
                 }
-}).resizable({
+            }).resizable({
                 margin: 4,
                 edges: {
                     left: false,
@@ -1575,6 +1618,11 @@
                     right: true,
                     bottom: true
                 },
+                modifiers: esElementoFoto ? [
+                    interact.modifiers.aspectRatio({
+                        ratio: 'preserve'
+                    })
+                ] : [],
                 listeners: {
                     move(event) {
                         let target = event.target;
@@ -1654,7 +1702,9 @@
             propText.value = isMedia ? 'Elemento Gráfico' : el.querySelector('.content-span').innerText;
             propText.disabled = isMedia;
             document.getElementById('prop-size').value = parseInt(el.style.fontSize) || 14;
-            document.getElementById('prop-color').value = rgbToHex(el.style.color) || '#000000';
+            const contentSpanColor = el.querySelector('.content-span')?.style.color;
+            document.getElementById('prop-color').value = rgbToHex(contentSpanColor || el.style.color) ||
+                '#000000';
             document.getElementById('txt-size').innerText = parseInt(el.style.fontSize) || 14;
             updateUIButtons();
         }
@@ -1740,8 +1790,9 @@
             let defaultW = 'auto';
             let defaultH = 'auto';
             if (type === 'foto' || type.startsWith('foto_autorizado')) {
-                defaultW = '100px';
-                defaultH = '130px';
+                // Tamaño infantil (2.5 x 3.0 cm), a la escala del canvas (~58px/cm)
+                defaultW = '145px';
+                defaultH = '174px';
             }
             if (type === 'logo') {
                 defaultW = '80px';
