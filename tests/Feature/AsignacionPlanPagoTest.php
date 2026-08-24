@@ -319,6 +319,74 @@ test('solo devuelve planes disponibles que no estan asignados al alumno seleccio
     expect($ids)->not->toContain($contexto['plan']->id);
 });
 
+test('al asignar por grupo omite alumnos con cargos ya cobrados en vez de bloquear todo', function () {
+    $contexto = crearContextoPlanPago();
+
+    $otroAlumno = Alumno::create([
+        'matricula' => fake()->unique()->numerify('A###'),
+        'nombre' => 'Ana',
+        'ap_paterno' => 'García',
+        'fecha_nacimiento' => '2016-03-20',
+        'estado' => 'activo',
+    ]);
+
+    $otraInscripcion = Inscripcion::create([
+        'alumno_id' => $otroAlumno->id,
+        'ciclo_id' => $contexto['ciclo']->id,
+        'grupo_id' => $contexto['grupo']->id,
+        'fecha' => '2026-08-15',
+        'activo' => true,
+    ]);
+
+    // El primer alumno ya tiene el período de agosto cobrado.
+    Cargo::create([
+        'inscripcion_id' => $contexto['inscripcion']->id,
+        'concepto_id' => $contexto['concepto']->id,
+        'periodo' => '2026-08',
+        'monto_original' => 1500,
+        'fecha_vencimiento' => '2026-08-10',
+        'estado' => 'pagado',
+    ]);
+
+    $response = $this->actingAs($contexto['admin'])
+        ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+        ->postJson(route('planes.asignar'), [
+            'plan_id' => $contexto['plan']->id,
+            'origen' => 'grupo',
+            'grupo_id' => $contexto['grupo']->id,
+            'fecha_inicio' => '2026-08-01',
+            'fecha_fin' => '2026-09-30',
+            'conceptos' => [$contexto['planConcepto']->id],
+        ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('cargos_omitidos', 1);
+    $response->assertJsonPath('alumnos_omitidos.0.id', $contexto['alumno']->id);
+    $response->assertJsonPath('alumnos_omitidos.0.nombre', $contexto['alumno']->nombre_completo);
+    expect($response->json('message'))->toContain($contexto['alumno']->nombre_completo);
+    $response->assertSessionDoesntHaveErrors();
+
+    // El alumno con el cargo ya cobrado conserva ese cargo sin duplicados.
+    expect(Cargo::where('inscripcion_id', $contexto['inscripcion']->id)->count())->toBe(2);
+    $this->assertDatabaseHas('cargo', [
+        'inscripcion_id' => $contexto['inscripcion']->id,
+        'periodo' => '2026-08',
+        'estado' => 'pagado',
+    ]);
+
+    // El resto del grupo se procesa con normalidad.
+    $this->assertDatabaseHas('cargo', [
+        'inscripcion_id' => $otraInscripcion->id,
+        'periodo' => '2026-08',
+        'estado' => 'pendiente',
+    ]);
+    $this->assertDatabaseHas('cargo', [
+        'inscripcion_id' => $otraInscripcion->id,
+        'periodo' => '2026-09',
+        'estado' => 'pendiente',
+    ]);
+});
+
 test('vuelve a devolver un plan disponible cuando su asignacion ya no tiene cargos', function () {
     $contexto = crearContextoPlanPago();
 
