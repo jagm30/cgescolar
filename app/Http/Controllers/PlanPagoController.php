@@ -109,17 +109,17 @@ class PlanPagoController extends Controller
     /** GET /planes/pdf */
     public function exportarPdf(Request $request)
     {
-        $cicloId    = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
+        $cicloId = auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id');
         $cicloActual = CicloEscolar::find($cicloId);
 
         $planes = PlanPago::with([
-                'nivel',
-                'planPagoConceptos.concepto',
-                'politicasDescuentoActivas',
-                'politicaRecargoActiva',
-            ])
+            'nivel',
+            'planPagoConceptos.concepto',
+            'politicasDescuentoActivas',
+            'politicaRecargoActiva',
+        ])
             ->where('ciclo_id', $cicloId)
-            ->when($request->filled('nivel_id'), fn($q) => $q->where('nivel_id', $request->nivel_id))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->where('nivel_id', $request->nivel_id))
             ->orderByRaw('nivel_id IS NULL')
             ->orderBy('nivel_id')
             ->orderBy('nombre')
@@ -335,19 +335,30 @@ class PlanPagoController extends Controller
             }
 
             $asignacion->load(['plan', 'conceptosSeleccionados']);
-            $cargosGenerados = $this->generarCargosParaAsignacion($asignacion);
+            $resumenCargos = $this->generarCargosParaAsignacion($asignacion);
+            $cargosGenerados = $resumenCargos['generados'];
+            $cargosOmitidos = $resumenCargos['omitidos'];
+            $alumnosOmitidos = $resumenCargos['alumnos_omitidos'];
 
             Auditoria::registrar('asignacion_plan', $asignacion->id, 'insert', null, $asignacion->toArray());
 
             DB::commit();
+
+            $mensaje = "Plan asignado correctamente. Se generaron {$cargosGenerados} cargos.";
+            if ($cargosOmitidos > 0) {
+                $nombresOmitidos = collect($alumnosOmitidos)->pluck('nombre')->implode(', ');
+                $mensaje .= " Se omitieron {$cargosOmitidos} cargos porque ya estaban cobrados (parcial o pagado) para: {$nombresOmitidos}.";
+            }
 
             return $this->respuestaExito(
                 redirectRoute: 'planes.asignar.index',
                 jsonData: [
                     'asignacion' => $asignacion->load('plan'),
                     'cargos_generados' => $cargosGenerados,
+                    'cargos_omitidos' => $cargosOmitidos,
+                    'alumnos_omitidos' => $alumnosOmitidos,
                 ],
-                mensaje: "Plan asignado correctamente. Se generaron {$cargosGenerados} cargos.",
+                mensaje: $mensaje,
                 jsonStatus: 201
             );
         } catch (\Throwable $e) {
@@ -696,7 +707,8 @@ class PlanPagoController extends Controller
         ));
     }
 
-    private function generarCargosParaAsignacion(AsignacionPlan $asignacion): int
+    /** @return array{generados: int, omitidos: int, alumnos_omitidos: array<int, array{id: int, nombre: string}>} */
+    private function generarCargosParaAsignacion(AsignacionPlan $asignacion): array
     {
         $asignacion->loadMissing(['plan', 'conceptosSeleccionados']);
 
@@ -709,6 +721,8 @@ class PlanPagoController extends Controller
         $periodos = $this->calcularPeriodos($fechaInicio, $fechaFin, $plan->periodicidad);
         $inscripciones = $this->obtenerInscripcionesParaAsignacion($asignacion);
         $cargosAfectados = 0;
+        $cargosOmitidos = 0;
+        $alumnosOmitidos = [];
 
         foreach ($inscripciones as $inscripcion) {
             foreach ($asignacion->conceptosSeleccionados as $conceptoSeleccionado) {
@@ -741,12 +755,24 @@ class PlanPagoController extends Controller
                         $cargo->fill($payload);
                         $cargo->save();
                         $cargosAfectados++;
+                    } elseif ((float) $cargo->saldo_abonado > 0 || $cargo->estado !== 'pendiente') {
+                        // El alumno ya tiene ese período cobrado (parcial o pagado); se omite
+                        // en lugar de bloquear toda la asignación de grupo/nivel.
+                        $cargosOmitidos++;
+                        $alumnosOmitidos[$inscripcion->alumno_id] = [
+                            'id' => $inscripcion->alumno_id,
+                            'nombre' => $inscripcion->alumno->nombre_completo,
+                        ];
                     }
                 }
             }
         }
 
-        return $cargosAfectados;
+        return [
+            'generados' => $cargosAfectados,
+            'omitidos' => $cargosOmitidos,
+            'alumnos_omitidos' => array_values($alumnosOmitidos),
+        ];
     }
 
     private function obtenerInscripcionesParaAsignacion(AsignacionPlan $asignacion)
@@ -778,6 +804,7 @@ class PlanPagoController extends Controller
         }
 
         return Inscripcion::query()
+            ->with('alumno')
             ->where('ciclo_id', $cicloId)
             ->where('activo', true)
             ->when($asignacion->origen === 'individual', fn ($query) => $query

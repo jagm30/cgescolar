@@ -100,11 +100,17 @@ class StoreAsignacionPlanRequest extends FormRequest
                 }
             }
 
-            // Calcular los períodos que generaría esta nueva asignación
+            // Calcular los períodos que generaría esta nueva asignación.
+            // Este bloqueo solo aplica a asignaciones individuales: si el único
+            // alumno del alcance ya tiene cargos cobrados, no hay nada que generar
+            // y se le pide al usuario ajustar las fechas. Para grupo/nivel no se
+            // bloquea: los alumnos con cargos ya cobrados en un período se omiten
+            // automáticamente al generar los cargos, y el resto del grupo/nivel
+            // se procesa con normalidad.
             $fi = $this->input('fecha_inicio') ?? $plan->fecha_inicio?->format('Y-m-d');
             $ff = $this->input('fecha_fin') ?? $plan->fecha_fin?->format('Y-m-d');
 
-            if ($fi && $ff) {
+            if ($fi && $ff && $origen === 'individual') {
                 $nuevosPeriodos = $this->calcularPeriodos($fi, $ff, $plan->periodicidad);
 
                 // Bloquear solo si alguno de los nuevos períodos ya tiene un cargo cobrado
@@ -115,15 +121,10 @@ class StoreAsignacionPlanRequest extends FormRequest
                     ->whereIn('periodo', $nuevosPeriodos)
                     ->whereIn('concepto_id', $conceptoIds)
                     ->whereIn('estado', ['parcial', 'pagado'])
-                    ->whereHas('inscripcion', function ($q) use ($plan, $origen, $alumnoId, $grupoId, $nivelId) {
-                        $q->where('ciclo_id', $plan->ciclo_id)->where('activo', true);
-                        if ($origen === 'individual') {
-                            $q->where('alumno_id', $alumnoId);
-                        } elseif ($origen === 'grupo') {
-                            $q->where('grupo_id', $grupoId);
-                        } elseif ($origen === 'nivel') {
-                            $q->whereHas('grupo.grado', fn ($g) => $g->where('nivel_id', $nivelId));
-                        }
+                    ->whereHas('inscripcion', function ($q) use ($plan, $alumnoId) {
+                        $q->where('ciclo_id', $plan->ciclo_id)
+                            ->where('activo', true)
+                            ->where('alumno_id', $alumnoId);
                     })
                     ->exists();
 
