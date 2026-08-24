@@ -215,14 +215,13 @@
         </span>
     </div>
 
-    {{-- ── Botón agregar ── --}}
-    <button id="btn-mostrar-form-nuevo" class="fm-btn-agregar"
-        @if($totalContactos >= 3) disabled title="Tu familia ya tiene 3 contactos registrados (máximo permitido)" @endif>
-        <i class="fa fa-user-plus"></i>
-        @if($totalContactos >= 3) Ya tienes 3 familiares registrados @else Agregar familiar @endif
+    {{-- TEMPORAL: agregar contactos familiares desactivado --}}
+    <button type="button" class="fm-btn-agregar" disabled
+            style="border-color:#d1d9e0;background:#f8f9fa;color:#9aa5b4;cursor:not-allowed;">
+        <i class="fa fa-ban"></i> No disponible por el momento
     </button>
 
-    {{-- ── Formulario nuevo ── --}}
+    {{-- ── Formulario nuevo (oculto temporalmente) ── --}}
     <div id="form-nuevo-fm" style="display:none; margin-bottom:14px;">
         <div class="fm-form-panel">
             <div class="fm-form-titulo">

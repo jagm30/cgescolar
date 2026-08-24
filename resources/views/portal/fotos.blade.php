@@ -356,20 +356,11 @@
                         <p class="ft-nombre">{{ trim($alumno->nombre . ' ' . $alumno->ap_paterno) }}</p>
                         <p class="ft-sub"><i class="fa fa-id-card-o" style="margin-right:3px;"></i>Matrícula {{ $alumno->matricula }}</p>
 
-                        <input type="file" class="ft-input"
-                               accept="image/jpeg,image/png,image/webp"
-                               id="file-alumno-{{ $alumno->id }}"
-                               data-url="{{ route('portal.fotos.alumno', $alumno->id) }}"
-                               style="display:none;">
-
-                        <label for="file-alumno-{{ $alumno->id }}" class="ft-label-upload">
-                            <i class="fa fa-camera"></i>
-                            {{ $alumno->foto_url ? 'Cambiar foto' : 'Subir foto' }}
-                        </label>
-
-                        <div class="ft-progress"><div class="ft-progress-bar"></div></div>
-                        <div class="ft-ok"><i class="fa fa-check-circle"></i> ¡Foto actualizada!</div>
-                        <div class="ft-err"></div>
+                        {{-- TEMPORAL: subida de fotos desactivada --}}
+                        <button type="button" class="ft-label-upload" disabled
+                                style="background:#9aa5b4;cursor:not-allowed;opacity:.7;">
+                            <i class="fa fa-ban"></i> No disponible por el momento
+                        </button>
                     </div>
 
                 </div>
@@ -419,21 +410,11 @@
                         <p class="ft-nombre">{{ trim($contacto->nombre . ' ' . $contacto->ap_paterno) }}</p>
                         <p class="ft-sub"><i class="fa fa-users" style="margin-right:3px;"></i>Contacto familiar</p>
 
-                        <input type="file" class="ft-input"
-                               accept="image/jpeg,image/png,image/webp"
-                               id="file-contacto-{{ $contacto->id }}"
-                               data-url="{{ route('portal.fotos.contacto', $contacto->id) }}"
-                               style="display:none;">
-
-                        <label for="file-contacto-{{ $contacto->id }}" class="ft-label-upload"
-                               style="background:#7c3aed;">
-                            <i class="fa fa-camera"></i>
-                            {{ $contacto->foto_url ? 'Cambiar foto' : 'Subir foto' }}
-                        </label>
-
-                        <div class="ft-progress"><div class="ft-progress-bar" style="background:#7c3aed;"></div></div>
-                        <div class="ft-ok"><i class="fa fa-check-circle"></i> ¡Foto actualizada!</div>
-                        <div class="ft-err"></div>
+                        {{-- TEMPORAL: subida de fotos desactivada --}}
+                        <button type="button" class="ft-label-upload" disabled
+                                style="background:#9aa5b4;cursor:not-allowed;opacity:.7;">
+                            <i class="fa fa-ban"></i> No disponible por el momento
+                        </button>
                     </div>
 
                 </div>
