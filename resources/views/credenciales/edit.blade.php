@@ -1456,7 +1456,7 @@
                 } else {
                     if (isModeVisual) {
                         span.innerHTML = fotoUrl ?
-                            `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; display:block;">` :
+                            `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; object-position:center top; display:block;">` :
                             `<div style="width:100%; height:100%; background:transparent;"></div>`;
                     } else {
                         span.innerHTML =
