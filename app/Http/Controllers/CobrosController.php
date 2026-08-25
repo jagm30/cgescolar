@@ -117,13 +117,26 @@ class CobrosController extends Controller
             ->orderByDesc('fecha_vencimiento')
             ->get();
 
+        $cargosCondonados = Cargo::with([
+            'concepto',
+            'inscripcion.ciclo',
+            'asignacion.plan',
+            'condonacionDetalles.condonacion',
+            'descuentos',
+        ])
+            ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumnoId))
+            ->where('estado', 'condonado')
+            ->orderByDesc('fecha_vencimiento')
+            ->get();
+
         return view('cobros.alumno', compact(
             'alumno',
             'inscripcionActual',
             'inscripcionParaCobro',
             'cargos',
             'conceptos',
-            'cargosPagados'
+            'cargosPagados',
+            'cargosCondonados'
         ));
     }
 

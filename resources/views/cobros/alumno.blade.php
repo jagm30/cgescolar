@@ -245,6 +245,14 @@
             @endif
         </a>
     </li>
+    <li>
+        <a href="#tab-condonados" data-toggle="tab" style="font-weight:700;font-size:13px;">
+            <i class="fa fa-scissors" style="color:#6b21a8;"></i> Condonados
+            @if($cargosCondonados->count())
+                <span class="badge" style="background:#7c3aed;color:#fff;margin-left:4px;">{{ $cargosCondonados->count() }}</span>
+            @endif
+        </a>
+    </li>
 </ul>
 
 <div class="tab-content" style="border:1px solid #e0e7ef;border-radius:0 6px 6px 6px;
@@ -280,8 +288,58 @@
         </div>
         <div class="box-body" style="padding:12px;">
 
-            @forelse($cargos as $i => $cargo)
             @php
+                $gruposPlan = $cargos->groupBy(fn($c) => $c->asignacion?->plan_id ?? 0);
+                $iGlobal = 0; // índice global para los names del form
+            @endphp
+
+            @if($cargos->isEmpty())
+            <div style="text-align:center;padding:40px 0;color:#ccc;">
+                <i class="fa fa-check-circle" style="font-size:36px;color:#27ae60;display:block;margin-bottom:10px;"></i>
+                <strong style="color:#27ae60;font-size:15px;">Al corriente</strong>
+                <p style="font-size:13px;margin-top:6px;">Este alumno no tiene cargos pendientes.</p>
+            </div>
+            @endif
+
+            @foreach($gruposPlan as $planId => $cargosPlan)
+            @php
+                $planNombre    = $planId > 0
+                    ? ($cargosPlan->first()->asignacion?->plan?->nombre ?? 'Plan #'.$planId)
+                    : 'Sin plan asignado';
+                $planKey       = 'plan-cobro-'.$planId;
+                $totalPlanPend = $cargosPlan->sum('pendiente');
+            @endphp
+
+            {{-- ── Encabezado de plan (colapsable) ── --}}
+            <div style="display:flex;align-items:center;gap:10px;
+                        background:#eef3fb;border:1px solid #d0dff0;border-radius:6px;
+                        padding:9px 14px;margin-bottom:6px;cursor:pointer;user-select:none;"
+                 onclick="togglePlanCobro('{{ $planKey }}', this)">
+                <i class="fa fa-chevron-down plan-toggle-icon"
+                   style="font-size:11px;color:#3c8dbc;transition:transform .2s;"></i>
+                <span style="font-size:13px;font-weight:700;color:#1e4d7b;flex:1;">
+                    {{ $planNombre }}
+                </span>
+                <span style="font-size:11px;color:#6b7a8d;">
+                    {{ $cargosPlan->count() }} cargo(s)
+                </span>
+                <span style="font-size:13px;font-weight:700;color:#e74c3c;margin-left:8px;">
+                    ${{ number_format($totalPlanPend, 2) }} pendiente
+                </span>
+                <label style="margin:0;font-size:11px;font-weight:600;color:#3c8dbc;cursor:pointer;"
+                       onclick="event.stopPropagation();">
+                    <input type="checkbox" class="check-todos-plan"
+                           data-plan-key="{{ $planKey }}"
+                           style="margin-right:3px;">
+                    Todos
+                </label>
+            </div>
+
+            {{-- ── Cargos del plan ── --}}
+            <div id="{{ $planKey }}" style="margin-bottom:14px;">
+            @foreach($cargosPlan as $cargo)
+            @php
+                $i                 = $iGlobal++;
                 $tieneRecargo      = $cargo->recargo_calc              > 0;
                 $tieneDescuento    = $cargo->descuento_calc            > 0;
                 $tieneBeca         = ($cargo->beca_descuento_calc ?? 0) > 0;
@@ -585,13 +643,9 @@
                 </div>
 
             </div>
-            @empty
-            <div style="text-align:center;padding:40px 0;color:#ccc;">
-                <i class="fa fa-check-circle" style="font-size:36px;color:#27ae60;display:block;margin-bottom:10px;"></i>
-                <strong style="color:#27ae60;font-size:15px;">Al corriente</strong>
-                <p style="font-size:13px;margin-top:6px;">Este alumno no tiene cargos pendientes.</p>
-            </div>
-            @endforelse
+            @endforeach
+            </div>{{-- /plan group --}}
+            @endforeach
 
         </div>
     </div>
@@ -872,6 +926,113 @@
 
 </div>{{-- /tab-pane#tab-pagados --}}
 
+{{-- ════ TAB: CONDONADOS ════ --}}
+<div class="tab-pane" id="tab-condonados">
+
+@if($cargosCondonados->isEmpty())
+    <div style="text-align:center;padding:50px 20px;color:#bbb;">
+        <i class="fa fa-scissors" style="font-size:42px;display:block;margin-bottom:12px;"></i>
+        <p style="font-size:14px;margin:0;">Este alumno no tiene cargos condonados.</p>
+    </div>
+@else
+    <div style="overflow-x:auto;">
+        <table class="table table-hover" style="font-size:13px;margin-bottom:0;">
+            <thead>
+                <tr style="background:#f4f6f8;color:#6b7a8d;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">
+                    <th>Concepto</th>
+                    <th>Plan de pago</th>
+                    <th>Ciclo</th>
+                    <th class="text-right">Monto original</th>
+                    <th class="text-right">Condonado</th>
+                    <th>Motivo</th>
+                    <th>Fecha</th>
+                    <th class="text-center">Detalle</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($cargosCondonados as $cc)
+                @php
+                    $detalleCond  = $cc->condonacionDetalles->first();
+                    $condonacion  = $detalleCond?->condonacion;
+                    $montoCondon  = $cc->descuentos->sum('monto_aplicado');
+                @endphp
+                <tr>
+                    <td>
+                        <div style="font-weight:700;color:#1a2634;">
+                            {{ $cc->concepto->nombre }}
+                        </div>
+                        @if($cc->periodo_label)
+                            <div style="font-size:11px;color:#aab;">{{ $cc->periodo_label }}</div>
+                        @endif
+                    </td>
+                    <td>
+                        @if($cc->asignacion?->plan)
+                            <span style="background:#eaf3fb;color:#2c6fad;border:1px solid #b3d4f5;
+                                         border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">
+                                {{ $cc->asignacion->plan->nombre }}
+                            </span>
+                        @else
+                            <span style="color:#ccc;font-size:11px;">—</span>
+                        @endif
+                    </td>
+                    <td style="color:#888;font-size:12px;">
+                        {{ $cc->inscripcion->ciclo->nombre ?? '—' }}
+                    </td>
+                    <td class="text-right" style="color:#555;">
+                        ${{ number_format((float) $cc->monto_original, 2) }}
+                    </td>
+                    <td class="text-right">
+                        <span style="font-weight:700;color:#6b21a8;">
+                            ${{ number_format($montoCondon, 2) }}
+                        </span>
+                    </td>
+                    <td style="max-width:220px;">
+                        @if($condonacion?->motivo)
+                            <span style="font-size:12px;color:#555;"
+                                  title="{{ $condonacion->motivo }}">
+                                {{ Str::limit($condonacion->motivo, 55) }}
+                            </span>
+                        @else
+                            <span style="color:#ccc;font-size:11px;">—</span>
+                        @endif
+                    </td>
+                    <td style="color:#555;font-size:12px;white-space:nowrap;">
+                        {{ $condonacion?->creado_at?->format('d/m/Y') ?? '—' }}
+                    </td>
+                    <td class="text-center">
+                        @if($condonacion)
+                            <a href="{{ route('condonaciones.show', $condonacion->id) }}"
+                               target="_blank"
+                               class="btn btn-xs btn-flat"
+                               style="border-radius:4px;background:#f3e8fd;color:#6b21a8;border:1px solid #d8b4fe;"
+                               title="Ver condonación #{{ $condonacion->id }}">
+                                <i class="fa fa-scissors"></i>
+                            </a>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background:#f9fafb;font-weight:700;">
+                    <td colspan="3" style="font-size:13px;color:#555;">
+                        {{ $cargosCondonados->count() }} cargo(s) condonado(s)
+                    </td>
+                    <td class="text-right" style="color:#555;">
+                        ${{ number_format($cargosCondonados->sum('monto_original'), 2) }}
+                    </td>
+                    <td class="text-right" style="color:#6b21a8;">
+                        ${{ number_format($cargosCondonados->sum(fn($c) => $c->descuentos->sum('monto_aplicado')), 2) }}
+                    </td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+@endif
+
+</div>{{-- /tab-pane#tab-condonados --}}
+
 </div>{{-- /tab-content --}}
 
 {{-- Template para nuevo concepto --}}
@@ -968,12 +1129,27 @@ $(function() {
 
     // NO usamos disabled — en su lugar controlamos via reindexado en submit
 
-    // ── Seleccionar todos ─────────────────────────────
+    // ── Seleccionar todos (global) ────────────────────
     $('#btn-sel-todos').on('click', function() {
         $('.cargo-item').each(function() {
             var id       = $(this).data('cargo-id');
             var pagarHoy = $(this).data('pagar-hoy');
             if (!$(this).hasClass('seleccionado')) {
+                toggleCargo(id, pagarHoy);
+            }
+        });
+    });
+
+    // ── Checkbox "Todos" por plan ─────────────────────
+    $(document).on('change', '.check-todos-plan', function() {
+        var planKey = $(this).data('plan-key');
+        var checked = $(this).is(':checked');
+        $('#' + planKey + ' .cargo-item').each(function() {
+            var id       = $(this).data('cargo-id');
+            var pagarHoy = $(this).data('pagar-hoy');
+            if (checked && !$(this).hasClass('seleccionado')) {
+                toggleCargo(id, pagarHoy);
+            } else if (!checked && $(this).hasClass('seleccionado')) {
                 toggleCargo(id, pagarHoy);
             }
         });
@@ -1325,6 +1501,15 @@ $(function() {
         $('#btn-cobrar').prop('disabled', true)
             .html('<i class="fa fa-spinner fa-spin"></i> Registrando...');
     });
+
+    // ── Colapsar / expandir grupo de plan ─────────────
+    window.togglePlanCobro = function(planKey, headerEl) {
+        var $body = $('#' + planKey);
+        var $icon = $(headerEl).find('.plan-toggle-icon');
+        var visible = $body.is(':visible');
+        $body.slideToggle(180);
+        $icon.css('transform', visible ? 'rotate(-90deg)' : 'rotate(0deg)');
+    };
 
 });
 </script>
