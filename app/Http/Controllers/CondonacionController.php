@@ -124,25 +124,71 @@ class CondonacionController extends Controller
             'alumno_ids.*' => ['required', 'integer', 'exists:alumno,id'],
             'conceptos' => ['required', 'array', 'min:1'],
             'conceptos.*.concepto_id' => ['required', 'integer', 'exists:concepto_cobro,id'],
-            'conceptos.*.monto' => ['required', 'numeric', 'min:0.01'],
+            'conceptos.*.monto' => ['required', 'numeric', 'min:0'],
         ], [
             'motivo.min' => 'El motivo debe tener al menos 10 caracteres.',
             'alumno_ids.required' => 'Debes seleccionar al menos un alumno.',
             'alumno_ids.min' => 'Debes seleccionar al menos un alumno.',
-            'conceptos.*.monto.min' => 'El monto mínimo por concepto es $0.01.',
         ]);
 
-        $count = $this->service->crearMasiva($data);
+        // El ciclo correcto es el del plan, no el del formulario (que depende del ciclo seleccionado
+        // por el usuario y puede diferir del ciclo al que pertenece el plan elegido).
+        $data['ciclo_id'] = PlanPago::where('id', $data['plan_id'])->value('ciclo_id');
 
-        if ($count === 0) {
-            return $this->respuestaError('No se encontraron cargos pendientes para los alumnos seleccionados.');
+        // Conceptos con monto 0 se descartan antes de llegar al service
+        $data['conceptos'] = array_values(
+            array_filter($data['conceptos'], fn ($c) => (float) $c['monto'] > 0)
+        );
+
+        if (empty($data['conceptos'])) {
+            return $this->respuestaError('Debes indicar un monto mayor a $0.00 en al menos un concepto.');
         }
 
-        return $this->respuestaExito(
-            redirectRoute: 'condonaciones.index',
-            mensaje: "Se registraron {$count} condonación(es) correctamente.",
-            jsonData: ['condonaciones_creadas' => $count]
-        );
+        $resultado = $this->service->crearMasiva($data);
+        $creadas   = $resultado['creadas'];
+        $omitidos  = $resultado['omitidos'];
+
+        // Cargar nombres de los omitidos (aplica tanto si hubo éxitos como si no)
+        $nombresOmitidos = [];
+        if (! empty($omitidos)) {
+            $nombresOmitidos = Alumno::whereIn('id', $omitidos)
+                ->orderBy('ap_paterno')->orderBy('nombre')
+                ->get(['nombre', 'ap_paterno', 'ap_materno'])
+                ->map(fn ($a) => trim("{$a->nombre} {$a->ap_paterno} {$a->ap_materno}"))
+                ->all();
+        }
+
+        // Ningún cargo aplicable en ningún alumno seleccionado
+        if ($creadas === 0) {
+            $avisoMensaje = empty($nombresOmitidos)
+                ? 'No se encontraron cargos pendientes para los alumnos seleccionados.'
+                : 'Ningún alumno seleccionado tiene cargos pendientes para los conceptos indicados.';
+
+            if (request()->ajax()) {
+                return response()->json([
+                    'message'  => $avisoMensaje,
+                    'omitidos' => $nombresOmitidos,
+                ], 422);
+            }
+
+            return redirect()->route('condonaciones.index')
+                ->with('error', $avisoMensaje)
+                ->with('omitidos_masiva', $nombresOmitidos);
+        }
+
+        $mensaje = "Se registraron {$creadas} condonación(es) correctamente.";
+
+        if (request()->ajax()) {
+            return response()->json([
+                'message'               => $mensaje,
+                'condonaciones_creadas' => $creadas,
+                'omitidos'              => $nombresOmitidos,
+            ]);
+        }
+
+        return redirect()->route('condonaciones.index')
+            ->with('success', $mensaje)
+            ->with('omitidos_masiva', $nombresOmitidos);
     }
 
     /**

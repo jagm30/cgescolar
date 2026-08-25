@@ -316,9 +316,10 @@
                                 <table class="cargo-table" id="tabla-conceptos-masiva">
                                     <thead>
                                         <tr>
+                                            <th style="width:40px;text-align:center;">Incl.</th>
                                             <th>Concepto</th>
                                             <th class="text-right">Monto del plan</th>
-                                            <th class="text-right">Monto a condonar <span class="text-danger">*</span></th>
+                                            <th class="text-right">Monto a condonar <small class="text-muted">(0 = omitir)</small></th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-conceptos-masiva"></tbody>
@@ -591,17 +592,28 @@
 
                 // Renderizar conceptos
                 data.conceptos.forEach((c, idx) => {
+                    const badge = c.ya_condonado
+                        ? ` <span style="font-size:10px;font-weight:600;background:#fff3cd;color:#856404;
+                                         border:1px solid #ffc107;border-radius:8px;padding:1px 6px;vertical-align:middle;"
+                               title="${c.ultima_condonacion ? 'Cond. #' + c.ultima_condonacion.id + ' del ' + c.ultima_condonacion.fecha : 'Ya condonado'}">
+                               ↺ reemplaza cond.${c.ultima_condonacion ? ' #' + c.ultima_condonacion.id : ''}
+                           </span>`
+                        : '';
+
                     $('#tbody-conceptos-masiva').append(`
                         <tr>
-                            <td style="font-weight:600;">${c.nombre}</td>
+                            <td style="text-align:center;">
+                                <input type="checkbox" class="check-concepto-masiva" data-idx="${idx}" checked>
+                            </td>
+                            <td style="font-weight:600;">${c.nombre}${badge}</td>
                             <td class="text-right" style="color:#555;">$${fmt(c.monto)}</td>
                             <td class="text-right">
                                 <input type="hidden" name="conceptos[${idx}][concepto_id]" value="${c.concepto_id}">
                                 <input type="number" class="monto-input form-control monto-masiva"
                                        name="conceptos[${idx}][monto]"
                                        value="${c.monto.toFixed(2)}"
-                                       min="0.01" max="${c.monto}" step="0.01"
-                                       data-max="${c.monto}" required>
+                                       min="0" max="${c.monto}" step="0.01"
+                                       data-max="${c.monto}" placeholder="0.00">
                             </td>
                         </tr>
                     `);
@@ -634,6 +646,28 @@
 
         $(document).on('change', '.check-alumno-masiva, .monto-masiva', actualizarResumenMasiva);
 
+        // Checkbox por concepto: habilita/deshabilita el monto correspondiente
+        $(document).on('change', '.check-concepto-masiva:not(:disabled)', function () {
+            const idx     = $(this).data('idx');
+            const checked = $(this).is(':checked');
+            const $hiddenId = $(`input[name="conceptos[${idx}][concepto_id]"]`);
+            const $monto    = $(`input[name="conceptos[${idx}][monto]"]`);
+
+            $hiddenId.prop('disabled', !checked);
+            $monto.prop('disabled', !checked);
+
+            if (!checked) {
+                $monto.val('0');
+            } else {
+                const max = parseFloat($monto.data('max')) || 0;
+                if ((parseFloat($monto.val()) || 0) <= 0) {
+                    $monto.val(max.toFixed(2));
+                }
+            }
+
+            actualizarResumenMasiva();
+        });
+
         $('#check-todos-masiva').on('change', function () {
             const checked = $(this).is(':checked');
             $('#lista-alumnos-masiva .alumno-check-item:visible .check-alumno-masiva').prop('checked', checked);
@@ -662,16 +696,16 @@
             $('#filtro-alumno-masiva').val('').trigger('input');
         });
 
-        $(document).on('input', '.monto-masiva', function () {
+        $(document).on('input', '.monto-masiva:not(:disabled)', function () {
             const max = parseFloat($(this).data('max'));
             const val = parseFloat($(this).val()) || 0;
-            if (val > max) $(this).val(max.toFixed(2));
+            if (max && val > max) $(this).val(max.toFixed(2));
             actualizarResumenMasiva();
         });
 
         function actualizarResumenMasiva() {
             let totalPorAlumno = 0;
-            $('.monto-masiva').each(function () {
+            $('.monto-masiva:not(:disabled)').each(function () {
                 totalPorAlumno += parseFloat($(this).val()) || 0;
             });
 
@@ -680,10 +714,10 @@
             $('#resumen-total-masiva').text('$' + fmt(totalPorAlumno));
             $('#resumen-alumnos-masiva').text(numAlumnos);
 
-            const hayConceptos = $('.monto-masiva').length > 0;
-            const hayAlumnos   = numAlumnos > 0;
-            const hayMonto     = totalPorAlumno > 0;
-            $('#btn-guardar-masiva').prop('disabled', !hayConceptos || !hayAlumnos || !hayMonto);
+            const hayConceptosActivos = $('.monto-masiva:not(:disabled)').length > 0;
+            const hayAlumnos          = numAlumnos > 0;
+            const hayMonto            = totalPorAlumno > 0;
+            $('#btn-guardar-masiva').prop('disabled', !hayConceptosActivos || !hayAlumnos || !hayMonto);
         }
 
         $('#form-masiva').on('submit', function (e) {
@@ -692,12 +726,10 @@
                 e.preventDefault();
                 return;
             }
-            let montoValido = true;
-            $('.monto-masiva').each(function () {
-                if (parseFloat($(this).val()) <= 0) { montoValido = false; return false; }
-            });
-            if (!montoValido) {
-                alert('Todos los conceptos deben tener un monto mayor a $0.01.');
+            const totalMonto = $('.monto-masiva:not(:disabled)').toArray()
+                .reduce((acc, el) => acc + (parseFloat(el.value) || 0), 0);
+            if (totalMonto <= 0) {
+                alert('Al menos un concepto debe tener un monto mayor a $0.00.');
                 e.preventDefault();
             }
         });

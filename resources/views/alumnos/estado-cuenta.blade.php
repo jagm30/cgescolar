@@ -322,7 +322,47 @@
                 </thead>
                 <tbody id="tabla-cargos">
 
-                @forelse($cargos as $cargo)
+                @php
+                    $gruposPlan = $cargos->groupBy(fn ($c) => $c->asignacion?->plan_id ?? 0);
+                @endphp
+
+                @if($cargos->isEmpty())
+                <tr>
+                    <td colspan="10" style="padding:56px 20px;text-align:center;">
+                        <i class="fa fa-inbox" style="font-size:42px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
+                        <p style="color:#b0bec5;margin:0;font-weight:600;">Sin cargos registrados</p>
+                        @if(request('ciclo_id'))
+                        <p style="color:#b0bec5;margin:4px 0 0;font-size:12px;">para el ciclo seleccionado</p>
+                        @endif
+                    </td>
+                </tr>
+                @else
+                @foreach($gruposPlan as $planId => $cargosPlan)
+                @php
+                    $planNombre = $planId > 0
+                        ? ($cargosPlan->first()->asignacion?->plan?->nombre ?? 'Plan #'.$planId)
+                        : 'Sin plan asignado';
+                    $planKey = 'plan-'.$planId;
+                @endphp
+
+                {{-- ── Encabezado del plan ── --}}
+                <tr class="plan-header" data-plan-key="{{ $planKey }}">
+                    <td colspan="10"
+                        style="background:#eef3f9;padding:7px 14px;border-top:2px solid #d4e0ee;
+                               border-bottom:1px solid #d4e0ee;">
+                        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
+                                     letter-spacing:.07em;color:#2c5282;">
+                            <i class="fa fa-{{ $planId > 0 ? 'list' : 'minus-circle' }}"
+                               style="margin-right:6px;"></i>{{ $planNombre }}
+                        </span>
+                        <span style="margin-left:8px;background:#c7ddf5;color:#1e4d7b;font-size:10px;
+                                     font-weight:700;padding:1px 7px;border-radius:10px;">
+                            {{ $cargosPlan->count() }} cargo(s)
+                        </span>
+                    </td>
+                </tr>
+
+                @foreach($cargosPlan as $cargo)
                 @php
                     $saldoAbonado   = (float) ($cargo->total_abonado ?? 0);
                     $montoCubierto  = (float) $cargo->monto_cubierto;
@@ -388,6 +428,7 @@
                 <tr class="cargo-row"
                     data-estado="{{ $estadoReal }}"
                     data-cargo-id="{{ $cargo->id }}"
+                    data-plan-key="{{ $planKey }}"
                     style="cursor:{{ $tienePagos ? 'pointer' : 'default' }};"
                     @if($tienePagos) onclick="togglePagos({{ $cargo->id }})" @endif>
 
@@ -560,7 +601,8 @@
 
                 {{-- Detalle de pagos colapsado --}}
                 @if($tienePagos)
-                <tr class="ec-pagos-detalle" id="pagos-{{ $cargo->id }}" style="display:none;">
+                <tr class="ec-pagos-detalle" id="pagos-{{ $cargo->id }}"
+                    data-plan-key="{{ $planKey }}" style="display:none;">
                     <td colspan="10" style="padding:0;">
                         <div class="ec-pagos-inner" style="padding:10px 16px 14px 46px;">
                             <table style="width:100%;">
@@ -639,17 +681,9 @@
                 </tr>
                 @endif
 
-                @empty
-                <tr>
-                    <td colspan="10" style="padding:56px 20px;text-align:center;">
-                        <i class="fa fa-inbox" style="font-size:42px;color:#dde4ea;display:block;margin-bottom:12px;"></i>
-                        <p style="color:#b0bec5;margin:0;font-weight:600;">Sin cargos registrados</p>
-                        @if(request('ciclo_id'))
-                        <p style="color:#b0bec5;margin:4px 0 0;font-size:12px;">para el ciclo seleccionado</p>
-                        @endif
-                    </td>
-                </tr>
-                @endforelse
+                @endforeach {{-- fin cargos del plan --}}
+                @endforeach {{-- fin grupos --}}
+                @endif {{-- fin isEmpty --}}
 
                 </tbody>
             </table>
@@ -913,6 +947,7 @@ $(function() {
         $(this).addClass('activo');
         var filtro = $(this).data('filtro');
 
+        // Mostrar/ocultar filas de cargo
         $('#tabla-cargos tr.cargo-row').each(function() {
             var estado  = $(this).data('estado');
             var cargoId = $(this).data('cargo-id');
@@ -923,12 +958,15 @@ $(function() {
                 || (filtro === 'parcial' && estado === 'parcial_vencido')
                 || (filtro === 'pagado' && estado === 'condonado');
 
-            if (mostrar) {
-                $(this).show();
-            } else {
-                $(this).hide();
-                if (detalle.length) detalle.hide();
-            }
+            $(this).toggle(mostrar);
+            if (!mostrar && detalle.length) detalle.hide();
+        });
+
+        // Mostrar encabezado de plan solo si tiene al menos un cargo visible
+        $('#tabla-cargos tr.plan-header').each(function() {
+            var planKey  = $(this).data('plan-key');
+            var hayVisible = $('#tabla-cargos tr.cargo-row[data-plan-key="' + planKey + '"]:visible').length > 0;
+            $(this).toggle(hayVisible);
         });
     });
 });

@@ -174,6 +174,13 @@
 </div>
 @endif
 
+@if(session('success'))
+<div class="alert alert-success alert-dismissible">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    <i class="fa fa-check-circle"></i> {{ session('success') }}
+</div>
+@endif
+
 {{-- ── Cabecera del alumno ── --}}
 <div class="alumno-header">
     <div style="width:56px;height:56px;border-radius:50%;flex-shrink:0;
@@ -217,6 +224,34 @@
         <i class="fa fa-arrow-left"></i> Buscar otro
     </a>
 </div>
+
+{{-- ── Navegación de pestañas ── --}}
+<ul class="nav nav-tabs" id="cobro-tabs"
+    style="background:#f4f6f8;border:1px solid #e0e7ef;border-bottom:none;
+           border-radius:6px 6px 0 0;padding:0 14px;margin-bottom:0;">
+    <li class="active">
+        <a href="#tab-cobro" data-toggle="tab" style="font-weight:700;font-size:13px;">
+            <i class="fa fa-money"></i> Cobrar
+            @if($cargos->count())
+                <span class="badge" style="background:#e74c3c;color:#fff;margin-left:4px;">{{ $cargos->count() }}</span>
+            @endif
+        </a>
+    </li>
+    <li>
+        <a href="#tab-pagados" data-toggle="tab" style="font-weight:700;font-size:13px;">
+            <i class="fa fa-check-circle text-success"></i> Pagados
+            @if($cargosPagados->count())
+                <span class="badge" style="background:#27ae60;color:#fff;margin-left:4px;">{{ $cargosPagados->count() }}</span>
+            @endif
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content" style="border:1px solid #e0e7ef;border-radius:0 6px 6px 6px;
+                                 background:#fff;padding:18px;margin-bottom:18px;">
+
+{{-- ════ TAB: COBRO ════ --}}
+<div class="tab-pane active" id="tab-cobro">
 
 <form method="POST" action="{{ route('cobros.registrar') }}" id="form-cobro">
 @csrf
@@ -724,6 +759,120 @@
 
 </div>{{-- /row --}}
 </form>
+
+</div>{{-- /tab-pane#tab-cobro --}}
+
+{{-- ════ TAB: PAGADOS ════ --}}
+<div class="tab-pane" id="tab-pagados">
+
+@if($cargosPagados->isEmpty())
+    <div style="text-align:center;padding:50px 20px;color:#bbb;">
+        <i class="fa fa-inbox" style="font-size:42px;display:block;margin-bottom:12px;"></i>
+        <p style="font-size:14px;margin:0;">Este alumno aún no tiene cargos pagados.</p>
+    </div>
+@else
+    <div style="overflow-x:auto;">
+        <table class="table table-hover" style="font-size:13px;margin-bottom:0;">
+            <thead>
+                <tr style="background:#f4f6f8;color:#6b7a8d;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">
+                    <th>Concepto</th>
+                    <th>Plan de pago</th>
+                    <th>Ciclo</th>
+                    <th class="text-right">Monto original</th>
+                    <th class="text-right">Pagado</th>
+                    <th>Fecha pago</th>
+                    <th>Forma</th>
+                    <th class="text-center">Recibo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($cargosPagados as $cp)
+                @php
+                    $detalle   = $cp->detallesPagosVigentes->sortByDesc(fn($d) => $d->pago?->fecha_pago)->first();
+                    $pago      = $detalle?->pago;
+                    $totalPag  = $cp->detallesPagosVigentes->sum('monto_abonado');
+                @endphp
+                <tr>
+                    <td>
+                        <div style="font-weight:700;color:#1a2634;">
+                            {{ $cp->concepto->nombre }}
+                        </div>
+                        @if($cp->periodo_label)
+                            <div style="font-size:11px;color:#aab;">{{ $cp->periodo_label }}</div>
+                        @endif
+                    </td>
+                    <td>
+                        @if($cp->asignacion?->plan)
+                            <span style="background:#eaf3fb;color:#2c6fad;border:1px solid #b3d4f5;
+                                         border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">
+                                {{ $cp->asignacion->plan->nombre }}
+                            </span>
+                        @else
+                            <span style="color:#ccc;font-size:11px;">—</span>
+                        @endif
+                    </td>
+                    <td style="color:#888;font-size:12px;">
+                        {{ $cp->inscripcion->ciclo->nombre ?? '—' }}
+                    </td>
+                    <td class="text-right" style="color:#555;">
+                        ${{ number_format((float) $cp->monto_original, 2) }}
+                    </td>
+                    <td class="text-right">
+                        <span style="font-weight:700;color:#1a6b2e;">
+                            ${{ number_format($totalPag, 2) }}
+                        </span>
+                    </td>
+                    <td style="color:#555;">
+                        {{ $pago?->fecha_pago?->format('d/m/Y') ?? '—' }}
+                    </td>
+                    <td>
+                        @if($pago)
+                            @php
+                                $iconos = ['efectivo'=>'fa-money','transferencia'=>'fa-exchange','tarjeta'=>'fa-credit-card','cheque'=>'fa-bank'];
+                                $icono  = $iconos[$pago->forma_pago] ?? 'fa-question';
+                            @endphp
+                            <span style="font-size:11px;">
+                                <i class="fa {{ $icono }}"></i>
+                                {{ ucfirst($pago->forma_pago) }}
+                            </span>
+                        @else
+                            <span style="color:#ccc;">—</span>
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        @if($pago)
+                            <a href="{{ route('cobros.recibo', $pago->id) }}"
+                               target="_blank"
+                               class="btn btn-default btn-xs btn-flat"
+                               style="border-radius:4px;" title="Ver recibo">
+                                <i class="fa fa-file-text-o"></i>
+                            </a>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background:#f9fafb;font-weight:700;">
+                    <td colspan="3" style="font-size:13px;color:#555;">
+                        {{ $cargosPagados->count() }} cargo(s) pagado(s)
+                    </td>
+                    <td class="text-right" style="color:#555;">
+                        ${{ number_format($cargosPagados->sum('monto_original'), 2) }}
+                    </td>
+                    <td class="text-right" style="color:#1a6b2e;">
+                        ${{ number_format($cargosPagados->sum(fn($c) => $c->detallesPagosVigentes->sum('monto_abonado')), 2) }}
+                    </td>
+                    <td colspan="3"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+@endif
+
+</div>{{-- /tab-pane#tab-pagados --}}
+
+</div>{{-- /tab-content --}}
 
 {{-- Template para nuevo concepto --}}
 <script type="text/template" id="tpl-nuevo">

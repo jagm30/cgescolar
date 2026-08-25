@@ -53,11 +53,13 @@
                     @endforeach
                 </select>
             </a>
-            <a href="{{ route('alumnos.exportar-excel', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}"
-               class="btn btn-success btn-sm btn-flat"
-               style="border-radius:20px;white-space:nowrap;background:#217346;border-color:#1a5e38;">
-                <i class="fa fa-file-excel-o"></i> Exportar Excel
-            </a>
+            @if (auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion() || auth()->user()->esCajero())
+                <a href="{{ route('alumnos.exportar-excel', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}"
+                   class="btn btn-success btn-sm btn-flat"
+                   style="border-radius:20px;white-space:nowrap;background:#217346;border-color:#1a5e38;">
+                    <i class="fa fa-file-excel-o"></i> Exportar Excel
+                </a>
+            @endif
             @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion())
                 <a href="{{ route('alumnos.create') }}" class="btn btn-success btn-sm btn-flat"
                    style="border-radius:20px;white-space:nowrap;">

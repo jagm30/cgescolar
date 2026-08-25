@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Models\Cargo;
-use App\Models\Condonacion;
 use App\Models\DescuentoCargo;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -35,34 +34,6 @@ class StoreCondonacionRequest extends FormRequest
 
             $alumnoId = $this->input('alumno_id');
             $cicloId  = $this->input('ciclo_id');
-
-            // ── Validación por plan: no permitir nueva condonación si ya existe
-            //    una activa del mismo alumno que cubra cargos del mismo plan ──
-            $cargoIds = collect($this->input('detalles', []))->pluck('cargo_id')->filter();
-
-            $planIdsEnvio = Cargo::whereIn('id', $cargoIds)
-                ->whereNotNull('asignacion_id')
-                ->with('asignacion:id,plan_id')
-                ->get()
-                ->pluck('asignacion.plan_id')
-                ->filter()
-                ->unique();
-
-            foreach ($planIdsEnvio as $planId) {
-                $condonacionActiva = Condonacion::where('alumno_id', $alumnoId)
-                    ->activa()
-                    ->whereHas('detalles.cargo.asignacion', fn ($q) => $q->where('plan_id', $planId))
-                    ->first();
-
-                if ($condonacionActiva) {
-                    $validator->errors()->add(
-                        'detalles',
-                        'Ya existe una condonación activa para este plan de pagos. Cancélala antes de registrar una nueva.'
-                    );
-
-                    return;
-                }
-            }
 
             foreach ($this->input('detalles', []) as $index => $item) {
                 $cargo = Cargo::with('inscripcion')->find($item['cargo_id']);

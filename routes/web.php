@@ -137,7 +137,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,recepcion,caja')
         ->name('alumnos.reporte-inscritos');
     Route::get('/alumnos/exportar-excel', [AlumnoController::class, 'exportarExcel'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,director_seccion,caja')
         ->name('alumnos.exportar-excel');
     Route::get('/alumnos/reporte-cumpleaneros', [AlumnoController::class, 'reporteCumpleaneros'])
         ->middleware('rol:administrador,recepcion,caja')
