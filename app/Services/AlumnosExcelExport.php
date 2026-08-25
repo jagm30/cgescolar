@@ -121,7 +121,6 @@ class AlumnosExcelExport
         return Alumno::with([
             'inscripciones' => fn ($q) => $q
                 ->where('ciclo_id', $cicloId)
-                ->activa()
                 ->with('grupo.grado.nivel'),
             'contactos' => fn ($q) => $q->orderByPivot('orden'),
         ])

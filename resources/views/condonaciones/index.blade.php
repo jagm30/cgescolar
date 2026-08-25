@@ -79,6 +79,23 @@
         </div>
     @endif
 
+    @if (session('omitidos_masiva') && count(session('omitidos_masiva')) > 0)
+        @php $omitidos = session('omitidos_masiva'); @endphp
+        <div class="alert alert-warning alert-dismissible" style="border-radius:6px;">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <strong><i class="fa fa-exclamation-triangle"></i>
+                {{ count($omitidos) }} alumno(s) sin cargos aplicables
+            </strong>
+            — Los siguientes alumnos no tienen cargos pendientes para los conceptos indicados
+            (o ya estaban condonados) y no se les registró condonación:
+            <ul style="margin:8px 0 0;padding-left:20px;line-height:1.8;">
+                @foreach ($omitidos as $nombre)
+                    <li>{{ $nombre }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Encabezado --}}
     <div style="background:#fff;border:1px solid #e0e7ef;border-radius:8px;padding:12px 18px;margin-bottom:12px;
                 display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;

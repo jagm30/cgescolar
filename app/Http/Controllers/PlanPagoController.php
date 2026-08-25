@@ -11,6 +11,7 @@ use App\Models\AsignacionPlanConcepto;
 use App\Models\Auditoria;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
+use App\Models\CondonacionDetalle;
 use App\Models\ConceptoCobro;
 use App\Models\Grupo;
 use App\Models\Inscripcion;
@@ -571,11 +572,36 @@ class PlanPagoController extends Controller
                 'matricula' => $a->matricula,
             ]);
 
-        $conceptos = $plan->planPagoConceptos->map(fn ($c) => [
-            'concepto_id' => $c->concepto_id,
-            'nombre' => $c->concepto->nombre,
-            'monto' => (float) $c->monto,
-        ]);
+        $conceptos = $plan->planPagoConceptos->map(function ($c) use ($plan) {
+            $baseQuery = fn () => CondonacionDetalle::query()
+                ->whereHas('cargo', fn ($q) => $q
+                    ->where('concepto_id', $c->concepto_id)
+                    ->whereIn('estado', ['pendiente', 'parcial'])
+                    ->whereHas('inscripcion', fn ($q2) => $q2->where('ciclo_id', $plan->ciclo_id))
+                )
+                ->whereHas('condonacion', fn ($q) => $q->activa());
+
+            $yaCondonado = $baseQuery()->exists();
+
+            $ultimaCondonacion = null;
+            if ($yaCondonado) {
+                $detalle = $baseQuery()->with('condonacion')->orderByDesc('id')->first();
+                if ($detalle?->condonacion) {
+                    $ultimaCondonacion = [
+                        'id'    => $detalle->condonacion->id,
+                        'fecha' => $detalle->condonacion->creado_at?->format('d/m/Y'),
+                    ];
+                }
+            }
+
+            return [
+                'concepto_id'        => $c->concepto_id,
+                'nombre'             => $c->concepto->nombre,
+                'monto'              => (float) $c->monto,
+                'ya_condonado'       => $yaCondonado,
+                'ultima_condonacion' => $ultimaCondonacion,
+            ];
+        });
 
         return response()->json([
             'alumnos' => $alumnos,
