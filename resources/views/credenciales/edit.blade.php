@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                                                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                                                        ========================================================================== */
+                                                                                                                        MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                                                                                            ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -313,8 +313,8 @@
         }
 
         /* ==========================================================================
-                                                           REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
-                                                           ========================================================================== */
+                                                                                               REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+                                                                                               ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -672,6 +672,23 @@
                         <div class="row" style="margin-top: 5px;">
                             <div class="col-xs-4" style="padding-right: 2px;">
                                 <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('parentesco_autorizado1', 'MADRE')" style="padding: 5px 2px;"><i
+                                        class="fa fa-sitemap"></i> Par. 1</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px; padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('parentesco_autorizado2', 'PADRE')" style="padding: 5px 2px;"><i
+                                        class="fa fa-sitemap"></i> Par. 2</button>
+                            </div>
+                            <div class="col-xs-4" style="padding-left: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
+                                    onclick="addElement('parentesco_autorizado3', 'TÍO')" style="padding: 5px 2px;"><i
+                                        class="fa fa-sitemap"></i> Par. 3</button>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 5px;">
+                            <div class="col-xs-4" style="padding-right: 2px;">
+                                <button class="btn btn-default btn-block btn-sm text-left"
                                     onclick="addElement('foto_autorizado1', 'FOTO AUT 1')" style="padding: 5px 2px;"><i
                                         class="fa fa-camera"></i> Foto 1</button>
                             </div>
@@ -795,6 +812,7 @@
                                             'contacto_familiar.ap_materno',
                                             'contacto_familiar.foto_url',
                                             'contacto_familiar.telefono_celular',
+                                            'alumno_contacto.parentesco',
                                         )
                                         ->limit(3)
                                         ->get();
@@ -844,6 +862,16 @@
                                     $telAut2 = $autorizados[1]->telefono_celular ?? '';
                                     $telAut3 = $autorizados[2]->telefono_celular ?? '';
 
+                                    $parentescoAut1 = isset($autorizados[0]->parentesco)
+                                        ? mb_strtoupper($autorizados[0]->parentesco, 'UTF-8')
+                                        : '';
+                                    $parentescoAut2 = isset($autorizados[1]->parentesco)
+                                        ? mb_strtoupper($autorizados[1]->parentesco, 'UTF-8')
+                                        : '';
+                                    $parentescoAut3 = isset($autorizados[2]->parentesco)
+                                        ? mb_strtoupper($autorizados[2]->parentesco, 'UTF-8')
+                                        : '';
+
                                     $nombreStr =
                                         $alumno->nombre .
                                         ' ' .
@@ -868,6 +896,9 @@
                                     data-autorizado3="{{ $aut3 }}" data-tel-autorizado1="{{ $telAut1 }}"
                                     data-tel-autorizado2="{{ $telAut2 }}"
                                     data-tel-autorizado3="{{ $telAut3 }}"
+                                    data-parentesco-autorizado1="{{ $parentescoAut1 }}"
+                                    data-parentesco-autorizado2="{{ $parentescoAut2 }}"
+                                    data-parentesco-autorizado3="{{ $parentescoAut3 }}"
                                     data-foto-autorizado1="{{ $fotoAut1 }}"
                                     data-foto-autorizado2="{{ $fotoAut2 }}"
                                     data-foto-autorizado3="{{ $fotoAut3 }}" data-director="" data-puesto_director=""
@@ -892,6 +923,9 @@
                                     data-autorizado3="{{ $aut3 }}" data-tel-autorizado1="{{ $telAut1 }}"
                                     data-tel-autorizado2="{{ $telAut2 }}"
                                     data-tel-autorizado3="{{ $telAut3 }}"
+                                    data-parentesco-autorizado1="{{ $parentescoAut1 }}"
+                                    data-parentesco-autorizado2="{{ $parentescoAut2 }}"
+                                    data-parentesco-autorizado3="{{ $parentescoAut3 }}"
                                     data-foto-autorizado1="{{ $fotoAut1 }}"
                                     data-foto-autorizado2="{{ $fotoAut2 }}"
                                     data-foto-autorizado3="{{ $fotoAut3 }}" data-director="" data-puesto_director=""
@@ -1000,6 +1034,16 @@
                                 $telAutM1 = $autorizadosM[0]->telefono_celular ?? '961-000-0001';
                                 $telAutM2 = $autorizadosM[1]->telefono_celular ?? '961-000-0002';
                                 $telAutM3 = $autorizadosM[2]->telefono_celular ?? '961-000-0003';
+
+                                $parentescoAutM1 = isset($autorizadosM[0]->parentesco)
+                                    ? mb_strtoupper($autorizadosM[0]->parentesco, 'UTF-8')
+                                    : 'MADRE';
+                                $parentescoAutM2 = isset($autorizadosM[1]->parentesco)
+                                    ? mb_strtoupper($autorizadosM[1]->parentesco, 'UTF-8')
+                                    : 'PADRE';
+                                $parentescoAutM3 = isset($autorizadosM[2]->parentesco)
+                                    ? mb_strtoupper($autorizadosM[2]->parentesco, 'UTF-8')
+                                    : 'TÍO';
                             @endphp
 
                             <div id="credencial-canvas" class="credencial-canvas-instance face-anverso"
@@ -1014,10 +1058,13 @@
                                 data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
                                 data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
                                 data-tel-autorizado1="{{ $telAutM1 }}" data-tel-autorizado2="{{ $telAutM2 }}"
-                                data-tel-autorizado3="{{ $telAutM3 }}" data-foto-autorizado1="{{ $fotoAutM1 }}"
-                                data-foto-autorizado2="{{ $fotoAutM2 }}" data-foto-autorizado3="{{ $fotoAutM3 }}"
-                                data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
-                                onclick="deselect(event)">
+                                data-tel-autorizado3="{{ $telAutM3 }}"
+                                data-parentesco-autorizado1="{{ $parentescoAutM1 }}"
+                                data-parentesco-autorizado2="{{ $parentescoAutM2 }}"
+                                data-parentesco-autorizado3="{{ $parentescoAutM3 }}"
+                                data-foto-autorizado1="{{ $fotoAutM1 }}" data-foto-autorizado2="{{ $fotoAutM2 }}"
+                                data-foto-autorizado3="{{ $fotoAutM3 }}" data-director="LIC. DIRECTOR"
+                                data-puesto_director="DIRECTOR GENERAL" onclick="deselect(event)">
                                 @if ($diseno->fondo_anverso)
                                     <img src="{{ asset('storage/' . $diseno->fondo_anverso) }}" class="fondo-credencial"
                                         id="img-fondo-editor">
@@ -1042,10 +1089,13 @@
                                 data-autorizado2="{{ $autM2 ?: 'AUTORIZADO 2' }}"
                                 data-autorizado3="{{ $autM3 ?: 'AUTORIZADO 3' }}"
                                 data-tel-autorizado1="{{ $telAutM1 }}" data-tel-autorizado2="{{ $telAutM2 }}"
-                                data-tel-autorizado3="{{ $telAutM3 }}" data-foto-autorizado1="{{ $fotoAutM1 }}"
-                                data-foto-autorizado2="{{ $fotoAutM2 }}" data-foto-autorizado3="{{ $fotoAutM3 }}"
-                                data-director="LIC. DIRECTOR" data-puesto_director="DIRECTOR GENERAL"
-                                onclick="deselect(event)" style="display:none;">
+                                data-tel-autorizado3="{{ $telAutM3 }}"
+                                data-parentesco-autorizado1="{{ $parentescoAutM1 }}"
+                                data-parentesco-autorizado2="{{ $parentescoAutM2 }}"
+                                data-parentesco-autorizado3="{{ $parentescoAutM3 }}"
+                                data-foto-autorizado1="{{ $fotoAutM1 }}" data-foto-autorizado2="{{ $fotoAutM2 }}"
+                                data-foto-autorizado3="{{ $fotoAutM3 }}" data-director="LIC. DIRECTOR"
+                                data-puesto_director="DIRECTOR GENERAL" onclick="deselect(event)" style="display:none;">
                                 @if ($diseno->fondo_reverso)
                                     <img src="{{ asset('storage/' . $diseno->fondo_reverso) }}" class="fondo-credencial"
                                         id="img-fondo-editor-reverso">
@@ -1187,6 +1237,15 @@
                             class="fa fa-calendar"></i> Ciclo Escolar</button>
                     <button class="btn btn-default btn-block text-left" onclick="confirmAnchor('sangre', 'O+')"><i
                             class="fa fa-tint"></i> Tipo Sangre</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('parentesco_autorizado1', 'MADRE')"><i class="fa fa-sitemap"></i>
+                        Parentesco Aut. 1</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('parentesco_autorizado2', 'PADRE')"><i class="fa fa-sitemap"></i>
+                        Parentesco Aut. 2</button>
+                    <button class="btn btn-default btn-block text-left"
+                        onclick="confirmAnchor('parentesco_autorizado3', 'TÍO')"><i class="fa fa-sitemap"></i> Parentesco
+                        Aut. 3</button>
 
                     <hr style="margin: 10px 0;">
                     <label style="color:#e67e22; font-size:12px;"><i class="fa fa-home"></i> Contactos:</label>
@@ -1412,6 +1471,9 @@
                     'tel_autorizado1': 'telAutorizado1',
                     'tel_autorizado2': 'telAutorizado2',
                     'tel_autorizado3': 'telAutorizado3',
+                    'parentesco_autorizado1': 'parentescoAutorizado1',
+                    'parentesco_autorizado2': 'parentescoAutorizado2',
+                    'parentesco_autorizado3': 'parentescoAutorizado3',
                     'director': 'director',
                     'puesto_director': 'puesto_director'
                 };
@@ -1478,7 +1540,7 @@
                 span.style.border = borderWidthPx > 0 ? `${borderWidthPx}px solid ${borderColorVal}` : 'none';
 
                 // SEPARAMOS LA LÓGICA AQUÍ
-// SEPARAMOS LA LÓGICA AQUÍ
+                // SEPARAMOS LA LÓGICA AQUÍ
                 if (data.type === 'logo') {
                     span.style.setProperty('background-color', 'transparent', 'important'); // <-- LOGO A SALVO
                     let src = data.logo_src || '';
@@ -1486,7 +1548,8 @@
                         `<img src="${src}" style="width:100%; height:100%; object-fit:contain; display:block;">` :
                         `<i class="fa fa-picture-o fa-2x"></i>`;
                 } else {
-                    span.style.setProperty('background-color', bgColorVal, 'important'); // <-- FUERZA EL COLOR EN LA IMPRESIÓN
+                    span.style.setProperty('background-color', bgColorVal,
+                        'important'); // <-- FUERZA EL COLOR EN LA IMPRESIÓN
 
                     if (isModeVisual) {
                         span.innerHTML = fotoUrl ?
