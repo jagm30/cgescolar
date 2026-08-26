@@ -232,8 +232,8 @@
         }
 
         /* ==========================================================================
-                                                MODO VISUALIZACIÓN Y CERO MÁRGENES
-                                    ========================================================================== */
+                                                                                    MODO VISUALIZACIÓN Y CERO MÁRGENES
+                                                                        ========================================================================== */
         .modo-visualizacion,
         .modo-visualizacion .content,
         .modo-visualizacion .row,
@@ -313,8 +313,8 @@
         }
 
         /* ==========================================================================
-                       REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
-                       ========================================================================== */
+                                                           REGLA DEFINITIVA PARA IMPRESORA EVOLIS (ESPECIFICIDAD ABSOLUTA)
+                                                           ========================================================================== */
         @media print {
             @page {
                 margin: 0 !important;
@@ -1106,6 +1106,10 @@
                 <label>Color:</label>
                 <input type="color" id="prop-color" onchange="updateLive()">
             </div>
+            <div class="ctx-prop-row" id="row-bg-color" style="display:none;">
+                <label>Fondo de foto(si no una foto):</label>
+                <input type="color" id="prop-bg-color" onchange="updateLive()">
+            </div>
             <div class="ctx-prop-row" id="row-border">
                 <label>Marco:</label>
                 <div style="display:flex; align-items:center; gap:6px;">
@@ -1434,7 +1438,11 @@
 
                 if (mapFoto[data.type]) {
                     fotoUrl = canvas.dataset[mapFoto[data.type]];
-                    if (!fotoUrl || fotoUrl.trim() === '') isEmpty = true;
+                    if (!fotoUrl || fotoUrl.trim() === '') {
+                        fotoUrl = null;
+                        // COMENTAMOS isEmpty = true; PARA QUE EL RECUADRO NO DESAPAREZCA
+                        // isEmpty = true;
+                    }
                 }
 
                 // ── Solo ocultar en modo impresión, nunca en el editor ──
@@ -1457,27 +1465,36 @@
                 el.style.justifyContent = 'center';
                 el.style.overflow = 'hidden';
 
-                // Marco/borde configurable de la foto (independiente de la guía punteada del editor)
+                // Marco y Fondo configurable
                 const borderWidthPx = parseInt(data.borderWidth) || 0;
                 const borderColorVal = data.borderColor || '#000000';
+                const bgColorVal = data.backgroundColor || '#ffffff';
+
                 el.dataset.borderColor = borderColorVal;
                 el.dataset.borderWidth = borderWidthPx;
+                el.dataset.backgroundColor = bgColorVal;
+
                 span.style.boxSizing = 'border-box';
                 span.style.border = borderWidthPx > 0 ? `${borderWidthPx}px solid ${borderColorVal}` : 'none';
 
+                // SEPARAMOS LA LÓGICA AQUÍ
+// SEPARAMOS LA LÓGICA AQUÍ
                 if (data.type === 'logo') {
+                    span.style.setProperty('background-color', 'transparent', 'important'); // <-- LOGO A SALVO
                     let src = data.logo_src || '';
                     span.innerHTML = src ?
                         `<img src="${src}" style="width:100%; height:100%; object-fit:contain; display:block;">` :
                         `<i class="fa fa-picture-o fa-2x"></i>`;
                 } else {
+                    span.style.setProperty('background-color', bgColorVal, 'important'); // <-- FUERZA EL COLOR EN LA IMPRESIÓN
+
                     if (isModeVisual) {
                         span.innerHTML = fotoUrl ?
                             `<img src="${fotoUrl}" style="width:100%; height:100%; object-fit:cover; object-position:center top; display:block;">` :
-                            `<div style="width:100%; height:100%; background:transparent;"></div>`;
+                            `<div style="width:100%; height:100%;"></div>`; // <-- Sin transparent
                     } else {
                         span.innerHTML =
-                            `<div style="width:100%; height:100%; background:#f8f9fa; display:flex; align-items:center; justify-content:center;"><i class="fa fa-camera fa-3x" style="color:#bdc3c7"></i></div>`;
+                            `<div style="width:100%; height:100%; background:transparent; display:flex; align-items:center; justify-content:center;"><i class="fa fa-camera fa-3x" style="color:#bdc3c7"></i></div>`;
                     }
                 }
             } else {
@@ -1725,14 +1742,24 @@
                 '#000000';
             document.getElementById('txt-size').innerText = parseInt(el.style.fontSize) || 14;
 
-            // Marco (solo aplica a fotos/logo)
+            // Marco y Fondo (Marco aplica a logo y fotos, Fondo SOLO a fotos)
             const rowBorder = document.getElementById('row-border');
-            rowBorder.style.display = isMedia ? 'block' : 'none';
+            const rowBgColor = document.getElementById('row-bg-color');
+
+            const isPhoto = isMedia && el.dataset.type !== 'logo'; // Detecta si es una foto real
+
+            rowBorder.style.display = isMedia ? 'flex' : 'none';
+            rowBgColor.style.display = isPhoto ? 'flex' : 'none'; // Protegemos el logo aquí
+
             if (isMedia) {
                 const bWidth = parseInt(el.dataset.borderWidth) || 0;
                 document.getElementById('prop-border-color').value = el.dataset.borderColor || '#000000';
                 document.getElementById('prop-border-width').value = bWidth;
                 document.getElementById('txt-border-width').innerText = bWidth + 'px';
+            }
+            if (isPhoto) {
+                // Solo cargamos color de fondo si no es logo
+                document.getElementById('prop-bg-color').value = el.dataset.backgroundColor || '#ffffff';
             }
             updateUIButtons();
         }
@@ -1761,13 +1788,24 @@
             if (isFotoType(selected.dataset.type)) {
                 const bColor = document.getElementById('prop-border-color').value;
                 const bWidth = parseInt(document.getElementById('prop-border-width').value) || 0;
+
                 document.getElementById('txt-border-width').innerText = bWidth + 'px';
+
                 selected.dataset.borderColor = bColor;
                 selected.dataset.borderWidth = bWidth;
+
                 span.style.boxSizing = 'border-box';
                 span.style.border = bWidth > 0 ? `${bWidth}px solid ${bColor}` : 'none';
-            }
 
+                // Color de fondo SOLO si no es logo
+                if (selected.dataset.type !== 'logo') {
+                    const bgColor = document.getElementById('prop-bg-color').value;
+                    selected.dataset.backgroundColor = bgColor;
+                    span.style.backgroundColor = bgColor;
+                } else {
+                    span.style.backgroundColor = 'transparent';
+                }
+            }
             checkOverflow(selected);
             markAsUnsaved();
             const p = selected.dataset.parentId ? document.getElementById(selected.dataset.parentId) : selected;
@@ -1855,7 +1893,8 @@
                 fontFamily: "'Montserrat', sans-serif",
                 isLabel: (type === 'label'),
                 borderColor: '#000000',
-                borderWidth: '0'
+                borderWidth: '0',
+                backgroundColor: '#ffffff'
             }, document.getElementById(targetCanvasId));
             selectEl(document.getElementById(id));
             markAsUnsaved();
@@ -2132,7 +2171,8 @@
                     fontStyle: el.style.fontStyle || 'normal',
                     fontFamily: el.style.fontFamily || 'Roboto, sans-serif',
                     borderColor: el.dataset.borderColor || '#000000',
-                    borderWidth: el.dataset.borderWidth || '0'
+                    borderWidth: el.dataset.borderWidth || '0',
+                    backgroundColor: el.dataset.backgroundColor || '#ffffff'
                 };
                 if (el.dataset.type === 'logo') {
                     const img = span.querySelector('img');
