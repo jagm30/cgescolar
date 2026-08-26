@@ -1106,6 +1106,15 @@
                 <label>Color:</label>
                 <input type="color" id="prop-color" onchange="updateLive()">
             </div>
+            <div class="ctx-prop-row" id="row-border">
+                <label>Marco:</label>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <input type="color" id="prop-border-color" onchange="updateLive()">
+                    <input type="range" id="prop-border-width" min="0" max="15" step="1"
+                        oninput="updateLive()" style="flex:1;">
+                    <span id="txt-border-width" style="font-size:11px; min-width:26px;">0px</span>
+                </div>
+            </div>
         </div>
         <div class="ctx-row danger" onclick="ctxEliminar()">
             <i class="fa fa-trash"></i> Eliminar
@@ -1448,6 +1457,14 @@
                 el.style.justifyContent = 'center';
                 el.style.overflow = 'hidden';
 
+                // Marco/borde configurable de la foto (independiente de la guía punteada del editor)
+                const borderWidthPx = parseInt(data.borderWidth) || 0;
+                const borderColorVal = data.borderColor || '#000000';
+                el.dataset.borderColor = borderColorVal;
+                el.dataset.borderWidth = borderWidthPx;
+                span.style.boxSizing = 'border-box';
+                span.style.border = borderWidthPx > 0 ? `${borderWidthPx}px solid ${borderColorVal}` : 'none';
+
                 if (data.type === 'logo') {
                     let src = data.logo_src || '';
                     span.innerHTML = src ?
@@ -1467,6 +1484,7 @@
                 span.innerText = textoFinal;
                 span.style.setProperty('color', data.color || '#000000', 'important');
             }
+
 
             el.appendChild(span);
             if (!isModeVisual) {
@@ -1706,6 +1724,16 @@
             document.getElementById('prop-color').value = rgbToHex(contentSpanColor || el.style.color) ||
                 '#000000';
             document.getElementById('txt-size').innerText = parseInt(el.style.fontSize) || 14;
+
+            // Marco (solo aplica a fotos/logo)
+            const rowBorder = document.getElementById('row-border');
+            rowBorder.style.display = isMedia ? 'block' : 'none';
+            if (isMedia) {
+                const bWidth = parseInt(el.dataset.borderWidth) || 0;
+                document.getElementById('prop-border-color').value = el.dataset.borderColor || '#000000';
+                document.getElementById('prop-border-width').value = bWidth;
+                document.getElementById('txt-border-width').innerText = bWidth + 'px';
+            }
             updateUIButtons();
         }
 
@@ -1729,6 +1757,17 @@
             selected.style.color = colorHex;
             span.style.setProperty('color', colorHex, 'important');
             selected.style.fontFamily = document.getElementById('prop-font').value;
+
+            if (isFotoType(selected.dataset.type)) {
+                const bColor = document.getElementById('prop-border-color').value;
+                const bWidth = parseInt(document.getElementById('prop-border-width').value) || 0;
+                document.getElementById('txt-border-width').innerText = bWidth + 'px';
+                selected.dataset.borderColor = bColor;
+                selected.dataset.borderWidth = bWidth;
+                span.style.boxSizing = 'border-box';
+                span.style.border = bWidth > 0 ? `${bWidth}px solid ${bColor}` : 'none';
+            }
+
             checkOverflow(selected);
             markAsUnsaved();
             const p = selected.dataset.parentId ? document.getElementById(selected.dataset.parentId) : selected;
@@ -1814,7 +1853,9 @@
                 fontWeight: 'bold',
                 fontStyle: 'normal',
                 fontFamily: "'Montserrat', sans-serif",
-                isLabel: (type === 'label')
+                isLabel: (type === 'label'),
+                borderColor: '#000000',
+                borderWidth: '0'
             }, document.getElementById(targetCanvasId));
             selectEl(document.getElementById(id));
             markAsUnsaved();
@@ -2089,7 +2130,9 @@
                     textAlign: el.style.textAlign || 'left',
                     fontWeight: el.style.fontWeight || 'normal',
                     fontStyle: el.style.fontStyle || 'normal',
-                    fontFamily: el.style.fontFamily || 'Roboto, sans-serif'
+                    fontFamily: el.style.fontFamily || 'Roboto, sans-serif',
+                    borderColor: el.dataset.borderColor || '#000000',
+                    borderWidth: el.dataset.borderWidth || '0'
                 };
                 if (el.dataset.type === 'logo') {
                     const img = span.querySelector('img');
