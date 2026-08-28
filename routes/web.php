@@ -15,6 +15,7 @@ use App\Http\Controllers\FamiliaController;
 use App\Http\Controllers\FichaMedicaController;
 use App\Http\Controllers\GradoController;
 use App\Http\Controllers\GrupoController;
+use App\Http\Controllers\ManualController;
 use App\Http\Controllers\NivelEscolarController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PersonalController;
@@ -89,6 +90,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('grupos.reporte-pagos');
     Route::get('descargar-expediente-medico/{id}', [GrupoController::class, 'reporteExpedienteMedico'])->name('grupos.reporte-medico');
     Route::get('album-fotografico/{id}', [GrupoController::class, 'albumFotografico'])->name('grupos.album-fotografico');
+    Route::get('reporte-contactos/{id}', [GrupoController::class, 'reporteContactos'])->name('grupos.reporte-contactos');
 
     // Recepción, caja, admisiones e información y admisiones pueden consultar grupos (solo lectura)
     Route::get('/grupos', [GrupoController::class, 'index'])
@@ -463,7 +465,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->except(['index']);
 
     // ── Manuales descargables ────────────────────────────
-    Route::get('/manuales/admisiones-recepcion', [\App\Http\Controllers\ManualController::class, 'admisionesRecepcion'])
+    Route::get('/manuales/admisiones-recepcion', [ManualController::class, 'admisionesRecepcion'])
         ->middleware('rol:administrador,recepcion,admisiones,informacion_admisiones,director_seccion')
         ->name('manuales.admisiones-recepcion');
 

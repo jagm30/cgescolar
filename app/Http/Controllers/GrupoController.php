@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
 use App\Models\CicloEscolar;
+use App\Models\Credencial;
 use App\Models\Grado;
 use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
 use App\Models\Personal;
 use App\Traits\RespondsWithJson;
-use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class GrupoController extends Controller
@@ -39,19 +40,19 @@ class GrupoController extends Controller
 
         // 3. Paginación y conteo de alumnos inscritos
         $baseQuery = $query
-            ->when($request->filled('nivel_id'), fn($q) => $q->whereHas(
+            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
                 'grado',
-                fn($q) => $q->where('nivel_id', $request->nivel_id)
+                fn ($q) => $q->where('nivel_id', $request->nivel_id)
             ))
-            ->when($request->filled('grado_id'), fn($q) => $q->where('grado_id', $request->grado_id))
-            ->withCount(['inscripciones as alumnos_inscritos' => fn($q) => $q->where('activo', true)])
+            ->when($request->filled('grado_id'), fn ($q) => $q->where('grado_id', $request->grado_id))
+            ->withCount(['inscripciones as alumnos_inscritos' => fn ($q) => $q->where('activo', true)])
             ->orderBy('grado_id')
             ->orderBy('nombre');
 
         // Cuando es AJAX para poblar un select (ciclo_id + nivel_id), devolver array plano
         if ($request->ajax() && $request->filled('nivel_id')) {
             return response()->json(
-                $baseQuery->get()->map(fn($g) => array_merge($g->toArray(), [
+                $baseQuery->get()->map(fn ($g) => array_merge($g->toArray(), [
                     'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
                 ]))
             );
@@ -60,7 +61,7 @@ class GrupoController extends Controller
         $gruposPaginados = $baseQuery->paginate(10);
 
         // 4. Transformación para calcular lugares disponibles
-        $gruposPaginados->getCollection()->transform(fn($g) => array_merge($g->toArray(), [
+        $gruposPaginados->getCollection()->transform(fn ($g) => array_merge($g->toArray(), [
             'disponibles' => $g->cupo_maximo ? max(0, $g->cupo_maximo - $g->alumnos_inscritos) : null,
         ]));
 
@@ -70,37 +71,38 @@ class GrupoController extends Controller
             return response()->json($grupos);
         }
 
-// 5. Variables para la vista
+        // 5. Variables para la vista
         $niveles = NivelEscolar::activo()->get();
-        $grados  = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
-        $ciclo   = CicloEscolar::find($cicloId);
+        $grados = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
+        $ciclo = CicloEscolar::find($cicloId);
         $ciclosDisponibles = CicloEscolar::orderBy('fecha_inicio', 'desc')->get();
-        $disenos = \App\Models\Credencial::all();
+        $disenos = Credencial::all();
 
         // Corrección: Solo traemos a los que son docentes
-        $docentes = \App\Models\Personal::where('activo', true)
-                                ->where('tipo', 'docente')
-                                ->get();
+        $docentes = Personal::where('activo', true)
+            ->where('tipo', 'docente')
+            ->get();
 
         // Agregamos 'docentes' al compact
         return view('grupos.index', compact('grupos', 'niveles', 'grados', 'ciclo', 'ciclosDisponibles', 'disenos', 'docentes'));
 
     }
+
     /** GET /grupos/{id} */
     public function show(int $id)
     {
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn($q) => $q
+            'inscripciones' => fn ($q) => $q
                 ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
                 ->orderBy('alumno.ap_paterno')
                 ->orderBy('alumno.ap_materno')
                 ->orderBy('alumno.nombre')
                 ->select('inscripcion.*')
                 ->with([
-                    'alumno' => fn($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')
-                        ->with(['contactos' => fn($q) => $q->whereNotNull('usuario_id')]),
+                    'alumno' => fn ($q) => $q->select('id', 'matricula', 'nombre', 'ap_paterno', 'ap_materno', 'estado')
+                        ->with(['contactos' => fn ($q) => $q->whereNotNull('usuario_id')]),
                 ]),
         ])->findOrFail($id);
 
@@ -110,8 +112,8 @@ class GrupoController extends Controller
 
         // 1. OBTENEMOS LOS GRADOS (Versión limpia sin JOIN manual)
         // Usamos el modelo para que Laravel use los nombres de tabla correctos automáticamente
-        $grados = \App\Models\Grado::with('nivel')->get()->sortBy(function ($grado) {
-            return $grado->nivel->id . '-' . $grado->numero;
+        $grados = Grado::with('nivel')->get()->sortBy(function ($grado) {
+            return $grado->nivel->id.'-'.$grado->numero;
         });
 
         // 2. Grupos disponibles para cambios (tu lógica original)
@@ -123,7 +125,7 @@ class GrupoController extends Controller
             }])
             ->get();
         // 3. OBTENEMOS LOS CICLOS ESCOLARES
-        $ciclosDisponibles = \App\Models\CicloEscolar::where('id', '!=', $grupo->ciclo_id) // Excluye el actual
+        $ciclosDisponibles = CicloEscolar::where('id', '!=', $grupo->ciclo_id) // Excluye el actual
             ->where('id', '>', $grupo->ciclo_id) // Solo IDs mayores (ciclos creados después)
             ->whereIn('estado', ['activo', 'configuracion'])
             ->orderBy('id', 'asc')
@@ -131,11 +133,12 @@ class GrupoController extends Controller
 
         return view('grupos.show', compact('grupo', 'gruposDisponibles', 'grados', 'ciclosDisponibles'));
     }
+
     /** GET /grupos/grados-por-ciclo?ciclo_id=X */
     public function gradosPorCiclo(Request $request)
     {
         $query = Grado::with('nivel')
-            ->whereHas('grupos', fn($q) => $q->where('ciclo_id', $request->ciclo_id));
+            ->whereHas('grupos', fn ($q) => $q->where('ciclo_id', $request->ciclo_id));
 
         // LÓGICA INTELIGENTE: Filtramos a partir del grado de origen
         if ($request->filled('grado_origen_id')) {
@@ -157,9 +160,9 @@ class GrupoController extends Controller
         $grados = $query->orderBy('nivel_id')
             ->orderBy('numero')
             ->get()
-            ->map(fn($gr) => [
-                'id'    => $gr->id,
-                'label' => $gr->nivel->nombre . ' - ' . $gr->numero . '°',
+            ->map(fn ($gr) => [
+                'id' => $gr->id,
+                'label' => $gr->nivel->nombre.' - '.$gr->numero.'°',
             ]);
 
         return response()->json($grados);
@@ -171,12 +174,12 @@ class GrupoController extends Controller
         $grupos = Grupo::where('ciclo_id', $request->ciclo_id)
             ->where('grado_id', $request->grado_id)
             ->where('activo', true)
-            ->withCount(['inscripciones as alumnos_count' => fn($q) => $q->where('activo', true)])
+            ->withCount(['inscripciones as alumnos_count' => fn ($q) => $q->where('activo', true)])
             ->orderBy('nombre')
             ->get()
-            ->map(fn($g) => [
-                'id'    => $g->id,
-                'label' => 'Grupo ' . $g->nombre . ' (' . $g->alumnos_count . ' alumnos)',
+            ->map(fn ($g) => [
+                'id' => $g->id,
+                'label' => 'Grupo '.$g->nombre.' ('.$g->alumnos_count.' alumnos)',
             ]);
 
         return response()->json($grupos);
@@ -203,22 +206,22 @@ class GrupoController extends Controller
             ?? CicloEscolar::activo()->value('id');
 
         $data = $request->validate([
-            'icono'       => ['nullable', 'image', 'max:2048'],
-            'grado_id'    => ['required', 'exists:grado,id'],
-            'nombre'      => ['required', 'string', 'max:10'],
-            'grupo'       => ['nullable', 'in:A,B,C,D'],
+            'icono' => ['nullable', 'image', 'max:2048'],
+            'grado_id' => ['required', 'exists:grado,id'],
+            'nombre' => ['required', 'string', 'max:10'],
+            'grupo' => ['nullable', 'in:A,B,C,D'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'docente_id'  => ['nullable', 'integer', 'exists:personal,id'],
-            'ciclo_id'    => ['nullable', 'exists:ciclo_escolar,id'],
+            'docente_id' => ['nullable', 'integer', 'exists:personal,id'],
+            'ciclo_id' => ['nullable', 'exists:ciclo_escolar,id'],
         ], [
             'grado_id.required' => 'Debe seleccionar el grado.',
-            'nombre.required'   => 'El nombre del grupo es obligatorio.',
-            'grupo.in'          => 'El grupo debe ser A, B, C o D.',
+            'nombre.required' => 'El nombre del grupo es obligatorio.',
+            'grupo.in' => 'El grupo debe ser A, B, C o D.',
         ]);
 
         $data['ciclo_id'] = $cicloId;
-        $data['activo']   = true;
-        $data['nombre']   = strtoupper($data['nombre']);
+        $data['activo'] = true;
+        $data['nombre'] = strtoupper($data['nombre']);
         // Guardar el archivo en el disco 'public'
         if ($request->hasFile('icono')) {
             $data['icono'] = $request->file('icono')->store('iconos_grupos', 'public');
@@ -234,6 +237,7 @@ class GrupoController extends Controller
 
         if ($existe) {
             $msj = "Ya existe el grupo '{$data['nombre']}' para ese grado en este ciclo.";
+
             return $request->ajax()
                 ? response()->json(['status' => 'error', 'mensaje' => $msj], 422)
                 : back()->withErrors(['nombre' => $msj])->withInput();
@@ -259,11 +263,10 @@ class GrupoController extends Controller
         return redirect()->route('grupos.index')->with('success', $mensajeExito);
     }
 
-
     /** GET /grupos/{id}/edit */
     public function edit(int $id)
     {
-        $grupo  = Grupo::with(['grado.nivel'])->findOrFail($id);
+        $grupo = Grupo::with(['grado.nivel'])->findOrFail($id);
         $grados = Grado::with('nivel')->orderBy('nivel_id')->orderBy('numero')->get();
 
         if (request()->ajax()) {
@@ -276,22 +279,22 @@ class GrupoController extends Controller
     /** PUT /grupos/{id} */
     public function update(Request $request, int $id)
     {
-        $grupo    = Grupo::findOrFail($id);
+        $grupo = Grupo::findOrFail($id);
         $anterior = $grupo->toArray();
 
         $data = $request->validate([
-            'icono'       => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'nombre'      => ['sometimes', 'required', 'string', 'max:10'],
-            'grupo'       => ['nullable', 'in:A,B,C,D'],
+            'icono' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'nombre' => ['sometimes', 'required', 'string', 'max:10'],
+            'grupo' => ['nullable', 'in:A,B,C,D'],
             'cupo_maximo' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'docente_id'  => ['nullable', 'integer', 'exists:personal,id'],
-            'activo'      => ['boolean'],
+            'docente_id' => ['nullable', 'integer', 'exists:personal,id'],
+            'activo' => ['boolean'],
         ]);
 
         if ($request->hasFile('icono')) {
             // Si el grupo ya tenía un icono viejo, lo borramos del disco para no ocupar espacio basura
             if ($grupo->icono) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($grupo->icono);
+                Storage::disk('public')->delete($grupo->icono);
             }
             // Guardamos el nuevo
             $data['icono'] = $request->file('icono')->store('iconos_grupos', 'public');
@@ -342,7 +345,8 @@ class GrupoController extends Controller
     public function destroy(Grupo $grupo)
     {
         if ($grupo->inscripciones()->count() > 0) {
-            $msj = "No se puede eliminar el grupo porque tiene alumnos inscritos.";
+            $msj = 'No se puede eliminar el grupo porque tiene alumnos inscritos.';
+
             return request()->ajax()
                 ? response()->json(['status' => 'error', 'mensaje' => $msj], 422)
                 : back()->with('error', $msj);
@@ -350,21 +354,23 @@ class GrupoController extends Controller
 
         // LA CORRECCIÓN: Destruir la imagen antes de borrar el grupo
         if ($grupo->icono) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($grupo->icono);
+            Storage::disk('public')->delete($grupo->icono);
         }
 
         $grupo->delete();
 
         if (request()->ajax()) {
             session()->flash('success', 'Grupo eliminado correctamente.');
+
             return response()->json(['status' => 'success']);
         }
 
         return redirect()->route('grupos.index')->with('success', 'Grupo eliminado correctamente.');
     }
+
     public function toggleStatus(Grupo $grupo)
     {
-        $nuevoEstado = !$grupo->activo;
+        $nuevoEstado = ! $grupo->activo;
         $grupo->update(['activo' => $nuevoEstado]);
 
         $accion = $nuevoEstado ? 'activado' : 'desactivado';
@@ -377,11 +383,11 @@ class GrupoController extends Controller
     public function cambiarAlumno(Request $request, int $id)
     {
         $data = $request->validate([
-            'alumno_id'        => ['required', 'exists:alumno,id'],
+            'alumno_id' => ['required', 'exists:alumno,id'],
             'grupo_destino_id' => ['required', 'exists:grupo,id'],
         ]);
 
-        $grupoOrigen  = Grupo::findOrFail($id);
+        $grupoOrigen = Grupo::findOrFail($id);
         $grupoDestino = Grupo::findOrFail($data['grupo_destino_id']);
 
         if ($grupoOrigen->ciclo_id !== $grupoDestino->ciclo_id) {
@@ -402,7 +408,7 @@ class GrupoController extends Controller
             ->where('activo', true)
             ->first();
 
-        if (!$inscripcion) {
+        if (! $inscripcion) {
             return $this->respuestaError('El alumno no tiene inscripción activa en este ciclo.');
         }
 
@@ -424,7 +430,7 @@ class GrupoController extends Controller
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn($q) => $q
+            'inscripciones' => fn ($q) => $q
                 ->where('activo', true)
                 ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
                 ->orderBy('alumno.ap_paterno')
@@ -434,9 +440,11 @@ class GrupoController extends Controller
                 ->with('alumno'),
         ])->findOrFail($id);
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('grupos.reportes.lista_pdf', compact('grupo'));
+        $pdf = Pdf::loadView('grupos.reportes.lista_pdf', compact('grupo'));
 
         $pdf->setOption('isPhpEnabled', true);
         $pdf->setOption('isHtml5ParserEnabled', true);
@@ -450,9 +458,9 @@ class GrupoController extends Controller
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn($q) => $q->where('activo', true)->with([
+            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
                 'alumno',
-                'cargos' => fn($q) => $q->with([
+                'cargos' => fn ($q) => $q->with([
                     'concepto',
                     'detallesPagosVigentes',
                     'descuentos',
@@ -461,9 +469,11 @@ class GrupoController extends Controller
             ]),
         ])->findOrFail($id);
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('grupos.reportes.pagos_pdf', compact('grupo'));
+        $pdf = Pdf::loadView('grupos.reportes.pagos_pdf', compact('grupo'));
 
         $pdf->setOption('isPhpEnabled', true);
         $pdf->setOption('isHtml5ParserEnabled', true);
@@ -471,21 +481,24 @@ class GrupoController extends Controller
 
         return $pdf->stream("Pagos_{$grupo->nombre}.pdf");
     }
+
     public function reporteExpedienteMedico(int $id)
     {
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn($q) => $q->where('activo', true)->with([
+            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
                 'alumno.fichaMedica',
                 'alumno.condicionesMedicas',
                 'alumno.medicamentosAutorizados.contactoAutoriza',
             ]),
         ])->findOrFail($id);
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+        $pdf = Pdf::loadView(
             'grupos.reportes.expediente_medico_pdf',
             compact('grupo')
         );
@@ -496,19 +509,22 @@ class GrupoController extends Controller
 
         return $pdf->stream("ExpedienteMedico_{$grupo->grado->nivel->nombre}_{$grupo->nombre}.pdf");
     }
+
     public function albumFotografico(int $id)
     {
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn($q) => $q->where('activo', true)->with([
+            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
                 'alumno',
             ]),
         ])->findOrFail($id);
 
-        if (ob_get_length()) ob_end_clean();
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+        $pdf = Pdf::loadView(
             'grupos.reportes.album_fotografico_pdf',
             compact('grupo')
         );
@@ -518,6 +534,32 @@ class GrupoController extends Controller
         $pdf->setPaper('letter', 'landscape');
 
         return $pdf->stream("AlbumFotografico_{$grupo->grado->nivel->nombre}_{$grupo->nombre}.pdf");
+    }
+
+    public function reporteContactos(int $id)
+    {
+        $grupo = Grupo::with([
+            'grado.nivel',
+            'ciclo',
+            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
+                'alumno.contactos',
+            ]),
+        ])->findOrFail($id);
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
+        $pdf = Pdf::loadView(
+            'grupos.reportes.contactos_pdf',
+            compact('grupo')
+        );
+
+        $pdf->setOption('isPhpEnabled', true);
+        $pdf->setOption('isHtml5ParserEnabled', true);
+        $pdf->setPaper('letter', 'landscape');
+
+        return $pdf->stream("ContactosFamiliares_{$grupo->grado->nivel->nombre}_{$grupo->nombre}.pdf");
     }
 
     public function migrarEstructura(Request $request)
@@ -532,7 +574,7 @@ class GrupoController extends Controller
         $gruposOrigen = Grupo::where('ciclo_id', $request->ciclo_origen_id)->get();
 
         if ($gruposOrigen->isEmpty()) {
-            return back()->with('error', "No se encontraron grupos en el ciclo de origen.");
+            return back()->with('error', 'No se encontraron grupos en el ciclo de origen.');
         }
 
         $contador = 0;
@@ -544,15 +586,15 @@ class GrupoController extends Controller
                 ->where('grado_id', $grupo->grado_id)
                 ->exists();
 
-            if (!$existe) {
+            if (! $existe) {
                 // 3. Creamos el nuevo grupo (sin alumnos)
                 Grupo::create([
-                    'nombre'      => $grupo->nombre,
-                    'grado_id'    => $grupo->grado_id,
-                    'ciclo_id'    => $request->ciclo_destino_id,
-                    'docente_id'  => $grupo->docente_id, // Puedes dejarlo null si prefieres maestros nuevos
+                    'nombre' => $grupo->nombre,
+                    'grado_id' => $grupo->grado_id,
+                    'ciclo_id' => $request->ciclo_destino_id,
+                    'docente_id' => $grupo->docente_id, // Puedes dejarlo null si prefieres maestros nuevos
                     'cupo_maximo' => $grupo->cupo_maximo,
-                    'activo'      => true
+                    'activo' => true,
                 ]);
                 $contador++;
             }
@@ -560,19 +602,20 @@ class GrupoController extends Controller
 
         // ── AQUÍ ESTÁ LA CORRECCIÓN ──
         if ($contador === 0) {
-            return back()->with('warning', "Atención: La estructura ya había sido migrada anteriormente o los grupos ya existen en el ciclo destino. No se crearon nuevos salones.");
+            return back()->with('warning', 'Atención: La estructura ya había sido migrada anteriormente o los grupos ya existen en el ciclo destino. No se crearon nuevos salones.');
         }
 
         return back()->with('success', "¡Estructura migrada! Se crearon $contador salones en el nuevo ciclo.");
     }
+
     public function promocionarMasivo(Request $request)
     {
         $request->validate([
-            'inscripciones_ids'  => 'required|array',
-            'ciclo_destino_id'   => 'required|exists:ciclo_escolar,id',
-            'grado_destino_id'   => 'required|exists:grado,id',
-            'grupo_destino_id'   => 'required|exists:grupo,id',   // ← ahora viene del select
-            'grupo_origen_id'    => 'required|exists:grupo,id',
+            'inscripciones_ids' => 'required|array',
+            'ciclo_destino_id' => 'required|exists:ciclo_escolar,id',
+            'grado_destino_id' => 'required|exists:grado,id',
+            'grupo_destino_id' => 'required|exists:grupo,id',   // ← ahora viene del select
+            'grupo_origen_id' => 'required|exists:grupo,id',
         ]);
 
         $grupoDestino = Grupo::findOrFail($request->grupo_destino_id);
@@ -581,23 +624,23 @@ class GrupoController extends Controller
         try {
             \DB::transaction(function () use ($request, $grupoDestino, &$contador) {
                 foreach ($request->inscripciones_ids as $inscripcionId) {
-                    $inscripcionActual = \App\Models\Inscripcion::findOrFail($inscripcionId);
+                    $inscripcionActual = Inscripcion::findOrFail($inscripcionId);
                     $alumno = $inscripcionActual->alumno;
 
                     $inscripcionActual->update([
-                        'activo'        => false,
-                        'observaciones' => ($inscripcionActual->observaciones ?? '') .
-                            " | Promocionado al grupo {$grupoDestino->nombre} ({$grupoDestino->ciclo->nombre})"
+                        'activo' => false,
+                        'observaciones' => ($inscripcionActual->observaciones ?? '').
+                            " | Promocionado al grupo {$grupoDestino->nombre} ({$grupoDestino->ciclo->nombre})",
                     ]);
 
-                    \App\Models\Inscripcion::create([
+                    Inscripcion::create([
                         'alumno_id' => $alumno->id,
-                        'ciclo_id'  => $request->ciclo_destino_id,
-                        'grado_id'  => $request->grado_destino_id,
-                        'grupo_id'  => $grupoDestino->id,
-                        'fecha'     => now()->format('Y-m-d'),
-                        'activo'    => true,
-                        'estado'    => 'inscrito',
+                        'ciclo_id' => $request->ciclo_destino_id,
+                        'grado_id' => $request->grado_destino_id,
+                        'grupo_id' => $grupoDestino->id,
+                        'fecha' => now()->format('Y-m-d'),
+                        'activo' => true,
+                        'estado' => 'inscrito',
                     ]);
 
                     $alumno->update(['estado' => 'activo']);
@@ -608,7 +651,7 @@ class GrupoController extends Controller
             return redirect()->route('grupos.show', $request->grupo_origen_id)
                 ->with('success', "Se promocionaron {$contador} alumnos al grupo '{$grupoDestino->nombre}' correctamente.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Error en base de datos: ' . $e->getMessage());
+            return back()->with('error', 'Error en base de datos: '.$e->getMessage());
         }
     }
 }
