@@ -301,6 +301,9 @@
                                         </a>
                                     </li>
                                     @endunless
+                                    <li><a href="{{ route('grupos.reporte-contactos', $grupo->id) }}" target="_blank"><i
+                                                class="fa fa-address-book text-primary"></i> Contactos Familiares</a>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
