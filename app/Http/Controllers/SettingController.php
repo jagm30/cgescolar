@@ -11,8 +11,8 @@ class SettingController extends Controller
 {
     public function index()
     {
-        $setting      = Setting::find(1) ?? new Setting(['nombre_escuela' => 'CGESCOLAR']);
-        $configFiscal = ConfigFiscal::first() ?? new ConfigFiscal();
+        $setting = Setting::find(1) ?? new Setting(['nombre_escuela' => 'CGESCOLAR']);
+        $configFiscal = ConfigFiscal::first() ?? new ConfigFiscal;
 
         return view('settings.index', compact('setting', 'configFiscal'));
     }
@@ -21,14 +21,14 @@ class SettingController extends Controller
     public function updateFiscal(Request $request)
     {
         $data = $request->validate([
-            'rfc'            => ['required', 'string', 'min:12', 'max:13'],
-            'razon_social'   => ['required', 'string', 'max:300'],
+            'rfc' => ['required', 'string', 'min:12', 'max:13'],
+            'razon_social' => ['required', 'string', 'max:300'],
             'regimen_fiscal' => ['required', 'string', 'max:10'],
-            'serie'          => ['required', 'string', 'max:5'],
-            'serie_id'       => ['nullable', 'integer', 'min:1'],
+            'serie' => ['required', 'string', 'max:5'],
+            'serie_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $data['rfc']   = strtoupper($data['rfc']);
+        $data['rfc'] = strtoupper($data['rfc']);
         $data['serie'] = strtoupper($data['serie']);
 
         $config = ConfigFiscal::first();
@@ -57,31 +57,47 @@ class SettingController extends Controller
             $series = $factura->listarSeries();
 
             return response()->json([
-                'ok'       => true,
-                'series'   => $series,
+                'ok' => true,
+                'series' => $series,
                 'serie_id' => $config?->serie_id,
-                'url'      => config('factura.url'),
+                'url' => config('factura.url'),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
-                'ok'      => false,
+                'ok' => false,
                 'mensaje' => $e->getMessage(),
-                'url'     => config('factura.url'),
+                'url' => config('factura.url'),
             ], 422);
         }
+    }
+
+    /** POST /configuracion/portal */
+    public function updatePortal(Request $request)
+    {
+        $setting = Setting::findOrNew(1);
+
+        if (! $setting->exists) {
+            $setting->id = 1;
+        }
+
+        $setting->portal_fotos_habilitado = $request->boolean('portal_fotos_habilitado');
+        $setting->portal_autorizado_recoger_habilitado = $request->boolean('portal_autorizado_recoger_habilitado');
+        $setting->save();
+
+        return back()->with('success', 'Configuración del portal actualizada.');
     }
 
     public function update(Request $request)
     {
         $request->validate([
             'nombre_escuela' => 'required|string|max:255',
-            'escuela_logo'   => 'nullable|image|mimes:png,jpg,jpeg|max:2048'
+            'escuela_logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
         ]);
 
         // Buscamos el registro 1 o creamos uno nuevo
         $setting = Setting::findOrNew(1);
 
-        if (!$setting->exists) {
+        if (! $setting->exists) {
             $setting->id = 1;
         }
 

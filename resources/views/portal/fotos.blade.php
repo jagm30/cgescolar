@@ -356,11 +356,25 @@
                         <p class="ft-nombre">{{ trim($alumno->nombre . ' ' . $alumno->ap_paterno) }}</p>
                         <p class="ft-sub"><i class="fa fa-id-card-o" style="margin-right:3px;"></i>Matrícula {{ $alumno->matricula }}</p>
 
-                        {{-- TEMPORAL: subida de fotos desactivada --}}
-                        <button type="button" class="ft-label-upload" disabled
-                                style="background:#9aa5b4;cursor:not-allowed;opacity:.7;">
-                            <i class="fa fa-ban"></i> No disponible por el momento
-                        </button>
+                        @if($portalFotosHabilitado)
+                            <input type="file"
+                                   id="foto-alumno-{{ $alumno->id }}"
+                                   class="ft-input"
+                                   data-url="{{ route('portal.fotos.alumno', $alumno->id) }}"
+                                   accept="image/jpeg,image/png,image/webp">
+                            <label for="foto-alumno-{{ $alumno->id }}" class="ft-label-upload">
+                                <i class="fa fa-{{ $alumno->foto_url ? 'pencil' : 'camera' }}"></i>
+                                {{ $alumno->foto_url ? 'Cambiar foto' : 'Subir foto' }}
+                            </label>
+                            <div class="ft-progress"><div class="ft-progress-bar"></div></div>
+                            <span class="ft-ok"><i class="fa fa-check-circle"></i> Foto actualizada</span>
+                            <span class="ft-err"></span>
+                        @else
+                            <button type="button" class="ft-label-upload" disabled
+                                    style="background:#9aa5b4;cursor:not-allowed;opacity:.7;">
+                                <i class="fa fa-ban"></i> No disponible
+                            </button>
+                        @endif
                     </div>
 
                 </div>
@@ -410,11 +424,28 @@
                         <p class="ft-nombre">{{ trim($contacto->nombre . ' ' . $contacto->ap_paterno) }}</p>
                         <p class="ft-sub"><i class="fa fa-users" style="margin-right:3px;"></i>Contacto familiar</p>
 
-                        {{-- TEMPORAL: subida de fotos desactivada --}}
-                        <button type="button" class="ft-label-upload" disabled
-                                style="background:#9aa5b4;cursor:not-allowed;opacity:.7;">
-                            <i class="fa fa-ban"></i> No disponible por el momento
-                        </button>
+                        @if($portalFotosHabilitado)
+                            <input type="file"
+                                   id="foto-contacto-{{ $contacto->id }}"
+                                   class="ft-input"
+                                   data-url="{{ route('portal.fotos.contacto', $contacto->id) }}"
+                                   accept="image/jpeg,image/png,image/webp">
+                            <label for="foto-contacto-{{ $contacto->id }}" class="ft-label-upload"
+                                   style="background:#7c3aed;">
+                                <i class="fa fa-{{ $contacto->foto_url ? 'pencil' : 'camera' }}"></i>
+                                {{ $contacto->foto_url ? 'Cambiar foto' : 'Subir foto' }}
+                            </label>
+                            <div class="ft-progress">
+                                <div class="ft-progress-bar" style="background:#7c3aed;"></div>
+                            </div>
+                            <span class="ft-ok"><i class="fa fa-check-circle"></i> Foto actualizada</span>
+                            <span class="ft-err"></span>
+                        @else
+                            <button type="button" class="ft-label-upload" disabled
+                                    style="background:#9aa5b4;cursor:not-allowed;opacity:.7;">
+                                <i class="fa fa-ban"></i> No disponible
+                            </button>
+                        @endif
                     </div>
 
                 </div>

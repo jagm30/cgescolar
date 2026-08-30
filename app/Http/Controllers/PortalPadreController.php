@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Alumno;
 use App\Models\AlumnoContacto;
+use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\Cfdi;
 use App\Models\CondicionMedica;
@@ -12,7 +13,9 @@ use App\Models\Inscripcion;
 use App\Models\MedicamentoAutorizado;
 use App\Models\Pago;
 use App\Models\RazonSocialContacto;
+use App\Models\Setting;
 use App\Services\CfdiService;
+use App\Services\EstadoCuentaService;
 use App\Services\FacturaComService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -181,7 +184,7 @@ class PortalPadreController extends Controller
         return response()->json(['status' => 'success', 'mensaje' => 'Medicamento eliminado.']);
     }
 
-    public function estadoCuenta(int $alumnoId): View|JsonResponse|RedirectResponse
+    public function estadoCuenta(int $alumnoId, EstadoCuentaService $service): View|JsonResponse|RedirectResponse
     {
         $this->verificarAccesoAlumno($alumnoId);
 
@@ -200,32 +203,91 @@ class PortalPadreController extends Controller
             return back()->with('error', 'No tiene inscripcion activa.');
         }
 
+        // ── Becas vigentes del alumno (para proyección en cargos pendientes) ──
+        $becas = BecaAlumno::with(['catalogoBeca', 'plan', 'concepto'])
+            ->where('alumno_id', $alumnoId)
+            ->where('activo', true)
+            ->where(fn ($q) => $q->whereNull('vigencia_fin')->orWhere('vigencia_fin', '>=', now()))
+            ->get();
+
+        $becasPorPlan = $becas->whereNotNull('plan_id')->keyBy('plan_id');
+        $becasPorConcepto = $becas->whereNotNull('concepto_id')->keyBy('concepto_id');
+        $becasGlobales = $becas->filter(fn ($b) => $b->plan_id === null && $b->concepto_id === null);
+
+        $hoy = today();
+
         $cargos = Cargo::with([
             'concepto',
+            'inscripcion:id,ciclo_id',
             'detallesPagosVigentes',
             'descuentos',
-            'condonacionDetalles',
+            // Solo condonaciones activas (filtra las canceladas)
+            'condonacionDetalles' => fn ($q) => $q->whereHas(
+                'condonacion', fn ($q) => $q->where('estado', 'activa')
+            ),
+            'asignacion.plan.politicasDescuentoActivas',
+            'asignacion.plan.politicasRecargo',
         ])
             ->where('inscripcion_id', $inscripcion->id)
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(function (Cargo $cargo) {
-                $descuentoBeca = (float) $cargo->detallesPagosVigentes->sum('descuento_beca');
-                $descuentoProntoPago = (float) $cargo->detallesPagosVigentes->sum('descuento_pronto_pago');
-                $descuentoOtros = (float) $cargo->detallesPagosVigentes->sum('descuento_otros');
-                $recargoAplicado = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
-                $condonacion = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
+            ->map(function (Cargo $cargo) use ($service, $becasPorPlan, $becasPorConcepto, $becasGlobales, $hoy) {
 
-                // Monto neto = lo que realmente debe pagar tras aplicar todos los ajustes
-                $montoNeto = $cargo->monto_original
+                $hasPagos = $cargo->detallesPagosVigentes->isNotEmpty();
+                $esCondonado = $cargo->estado === 'condonado';
+
+                if ($hasPagos) {
+                    // ── Cargo con abonos: leer valores ya registrados en pago_detalle ──
+                    // descuento_otros ya incluye cualquier condonación aplicada en el cobro,
+                    // por lo que NO se suma condonacion_detalle por separado (evita doble conteo).
+                    $descuentoBeca = (float) $cargo->detallesPagosVigentes->sum('descuento_beca');
+                    $descuentoProntoPago = (float) $cargo->detallesPagosVigentes->sum('descuento_pronto_pago');
+                    $descuentoOtros = (float) $cargo->detallesPagosVigentes->sum('descuento_otros');
+                    $recargoAplicado = (float) $cargo->detallesPagosVigentes->sum('recargo_aplicado');
+                    $condonacion = 0.0;
+                    $montoCobrado = (float) $cargo->detallesPagosVigentes->sum('monto_final');
+
+                } elseif ($esCondonado) {
+                    // ── Cargo condonado sin pagos: mostrar monto de condonacion_detalle ──
+                    $descuentoBeca = $descuentoProntoPago = $descuentoOtros = $recargoAplicado = 0.0;
+                    $condonacion = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
+                    $montoCobrado = 0.0;
+
+                } else {
+                    // ── Cargo pendiente: proyectar descuentos y recargo desde reglas de negocio ──
+                    $montoOriginal = (float) $cargo->monto_original;
+
+                    // Condonaciones activas ya registradas para este cargo
+                    $condonacion = (float) $cargo->condonacionDetalles->sum('monto_aplicado');
+
+                    // Base para calcular beca (descontando condonación ya registrada)
+                    $saldoTrasCondo = max(0.0, $montoOriginal - $condonacion);
+
+                    // Beca proyectada
+                    $becaYaAplicada = (float) $cargo->detallesPagosVigentes->sum('descuento_beca');
+                    [$descuentoBeca] = $service->calcularBecaCargo(
+                        $cargo, $saldoTrasCondo, $becaYaAplicada,
+                        $becasPorPlan, $becasPorConcepto, $becasGlobales
+                    );
+
+                    // Descuento pronto pago / recargo por mora
+                    $vencido = $hoy->gt($cargo->fecha_vencimiento);
+                    $saldoTrasBeca = max(0.0, $saldoTrasCondo - $descuentoBeca);
+
+                    [$descuentoProntoPago, $recargoAplicado] = $cargo->asignacion?->plan
+                        ? $service->calcularPoliticaCargo($cargo, $saldoTrasBeca, $vencido, $hoy)
+                        : [0.0, 0.0];
+
+                    $descuentoOtros = 0.0;
+                    $montoCobrado = 0.0;
+                }
+
+                $montoNeto = max(0.0, (float) $cargo->monto_original
                     - $descuentoBeca
                     - $descuentoProntoPago
                     - $descuentoOtros
                     - $condonacion
-                    + $recargoAplicado;
-
-                // Monto cobrado = dinero real recibido en caja (monto_final ya incluye descuentos y recargos)
-                $montoCobrado = (float) $cargo->detallesPagosVigentes->sum('monto_final');
+                    + $recargoAplicado);
 
                 return [
                     'id' => $cargo->id,
@@ -235,12 +297,12 @@ class PortalPadreController extends Controller
                     'monto_original' => $cargo->monto_original,
                     'monto_neto' => $montoNeto,
                     'monto_cobrado' => $montoCobrado,
-                    'saldo_pendiente' => max(0, $montoNeto - $montoCobrado),
-                    'estado' => $cargo->detallesPagosVigentes->isNotEmpty() || $cargo->estado === 'condonado'
+                    'saldo_pendiente' => max(0.0, $montoNeto - $montoCobrado),
+                    'estado' => $hasPagos || $esCondonado
                         ? $cargo->estado_real
-                        : 'pendiente',
+                        : ($hoy->gt($cargo->fecha_vencimiento) ? 'vencido' : 'pendiente'),
                     'fecha_vencimiento' => $cargo->fecha_vencimiento,
-                    'puede_facturar' => $cargo->detallesPagosVigentes->isNotEmpty(),
+                    'puede_facturar' => $hasPagos,
                     'descuento_beca' => $descuentoBeca,
                     'descuento_pronto_pago' => $descuentoProntoPago,
                     'descuento_otros' => $descuentoOtros,
@@ -257,7 +319,7 @@ class PortalPadreController extends Controller
             'total_pendiente' => $totalPendiente,
             'total_pagado' => $totalCobrado,
             'total_cargos' => $cargos->count(),
-            'cargos_vencidos' => $cargos->filter(fn (array $cargo) => str_contains($cargo['estado'], 'vencido'))->count(),
+            'cargos_vencidos' => $cargos->filter(fn (array $c) => str_contains($c['estado'], 'vencido'))->count(),
         ];
 
         $alumno = $inscripcion->alumno;
@@ -366,9 +428,9 @@ class PortalPadreController extends Controller
         }
 
         return view('portal.familiares', [
-            'contactos'    => $contactos,
+            'contactos' => $contactos,
             'miContactoId' => $contacto?->id,
-            'familiaId'    => $contacto?->familia_id,
+            'familiaId' => $contacto?->familia_id,
         ]);
     }
 
@@ -384,7 +446,7 @@ class PortalPadreController extends Controller
         $total = ContactoFamiliar::where('familia_id', $contactoActual->familia_id)->count();
         if ($total >= 3) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'mensaje' => 'Tu familia ya tiene 3 contactos registrados, que es el máximo permitido.',
             ], 422);
         }
@@ -392,36 +454,69 @@ class PortalPadreController extends Controller
         $parentescoValidos = ['padre', 'madre', 'abuelo', 'tio', 'hermano', 'tutor', 'otro'];
 
         $data = $request->validate([
-            'nombre'          => ['required', 'string', 'max:100'],
-            'ap_paterno'      => ['nullable', 'string', 'max:100'],
-            'ap_materno'      => ['nullable', 'string', 'max:100'],
-            'parentesco'      => ['required', 'string', 'in:' . implode(',', $parentescoValidos)],
+            'nombre' => ['required', 'string', 'max:100'],
+            'ap_paterno' => ['nullable', 'string', 'max:100'],
+            'ap_materno' => ['nullable', 'string', 'max:100'],
+            'parentesco' => ['required', 'string', 'in:'.implode(',', $parentescoValidos)],
             'telefono_celular' => ['nullable', 'string', 'max:20'],
-            'email'           => ['nullable', 'email', 'max:150'],
+            'email' => ['nullable', 'email', 'max:150'],
         ], [
-            'nombre.required'     => 'El nombre es obligatorio.',
+            'nombre.required' => 'El nombre es obligatorio.',
             'parentesco.required' => 'Selecciona el parentesco.',
-            'parentesco.in'       => 'El parentesco seleccionado no es válido.',
-            'email.email'         => 'El correo electrónico no tiene un formato válido.',
+            'parentesco.in' => 'El parentesco seleccionado no es válido.',
+            'email.email' => 'El correo electrónico no tiene un formato válido.',
         ]);
 
         $nuevo = ContactoFamiliar::create([
-            'familia_id'          => $contactoActual->familia_id,
-            'nombre'              => $data['nombre'],
-            'ap_paterno'          => $data['ap_paterno'] ?? null,
-            'ap_materno'          => $data['ap_materno'] ?? null,
-            'telefono_celular'    => $data['telefono_celular'] ?? null,
-            'email'               => $data['email'] ?? null,
+            'familia_id' => $contactoActual->familia_id,
+            'nombre' => $data['nombre'],
+            'ap_paterno' => $data['ap_paterno'] ?? null,
+            'ap_materno' => $data['ap_materno'] ?? null,
+            'telefono_celular' => $data['telefono_celular'] ?? null,
+            'email' => $data['email'] ?? null,
             'tiene_acceso_portal' => false,
         ]);
 
         $this->vincularContactoAAlumnos($nuevo, $data['parentesco'], $contactoActual->familia_id);
 
         return response()->json([
-            'status'   => 'success',
-            'mensaje'  => "Familiar {$nuevo->nombre_completo} agregado correctamente.",
+            'status' => 'success',
+            'mensaje' => "Familiar {$nuevo->nombre_completo} agregado correctamente.",
             'contacto' => $nuevo,
         ], 201);
+    }
+
+    /** PATCH /portal/familiares/{contactoId}/autorizado-recoger/{alumnoId} */
+    public function toggleAutorizadoRecoger(int $contactoId, int $alumnoId): JsonResponse
+    {
+        $setting = Setting::find(1);
+
+        if (! $setting?->portal_autorizado_recoger_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no disponible.'], 403);
+        }
+
+        $contactoActual = auth()->user()->contactoFamiliar;
+
+        // Verificar que el contacto objetivo pertenece a la misma familia
+        ContactoFamiliar::where('id', $contactoId)
+            ->where('familia_id', $contactoActual?->familia_id)
+            ->firstOrFail();
+
+        $alumnoContacto = AlumnoContacto::where('contacto_id', $contactoId)
+            ->where('alumno_id', $alumnoId)
+            ->where('activo', true)
+            ->firstOrFail();
+
+        $alumnoContacto->autorizado_recoger = ! $alumnoContacto->autorizado_recoger;
+        $alumnoContacto->save();
+
+        return response()->json([
+            'status' => 'success',
+            'autorizado_recoger' => $alumnoContacto->autorizado_recoger,
+            'mensaje' => $alumnoContacto->autorizado_recoger
+                ? 'Autorización para recoger activada.'
+                : 'Autorización para recoger desactivada.',
+        ]);
     }
 
     public function razonesSociales(): View|JsonResponse
@@ -570,8 +665,8 @@ class PortalPadreController extends Controller
             ['constancia' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048']],
             [
                 'constancia.required' => 'Selecciona un archivo.',
-                'constancia.mimes'    => 'Solo se permiten archivos PDF, JPG o PNG.',
-                'constancia.max'      => 'El archivo no debe superar los 2 MB.',
+                'constancia.mimes' => 'Solo se permiten archivos PDF, JPG o PNG.',
+                'constancia.max' => 'El archivo no debe superar los 2 MB.',
             ]
         );
 
@@ -583,9 +678,9 @@ class PortalPadreController extends Controller
         $rs->update(['constancia_path' => $ruta]);
 
         return response()->json([
-            'status'          => 'success',
-            'mensaje'         => 'Constancia cargada correctamente.',
-            'constancia_url'  => asset('storage/'.$ruta),
+            'status' => 'success',
+            'mensaje' => 'Constancia cargada correctamente.',
+            'constancia_url' => asset('storage/'.$ruta),
         ]);
     }
 
@@ -594,9 +689,9 @@ class PortalPadreController extends Controller
     private function vincularContactoAAlumnos(ContactoFamiliar $contacto, string $parentesco, int $familiaId): void
     {
         $tipoMap = [
-            'padre'  => 'padre',
-            'madre'  => 'madre',
-            'tutor'  => 'tutor',
+            'padre' => 'padre',
+            'madre' => 'madre',
+            'tutor' => 'tutor',
         ];
         $tipo = $tipoMap[$parentesco] ?? 'tercero_autorizado';
 
@@ -608,14 +703,14 @@ class PortalPadreController extends Controller
             $ordenActual = AlumnoContacto::where('alumno_id', $alumno->id)->max('orden') ?? 0;
 
             AlumnoContacto::create([
-                'alumno_id'          => $alumno->id,
-                'contacto_id'        => $contacto->id,
-                'parentesco'         => $parentesco,
-                'tipo'               => $tipo,
-                'orden'              => min($ordenActual + 1, 3),
+                'alumno_id' => $alumno->id,
+                'contacto_id' => $contacto->id,
+                'parentesco' => $parentesco,
+                'tipo' => $tipo,
+                'orden' => min($ordenActual + 1, 3),
                 'autorizado_recoger' => false,
                 'es_responsable_pago' => false,
-                'activo'             => true,
+                'activo' => true,
             ]);
         }
     }
@@ -768,6 +863,10 @@ class PortalPadreController extends Controller
     /** POST /portal/fotos/alumno/{alumnoId} */
     public function subirFotoAlumno(Request $request, int $alumnoId): JsonResponse
     {
+        if (! Setting::find(1)?->portal_fotos_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'La carga de fotografías no está disponible.'], 403);
+        }
+
         $request->validate(
             ['foto' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048']],
             ['foto.required' => 'Selecciona una imagen.', 'foto.mimes' => 'Solo JPG, PNG o WEBP.', 'foto.max' => 'Máximo 2 MB.']
@@ -799,6 +898,10 @@ class PortalPadreController extends Controller
     /** POST /portal/fotos/contacto/{contactoId} */
     public function subirFotoContacto(Request $request, int $contactoId): JsonResponse
     {
+        if (! Setting::find(1)?->portal_fotos_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'La carga de fotografías no está disponible.'], 403);
+        }
+
         $request->validate(
             ['foto' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048']],
             ['foto.required' => 'Selecciona una imagen.', 'foto.mimes' => 'Solo JPG, PNG o WEBP.', 'foto.max' => 'Máximo 2 MB.']

@@ -340,7 +340,13 @@
         <div class="db-hijo">
             <div class="db-hijo-header">
                 <div class="db-hijo-avatar">
-                    <i class="fa fa-user"></i>
+                    @if ($alumno->foto_url)
+                        <img src="{{ asset('storage/' . $alumno->foto_url) }}"
+                             alt="{{ $alumno->nombre_completo }}"
+                             style="width:46px;height:46px;border-radius:50%;object-fit:cover;">
+                    @else
+                        <i class="fa fa-user"></i>
+                    @endif
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div class="db-hijo-nombre">{{ $alumno->nombre_completo }}</div>
@@ -387,6 +393,7 @@
     </div>
 
     <div class="db-accesos">
+        @if($portalFotosHabilitado)
         <a href="{{ route('portal.fotos') }}" class="db-acceso">
             <div class="db-acceso-icon" style="background:#fef3c7;color:#d97706;">
                 <i class="fa fa-camera"></i>
@@ -396,6 +403,7 @@
                 <div class="db-acceso-desc">Sube fotos de tus hijos y contactos</div>
             </div>
         </a>
+        @endif
         <a href="{{ route('portal.razones-sociales') }}" class="db-acceso">
             <div class="db-acceso-icon" style="background:#ede9fe;color:#7c3aed;">
                 <i class="fa fa-building-o"></i>

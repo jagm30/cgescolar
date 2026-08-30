@@ -136,6 +136,47 @@
             color: #065f46;
             border-left: 4px solid #10b981;
         }
+
+        /* ── Toggle switch ── */
+        .portal-toggle {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+            cursor: pointer;
+            margin: 0;
+        }
+        .portal-toggle input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        /* Ocultar el hidden input que va antes del checkbox */
+        .portal-toggle input[type="hidden"] { display: none; }
+        .portal-toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 28px;
+            transition: background .2s;
+        }
+        .portal-toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            left: 4px; top: 4px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform .2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,.15);
+        }
+        .portal-toggle input[type="checkbox"]:checked + .portal-toggle-slider {
+            background: #0f766e;
+        }
+        .portal-toggle input[type="checkbox"]:checked + .portal-toggle-slider::before {
+            transform: translateX(24px);
+        }
     </style>
 @endpush
 
@@ -202,6 +243,74 @@
                             </div>
                         </div>
                     </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- ══ Funciones del Portal del Padre ══ --}}
+        <div class="box-flat" style="margin-bottom:8px;">
+            <div class="box-header-flat">
+                <h3 class="box-title-flat">
+                    <i class="fa fa-toggle-on" style="color:#0f766e;background:#ccfbf1;"></i>
+                    Funciones del Portal del Padre
+                </h3>
+            </div>
+
+            <div class="box-body-flat">
+                <p style="font-size:12px;color:#8a9ab0;margin-bottom:24px;">
+                    Activa o desactiva funciones disponibles para los padres de familia en su portal.
+                    Los cambios tienen efecto inmediato.
+                </p>
+
+                <form action="{{ route('settings.portal') }}" method="POST">
+                    @csrf
+
+                    {{-- Toggle: Carga de fotografías --}}
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                                padding:18px 20px;border:1px solid #e2e8f0;border-radius:10px;
+                                margin-bottom:12px;background:#fcfdfe;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#1a2634;margin-bottom:4px;">
+                                <i class="fa fa-camera" style="color:#d97706;margin-right:8px;"></i>
+                                Carga de fotografías
+                            </div>
+                            <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                                Permite a los padres subir fotos de sus hijos y contactos familiares desde el portal.
+                            </div>
+                        </div>
+                        <label class="portal-toggle" style="flex-shrink:0;margin-left:24px;">
+                            <input type="hidden" name="portal_fotos_habilitado" value="0">
+                            <input type="checkbox" name="portal_fotos_habilitado" value="1"
+                                {{ $portalFotosHabilitado ? 'checked' : '' }}>
+                            <span class="portal-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    {{-- Toggle: Autorizado para recoger --}}
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                                padding:18px 20px;border:1px solid #e2e8f0;border-radius:10px;
+                                margin-bottom:24px;background:#fcfdfe;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#1a2634;margin-bottom:4px;">
+                                <i class="fa fa-child" style="color:#0f766e;margin-right:8px;"></i>
+                                Autorizado para recoger
+                            </div>
+                            <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                                Permite a los padres marcar qué contactos familiares están autorizados
+                                para recoger a cada alumno directamente desde su portal.
+                            </div>
+                        </div>
+                        <label class="portal-toggle" style="flex-shrink:0;margin-left:24px;">
+                            <input type="hidden" name="portal_autorizado_recoger_habilitado" value="0">
+                            <input type="checkbox" name="portal_autorizado_recoger_habilitado" value="1"
+                                {{ $portalAutorizadoRecogerHabilitado ? 'checked' : '' }}>
+                            <span class="portal-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-flat-info" style="background:#0f766e;">
+                        <i class="fa fa-save"></i> Guardar configuración del portal
+                    </button>
                 </form>
             </div>
         </div>

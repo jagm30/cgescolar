@@ -187,11 +187,13 @@
                     </a>
                 </li>
 
+                @if($portalFotosHabilitado)
                 <li class="{{ request()->routeIs('portal.fotos') ? 'active' : '' }}">
                     <a href="{{ route('portal.fotos') }}">
                         <i class="fa fa-camera"></i> <span>Fotografías</span>
                     </a>
                 </li>
+                @endif
 
                 <li class="{{ request()->routeIs('portal.razones-sociales*') ? 'active' : '' }}">
                     <a href="{{ route('portal.razones-sociales') }}">
