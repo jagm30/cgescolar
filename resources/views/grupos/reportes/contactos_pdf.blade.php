@@ -9,8 +9,7 @@
         $logoRuta      = $escuelaInfo->logo_ruta      ?? 'logo-escuela.png';
         $totalAlumnos  = $grupo->inscripciones->count();
 
-        // Alumnos ordenados por apellido
-        $inscripciones = $grupo->inscripciones->sortBy(fn($i) => $i->alumno->ap_paterno);
+        $inscripciones = $grupo->inscripciones;
     @endphp
 
     <title>Contactos Familiares — {{ $grupo->grado->nivel->nombre }} {{ $grupo->grado->numero }}° {{ $grupo->nombre }}</title>

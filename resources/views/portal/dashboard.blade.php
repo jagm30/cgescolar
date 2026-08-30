@@ -54,49 +54,6 @@
         }
         .db-alerta i { font-size: 22px; flex-shrink: 0; }
 
-        /* ── Resumen financiero ── */
-        .db-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .db-stat {
-            background: #fff;
-            border: 1px solid #e4eaf0;
-            border-radius: 12px;
-            padding: 14px 16px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.04);
-            position: relative;
-            overflow: hidden;
-        }
-        .db-stat-label {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            color: #9aa5b4;
-            margin-bottom: 6px;
-        }
-        .db-stat-value {
-            font-size: 21px;
-            font-weight: 800;
-            color: #1a2634;
-            line-height: 1;
-        }
-        .db-stat-icon {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 34px;
-            height: 34px;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-        }
-
         /* ── Sección titulo ── */
         .db-section-title {
             font-size: 17px;
@@ -283,44 +240,6 @@
         </div>
     @endif
 
-    {{-- ── Resumen financiero ── --}}
-    <div class="db-stats">
-        <div class="db-stat">
-            <div class="db-stat-icon" style="background:#e8f0fb;color:#3c8dbc;">
-                <i class="fa fa-child"></i>
-            </div>
-            <div class="db-stat-label">Mis hijos</div>
-            <div class="db-stat-value">{{ $resumen['hijos'] }}</div>
-        </div>
-        <div class="db-stat">
-            <div class="db-stat-icon" style="background:#e8f8f0;color:#00875a;">
-                <i class="fa fa-graduation-cap"></i>
-            </div>
-            <div class="db-stat-label">Inscritos</div>
-            <div class="db-stat-value">{{ $resumen['inscritos'] }}</div>
-        </div>
-        <div class="db-stat">
-            <div class="db-stat-icon" style="background:#d1fae5;color:#065f46;">
-                <i class="fa fa-check-circle"></i>
-            </div>
-            <div class="db-stat-label">Total cobrado</div>
-            <div class="db-stat-value" style="color:#065f46;font-size:17px;">
-                ${{ number_format($resumen['total_pagado'], 2) }}
-            </div>
-        </div>
-        <div class="db-stat">
-            <div class="db-stat-icon"
-                 style="background:{{ $resumen['total_vencido'] > 0 ? '#fee2e2' : '#d1fae5' }};
-                        color:{{ $resumen['total_vencido'] > 0 ? '#b91c1c' : '#065f46' }};">
-                <i class="fa fa-clock-o"></i>
-            </div>
-            <div class="db-stat-label">Por pagar</div>
-            <div class="db-stat-value"
-                 style="color:{{ $resumen['total_vencido'] > 0 ? '#b91c1c' : '#065f46' }};font-size:17px;">
-                ${{ number_format($resumen['total_vencido'], 2) }}
-            </div>
-        </div>
-    </div>
 
     {{-- ── Mis hijos ── --}}
     <div class="db-section-title">

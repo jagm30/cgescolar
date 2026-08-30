@@ -115,7 +115,7 @@
 
     <main>
         <table class="grid">
-            @foreach ($grupo->inscripciones->sortBy(fn($i) => $i->alumno->ap_paterno)->chunk(5) as $chunk)
+            @foreach ($grupo->inscripciones->chunk(5) as $chunk)
                 <tr>
                     @foreach ($chunk as $ins)
                         <td class="card-cell">

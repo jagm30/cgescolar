@@ -304,7 +304,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($grupo->inscripciones->sortBy(fn($i) => $i->alumno->ap_paterno) as $index => $ins)
+            @foreach ($grupo->inscripciones as $index => $ins)
                 <tr>
                     <td class="num-td">{{ $index + 1 }}</td>
                     <td style="text-align:center;font-family:monospace;font-size:10px;color:#4a5568;">

@@ -116,6 +116,22 @@ class PlanPagoConceptoController extends Controller
         return redirect()->route('planes.conceptos.index', $planId)->with('success', 'Monto actualizado correctamente.');
     }
 
+    /** PATCH /planes/{planId}/conceptos/{id}/facturable */
+    public function toggleFacturable(int $planId, int $id): \Illuminate\Http\JsonResponse
+    {
+        $registro = PlanPagoConcepto::where('plan_id', $planId)->findOrFail($id);
+        $anterior = $registro->toArray();
+
+        $registro->update(['facturable' => ! $registro->facturable]);
+
+        Auditoria::registrar('plan_pago_concepto', $registro->id, 'update', $anterior, $registro->fresh()->toArray());
+
+        return response()->json([
+            'facturable' => $registro->facturable,
+            'mensaje'    => $registro->facturable ? 'Concepto marcado como facturable.' : 'Concepto marcado como no facturable.',
+        ]);
+    }
+
     public function destroy(int $planId, int $id)
     {
         // CORRECCIÓN 1: Necesitamos el objeto Plan para validar el ciclo_id
