@@ -12,6 +12,7 @@ use App\Models\ContactoFamiliar;
 use App\Models\Inscripcion;
 use App\Models\MedicamentoAutorizado;
 use App\Models\Pago;
+use App\Models\PlanPagoConcepto;
 use App\Models\RazonSocialContacto;
 use App\Models\Setting;
 use App\Services\CfdiService;
@@ -48,6 +49,27 @@ class PortalPadreController extends Controller
     }
 
     /** GET /portal/hijos/{alumnoId}/expediente */
+    /** PATCH /portal/hijos/{alumnoId}/curp */
+    public function actualizarCurp(Request $request, int $alumnoId): JsonResponse
+    {
+        if (! Setting::find(1)?->portal_editar_curp_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no habilitada.'], 403);
+        }
+
+        $this->verificarAccesoAlumno($alumnoId);
+
+        $datos = $request->validate([
+            'curp' => ['nullable', 'string', 'max:18', 'regex:/^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[A-Z0-9]{2}$/'],
+        ], [
+            'curp.regex' => 'El formato de la CURP no es válido.',
+            'curp.max' => 'La CURP no puede tener más de 18 caracteres.',
+        ]);
+
+        Alumno::findOrFail($alumnoId)->update(['curp' => $datos['curp'] ?? null]);
+
+        return response()->json(['status' => 'success', 'mensaje' => 'CURP actualizada correctamente.']);
+    }
+
     public function expedienteMedico(int $alumnoId): View
     {
         $this->verificarAccesoAlumno($alumnoId);
@@ -73,6 +95,10 @@ class PortalPadreController extends Controller
     /** POST /portal/hijos/{alumnoId}/ficha-medica */
     public function actualizarFichaMedica(Request $request, int $alumnoId): JsonResponse
     {
+        if (! Setting::find(1)?->portal_editar_expediente_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no habilitada.'], 403);
+        }
+
         $this->verificarAccesoAlumno($alumnoId);
 
         $datos = $request->validate([
@@ -107,6 +133,10 @@ class PortalPadreController extends Controller
     /** POST /portal/hijos/{alumnoId}/condiciones-medicas */
     public function storeCondicion(Request $request, int $alumnoId): JsonResponse
     {
+        if (! Setting::find(1)?->portal_editar_expediente_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no habilitada.'], 403);
+        }
+
         $this->verificarAccesoAlumno($alumnoId);
 
         $request->merge(['requiere_accion' => $request->boolean('requiere_accion')]);
@@ -136,6 +166,10 @@ class PortalPadreController extends Controller
     /** DELETE /portal/condiciones-medicas/{id} */
     public function destroyCondicion(int $id): JsonResponse
     {
+        if (! Setting::find(1)?->portal_editar_expediente_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no habilitada.'], 403);
+        }
+
         $condicion = CondicionMedica::findOrFail($id);
         $this->verificarAccesoAlumno($condicion->alumno_id);
         $condicion->delete();
@@ -146,6 +180,10 @@ class PortalPadreController extends Controller
     /** POST /portal/hijos/{alumnoId}/medicamentos */
     public function storeMedicamento(Request $request, int $alumnoId): JsonResponse
     {
+        if (! Setting::find(1)?->portal_editar_expediente_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no habilitada.'], 403);
+        }
+
         $this->verificarAccesoAlumno($alumnoId);
 
         $request->merge(['requiere_refrigeracion' => $request->boolean('requiere_refrigeracion')]);
@@ -177,6 +215,10 @@ class PortalPadreController extends Controller
     /** DELETE /portal/medicamentos/{id} */
     public function destroyMedicamento(int $id): JsonResponse
     {
+        if (! Setting::find(1)?->portal_editar_expediente_habilitado) {
+            return response()->json(['status' => 'error', 'mensaje' => 'Función no habilitada.'], 403);
+        }
+
         $medicamento = MedicamentoAutorizado::findOrFail($id);
         $this->verificarAccesoAlumno($medicamento->alumno_id);
         $medicamento->delete();
@@ -337,22 +379,26 @@ class PortalPadreController extends Controller
         $alumnos = $this->alumnosDelPadre();
 
         $alumnosConPagos = $alumnos->map(function (Alumno $alumno) {
-            $pagos = Pago::with(['detalles.cargo.concepto', 'cfdis'])
+            $pagos = Pago::with(['detalles.cargo.concepto', 'detalles.cargo.asignacion', 'cfdis'])
                 ->whereHas('detalles.cargo.inscripcion', fn ($q) => $q->where('alumno_id', $alumno->id))
                 ->where('estado', 'vigente')
                 ->orderByDesc('fecha_pago')
-                ->get()
-                ->map(fn (Pago $pago) => [
-                    'id' => $pago->id,
-                    'folio_recibo' => $pago->folio_recibo,
-                    'conceptos' => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
-                    'monto_total' => $pago->monto_total,
-                    'fecha_pago' => $pago->fecha_pago,
-                    'forma_pago' => $pago->forma_pago,
-                    'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
-                    'cfdi_id' => $pago->cfdis->where('estado', 'vigente')->first()?->id,
-                    'puede_facturar' => $this->pagoPuedeFacturarse($pago),
-                ]);
+                ->get();
+
+            $facturableMap = $this->construirMapaFacturable($pagos);
+
+            $pagos = $pagos->map(fn (Pago $pago) => [
+                'id'                => $pago->id,
+                'folio_recibo'      => $pago->folio_recibo,
+                'conceptos'         => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
+                'monto_total'       => $pago->monto_total,
+                'fecha_pago'        => $pago->fecha_pago,
+                'forma_pago'        => $pago->forma_pago,
+                'tiene_factura'     => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                'cfdi_id'           => $pago->cfdis->where('estado', 'vigente')->first()?->id,
+                'puede_facturar'    => $this->pagoPuedeFacturarse($pago),
+                'todos_facturables' => $this->todosFacturables($pago, $facturableMap),
+            ]);
 
             return ['alumno' => $alumno, 'pagos' => $pagos];
         });
@@ -740,6 +786,7 @@ class PortalPadreController extends Controller
 
         $pago = Pago::with([
             'detalles.cargo.concepto',
+            'detalles.cargo.asignacion',
             'detalles.cargo.inscripcion.alumno',
             'cfdis' => fn ($q) => $q->where('estado', 'vigente'),
         ])->findOrFail($pagoId);
@@ -766,6 +813,14 @@ class PortalPadreController extends Controller
             return response()->json([
                 'status' => 'error',
                 'mensaje' => 'Este pago ya no puede facturarse. Solo se permiten facturas dentro del mismo mes del pago y en un plazo máximo de 72 horas.',
+            ], 422);
+        }
+
+        $mapaFacturable = $this->construirMapaFacturable(collect([$pago]));
+        if (! $this->todosFacturables($pago, $mapaFacturable)) {
+            return response()->json([
+                'status'  => 'error',
+                'mensaje' => 'Este pago contiene conceptos marcados como no facturables por el administrador.',
             ], 422);
         }
 
@@ -933,6 +988,47 @@ class PortalPadreController extends Controller
             'mensaje' => 'Foto de '.$contactoDestino->nombre.' actualizada.',
             'foto_url' => asset('storage/'.$ruta),
         ]);
+    }
+
+    /**
+     * Construye un mapa ["{plan_id}-{concepto_id}" => bool] con el estado facturable
+     * de todos los pares plan/concepto presentes en la colección de pagos.
+     * Realiza una sola consulta para evitar N+1.
+     */
+    private function construirMapaFacturable(Collection $pagos): Collection
+    {
+        $pares = $pagos->flatMap(fn ($p) => $p->detalles->map(fn ($d) => [
+            'plan_id'     => $d->cargo?->asignacion?->plan_id,
+            'concepto_id' => $d->cargo?->concepto_id,
+        ]))->filter(fn ($par) => $par['plan_id'] && $par['concepto_id']);
+
+        if ($pares->isEmpty()) {
+            return collect();
+        }
+
+        return PlanPagoConcepto::whereIn('plan_id', $pares->pluck('plan_id')->unique())
+            ->whereIn('concepto_id', $pares->pluck('concepto_id')->unique())
+            ->get(['plan_id', 'concepto_id', 'facturable'])
+            ->keyBy(fn ($r) => "{$r->plan_id}-{$r->concepto_id}")
+            ->map(fn ($r) => (bool) $r->facturable);
+    }
+
+    /**
+     * Devuelve true si todos los cargos del pago están marcados como facturables.
+     * Los cargos sin asignación de plan se consideran facturables por defecto.
+     */
+    private function todosFacturables(Pago $pago, Collection $facturableMap): bool
+    {
+        return $pago->detalles->every(function ($d) use ($facturableMap) {
+            $planId     = $d->cargo?->asignacion?->plan_id;
+            $conceptoId = $d->cargo?->concepto_id;
+
+            if (! $planId || ! $conceptoId) {
+                return true;
+            }
+
+            return $facturableMap->get("{$planId}-{$conceptoId}", true);
+        });
     }
 
     /**

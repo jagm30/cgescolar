@@ -399,7 +399,17 @@
                                         <i class="fa fa-code"></i> XML
                                     </a>
                                 </div>
-                            @elseif ($pago['puede_facturar'] && $razonesSociales->isNotEmpty())
+                            @elseif (! $pago['puede_facturar'])
+                                <div class="fac-status fac-status-locked">
+                                    <i class="fa fa-clock-o"></i>
+                                    Plazo para facturar vencido
+                                </div>
+                            @elseif (! $pago['todos_facturables'])
+                                <div class="fac-status fac-status-locked">
+                                    <i class="fa fa-ban"></i>
+                                    Este pago contiene conceptos no facturables
+                                </div>
+                            @elseif ($razonesSociales->isNotEmpty())
                                 <div class="fac-status fac-status-pending">
                                     <i class="fa fa-file-o" style="font-size:17px;"></i>
                                     Sin factura
@@ -409,7 +419,7 @@
                                         data-pago-id="{{ $pago['id'] }}">
                                     <i class="fa fa-send"></i> Solicitar factura
                                 </button>
-                            @elseif ($pago['puede_facturar'] && $razonesSociales->isEmpty())
+                            @else
                                 <div class="fac-status fac-status-locked">
                                     <i class="fa fa-lock"></i>
                                     Registra tu RFC para facturar
@@ -417,11 +427,6 @@
                                 <a href="{{ route('portal.razones-sociales') }}" class="fac-btn fac-btn-xml">
                                     <i class="fa fa-building-o"></i> Agregar RFC
                                 </a>
-                            @else
-                                <div class="fac-status fac-status-locked">
-                                    <i class="fa fa-clock-o"></i>
-                                    Plazo para facturar vencido
-                                </div>
                             @endif
                         </div>
 

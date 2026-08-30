@@ -272,6 +272,16 @@
         </a>
     </div>
 
+    {{-- ── Aviso cuando la edición está deshabilitada ── --}}
+    @unless ($portalEditarExpedienteHabilitado)
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;
+                    padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;
+                    gap:10px;font-size:13px;color:#92400e;font-weight:600;">
+            <i class="fa fa-lock" style="font-size:18px;flex-shrink:0;"></i>
+            La edición del expediente médico está deshabilitada. Contacta a la escuela para realizar cambios.
+        </div>
+    @endunless
+
     {{-- ══════════════════════════════════════════
          SECCIÓN 1 — Datos generales de salud
     ══════════════════════════════════════════ --}}
@@ -375,12 +385,14 @@
                           placeholder="Ej: El alumno tiene migraña frecuente. En caso de crisis, permitirle descansar en un cuarto oscuro.">{{ $fm?->observaciones_generales }}</textarea>
             </div>
 
-            <button type="button" class="exp-btn-save"
-                    style="background:#e74c3c;color:#fff;"
-                    onclick="guardarFicha()">
-                <i class="fa fa-check-circle" style="font-size:18px;"></i>
-                Guardar datos generales
-            </button>
+            @if ($portalEditarExpedienteHabilitado)
+                <button type="button" class="exp-btn-save"
+                        style="background:#e74c3c;color:#fff;"
+                        onclick="guardarFicha()">
+                    <i class="fa fa-check-circle" style="font-size:18px;"></i>
+                    Guardar datos generales
+                </button>
+            @endif
         </form>
     </div>
 
@@ -412,10 +424,12 @@
             {{-- Ítems registrados --}}
             @foreach ($alumno->condicionesMedicas as $condicion)
                 <div class="exp-item-card">
-                    <button type="button" class="exp-item-delete"
-                            onclick="eliminarCondicion({{ $condicion->id }}, '{{ addslashes($condicion->nombre) }}')">
-                        <i class="fa fa-trash-o"></i> Eliminar
-                    </button>
+                    @if ($portalEditarExpedienteHabilitado)
+                        <button type="button" class="exp-item-delete"
+                                onclick="eliminarCondicion({{ $condicion->id }}, '{{ addslashes($condicion->nombre) }}')">
+                            <i class="fa fa-trash-o"></i> Eliminar
+                        </button>
+                    @endif
                     <div class="exp-item-title">{{ $condicion->nombre }}</div>
                     <div>
                         <span class="exp-tag">{{ $condicion->tipoEtiqueta() }}</span>
@@ -443,14 +457,16 @@
             @endif
 
             {{-- Botón para abrir formulario --}}
-            <button type="button" class="exp-btn-add exp-btn-add-orange"
-                    id="btn-abrir-condicion"
-                    onclick="abrirFormulario('form-condicion', 'btn-abrir-condicion')">
-                <div class="exp-btn-icon" style="background:#fff3cd;color:#e67e22;">
-                    <i class="fa fa-plus"></i>
-                </div>
-                <span>Agregar condición médica</span>
-            </button>
+            @if ($portalEditarExpedienteHabilitado)
+                <button type="button" class="exp-btn-add exp-btn-add-orange"
+                        id="btn-abrir-condicion"
+                        onclick="abrirFormulario('form-condicion', 'btn-abrir-condicion')">
+                    <div class="exp-btn-icon" style="background:#fff3cd;color:#e67e22;">
+                        <i class="fa fa-plus"></i>
+                    </div>
+                    <span>Agregar condición médica</span>
+                </button>
+            @endif
 
             {{-- Formulario inline --}}
             <div id="form-condicion" style="display:none;">
@@ -558,10 +574,12 @@
             {{-- Ítems registrados --}}
             @foreach ($alumno->medicamentosAutorizados as $med)
                 <div class="exp-item-card">
-                    <button type="button" class="exp-item-delete"
-                            onclick="eliminarMedicamento({{ $med->id }}, '{{ addslashes($med->nombre_medicamento) }}')">
-                        <i class="fa fa-trash-o"></i> Eliminar
-                    </button>
+                    @if ($portalEditarExpedienteHabilitado)
+                        <button type="button" class="exp-item-delete"
+                                onclick="eliminarMedicamento({{ $med->id }}, '{{ addslashes($med->nombre_medicamento) }}')">
+                            <i class="fa fa-trash-o"></i> Eliminar
+                        </button>
+                    @endif
                     <div class="exp-item-title">{{ $med->nombre_medicamento }}</div>
                     <div class="exp-item-meta">
                         <i class="fa fa-eyedropper" style="color:#8e44ad;margin-right:3px;"></i>
@@ -604,14 +622,16 @@
             @endif
 
             {{-- Botón para abrir formulario --}}
-            <button type="button" class="exp-btn-add exp-btn-add-purple"
-                    id="btn-abrir-medicamento"
-                    onclick="abrirFormulario('form-medicamento', 'btn-abrir-medicamento')">
-                <div class="exp-btn-icon" style="background:#f3e8fd;color:#8e44ad;">
-                    <i class="fa fa-plus"></i>
-                </div>
-                <span>Autorizar un medicamento</span>
-            </button>
+            @if ($portalEditarExpedienteHabilitado)
+                <button type="button" class="exp-btn-add exp-btn-add-purple"
+                        id="btn-abrir-medicamento"
+                        onclick="abrirFormulario('form-medicamento', 'btn-abrir-medicamento')">
+                    <div class="exp-btn-icon" style="background:#f3e8fd;color:#8e44ad;">
+                        <i class="fa fa-plus"></i>
+                    </div>
+                    <span>Autorizar un medicamento</span>
+                </button>
+            @endif
 
             {{-- Formulario inline --}}
             <div id="form-medicamento" style="display:none;">

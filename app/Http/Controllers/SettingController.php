@@ -82,6 +82,8 @@ class SettingController extends Controller
 
         $setting->portal_fotos_habilitado = $request->boolean('portal_fotos_habilitado');
         $setting->portal_autorizado_recoger_habilitado = $request->boolean('portal_autorizado_recoger_habilitado');
+        $setting->portal_editar_curp_habilitado = $request->boolean('portal_editar_curp_habilitado');
+        $setting->portal_editar_expediente_habilitado = $request->boolean('portal_editar_expediente_habilitado');
         $setting->save();
 
         return back()->with('success', 'Configuración del portal actualizada.');

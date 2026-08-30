@@ -10,9 +10,15 @@ class PlanPagoConcepto extends Model
     protected $table = 'plan_pago_concepto';
     public $timestamps = false;
 
-    protected $fillable = ['plan_id', 'concepto_id', 'monto'];
+    protected $fillable = ['plan_id', 'concepto_id', 'monto', 'facturable'];
 
-    protected $casts = ['monto' => 'decimal:2'];
+    protected function casts(): array
+    {
+        return [
+            'monto'      => 'decimal:2',
+            'facturable' => 'boolean',
+        ];
+    }
 
     public function plan(): BelongsTo
     {

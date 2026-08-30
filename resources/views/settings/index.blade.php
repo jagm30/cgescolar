@@ -289,7 +289,7 @@
                     {{-- Toggle: Autorizado para recoger --}}
                     <div style="display:flex;align-items:center;justify-content:space-between;
                                 padding:18px 20px;border:1px solid #e2e8f0;border-radius:10px;
-                                margin-bottom:24px;background:#fcfdfe;">
+                                margin-bottom:12px;background:#fcfdfe;">
                         <div>
                             <div style="font-size:14px;font-weight:700;color:#1a2634;margin-bottom:4px;">
                                 <i class="fa fa-child" style="color:#0f766e;margin-right:8px;"></i>
@@ -304,6 +304,49 @@
                             <input type="hidden" name="portal_autorizado_recoger_habilitado" value="0">
                             <input type="checkbox" name="portal_autorizado_recoger_habilitado" value="1"
                                 {{ $portalAutorizadoRecogerHabilitado ? 'checked' : '' }}>
+                            <span class="portal-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    {{-- Toggle: Editar CURP --}}
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                                padding:18px 20px;border:1px solid #e2e8f0;border-radius:10px;
+                                margin-bottom:12px;background:#fcfdfe;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#1a2634;margin-bottom:4px;">
+                                <i class="fa fa-id-card-o" style="color:#7c3aed;margin-right:8px;"></i>
+                                Editar CURP del alumno
+                            </div>
+                            <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                                Permite a los padres capturar o actualizar la CURP de sus hijos desde la vista "Mis hijos".
+                            </div>
+                        </div>
+                        <label class="portal-toggle" style="flex-shrink:0;margin-left:24px;">
+                            <input type="hidden" name="portal_editar_curp_habilitado" value="0">
+                            <input type="checkbox" name="portal_editar_curp_habilitado" value="1"
+                                {{ $portalEditarCurpHabilitado ? 'checked' : '' }}>
+                            <span class="portal-toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    {{-- Toggle: Editar expediente médico --}}
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                                padding:18px 20px;border:1px solid #e2e8f0;border-radius:10px;
+                                margin-bottom:24px;background:#fcfdfe;">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#1a2634;margin-bottom:4px;">
+                                <i class="fa fa-heartbeat" style="color:#b91c1c;margin-right:8px;"></i>
+                                Editar expediente médico
+                            </div>
+                            <div style="font-size:12px;color:#64748b;line-height:1.5;">
+                                Permite a los padres registrar y modificar la ficha médica, condiciones
+                                y medicamentos autorizados de sus hijos desde el portal.
+                            </div>
+                        </div>
+                        <label class="portal-toggle" style="flex-shrink:0;margin-left:24px;">
+                            <input type="hidden" name="portal_editar_expediente_habilitado" value="0">
+                            <input type="checkbox" name="portal_editar_expediente_habilitado" value="1"
+                                {{ $portalEditarExpedienteHabilitado ? 'checked' : '' }}>
                             <span class="portal-toggle-slider"></span>
                         </label>
                     </div>

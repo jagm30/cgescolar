@@ -192,6 +192,19 @@
             gap: 8px;
         }
 
+        /* ── Editar CURP ── */
+        .curp-edit-btn {
+            background: none;
+            border: none;
+            padding: 0 0 0 5px;
+            color: #7c3aed;
+            cursor: pointer;
+            font-size: 11px;
+            vertical-align: middle;
+            opacity: .75;
+        }
+        .curp-edit-btn:hover { opacity: 1; }
+
         @media (max-width: 480px) {
             .hijo-nombre { font-size: 16px; }
             .hijo-accion { padding: 14px 4px; font-size: 11px; }
@@ -272,10 +285,53 @@
                     <div class="hijo-dato-valor">{{ $alumno->genero ?: '—' }}</div>
                 </div>
                 <div class="hijo-dato">
-                    <div class="hijo-dato-label">CURP</div>
-                    <div class="hijo-dato-valor" style="font-size:12px;word-break:break-all;">
+                    <div class="hijo-dato-label">
+                        CURP
+                        @if ($portalEditarCurpHabilitado)
+                            <button type="button"
+                                class="curp-edit-btn"
+                                data-id="{{ $alumno->id }}"
+                                data-curp="{{ $alumno->curp }}"
+                                title="Editar CURP">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                        @endif
+                    </div>
+                    <div class="hijo-dato-valor curp-display-{{ $alumno->id }}"
+                         style="font-size:12px;word-break:break-all;">
                         {{ $alumno->curp ?: 'No registrada' }}
                     </div>
+                    @if ($portalEditarCurpHabilitado)
+                        <div class="curp-form curp-form-{{ $alumno->id }}" style="display:none;margin-top:6px;">
+                            <input type="text"
+                                   class="curp-input"
+                                   maxlength="18"
+                                   placeholder="Ej. ABCD010101HDFXYZ01"
+                                   value="{{ $alumno->curp }}"
+                                   style="width:100%;font-size:12px;padding:5px 8px;
+                                          border:1.5px solid #7c3aed;border-radius:7px;
+                                          font-family:monospace;text-transform:uppercase;">
+                            <div style="display:flex;gap:5px;margin-top:5px;">
+                                <button type="button"
+                                    class="curp-save-btn"
+                                    data-id="{{ $alumno->id }}"
+                                    data-url="{{ route('portal.hijos.curp.update', $alumno->id) }}"
+                                    style="flex:1;padding:5px;border:none;border-radius:7px;
+                                           background:#7c3aed;color:#fff;font-size:12px;
+                                           font-weight:700;cursor:pointer;">
+                                    <i class="fa fa-save"></i> Guardar
+                                </button>
+                                <button type="button"
+                                    class="curp-cancel-btn"
+                                    data-id="{{ $alumno->id }}"
+                                    style="flex:1;padding:5px;border:1px solid #d0dae5;
+                                           border-radius:7px;background:#f0f3f7;
+                                           font-size:12px;font-weight:700;cursor:pointer;">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    @endif
                 </div>
                 <div class="hijo-dato">
                     <div class="hijo-dato-label">Estado</div>
@@ -286,7 +342,7 @@
             </div>
 
             {{-- ── Botones de acción ── --}}
-            <div class="hijo-acciones">
+            <div class="hijo-acciones" style="grid-template-columns: {{ $portalEditarExpedienteHabilitado ? '1fr 1fr 1fr' : '1fr 1fr' }};">
                 <a href="{{ route('portal.estado-cuenta', $alumno->id) }}"
                    class="hijo-accion hijo-accion-azul">
                     <div class="hijo-accion-icon">
@@ -301,13 +357,15 @@
                     </div>
                     Historial de pagos
                 </a>
-                <a href="{{ route('portal.hijos.expediente', $alumno->id) }}"
-                   class="hijo-accion hijo-accion-rojo">
-                    <div class="hijo-accion-icon">
-                        <i class="fa fa-heartbeat"></i>
-                    </div>
-                    Expediente médico
-                </a>
+                @if ($portalEditarExpedienteHabilitado)
+                    <a href="{{ route('portal.hijos.expediente', $alumno->id) }}"
+                       class="hijo-accion hijo-accion-rojo">
+                        <div class="hijo-accion-icon">
+                            <i class="fa fa-heartbeat"></i>
+                        </div>
+                        Expediente médico
+                    </a>
+                @endif
             </div>
 
         </div>
@@ -323,3 +381,78 @@
     @endforelse
 
 @endsection
+
+@push('scripts')
+<script>
+$(function () {
+
+    // ── Mostrar formulario inline de CURP ──────────────────────
+    $(document).on('click', '.curp-edit-btn', function () {
+        var id = $(this).data('id');
+        $('.curp-display-' + id).hide();
+        $('.curp-form-' + id).show();
+        $('.curp-form-' + id + ' .curp-input').focus().select();
+    });
+
+    // ── Cancelar edición ──────────────────────────────────────
+    $(document).on('click', '.curp-cancel-btn', function () {
+        var id = $(this).data('id');
+        $('.curp-form-' + id).hide();
+        $('.curp-display-' + id).show();
+    });
+
+    // ── Guardar CURP ──────────────────────────────────────────
+    $(document).on('click', '.curp-save-btn', function () {
+        var $btn = $(this);
+        var id   = $btn.data('id');
+        var url  = $btn.data('url');
+        var curp = $('.curp-form-' + id + ' .curp-input').val().trim().toUpperCase();
+
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: url,
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+            data: { curp: curp },
+        })
+        .done(function (resp) {
+            $('.curp-display-' + id).text(curp || 'No registrada').show();
+            $('.curp-form-' + id).hide();
+            toast(resp.mensaje, 'success');
+        })
+        .fail(function (xhr) {
+            var msg = xhr.responseJSON?.errors?.curp?.[0]
+                   || xhr.responseJSON?.mensaje
+                   || 'Error al guardar la CURP.';
+            toast(msg, 'error');
+        })
+        .always(function () {
+            $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Guardar');
+        });
+    });
+
+    // ── Convertir a mayúsculas mientras se escribe ────────────
+    $(document).on('input', '.curp-input', function () {
+        var pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+    });
+
+    function toast(msg, tipo) {
+        var bg = tipo === 'success' ? '#065f46' : '#b91c1c';
+        var $t = $('<div>').css({
+            position: 'fixed', bottom: '24px', left: '50%',
+            transform: 'translateX(-50%)',
+            background: bg, color: '#fff',
+            padding: '12px 20px', borderRadius: '10px',
+            zIndex: 9999, fontSize: '14px', fontWeight: '600',
+            boxShadow: '0 4px 16px rgba(0,0,0,.2)',
+            maxWidth: '90vw', textAlign: 'center',
+        }).text(msg).appendTo('body');
+        setTimeout(function () { $t.fadeOut(400, function () { $t.remove(); }); }, 3000);
+    }
+
+});
+</script>
+@endpush

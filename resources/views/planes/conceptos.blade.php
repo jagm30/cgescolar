@@ -159,6 +159,7 @@
                                             <th>Concepto</th>
                                             <th>Tipo</th>
                                             <th>Monto Asignado ($)</th>
+                                            <th class="text-center" style="width: 110px;">Facturable</th>
                                             <th class="text-center" style="width: 120px;">Acciones</th>
                                         </tr>
                                     </thead>
@@ -216,6 +217,21 @@
                                                             </li>
                                                         </ul>
                                                     </div>
+                                                </td>
+                                                <td class="text-center" style="vertical-align: middle;">
+                                                    <button type="button"
+                                                        class="btn btn-xs btn-flat btn-toggle-facturable"
+                                                        data-id="{{ $detalle->id }}"
+                                                        data-plan="{{ $plan->id }}"
+                                                        data-facturable="{{ $detalle->facturable ? '1' : '0' }}"
+                                                        title="{{ $detalle->facturable ? 'Clic para deshabilitar facturación' : 'Clic para habilitar facturación' }}"
+                                                        style="min-width:90px;">
+                                                        @if ($detalle->facturable)
+                                                            <span class="label label-success"><i class="fa fa-check"></i> Sí</span>
+                                                        @else
+                                                            <span class="label label-danger"><i class="fa fa-ban"></i> No</span>
+                                                        @endif
+                                                    </button>
                                                 </td>
                                                 <td class="text-center" style="vertical-align: middle;">
                                                     <button class="btn btn-default btn-xs btn-flat" data-toggle="modal"
@@ -375,7 +391,7 @@
                     ],
                     "columnDefs": [{
                         "orderable": false,
-                        "targets": 3
+                        "targets": [3, 4]
                     }]
                 });
             } catch (e) {
@@ -446,6 +462,43 @@
         // 2. Hacer "Auto-focus" en el input automáticamente cuando el dropdown se abre
         $('.dropdown').on('shown.bs.dropdown', function() {
             $(this).find('input[name="monto"]').focus();
+        });
+
+        // ── Toggle Facturable ──────────────────────────────────────────────
+        var csrfToken = '{{ csrf_token() }}';
+        var urlPlanes = '{{ url("planes") }}';
+
+        $(document).on('click', '.btn-toggle-facturable', function () {
+            var $btn       = $(this);
+            var id         = $btn.data('id');
+            var planId     = $btn.data('plan');
+            var url        = urlPlanes + '/' + planId + '/conceptos/' + id + '/facturable';
+
+            $btn.prop('disabled', true);
+
+            $.ajax({
+                url    : url,
+                method : 'PATCH',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                success: function (resp) {
+                    var facturable = resp.facturable;
+                    $btn.data('facturable', facturable ? '1' : '0');
+                    $btn.attr('title', facturable
+                        ? 'Clic para deshabilitar facturación'
+                        : 'Clic para habilitar facturación'
+                    );
+                    $btn.html(facturable
+                        ? '<span class="label label-success"><i class="fa fa-check"></i> Sí</span>'
+                        : '<span class="label label-danger"><i class="fa fa-ban"></i> No</span>'
+                    );
+                },
+                error: function () {
+                    alert('Error al actualizar el estado de facturación.');
+                },
+                complete: function () {
+                    $btn.prop('disabled', false);
+                }
+            });
         });
     </script>
 @endpush

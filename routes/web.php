@@ -271,6 +271,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::get('conceptos', [PlanPagoConceptoController::class, 'index'])->name('conceptos.index');
         Route::post('conceptos', [PlanPagoConceptoController::class, 'store'])->name('conceptos.store');
         Route::put('conceptos/{id}', [PlanPagoConceptoController::class, 'update'])->name('conceptos.update');
+        Route::patch('conceptos/{id}/facturable', [PlanPagoConceptoController::class, 'toggleFacturable'])->name('conceptos.facturable');
         Route::delete('conceptos/{id}', [PlanPagoConceptoController::class, 'destroy'])->name('conceptos.destroy');
 
         // Políticas (descuentos + recargo)
@@ -642,6 +643,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::post('/fotos/alumno/{alumnoId}', [PortalPadreController::class, 'subirFotoAlumno'])->name('fotos.alumno');
         Route::post('/fotos/contacto/{contactoId}', [PortalPadreController::class, 'subirFotoContacto'])->name('fotos.contacto');
         Route::post('/cfdis/emitir/{pagoId}', [PortalPadreController::class, 'emitirCfdi'])->name('cfdis.emitir');
+        Route::patch('/hijos/{alumnoId}/curp', [PortalPadreController::class, 'actualizarCurp'])->name('hijos.curp.update');
         Route::post('/hijos/{alumnoId}/ficha-medica', [PortalPadreController::class, 'actualizarFichaMedica'])->name('hijos.ficha-medica.update');
         Route::post('/hijos/{alumnoId}/condiciones-medicas', [PortalPadreController::class, 'storeCondicion'])->name('hijos.condiciones-medicas.store');
         Route::delete('/condiciones-medicas/{id}', [PortalPadreController::class, 'destroyCondicion'])->name('hijos.condiciones-medicas.destroy');

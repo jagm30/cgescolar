@@ -26,6 +26,8 @@ class SettingComposer
         $view->with([
             'portalFotosHabilitado' => (bool) $setting?->portal_fotos_habilitado,
             'portalAutorizadoRecogerHabilitado' => (bool) $setting?->portal_autorizado_recoger_habilitado,
+            'portalEditarCurpHabilitado' => (bool) $setting?->portal_editar_curp_habilitado,
+            'portalEditarExpedienteHabilitado' => (bool) $setting?->portal_editar_expediente_habilitado,
         ]);
     }
 }

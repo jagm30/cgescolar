@@ -27,27 +27,30 @@ class GrupoController extends Controller
             ? $request->ciclo_id
             : (auth()->user()->ciclo_seleccionado_id ?? CicloEscolar::activo()->value('id'));
 
-        $query = Grupo::with(['grado.nivel'])->where('ciclo_id', $cicloId);
+        $query = Grupo::with(['grado.nivel'])
+            ->join('grado', 'grupo.grado_id', '=', 'grado.id')
+            ->join('nivel_escolar', 'grado.nivel_id', '=', 'nivel_escolar.id')
+            ->where('grupo.ciclo_id', $cicloId)
+            ->select('grupo.*');
 
         // 2. Lógica de Estatus (Filtro Activo/Inactivo)
         if ($request->estatus == 'inactivos') {
-            $query->where('activo', false);
+            $query->where('grupo.activo', false);
         } elseif ($request->estatus == 'todos') {
             // No filtramos nada
         } else {
-            $query->activo();
+            $query->where('grupo.activo', true);
         }
 
         // 3. Paginación y conteo de alumnos inscritos
         $baseQuery = $query
-            ->when($request->filled('nivel_id'), fn ($q) => $q->whereHas(
-                'grado',
-                fn ($q) => $q->where('nivel_id', $request->nivel_id)
-            ))
-            ->when($request->filled('grado_id'), fn ($q) => $q->where('grado_id', $request->grado_id))
+            ->when($request->filled('nivel_id'), fn ($q) => $q->where('grado.nivel_id', $request->nivel_id))
+            ->when($request->filled('grado_id'), fn ($q) => $q->where('grupo.grado_id', $request->grado_id))
             ->withCount(['inscripciones as alumnos_inscritos' => fn ($q) => $q->where('activo', true)])
-            ->orderBy('grado_id')
-            ->orderBy('nombre');
+            ->orderBy('nivel_escolar.orden')
+            ->orderBy('grado.numero')
+            ->orderByRaw('ISNULL(grupo.grupo), grupo.grupo')
+            ->orderBy('grupo.nombre');
 
         // Cuando es AJAX para poblar un select (ciclo_id + nivel_id), devolver array plano
         if ($request->ajax() && $request->filled('nivel_id')) {
@@ -458,15 +461,21 @@ class GrupoController extends Controller
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
-                'alumno',
-                'cargos' => fn ($q) => $q->with([
-                    'concepto',
-                    'detallesPagosVigentes',
-                    'descuentos',
-                    'condonacionDetalles',
-                ])->orderBy('fecha_vencimiento'),
-            ]),
+            'inscripciones' => fn ($q) => $q->where('activo', true)
+                ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
+                ->orderBy('alumno.ap_paterno')
+                ->orderBy('alumno.ap_materno')
+                ->orderBy('alumno.nombre')
+                ->select('inscripcion.*')
+                ->with([
+                    'alumno',
+                    'cargos' => fn ($q) => $q->with([
+                        'concepto',
+                        'detallesPagosVigentes',
+                        'descuentos',
+                        'condonacionDetalles',
+                    ])->orderBy('fecha_vencimiento'),
+                ]),
         ])->findOrFail($id);
 
         if (ob_get_length()) {
@@ -487,11 +496,17 @@ class GrupoController extends Controller
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
-                'alumno.fichaMedica',
-                'alumno.condicionesMedicas',
-                'alumno.medicamentosAutorizados.contactoAutoriza',
-            ]),
+            'inscripciones' => fn ($q) => $q->where('activo', true)
+                ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
+                ->orderBy('alumno.ap_paterno')
+                ->orderBy('alumno.ap_materno')
+                ->orderBy('alumno.nombre')
+                ->select('inscripcion.*')
+                ->with([
+                    'alumno.fichaMedica',
+                    'alumno.condicionesMedicas',
+                    'alumno.medicamentosAutorizados.contactoAutoriza',
+                ]),
         ])->findOrFail($id);
 
         if (ob_get_length()) {
@@ -515,9 +530,13 @@ class GrupoController extends Controller
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
-                'alumno',
-            ]),
+            'inscripciones' => fn ($q) => $q->where('activo', true)
+                ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
+                ->orderBy('alumno.ap_paterno')
+                ->orderBy('alumno.ap_materno')
+                ->orderBy('alumno.nombre')
+                ->select('inscripcion.*')
+                ->with(['alumno']),
         ])->findOrFail($id);
 
         if (ob_get_length()) {
@@ -541,9 +560,13 @@ class GrupoController extends Controller
         $grupo = Grupo::with([
             'grado.nivel',
             'ciclo',
-            'inscripciones' => fn ($q) => $q->where('activo', true)->with([
-                'alumno.contactos',
-            ]),
+            'inscripciones' => fn ($q) => $q->where('activo', true)
+                ->join('alumno', 'inscripcion.alumno_id', '=', 'alumno.id')
+                ->orderBy('alumno.ap_paterno')
+                ->orderBy('alumno.ap_materno')
+                ->orderBy('alumno.nombre')
+                ->select('inscripcion.*')
+                ->with(['alumno.contactos']),
         ])->findOrFail($id);
 
         if (ob_get_length()) {

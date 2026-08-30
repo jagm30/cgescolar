@@ -8,7 +8,7 @@
         $nombreEscuela = $escuelaInfo->nombre_escuela ?? config('app.school_name');
         $logoRuta      = $escuelaInfo->logo_ruta ?? 'logo-escuela.png';
 
-        $inscripciones = $grupo->inscripciones->sortBy(fn($i) => $i->alumno->ap_paterno);
+        $inscripciones = $grupo->inscripciones;
 
         $estadoColor = [
             'pagado'         => '#16a34a',
