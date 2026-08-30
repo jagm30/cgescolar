@@ -32,46 +32,6 @@
             margin: 0;
         }
 
-        /* ── Tarjetas de resumen ── */
-        .ec-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        .ec-stat {
-            background: #fff;
-            border: 1px solid #e4eaf0;
-            border-radius: 12px;
-            padding: 14px 16px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.04);
-        }
-        .ec-stat-label {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            color: #9aa5b4;
-            margin-bottom: 6px;
-        }
-        .ec-stat-value {
-            font-size: 22px;
-            font-weight: 800;
-            line-height: 1;
-            color: #1a2634;
-        }
-        .ec-stat-icon {
-            float: right;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            margin-top: -2px;
-        }
-
         /* ── Navegación ── */
         .ec-nav {
             display: flex;
@@ -220,22 +180,6 @@
         .ec-empty-icon { font-size: 48px; margin-bottom: 12px; color: #d1d9e0; }
         .ec-empty-text { font-size: 15px; }
 
-        /* ── Alerta de cargos vencidos ── */
-        .ec-alerta {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            color: #b91c1c;
-            font-weight: 600;
-        }
-        .ec-alerta i { font-size: 20px; flex-shrink: 0; }
-
         /* ── Filtro ── */
         .ec-filtro {
             display: flex;
@@ -367,51 +311,6 @@
         </div>
     </div>
 
-    {{-- ── Alerta si hay vencidos ── --}}
-    @if ($resumen['cargos_vencidos'] > 0)
-        <div class="ec-alerta">
-            <i class="fa fa-exclamation-circle"></i>
-            Tienes {{ $resumen['cargos_vencidos'] }} cargo(s) vencido(s).
-            Comunícate con la escuela para regularizar tu situación.
-        </div>
-    @endif
-
-    {{-- ── Resumen en 4 tarjetas ── --}}
-    <div class="ec-stats">
-        <div class="ec-stat">
-            <div class="ec-stat-icon" style="background:#dbeafe;color:#1d4ed8;float:right;">
-                <i class="fa fa-list-alt"></i>
-            </div>
-            <div class="ec-stat-label">Total a pagar</div>
-            <div class="ec-stat-value">${{ number_format($resumen['total_cargado'], 2) }}</div>
-        </div>
-        <div class="ec-stat">
-            <div class="ec-stat-icon" style="background:#d1fae5;color:#065f46;float:right;">
-                <i class="fa fa-check-circle"></i>
-            </div>
-            <div class="ec-stat-label">Total cobrado</div>
-            <div class="ec-stat-value" style="color:#065f46;">${{ number_format($resumen['total_pagado'], 2) }}</div>
-        </div>
-        <div class="ec-stat">
-            <div class="ec-stat-icon" style="background:{{ $resumen['total_pendiente'] > 0 ? '#fee2e2' : '#d1fae5' }};color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#065f46' }};float:right;">
-                <i class="fa fa-clock-o"></i>
-            </div>
-            <div class="ec-stat-label">Por pagar</div>
-            <div class="ec-stat-value" style="color:{{ $resumen['total_pendiente'] > 0 ? '#b91c1c' : '#065f46' }};">
-                ${{ number_format($resumen['total_pendiente'], 2) }}
-            </div>
-        </div>
-        <div class="ec-stat">
-            <div class="ec-stat-icon" style="background:{{ $resumen['cargos_vencidos'] > 0 ? '#fee2e2' : '#d1fae5' }};color:{{ $resumen['cargos_vencidos'] > 0 ? '#b91c1c' : '#065f46' }};float:right;">
-                <i class="fa fa-exclamation-triangle"></i>
-            </div>
-            <div class="ec-stat-label">Vencidos</div>
-            <div class="ec-stat-value" style="color:{{ $resumen['cargos_vencidos'] > 0 ? '#b91c1c' : '#065f46' }};">
-                {{ $resumen['cargos_vencidos'] }}
-            </div>
-        </div>
-    </div>
-
     {{-- ── Navegación ── --}}
     <div class="ec-nav">
         <a href="{{ route('portal.hijos') }}" class="ec-nav-btn">
@@ -500,6 +399,9 @@
                           || ($cargo['condonacion'] > 0)
                           || ($cargo['recargo_aplicado'] > 0);
             $montoNeto = $cargo['monto_neto'];
+            // "Proyectado" = pendiente sin pagos; los valores son estimados según política del plan
+            $esProyectado = in_array($estado, ['pendiente', 'vencido', 'parcial', 'parcial_vencido'])
+                         && $cargo['monto_cobrado'] == 0;
         @endphp
 
         <div class="ec-cargo" data-grupo="{{ $grupoCargo }}">
@@ -533,7 +435,13 @@
             @if ($tieneDesglose)
                 <div class="ec-desglose">
                     <div class="ec-desglose-titulo">
-                        <i class="fa fa-tags" style="margin-right:4px;"></i>Ajustes aplicados
+                        <i class="fa fa-tags" style="margin-right:4px;"></i>
+                        {{ $esProyectado ? 'Ajustes estimados' : 'Ajustes aplicados' }}
+                        @if($esProyectado)
+                            <span style="font-size:10px;font-weight:500;color:#b45309;
+                                         background:#fef3c7;border-radius:4px;padding:1px 6px;
+                                         margin-left:4px;">estimado</span>
+                        @endif
                     </div>
 
                     {{-- Cargo original --}}
@@ -603,7 +511,7 @@
             {{-- Montos --}}
             <div class="ec-cargo-montos">
                 <div class="ec-monto">
-                    <div class="ec-monto-label">A pagar</div>
+                    <div class="ec-monto-label">{{ $esProyectado ? 'A pagar (est.)' : 'A pagar' }}</div>
                     <div class="ec-monto-valor">${{ number_format($cargo['monto_neto'], 2) }}</div>
                 </div>
                 <div class="ec-monto">

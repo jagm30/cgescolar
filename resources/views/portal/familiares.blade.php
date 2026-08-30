@@ -149,13 +149,32 @@
             text-transform: uppercase; letter-spacing: .05em;
             color: #9aa5b4; margin-bottom: 8px;
         }
+        .fm-alumno-row {
+            display: flex; align-items: center; flex-wrap: wrap;
+            gap: 6px; margin: 4px 0;
+        }
         .fm-alumno-chip {
             display: inline-flex; align-items: center; gap: 5px;
             font-size: 11px; font-weight: 600;
             padding: 4px 10px; border-radius: 20px;
             background: #f0fdfa; color: #0f766e;
-            border: 1px solid #99f6e4; margin: 2px;
+            border: 1px solid #99f6e4;
         }
+        /* ── Botón autorizado para recoger ── */
+        .fm-btn-recoger {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 700;
+            padding: 4px 10px; border-radius: 20px;
+            border: none; cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .fm-btn-recoger.autorizado {
+            background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7;
+        }
+        .fm-btn-recoger.no-autorizado {
+            background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;
+        }
+        .fm-btn-recoger:disabled { opacity: .6; cursor: not-allowed; }
 
         /* ── Vacío ── */
         .fm-empty {
@@ -297,7 +316,15 @@
             <div class="fm-card" data-id="{{ $cf->id }}">
 
                 <div class="fm-card-header">
-                    <div class="fm-avatar">{{ $iniciales ?: '?' }}</div>
+                    <div class="fm-avatar">
+                        @if ($cf->foto_url)
+                            <img src="{{ asset('storage/' . $cf->foto_url) }}"
+                                 alt="{{ $cf->nombre_completo }}"
+                                 style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
+                        @else
+                            {{ $iniciales ?: '?' }}
+                        @endif
+                    </div>
                     <div style="flex:1;min-width:0;">
                         <div class="fm-card-nombre">{{ $cf->nombre_completo }}</div>
                         <div class="fm-card-badges">
@@ -339,10 +366,22 @@
                     <div class="fm-alumnos">
                         <div class="fm-alumnos-label">Alumnos vinculados</div>
                         @foreach($cf->alumnoContactos as $ac)
-                            <span class="fm-alumno-chip">
-                                <i class="fa fa-graduation-cap"></i>
-                                {{ $ac->alumno?->nombre_completo ?? '—' }}
-                            </span>
+                            <div class="fm-alumno-row">
+                                <span class="fm-alumno-chip">
+                                    <i class="fa fa-graduation-cap"></i>
+                                    {{ $ac->alumno?->nombre_completo ?? '—' }}
+                                </span>
+                                @if($portalAutorizadoRecogerHabilitado)
+                                    <button type="button"
+                                        class="fm-btn-recoger {{ $ac->autorizado_recoger ? 'autorizado' : 'no-autorizado' }}"
+                                        data-contacto="{{ $cf->id }}"
+                                        data-alumno="{{ $ac->alumno_id }}"
+                                        title="{{ $ac->autorizado_recoger ? 'Clic para quitar autorización' : 'Clic para autorizar para recoger' }}">
+                                        <i class="fa fa-{{ $ac->autorizado_recoger ? 'check-circle' : 'circle-o' }}"></i>
+                                        {{ $ac->autorizado_recoger ? 'Autorizado para recoger' : 'No autorizado para recoger' }}
+                                    </button>
+                                @endif
+                            </div>
                         @endforeach
                     </div>
                 @endif
@@ -488,6 +527,40 @@ $(function () {
         var vals = Object.values(errors);
         return vals.length ? vals[0][0] : null;
     }
+
+    // ── Toggle autorizado para recoger ──────────────────────
+    $(document).on('click', '.fm-btn-recoger', function () {
+        var $btn      = $(this);
+        var contactoId = $btn.data('contacto');
+        var alumnoId   = $btn.data('alumno');
+
+        $btn.prop('disabled', true);
+
+        $.ajax({
+            url: '/portal/familiares/' + contactoId + '/autorizado-recoger/' + alumnoId,
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+        })
+        .done(function (resp) {
+            var autorizado = resp.autorizado_recoger;
+            $btn
+                .toggleClass('autorizado', autorizado)
+                .toggleClass('no-autorizado', !autorizado)
+                .attr('title', autorizado ? 'Clic para quitar autorización' : 'Clic para autorizar para recoger')
+                .html(
+                    '<i class="fa fa-' + (autorizado ? 'check-circle' : 'circle-o') + '"></i> '
+                    + (autorizado ? 'Autorizado para recoger' : 'No autorizado para recoger')
+                );
+            toast(resp.mensaje, 'success');
+        })
+        .fail(function (xhr) {
+            var msg = xhr.responseJSON?.mensaje || 'Error al actualizar.';
+            toast(msg, 'error');
+        })
+        .always(function () {
+            $btn.prop('disabled', false);
+        });
+    });
 
     function toast(msg, tipo) {
         var bg = tipo === 'success' ? '#065f46' : '#b91c1c';

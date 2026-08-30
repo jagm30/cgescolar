@@ -636,6 +636,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
         Route::post('/razones-sociales/{id}/constancia', [PortalPadreController::class, 'subirConstancia'])->name('razones-sociales.constancia');
         Route::get('/familiares', [PortalPadreController::class, 'familiares'])->name('familiares');
         Route::post('/familiares', [PortalPadreController::class, 'storeFamiliar'])->name('familiares.store');
+        Route::patch('/familiares/{contactoId}/autorizado-recoger/{alumnoId}', [PortalPadreController::class, 'toggleAutorizadoRecoger'])->name('familiares.autorizado-recoger');
         Route::get('/facturas', [PortalPadreController::class, 'facturas'])->name('facturas');
         Route::get('/fotos', [PortalPadreController::class, 'fotos'])->name('fotos');
         Route::post('/fotos/alumno/{alumnoId}', [PortalPadreController::class, 'subirFotoAlumno'])->name('fotos.alumno');
@@ -655,6 +656,7 @@ Route::middleware(['auth', 'rol:padre', 'force.json.on.ajax'])
 Route::middleware('rol:administrador')->prefix('configuracion')->group(function () {
     Route::get('/', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/actualizar', [SettingController::class, 'update'])->name('settings.update');
+    Route::post('/portal', [SettingController::class, 'updatePortal'])->name('settings.portal');
 });
 // =======================================================
 // Rutas para diseño de credenciales
