@@ -35,6 +35,12 @@ class Grupo extends Model
         return $query->where('activo', true);
     }
 
+    /** Filtra grupos pertenecientes a un ciclo escolar. */
+    public function scopeDelCiclo($query, int $cicloId)
+    {
+        return $query->where('ciclo_id', $cicloId);
+    }
+
     // ── Relaciones ───────────────────────────────────────
 
     public function ciclo(): BelongsTo
