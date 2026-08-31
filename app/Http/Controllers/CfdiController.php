@@ -27,11 +27,11 @@ class CfdiController extends Controller
 
     /** Mapeo de forma_pago del sistema → clave SAT */
     private const FORMAS_PAGO_SAT = [
-        'efectivo'        => '01',
-        'cheque'          => '02',
-        'transferencia'   => '03',
+        'efectivo' => '01',
+        'cheque' => '02',
+        'transferencia' => '03',
         'tarjeta_credito' => '04',
-        'tarjeta_debito'  => '28',
+        'tarjeta_debito' => '28',
     ];
 
     /** Clave SAT por defecto para servicios educativos */
@@ -46,17 +46,17 @@ class CfdiController extends Controller
         }
 
         $base = Cfdi::query()
-            ->when($request->filled('folio'),       fn($q) => $q->where('folio', 'like', "%{$request->folio}%"))
-            ->when($request->filled('tipo'),        fn($q) => $q->where('tipo', $request->tipo))
-            ->when($request->filled('estado'),      fn($q) => $q->where('estado', $request->estado))
-            ->when($request->filled('fecha_desde'), fn($q) => $q->whereDate('fecha_timbrado', '>=', $request->fecha_desde))
-            ->when($request->filled('fecha_hasta'), fn($q) => $q->whereDate('fecha_timbrado', '<=', $request->fecha_hasta));
+            ->when($request->filled('folio'), fn ($q) => $q->where('folio', 'like', "%{$request->folio}%"))
+            ->when($request->filled('tipo'), fn ($q) => $q->where('tipo', $request->tipo))
+            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('fecha_desde'), fn ($q) => $q->whereDate('fecha_timbrado', '>=', $request->fecha_desde))
+            ->when($request->filled('fecha_hasta'), fn ($q) => $q->whereDate('fecha_timbrado', '<=', $request->fecha_hasta));
 
         $resumen = [
-            'total'      => (clone $base)->count(),
-            'vigentes'   => (clone $base)->where('estado', 'vigente')->count(),
+            'total' => (clone $base)->count(),
+            'vigentes' => (clone $base)->where('estado', 'vigente')->count(),
             'cancelados' => (clone $base)->where('estado', 'cancelado')->count(),
-            'globales'   => (clone $base)->where('tipo', 'global')->where('estado', 'vigente')->count(),
+            'globales' => (clone $base)->where('tipo', 'global')->where('estado', 'vigente')->count(),
         ];
 
         $cfdis = (clone $base)
@@ -69,9 +69,9 @@ class CfdiController extends Controller
             ->withQueryString();
 
         return view('facturas.index', [
-            'cfdis'        => $cfdis,
-            'resumen'      => $resumen,
-            'perPage'      => $perPage,
+            'cfdis' => $cfdis,
+            'resumen' => $resumen,
+            'perPage' => $perPage,
             'configFiscal' => ConfigFiscal::first(),
         ]);
     }
@@ -81,8 +81,8 @@ class CfdiController extends Controller
     {
         $request->validate([
             'razon_social_id' => ['nullable', 'exists:razon_social_contacto,id'],
-            'uso_cfdi'        => ['required', 'string', 'max:10'],
-            'fecha_emision'   => ['nullable', 'date', 'before_or_equal:now', 'after:' . now()->subHours(72)->toDateTimeString()],
+            'uso_cfdi' => ['required', 'string', 'max:10'],
+            'fecha_emision' => ['nullable', 'date', 'before_or_equal:now', 'after:'.now()->subHours(72)->toDateTimeString()],
         ]);
 
         $pago = Pago::with([
@@ -90,7 +90,7 @@ class CfdiController extends Controller
             'detalles.cargo.inscripcion.alumno',
             'detalles.cargo.inscripcion.ciclo',
             'detalles.cargo.inscripcion.grupo.grado.nivel',
-            'cfdis' => fn($q) => $q->where('estado', 'vigente'),
+            'cfdis' => fn ($q) => $q->where('estado', 'vigente'),
         ])->findOrFail($pagoId);
 
         if ($pago->estado === 'anulado') {
@@ -117,8 +117,8 @@ class CfdiController extends Controller
         $emailContacto = null;
 
         if ($razonSocialId) {
-            $rs            = RazonSocialContacto::with('contacto')->findOrFail($razonSocialId);
-            $receptor      = $this->receptorDesdeRazonSocial($rs, $factura);
+            $rs = RazonSocialContacto::with('contacto')->findOrFail($razonSocialId);
+            $receptor = $this->receptorDesdeRazonSocial($rs, $factura);
             $emailContacto = $rs->contacto?->email ?: null;
         } else {
             $receptor = $this->receptorPublicoGeneral($config, $factura);
@@ -130,28 +130,28 @@ class CfdiController extends Controller
 
         try {
             $resultado = DB::transaction(function () use ($pago, $config, $receptor, $request, $razonSocialId, $factura, $fechaEmision): array {
-                $folio   = $config->siguienteFolio();
+                $folio = $config->siguienteFolio();
                 $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi, $razonSocialId === null, $fechaEmision);
 
                 $respuesta = $factura->emitir($payload);
 
                 $cfdi = Cfdi::create([
-                    'pago_id'          => $pago->id,
+                    'pago_id' => $pago->id,
                     'config_fiscal_id' => $config->id,
-                    'razon_social_id'  => $razonSocialId,
-                    'uso_cfdi'         => $request->uso_cfdi,
-                    'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
-                    'factura_uid'      => $respuesta['UID'] ?? null,
-                    'folio'            => $folio,
-                    'fecha_timbrado'   => $fechaEmision,
-                    'estado'           => 'vigente',
+                    'razon_social_id' => $razonSocialId,
+                    'uso_cfdi' => $request->uso_cfdi,
+                    'uuid_sat' => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
+                    'factura_uid' => $respuesta['UID'] ?? null,
+                    'folio' => $folio,
+                    'fecha_timbrado' => $fechaEmision,
+                    'estado' => 'vigente',
                 ]);
 
                 Auditoria::registrar('cfdi', $cfdi->id, 'insert', null, [
-                    'pago_id'     => $pago->id,
-                    'folio'       => $folio,
+                    'pago_id' => $pago->id,
+                    'folio' => $folio,
                     'factura_uid' => $cfdi->factura_uid,
-                    'uuid_sat'    => $cfdi->uuid_sat,
+                    'uuid_sat' => $cfdi->uuid_sat,
                 ]);
 
                 return ['cfdi' => $cfdi, 'folio' => $folio];
@@ -172,7 +172,7 @@ class CfdiController extends Controller
                 );
             }
 
-            return $this->respuestaError('Error al emitir CFDI: ' . $e->getMessage());
+            return $this->respuestaError('Error al emitir CFDI: '.$e->getMessage());
         }
 
         if ($emailContacto && $resultado['cfdi']->factura_uid) {
@@ -223,7 +223,7 @@ class CfdiController extends Controller
                 routeParams: $cfdi->pago_id ? [$cfdi->pago_id] : []
             );
         } catch (\Throwable $e) {
-            return $this->respuestaError('Error al cancelar CFDI: ' . $e->getMessage());
+            return $this->respuestaError('Error al cancelar CFDI: '.$e->getMessage());
         }
     }
 
@@ -242,29 +242,29 @@ class CfdiController extends Controller
         $emailDefecto = $cfdi->razonSocial?->contacto?->email;
 
         $alumnoIds = $cfdi->pago->detalles
-            ->map(fn($d) => $d->cargo?->inscripcion?->alumno_id)
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno_id)
             ->filter()
             ->unique()
             ->values();
 
         $contactos = ContactoFamiliar::query()
-            ->whereHas('alumnos', fn($q) => $q->whereIn('alumno.id', $alumnoIds))
+            ->whereHas('alumnos', fn ($q) => $q->whereIn('alumno.id', $alumnoIds))
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->get()
-            ->map(fn($c) => [
-                'nombre'     => $c->nombre_completo,
-                'email'      => $c->email,
+            ->map(fn ($c) => [
+                'nombre' => $c->nombre_completo,
+                'email' => $c->email,
                 'es_defecto' => $emailDefecto && $c->email === $emailDefecto,
             ])
             ->sortByDesc('es_defecto')
             ->values();
 
         return response()->json([
-            'cfdi_id'       => $cfdi->id,
-            'folio'         => $cfdi->folio,
+            'cfdi_id' => $cfdi->id,
+            'folio' => $cfdi->folio,
             'email_defecto' => $emailDefecto,
-            'contactos'     => $contactos,
+            'contactos' => $contactos,
         ]);
     }
 
@@ -294,7 +294,7 @@ class CfdiController extends Controller
                 routeParams: [$cfdi->pago_id]
             );
         } catch (\Throwable $e) {
-            return $this->respuestaError('Error al enviar la factura: ' . $e->getMessage());
+            return $this->respuestaError('Error al enviar la factura: '.$e->getMessage());
         }
     }
 
@@ -314,14 +314,14 @@ class CfdiController extends Controller
         try {
             $contenido = $factura->descargar($cfdi->factura_uid, $formato);
         } catch (\Throwable $e) {
-            return back()->with('error', 'Error al descargar: ' . $e->getMessage());
+            return back()->with('error', 'Error al descargar: '.$e->getMessage());
         }
 
-        $nombre   = ($cfdi->folio ?? $cfdi->uuid_sat ?? "CFDI-{$cfdiId}") . ".{$formato}";
+        $nombre = ($cfdi->folio ?? $cfdi->uuid_sat ?? "CFDI-{$cfdiId}").".{$formato}";
         $mimeType = $formato === 'pdf' ? 'application/pdf' : 'application/xml';
 
         return response($contenido, 200, [
-            'Content-Type'        => $mimeType,
+            'Content-Type' => $mimeType,
             'Content-Disposition' => "attachment; filename=\"{$nombre}\"",
         ]);
     }
@@ -341,17 +341,17 @@ class CfdiController extends Controller
         $pagos = $this->pagosParaFacturaGlobal($request->fecha_desde, $request->fecha_hasta);
 
         $resumenConceptos = $pagos
-            ->flatMap(fn(Pago $p) => $p->detalles)
-            ->groupBy(fn($d) => $d->cargo?->concepto?->nombre ?? 'Servicio educativo')
-            ->map(fn($detalles, $nombre) => [
+            ->flatMap(fn (Pago $p) => $p->detalles)
+            ->groupBy(fn ($d) => $d->cargo?->concepto?->nombre ?? 'Servicio educativo')
+            ->map(fn ($detalles, $nombre) => [
                 'nombre' => $nombre,
-                'monto'  => round($detalles->sum('monto_final'), 2),
+                'monto' => round($detalles->sum('monto_final'), 2),
             ])
             ->values();
 
         return response()->json([
-            'pagos_count'       => $pagos->count(),
-            'monto_total'       => round($pagos->sum('monto_total'), 2),
+            'pagos_count' => $pagos->count(),
+            'monto_total' => round($pagos->sum('monto_total'), 2),
             'resumen_conceptos' => $resumenConceptos,
         ]);
     }
@@ -364,8 +364,8 @@ class CfdiController extends Controller
     public function emitirGlobal(Request $request, FacturaComService $factura): RedirectResponse|JsonResponse
     {
         $request->validate([
-            'fecha_desde'  => ['required', 'date'],
-            'fecha_hasta'  => ['required', 'date', 'after_or_equal:fecha_desde'],
+            'fecha_desde' => ['required', 'date'],
+            'fecha_hasta' => ['required', 'date', 'after_or_equal:fecha_desde'],
             'periodicidad' => ['required', 'string', 'in:01,02,03,04'],
         ]);
 
@@ -384,64 +384,64 @@ class CfdiController extends Controller
             return $this->respuestaError('No hay pagos sin factura en el período seleccionado.');
         }
 
-        $receptor  = $this->receptorPublicoGeneral($config, $factura);
+        $receptor = $this->receptorPublicoGeneral($config, $factura);
         $conceptos = $this->construirConceptosGlobal($pagos);
 
         try {
             $resultado = DB::transaction(function () use ($request, $config, $receptor, $conceptos, $pagos, $factura): array {
                 $folio = $config->siguienteFolio();
-                $mes   = Carbon::parse($request->fecha_desde)->format('m');
-                $anio  = Carbon::parse($request->fecha_desde)->year;
+                $mes = Carbon::parse($request->fecha_desde)->format('m');
+                $anio = Carbon::parse($request->fecha_desde)->year;
 
                 $payload = [
-                    'TipoDocumento'     => 'factura',
-                    'Serie'             => $config->serie_id ?? $config->serie,
-                    'Folio'             => (string) $config->folio_actual,
-                    'UsoCFDI'           => 'S01',
-                    'FormaPago'         => '99', // No identificado (agrupa varios métodos)
-                    'MetodoPago'        => 'PUE',
-                    'Moneda'            => 'MXN',
-                    'LugarExpedicion'   => config('factura.cp_expedicion'),
-                    'Receptor'          => $receptor,
-                    'Conceptos'         => $conceptos,
+                    'TipoDocumento' => 'factura',
+                    'Serie' => $config->serie_id ?? $config->serie,
+                    'Folio' => (string) $config->folio_actual,
+                    'UsoCFDI' => 'S01',
+                    'FormaPago' => '99', // No identificado (agrupa varios métodos)
+                    'MetodoPago' => 'PUE',
+                    'Moneda' => 'MXN',
+                    'LugarExpedicion' => config('factura.cp_expedicion'),
+                    'Receptor' => $receptor,
+                    'Conceptos' => $conceptos,
                     'InformacionGlobal' => [
                         'Periodicidad' => $request->periodicidad,
-                        'Meses'        => $mes,
-                        'Año'          => (string) $anio,
+                        'Meses' => $mes,
+                        'Año' => (string) $anio,
                     ],
-                    'EnviarCorreo'      => false,
-                    'Draft'             => false,
+                    'EnviarCorreo' => false,
+                    'Draft' => false,
                 ];
 
                 $respuesta = $factura->emitir($payload);
 
                 $cfdi = Cfdi::create([
-                    'pago_id'          => null,
+                    'pago_id' => null,
                     'config_fiscal_id' => $config->id,
-                    'razon_social_id'  => null,
-                    'tipo'             => 'global',
-                    'periodicidad'     => $request->periodicidad,
-                    'fecha_desde'      => $request->fecha_desde,
-                    'fecha_hasta'      => $request->fecha_hasta,
-                    'uso_cfdi'         => 'S01',
-                    'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
-                    'factura_uid'      => $respuesta['UID'] ?? null,
-                    'folio'            => $folio,
-                    'fecha_timbrado'   => now(),
-                    'estado'           => 'vigente',
+                    'razon_social_id' => null,
+                    'tipo' => 'global',
+                    'periodicidad' => $request->periodicidad,
+                    'fecha_desde' => $request->fecha_desde,
+                    'fecha_hasta' => $request->fecha_hasta,
+                    'uso_cfdi' => 'S01',
+                    'uuid_sat' => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
+                    'factura_uid' => $respuesta['UID'] ?? null,
+                    'folio' => $folio,
+                    'fecha_timbrado' => now(),
+                    'estado' => 'vigente',
                 ]);
 
                 $cfdi->pagos()->attach($pagos->pluck('id'));
 
                 Auditoria::registrar('cfdi', $cfdi->id, 'insert', null, [
-                    'tipo'        => 'global',
-                    'folio'       => $folio,
+                    'tipo' => 'global',
+                    'folio' => $folio,
                     'fecha_desde' => $request->fecha_desde,
                     'fecha_hasta' => $request->fecha_hasta,
                     'pagos_count' => $pagos->count(),
                     'monto_total' => $pagos->sum('monto_total'),
                     'factura_uid' => $cfdi->factura_uid,
-                    'uuid_sat'    => $cfdi->uuid_sat,
+                    'uuid_sat' => $cfdi->uuid_sat,
                 ]);
 
                 return ['cfdi' => $cfdi, 'folio' => $folio];
@@ -456,7 +456,7 @@ class CfdiController extends Controller
                 );
             }
 
-            return $this->respuestaError('Error al emitir factura global: ' . $e->getMessage());
+            return $this->respuestaError('Error al emitir factura global: '.$e->getMessage());
         }
 
         return $this->respuestaExito(
@@ -471,13 +471,13 @@ class CfdiController extends Controller
     /** Descarga el PDF y XML de factura.com y los envía como adjuntos al email indicado. */
     private function despacharCfdiPorCorreo(Cfdi $cfdi, string $email, FacturaComService $factura): void
     {
-        $pdf      = $factura->descargar($cfdi->factura_uid, 'pdf');
-        $xml      = $factura->descargar($cfdi->factura_uid, 'xml');
-        $folio    = $cfdi->folio ?? "CFDI-{$cfdi->id}";
-        $setting  = Setting::find(1);
-        $escuela  = $setting?->nombre_escuela ?? config('app.name');
+        $pdf = $factura->descargar($cfdi->factura_uid, 'pdf');
+        $xml = $factura->descargar($cfdi->factura_uid, 'xml');
+        $folio = $cfdi->folio ?? "CFDI-{$cfdi->id}";
+        $setting = Setting::find(1);
+        $escuela = $setting?->nombre_escuela ?? config('app.name');
         $logoRuta = $setting?->logo_ruta ?? 'logo-escuela.png';
-        $logoPath = public_path('imgs_escuela/reportes/' . $logoRuta);
+        $logoPath = public_path('imgs_escuela/reportes/'.$logoRuta);
 
         Mail::send(
             'emails.cfdi',
@@ -513,7 +513,7 @@ class CfdiController extends Controller
         }
 
         return [
-            'UID'            => $rs->factura_uid,
+            'UID' => $rs->factura_uid,
             'RegimenFiscalR' => $rs->regimen_fiscal,
         ];
     }
@@ -538,80 +538,80 @@ class CfdiController extends Controller
         }
 
         return [
-            'UID'            => $config->publico_general_uid,
+            'UID' => $config->publico_general_uid,
             'RegimenFiscalR' => '616',
         ];
     }
 
     /** Construye el payload JSON para la API de factura.com (CFDI 4.0 individual). */
     private function construirPayload(
-        Pago         $pago,
+        Pago $pago,
         ConfigFiscal $config,
-        array        $receptor,
-        string       $folio,
-        string       $usoCfdi,
-        bool         $esPublicoGeneral = false,
-        ?Carbon      $fechaEmision = null,
+        array $receptor,
+        string $folio,
+        string $usoCfdi,
+        bool $esPublicoGeneral = false,
+        ?Carbon $fechaEmision = null,
     ): array {
         $fechaEmision ??= now();
         $conceptos = $pago->detalles->map(function ($detalle) {
-            $alumno      = $detalle->cargo?->inscripcion?->alumno;
-            $ciclo       = $detalle->cargo?->inscripcion?->ciclo;
-            $nivel       = $detalle->cargo?->inscripcion?->grupo?->grado?->nivel;
+            $alumno = $detalle->cargo?->inscripcion?->alumno;
+            $ciclo = $detalle->cargo?->inscripcion?->ciclo;
+            $nivel = $detalle->cargo?->inscripcion?->grupo?->grado?->nivel;
             $descripcion = $detalle->cargo?->etiqueta ?? 'Servicio educativo';
 
             if ($ciclo) {
-                $descripcion .= ' — Ciclo Escolar: ' . $ciclo->nombre;
+                $descripcion .= ' — Ciclo Escolar: '.$ciclo->nombre;
             }
 
             if ($alumno) {
-                $descripcion .= ' — ' . trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
+                $descripcion .= ' — '.trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
             }
 
             if ($alumno?->curp) {
-                $descripcion .= ' — CURP: ' . $alumno->curp;
+                $descripcion .= ' — CURP: '.$alumno->curp;
             }
 
             if ($nivel) {
-                $descripcion .= ' — ' . $nivel->nombre;
+                $descripcion .= ' — '.$nivel->nombre;
             }
 
             if ($nivel?->revoe) {
-                $descripcion .= ' — RVOE: ' . $nivel->revoe;
+                $descripcion .= ' — RVOE: '.$nivel->revoe;
             }
 
             return [
                 'ClaveProdServ' => $detalle->cargo?->concepto?->clave_sat ?? self::CLAVE_PROD_SERV_DEFAULT,
-                'Cantidad'      => 1,
-                'ClaveUnidad'   => 'E48',
-                'Unidad'        => 'Servicio',
+                'Cantidad' => 1,
+                'ClaveUnidad' => 'E48',
+                'Unidad' => 'Servicio',
                 'ValorUnitario' => round((float) $detalle->monto_final, 2),
-                'Descripcion'   => mb_substr($descripcion, 0, 1000),
-                'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
+                'Descripcion' => mb_substr($descripcion, 0, 1000),
+                'Impuestos' => ['Traslados' => [], 'Retenidos' => []],
             ];
         })->values()->toArray();
 
         $payload = [
-            'TipoDocumento'   => 'factura',
-            'Serie'           => $config->serie_id ?? $config->serie,
-            'Folio'           => (string) $config->folio_actual,
-            'Fecha'           => $fechaEmision->format('Y-m-d\TH:i:s'),
-            'UsoCFDI'         => $usoCfdi,
-            'FormaPago'       => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
-            'MetodoPago'      => 'PUE',
-            'Moneda'          => 'MXN',
+            'TipoDocumento' => 'factura',
+            'Serie' => $config->serie_id ?? $config->serie,
+            'Folio' => (string) $config->folio_actual,
+            'Fecha' => $fechaEmision->format('Y-m-d\TH:i:s'),
+            'UsoCFDI' => $usoCfdi,
+            'FormaPago' => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
+            'MetodoPago' => 'PUE',
+            'Moneda' => 'MXN',
             'LugarExpedicion' => config('factura.cp_expedicion'),
-            'Receptor'        => $receptor,
-            'Conceptos'       => $conceptos,
-            'EnviarCorreo'    => false,
-            'Draft'           => false,
+            'Receptor' => $receptor,
+            'Conceptos' => $conceptos,
+            'EnviarCorreo' => false,
+            'Draft' => false,
         ];
 
         if ($esPublicoGeneral) {
             $payload['InformacionGlobal'] = [
                 'Periodicidad' => '04',
-                'Meses'        => $fechaEmision->format('m'),  // Mes de la fecha del CFDI (SAT valida coherencia)
-                'Año'          => (string) $fechaEmision->year,
+                'Meses' => $fechaEmision->format('m'),  // Mes de la fecha del CFDI (SAT valida coherencia)
+                'Año' => (string) $fechaEmision->year,
             ];
         }
 
@@ -627,7 +627,7 @@ class CfdiController extends Controller
         ])
             ->where('estado', 'vigente')
             ->whereBetween('fecha_pago', [$fechaDesde, $fechaHasta])
-            ->whereDoesntHave('cfdis', fn($q) => $q->where('estado', 'vigente'))
+            ->whereDoesntHave('cfdis', fn ($q) => $q->where('estado', 'vigente'))
             ->get();
     }
 
@@ -635,24 +635,24 @@ class CfdiController extends Controller
      * Construye los conceptos del CFDI global agrupando los detalles de todos
      * los pagos por concepto de cobro y sumando sus montos.
      *
-     * @param Collection<int, Pago> $pagos
+     * @param  Collection<int, Pago>  $pagos
      */
     private function construirConceptosGlobal(Collection $pagos): array
     {
         return $pagos
-            ->flatMap(fn(Pago $p) => $p->detalles)
-            ->groupBy(fn($d) => $d->cargo?->concepto?->id ?? 0)
+            ->flatMap(fn (Pago $p) => $p->detalles)
+            ->groupBy(fn ($d) => $d->cargo?->concepto?->id ?? 0)
             ->map(function ($detalles) {
                 $concepto = $detalles->first()->cargo?->concepto;
 
                 return [
                     'ClaveProdServ' => $concepto?->clave_sat ?? self::CLAVE_PROD_SERV_DEFAULT,
-                    'Cantidad'      => 1,
-                    'ClaveUnidad'   => 'E48',
-                    'Unidad'        => 'Servicio',
+                    'Cantidad' => 1,
+                    'ClaveUnidad' => 'E48',
+                    'Unidad' => 'Servicio',
                     'ValorUnitario' => round($detalles->sum('monto_final'), 2),
-                    'Descripcion'   => mb_substr($concepto?->nombre ?? 'Servicio educativo', 0, 1000),
-                    'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
+                    'Descripcion' => mb_substr($concepto?->nombre ?? 'Servicio educativo', 0, 1000),
+                    'Impuestos' => ['Traslados' => [], 'Retenidos' => []],
                 ];
             })
             ->values()
@@ -667,11 +667,23 @@ class CfdiController extends Controller
     {
         $m = strtolower($mensaje);
 
+        // CFDI40161: UsoCFDI incompatible con régimen — el cliente fue creado en factura.com
+        // con un régimen distinto al actual; hay que eliminarlo del caché para recrearlo.
+        if (str_contains($m, 'cfdi40161') || str_contains($m, 'usocfdi')) {
+            return true;
+        }
+
+        // CFDI40145: el "Nombre" (razón social) registrado en factura.com para este RFC
+        // no coincide con el que valida el SAT — hay que recrear el cliente con el nombre correcto.
+        if (str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor')) {
+            return true;
+        }
+
         return str_contains($m, 'receptor') && (
-            str_contains($m, 'catálogo')    ||
-            str_contains($m, 'catalogo')    ||
+            str_contains($m, 'catálogo') ||
+            str_contains($m, 'catalogo') ||
             str_contains($m, 'no se encuentra') ||
-            str_contains($m, 'not found')   ||
+            str_contains($m, 'not found') ||
             str_contains($m, 'código postal') ||
             str_contains($m, 'codigo postal') ||
             str_contains($m, 'domicilio fiscal')
