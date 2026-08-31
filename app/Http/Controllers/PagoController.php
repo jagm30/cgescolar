@@ -427,16 +427,16 @@ class PagoController extends Controller
         $porConcepto = $detalles
             ->groupBy(fn ($d) => ($d->cargo?->concepto_id ?? 0).':'.($d->cargo?->periodo ?? ''))
             ->map(fn ($grupo) => [
-                'concepto'        => $grupo->first()->cargo?->concepto,
-                'periodo'         => $grupo->first()->cargo?->periodo,
-                'periodo_label'   => $grupo->first()->cargo?->periodo_label,
-                'cantidad'        => $grupo->count(),
-                'total_cargo'     => $grupo->sum('monto_abonado'),
-                'descuento_beca'  => $grupo->sum('descuento_beca'),
-                'descuento_pp'    => $grupo->sum('descuento_pronto_pago'),
+                'concepto' => $grupo->first()->cargo?->concepto,
+                'periodo' => $grupo->first()->cargo?->periodo,
+                'periodo_label' => $grupo->first()->cargo?->periodo_label,
+                'cantidad' => $grupo->count(),
+                'total_cargo' => $grupo->sum('monto_abonado'),
+                'descuento_beca' => $grupo->sum('descuento_beca'),
+                'descuento_pp' => $grupo->sum('descuento_pronto_pago'),
                 'descuento_otros' => $grupo->sum('descuento_otros'),
-                'recargo'         => $grupo->sum('recargo_aplicado'),
-                'total'           => $grupo->sum('monto_final'),
+                'recargo' => $grupo->sum('recargo_aplicado'),
+                'total' => $grupo->sum('monto_final'),
             ])
             ->filter(fn ($g) => $g['concepto'] !== null)
             ->sortByDesc('total')
@@ -450,14 +450,14 @@ class PagoController extends Controller
             ->values();
 
         $resumen = [
-            'total_cobrado'         => $detalles->sum('monto_final'),
-            'total_cargo'           => $detalles->sum('monto_abonado'),
-            'total_descuento_beca'  => $detalles->sum('descuento_beca'),
-            'total_descuento_pp'    => $detalles->sum('descuento_pronto_pago'),
+            'total_cobrado' => $detalles->sum('monto_final'),
+            'total_cargo' => $detalles->sum('monto_abonado'),
+            'total_descuento_beca' => $detalles->sum('descuento_beca'),
+            'total_descuento_pp' => $detalles->sum('descuento_pronto_pago'),
             'total_descuento_otros' => $detalles->sum('descuento_otros'),
-            'total_recargo'         => $detalles->sum('recargo_aplicado'),
-            'total_pagos'           => $pagosUnicos->count(),
-            'total_conceptos'       => $porConcepto->count(),
+            'total_recargo' => $detalles->sum('recargo_aplicado'),
+            'total_pagos' => $pagosUnicos->count(),
+            'total_conceptos' => $porConcepto->count(),
         ];
 
         return view('pagos.detalle_ingresos', compact(
@@ -496,16 +496,16 @@ class PagoController extends Controller
         $porConcepto = $detalles
             ->groupBy(fn ($d) => ($d->cargo?->concepto_id ?? 0).':'.($d->cargo?->periodo ?? ''))
             ->map(fn ($grupo) => [
-                'concepto'        => $grupo->first()->cargo?->concepto,
-                'periodo'         => $grupo->first()->cargo?->periodo,
-                'periodo_label'   => $grupo->first()->cargo?->periodo_label,
-                'cantidad'        => $grupo->count(),
-                'total_cargo'     => $grupo->sum('monto_abonado'),
-                'descuento_beca'  => $grupo->sum('descuento_beca'),
-                'descuento_pp'    => $grupo->sum('descuento_pronto_pago'),
+                'concepto' => $grupo->first()->cargo?->concepto,
+                'periodo' => $grupo->first()->cargo?->periodo,
+                'periodo_label' => $grupo->first()->cargo?->periodo_label,
+                'cantidad' => $grupo->count(),
+                'total_cargo' => $grupo->sum('monto_abonado'),
+                'descuento_beca' => $grupo->sum('descuento_beca'),
+                'descuento_pp' => $grupo->sum('descuento_pronto_pago'),
                 'descuento_otros' => $grupo->sum('descuento_otros'),
-                'recargo'         => $grupo->sum('recargo_aplicado'),
-                'total'           => $grupo->sum('monto_final'),
+                'recargo' => $grupo->sum('recargo_aplicado'),
+                'total' => $grupo->sum('monto_final'),
             ])
             ->filter(fn ($g) => $g['concepto'] !== null)
             ->sortByDesc('total')
@@ -519,20 +519,20 @@ class PagoController extends Controller
             ->values();
 
         $resumen = [
-            'total_cobrado'         => $detalles->sum('monto_final'),
-            'total_cargo'           => $detalles->sum('monto_abonado'),
-            'total_descuento_beca'  => $detalles->sum('descuento_beca'),
-            'total_descuento_pp'    => $detalles->sum('descuento_pronto_pago'),
+            'total_cobrado' => $detalles->sum('monto_final'),
+            'total_cargo' => $detalles->sum('monto_abonado'),
+            'total_descuento_beca' => $detalles->sum('descuento_beca'),
+            'total_descuento_pp' => $detalles->sum('descuento_pronto_pago'),
             'total_descuento_otros' => $detalles->sum('descuento_otros'),
-            'total_recargo'         => $detalles->sum('recargo_aplicado'),
-            'total_pagos'           => $pagosUnicos->count(),
-            'total_conceptos'       => $porConcepto->count(),
+            'total_recargo' => $detalles->sum('recargo_aplicado'),
+            'total_pagos' => $pagosUnicos->count(),
+            'total_conceptos' => $porConcepto->count(),
         ];
 
         $filtroConcepto = $conceptos->firstWhere('id', $request->concepto_id);
         $filtroNivel = $niveles->firstWhere('id', $request->nivel_id);
         $filtroPeriodo = $request->filled('periodo')
-            ? Carbon::createFromFormat('Y-m', $request->periodo)->locale('es')
+            ? Carbon::createFromFormat('Y-m-d', $request->periodo.'-01')->locale('es')
             : null;
         $filtroForma = $request->forma_pago;
 
@@ -568,7 +568,7 @@ class PagoController extends Controller
         $nombreArchivo = 'Pagos_'.now()->format('Y-m-d').'.csv';
 
         $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$nombreArchivo}\"",
         ];
 
