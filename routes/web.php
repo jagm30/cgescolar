@@ -706,3 +706,11 @@ Route::post('/fiscal', [SettingController::class, 'updateFiscal'])
 Route::get('/fiscal/verificar-series', [SettingController::class, 'verificarSeries'])
     ->middleware(['auth', 'rol:administrador'])
     ->name('settings.verificarSeries');
+
+// =======================================================
+// Módulo Educativo — Calificaciones
+// =======================================================
+Route::middleware(['auth', 'force.json.on.ajax', 'rol:administrador,docente'])
+    ->prefix('educativo')
+    ->name('educativo.')
+    ->group(base_path('routes/educativo.php'));

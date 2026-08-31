@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TipoPersonal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Personal extends Model
 {
@@ -50,6 +51,12 @@ public function usuario()
     public function scopeActivo(Builder $query): Builder
     {
         return $query->where('activo', true);
+    }
+
+    /** Filtra solo el personal con tipo 'docente'. */
+    public function scopeDocentes(Builder $query): Builder
+    {
+        return $query->where('tipo', TipoPersonal::Docente->value);
     }
 
     public function scopeBuscar(Builder $query, string $termino): Builder

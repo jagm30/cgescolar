@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Rol;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -62,7 +63,7 @@ class Usuario extends Authenticatable
 
     public function scopeInternos($query)
     {
-        return $query->whereIn('rol', ['administrador', 'caja', 'recepcion', 'admisiones', 'informacion_admisiones', 'director_seccion']);
+        return $query->whereIn('rol', Rol::internos());
     }
 
     // ── Helpers de rol ───────────────────────────────────
@@ -99,25 +100,31 @@ class Usuario extends Authenticatable
 
     public function esPadre(): bool
     {
-        return $this->rol === 'padre';
+        return $this->rol === Rol::Padre->value;
+    }
+
+    public function esDocente(): bool
+    {
+        return $this->rol === Rol::Docente->value;
     }
 
     public function esInterno(): bool
     {
-        return in_array($this->rol, ['administrador', 'caja', 'recepcion', 'admisiones', 'informacion_admisiones', 'director_seccion']);
+        return in_array($this->rol, Rol::internos());
     }
 
     public function rutaDashboard(): string
     {
         return match ($this->rol) {
-            'administrador'          => route('admin.dashboard'),
-            'caja'                   => route('caja.dashboard'),
-            'recepcion'              => route('recepcion.dashboard'),
-            'admisiones'             => route('prospectos.metricas'),
-            'informacion_admisiones' => route('alumnos.index'),
-            'director_seccion'       => route('alumnos.index'),
-            'padre'                  => route('portal.dashboard'),
-            default                  => route('login'),
+            Rol::Administrador->value         => route('admin.dashboard'),
+            Rol::Caja->value                  => route('caja.dashboard'),
+            Rol::Recepcion->value             => route('recepcion.dashboard'),
+            Rol::Admisiones->value            => route('prospectos.metricas'),
+            Rol::InformacionAdmisiones->value => route('alumnos.index'),
+            Rol::DirectorSeccion->value       => route('alumnos.index'),
+            Rol::Docente->value               => route('educativo.dashboard'),
+            Rol::Padre->value                 => route('portal.dashboard'),
+            default                           => route('login'),
         };
     }
 
