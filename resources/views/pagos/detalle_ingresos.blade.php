@@ -91,7 +91,7 @@
     $filtroConcepto = $conceptos->firstWhere('id', request('concepto_id'));
     $filtroNivel    = $niveles->firstWhere('id', request('nivel_id'));
     $filtroPeriodo  = request('periodo')
-        ? \Carbon\Carbon::createFromFormat('Y-m', request('periodo'))->locale('es')
+        ? \Carbon\Carbon::createFromFormat('Y-m-d', request('periodo').'-01')->locale('es')
         : null;
 @endphp
 
