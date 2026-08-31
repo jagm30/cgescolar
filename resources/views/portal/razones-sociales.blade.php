@@ -434,6 +434,7 @@ $regimenOpciones = [
     '612' => '612 – Personas Físicas con Actividades Empresariales y Profesionales',
     '616' => '616 – Sin obligaciones fiscales',
     '621' => '621 – Incorporación Fiscal',
+    '625' => '625 – Régimen de las Actividades Empresariales con Ingresos a través de Plataformas Tecnológicas',
     '626' => '626 – Régimen Simplificado de Confianza (RESICO)',
 ];
 $cfdiOpciones = [
