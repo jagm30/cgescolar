@@ -13,11 +13,11 @@ use Illuminate\Support\Facades\DB;
 class CfdiService
 {
     private const FORMAS_PAGO_SAT = [
-        'efectivo'        => '01',
-        'cheque'          => '02',
-        'transferencia'   => '03',
+        'efectivo' => '01',
+        'cheque' => '02',
+        'transferencia' => '03',
         'tarjeta_credito' => '04',
-        'tarjeta_debito'  => '28',
+        'tarjeta_debito' => '28',
     ];
 
     private const CLAVE_PROD_SERV_DEFAULT = '86101500';
@@ -34,10 +34,10 @@ class CfdiService
      * @throws \RuntimeException
      */
     public function emitirParaPago(
-        Pago    $pago,
-        ?int    $razonSocialId,
-        string  $usoCfdi,
-        Carbon  $fechaEmision,
+        Pago $pago,
+        ?int $razonSocialId,
+        string $usoCfdi,
+        Carbon $fechaEmision,
     ): array {
         $config = ConfigFiscal::first()
             ?? throw new \RuntimeException('No hay configuración fiscal registrada. Configure el emisor primero.');
@@ -55,35 +55,35 @@ class CfdiService
             'detalles.cargo.inscripcion.grupo.grado.nivel',
         ]);
 
-        $rs       = $razonSocialId ? RazonSocialContacto::with('contacto')->findOrFail($razonSocialId) : null;
+        $rs = $razonSocialId ? RazonSocialContacto::with('contacto')->findOrFail($razonSocialId) : null;
         $receptor = $rs
             ? $this->receptorDesdeRazonSocial($rs)
             : $this->receptorPublicoGeneral($config);
 
         try {
-            return DB::transaction(function () use ($pago, $config, $receptor, $rs, $razonSocialId, $usoCfdi, $fechaEmision): array {
-                $folio   = $config->siguienteFolio();
+            return DB::transaction(function () use ($pago, $config, $receptor, $razonSocialId, $usoCfdi, $fechaEmision): array {
+                $folio = $config->siguienteFolio();
                 $payload = $this->construirPayload($pago, $config, $receptor, $folio, $usoCfdi, $razonSocialId === null, $fechaEmision);
 
                 $respuesta = $this->factura->emitir($payload);
 
                 $cfdi = Cfdi::create([
-                    'pago_id'          => $pago->id,
+                    'pago_id' => $pago->id,
                     'config_fiscal_id' => $config->id,
-                    'razon_social_id'  => $razonSocialId,
-                    'uso_cfdi'         => $usoCfdi,
-                    'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
-                    'factura_uid'      => $respuesta['UID'] ?? null,
-                    'folio'            => $folio,
-                    'fecha_timbrado'   => $fechaEmision,
-                    'estado'           => 'vigente',
+                    'razon_social_id' => $razonSocialId,
+                    'uso_cfdi' => $usoCfdi,
+                    'uuid_sat' => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
+                    'factura_uid' => $respuesta['UID'] ?? null,
+                    'folio' => $folio,
+                    'fecha_timbrado' => $fechaEmision,
+                    'estado' => 'vigente',
                 ]);
 
                 Auditoria::registrar('cfdi', $cfdi->id, 'insert', null, [
-                    'pago_id'     => $pago->id,
-                    'folio'       => $folio,
+                    'pago_id' => $pago->id,
+                    'folio' => $folio,
                     'factura_uid' => $cfdi->factura_uid,
-                    'uuid_sat'    => $cfdi->uuid_sat,
+                    'uuid_sat' => $cfdi->uuid_sat,
                 ]);
 
                 return ['cfdi' => $cfdi, 'folio' => $folio];
@@ -96,12 +96,12 @@ class CfdiService
                     : $rs?->update(['factura_uid' => null]);
 
                 throw new \RuntimeException(
-                    'El cliente receptor estaba desactualizado en factura.com y fue eliminado del caché. ' .
+                    'El cliente receptor estaba desactualizado en factura.com y fue eliminado del caché. '.
                     'Vuelve a intentar emitir el CFDI — en este segundo intento se registrará automáticamente.'
                 );
             }
 
-            throw new \RuntimeException('Error al emitir CFDI: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Error al emitir CFDI: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -155,84 +155,90 @@ class CfdiService
             return true;
         }
 
+        // CFDI40145: el "Nombre" (razón social) registrado en factura.com para este RFC
+        // no coincide con el que valida el SAT — hay que recrear el cliente con el nombre correcto.
+        if (str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor')) {
+            return true;
+        }
+
         return str_contains($m, 'receptor') && (
-            str_contains($m, 'catálogo')       ||
-            str_contains($m, 'catalogo')       ||
-            str_contains($m, 'no se encuentra')||
-            str_contains($m, 'not found')      ||
-            str_contains($m, 'código postal')  ||
-            str_contains($m, 'codigo postal')  ||
+            str_contains($m, 'catálogo') ||
+            str_contains($m, 'catalogo') ||
+            str_contains($m, 'no se encuentra') ||
+            str_contains($m, 'not found') ||
+            str_contains($m, 'código postal') ||
+            str_contains($m, 'codigo postal') ||
             str_contains($m, 'domicilio fiscal')
         );
     }
 
     private function construirPayload(
-        Pago         $pago,
+        Pago $pago,
         ConfigFiscal $config,
-        array        $receptor,
-        string       $folio,
-        string       $usoCfdi,
-        bool         $esPublicoGeneral,
-        Carbon       $fechaEmision,
+        array $receptor,
+        string $folio,
+        string $usoCfdi,
+        bool $esPublicoGeneral,
+        Carbon $fechaEmision,
     ): array {
         $conceptos = $pago->detalles->map(function ($detalle) {
-            $alumno      = $detalle->cargo?->inscripcion?->alumno;
-            $ciclo       = $detalle->cargo?->inscripcion?->ciclo;
-            $nivel       = $detalle->cargo?->inscripcion?->grupo?->grado?->nivel;
+            $alumno = $detalle->cargo?->inscripcion?->alumno;
+            $ciclo = $detalle->cargo?->inscripcion?->ciclo;
+            $nivel = $detalle->cargo?->inscripcion?->grupo?->grado?->nivel;
             $descripcion = $detalle->cargo?->etiqueta ?? 'Servicio educativo';
 
             if ($ciclo) {
-                $descripcion .= ' — Ciclo Escolar: ' . $ciclo->nombre;
+                $descripcion .= ' — Ciclo Escolar: '.$ciclo->nombre;
             }
 
             if ($alumno) {
-                $descripcion .= ' — ' . trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
+                $descripcion .= ' — '.trim("{$alumno->nombre} {$alumno->ap_paterno} {$alumno->ap_materno}");
             }
 
             if ($alumno?->curp) {
-                $descripcion .= ' — CURP: ' . $alumno->curp;
+                $descripcion .= ' — CURP: '.$alumno->curp;
             }
 
             if ($nivel) {
-                $descripcion .= ' — ' . $nivel->nombre;
+                $descripcion .= ' — '.$nivel->nombre;
             }
 
             if ($nivel?->revoe) {
-                $descripcion .= ' — RVOE: ' . $nivel->revoe;
+                $descripcion .= ' — RVOE: '.$nivel->revoe;
             }
 
             return [
                 'ClaveProdServ' => $detalle->cargo?->concepto?->clave_sat ?? self::CLAVE_PROD_SERV_DEFAULT,
-                'Cantidad'      => 1,
-                'ClaveUnidad'   => 'E48',
-                'Unidad'        => 'Servicio',
+                'Cantidad' => 1,
+                'ClaveUnidad' => 'E48',
+                'Unidad' => 'Servicio',
                 'ValorUnitario' => round((float) $detalle->monto_final, 2),
-                'Descripcion'   => mb_substr($descripcion, 0, 1000),
-                'Impuestos'     => ['Traslados' => [], 'Retenidos' => []],
+                'Descripcion' => mb_substr($descripcion, 0, 1000),
+                'Impuestos' => ['Traslados' => [], 'Retenidos' => []],
             ];
         })->values()->toArray();
 
         $payload = [
-            'TipoDocumento'   => 'factura',
-            'Serie'           => $config->serie_id ?? $config->serie,
-            'Folio'           => (string) $config->folio_actual,
-            'Fecha'           => $fechaEmision->format('Y-m-d\TH:i:s'),
-            'UsoCFDI'         => $usoCfdi,
-            'FormaPago'       => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
-            'MetodoPago'      => 'PUE',
-            'Moneda'          => 'MXN',
+            'TipoDocumento' => 'factura',
+            'Serie' => $config->serie_id ?? $config->serie,
+            'Folio' => (string) $config->folio_actual,
+            'Fecha' => $fechaEmision->format('Y-m-d\TH:i:s'),
+            'UsoCFDI' => $usoCfdi,
+            'FormaPago' => self::FORMAS_PAGO_SAT[$pago->forma_pago] ?? '99',
+            'MetodoPago' => 'PUE',
+            'Moneda' => 'MXN',
             'LugarExpedicion' => config('factura.cp_expedicion'),
-            'Receptor'        => $receptor,
-            'Conceptos'       => $conceptos,
-            'EnviarCorreo'    => false,
-            'Draft'           => false,
+            'Receptor' => $receptor,
+            'Conceptos' => $conceptos,
+            'EnviarCorreo' => false,
+            'Draft' => false,
         ];
 
         if ($esPublicoGeneral) {
             $payload['InformacionGlobal'] = [
                 'Periodicidad' => '04',
-                'Meses'        => $fechaEmision->format('m'),
-                'Año'          => (string) $fechaEmision->year,
+                'Meses' => $fechaEmision->format('m'),
+                'Año' => (string) $fechaEmision->year,
             ];
         }
 
