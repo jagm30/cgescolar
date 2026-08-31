@@ -425,7 +425,12 @@
                                 </tr>
                                 <tr>
                                     <th style="color:#999;font-weight:400;padding:6px 10px;">Familia</th>
-                                    <td style="padding:6px 10px;">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
+                                    <td style="padding:6px 10px;">
+                                        {{ $alumno->familia?->apellido_familia ?? '—' }}
+                                        @if($alumno->familia_id)
+                                            <span style="color:#bbb;">(ID {{ $alumno->familia_id }})</span>
+                                        @endif
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th style="color:#999;font-weight:400;padding:6px 10px;">Registrado</th>
@@ -668,6 +673,9 @@
                             <span style="font-size:12px;color:#777;">Familia asignada:</span>
                             <strong id="label-familia-actual" style="margin-left:4px;">
                                 {{ $alumno->familia?->apellido_familia ?? '—' }}
+                                @if($alumno->familia_id)
+                                    <span style="font-weight:400;color:#aaa;">(ID {{ $alumno->familia_id }})</span>
+                                @endif
                             </strong>
                         </span>
                         <span style="font-size:12px;color:#3c8dbc;">
@@ -684,7 +692,7 @@
                                         @foreach($familias as $fam)
                                             <option value="{{ $fam->id }}"
                                                 {{ $fam->id == $alumno->familia_id ? 'selected' : '' }}>
-                                                {{ $fam->apellido_familia }}
+                                                {{ $fam->apellido_familia }} (ID {{ $fam->id }})
                                             </option>
                                         @endforeach
                                     </select>
@@ -1215,7 +1223,12 @@
                     </tr>
                     <tr>
                         <th style="color:#999;font-weight:400;padding:8px 14px;">Familia</th>
-                        <td style="padding:8px 14px;" id="sidebar-familia-nombre">{{ $alumno->familia?->apellido_familia ?? '—' }}</td>
+                        <td style="padding:8px 14px;" id="sidebar-familia-nombre">
+                            {{ $alumno->familia?->apellido_familia ?? '—' }}
+                            @if($alumno->familia_id)
+                                <span style="color:#bbb;">(ID {{ $alumno->familia_id }})</span>
+                            @endif
+                        </td>
                     </tr>
                     @if($inscActual)
                     <tr>
