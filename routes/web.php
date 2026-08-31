@@ -542,6 +542,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         Route::post('razon-social/{id}/principal', [RazonSocialController::class, 'setPrincipal'])
             ->middleware('rol:administrador,caja')
             ->name('razon-social.principal');
+
+        Route::post('razon-social/{id}/activo', [RazonSocialController::class, 'toggleActivo'])
+            ->middleware('rol:administrador,caja')
+            ->name('razon-social.toggle-activo');
     });
 
     // Resource de familias — caja solo consulta, recepción/info_admisiones ve y gestiona, admin hace todo

@@ -188,6 +188,7 @@ $usosCfdi = [
             <div class="rs-card" id="rs-card-{{ $rs->id }}"
                  style="border:1px solid #e0e0e0;border-left:4px solid {{ $rs->es_principal ? '#546e7a' : '#ccc' }};
                         border-radius:6px;padding:12px 16px;margin-bottom:8px;
+                        opacity:{{ $rs->activo ? '1' : '.55' }};
                         background:{{ $rs->es_principal ? '#f5f7f8' : '#fff' }};">
 
                 {{-- Vista normal --}}
@@ -205,6 +206,12 @@ $usosCfdi = [
                                     PRINCIPAL
                                 </span>
                                 @endif
+                                <span id="rs-badge-activo-{{ $rs->id }}"
+                                      style="background:{{ $rs->activo ? '#2e7d32' : '#b71c1c' }};color:#fff;
+                                             font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;
+                                             letter-spacing:.03em;">
+                                    {{ $rs->activo ? 'HABILITADO PARA FACTURAR' : 'DESHABILITADO' }}
+                                </span>
                             </div>
                             <div style="font-size:13px;color:#333;margin-top:4px;">
                                 {{ $rs->razon_social }}
@@ -233,6 +240,11 @@ $usosCfdi = [
                         {{-- Botones --}}
                         @if(in_array(auth()->user()->rol, ['administrador', 'caja']))
                         <div style="flex-shrink:0;display:flex;gap:4px;flex-direction:column;align-items:flex-end;">
+                            <label class="checkbox-inline rs-check-activo" style="font-size:11px;margin:0 0 2px;white-space:nowrap;">
+                                <input type="checkbox" class="chk-rs-activo" data-id="{{ $rs->id }}"
+                                       data-rfc="{{ $rs->rfc }}" {{ $rs->activo ? 'checked' : '' }}>
+                                Habilitado para facturar
+                            </label>
                             @if(!$rs->es_principal)
                             <button type="button"
                                     class="btn btn-default btn-xs btn-flat btn-rs-principal"
@@ -273,7 +285,15 @@ $usosCfdi = [
                         <i class="fa fa-pencil"></i> Editando RFC <strong>{{ $rs->rfc }}</strong>
                     </div>
                     <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label style="font-size:12px;">RFC <span class="text-red">*</span></label>
+                                <input type="text" class="form-control input-sm ers-rfc"
+                                       value="{{ $rs->rfc }}" maxlength="13"
+                                       style="text-transform:uppercase">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
                             <div class="form-group">
                                 <label style="font-size:12px;">Razón social <span class="text-red">*</span></label>
                                 <input type="text" class="form-control input-sm ers-razon-social"
@@ -458,12 +478,16 @@ $usosCfdi = [
         var btn   = $(this);
         var orig  = btn.html();
 
-        var cp = panel.find('.ers-cp').val().trim();
+        var cp  = panel.find('.ers-cp').val().trim();
+        var rfc = panel.find('.ers-rfc').val().trim().toUpperCase();
+
+        if (!rfc) { mostrarRsAlerta('El RFC es obligatorio.', 'danger'); return; }
         if (cp.length !== 5 || !/^\d{5}$/.test(cp)) {
             mostrarRsAlerta('El código postal debe tener exactamente 5 dígitos.', 'danger'); return;
         }
 
         var datos = {
+            rfc:              rfc,
             razon_social:     panel.find('.ers-razon-social').val().trim(),
             regimen_fiscal:   panel.find('.ers-regimen').val(),
             domicilio_fiscal: cp,
@@ -510,6 +534,36 @@ $usosCfdi = [
         });
     });
 
+    // ── Habilitar/deshabilitar para facturar ────────────
+    $(document).on('change', '.chk-rs-activo', function () {
+        var chk    = $(this);
+        var id     = chk.data('id');
+        var rfc    = chk.data('rfc');
+        var quedaActivo = chk.is(':checked');
+
+        chk.prop('disabled', true);
+
+        $.ajax({
+            url:    '{{ url("familias/razon-social") }}/' + id + '/activo',
+            method: 'POST',
+            success: function (res) {
+                chk.prop('disabled', false);
+                mostrarRsAlerta(res.message || (quedaActivo
+                    ? 'RFC ' + rfc + ' habilitado para facturar.'
+                    : 'RFC ' + rfc + ' deshabilitado.'), 'success');
+
+                var badge = $('#rs-badge-activo-' + id);
+                badge.text(quedaActivo ? 'HABILITADO PARA FACTURAR' : 'DESHABILITADO')
+                     .css('background', quedaActivo ? '#2e7d32' : '#b71c1c');
+                $('#rs-card-' + id).css('opacity', quedaActivo ? '1' : '.55');
+            },
+            error: function (xhr) {
+                chk.prop('disabled', false).prop('checked', !quedaActivo);
+                mostrarRsAlerta(xhr.responseJSON?.message || 'Error al actualizar.', 'danger');
+            }
+        });
+    });
+
     // ── Desactivar (eliminar lógico) ────────────────────
     $(document).on('click', '.btn-rs-eliminar', function () {
         var id  = $(this).data('id');
@@ -535,7 +589,7 @@ $usosCfdi = [
     });
 
     // RFC en mayúsculas al escribir
-    $(document).on('input', '#nrs-rfc', function () {
+    $(document).on('input', '#nrs-rfc, .ers-rfc', function () {
         this.value = this.value.toUpperCase();
     });
 
