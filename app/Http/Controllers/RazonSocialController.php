@@ -80,6 +80,12 @@ class RazonSocialController extends Controller
             return $this->respuestaError('Este RFC ya está registrado para este contacto.');
         }
 
+        if (! RazonSocialContacto::usoCfdiCompatibleConRegimen($data['regimen_fiscal'], $data['uso_cfdi_default'])) {
+            return $this->respuestaError(
+                'El régimen fiscal '.$data['regimen_fiscal'].' no admite deducciones personales (D01–D10). Elige otro Uso de CFDI, como G03.'
+            );
+        }
+
         if (! empty($data['es_principal'])) {
             RazonSocialContacto::where('contacto_id', $rs->contacto_id)
                 ->where('id', '!=', $id)

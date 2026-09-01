@@ -592,6 +592,8 @@ Route::middleware('rol:administrador,caja')->prefix('cfdis')->name('cfdis.')->gr
     Route::get('/{cfdi}/descargar/{formato}', [CfdiController::class, 'descargar'])->name('descargar');
     Route::get('/{cfdi}/form-correo', [CfdiController::class, 'formCorreo'])->name('form-correo');
     Route::post('/{cfdi}/enviar-correo', [CfdiController::class, 'enviarCorreo'])->name('enviar-correo');
+    Route::get('/{cfdi}/form-sustituto', [CfdiController::class, 'formSustituto'])->name('form-sustituto');
+    Route::post('/{cfdi}/emitir-sustituto', [CfdiController::class, 'emitirSustituto'])->name('emitir-sustituto');
 });
 
 // ── Cobros / Caja ─────────────────────────────────────

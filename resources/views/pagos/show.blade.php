@@ -648,7 +648,8 @@
             <script>
             (function () {
                 // Regímenes del SAT que admiten D10 y otras deducciones personales (c_UsoCFDI CFDI 4.0)
-                var regimenesDeduccion = ['605','606','608','611','612','614','615','621','625','626'];
+                // 626 (RESICO) queda fuera: tributa sobre ingreso bruto y el SAT rechaza D01–D10 (CFDI40161/CFDI40154).
+                var regimenesDeduccion = ['605','606','608','611','612','614','615','621','625'];
 
                 var $radios  = $('input[name="razon_social_id"]');
                 var $select  = $('#uso-cfdi-select');
