@@ -204,8 +204,11 @@ class CfdiController extends Controller
     /** POST /cfdis/{cfdi}/cancelar — Cancela un CFDI ante el SAT vía factura.com. */
     public function cancelar(Request $request, int $cfdiId, FacturaComService $factura): RedirectResponse|JsonResponse
     {
+        \Log::info('CFDI cancelar input', $request->all());
+
         $request->validate([
-            'motivo' => ['required', 'string', 'in:01,02,03,04'],
+            'motivo'          => ['required', 'string', 'in:01,02,03,04'],
+            'folio_sustituto' => ['required_if:motivo,01', 'nullable', 'string', 'max:50'],
         ]);
 
         $cfdi = Cfdi::with('pago')->findOrFail($cfdiId);
@@ -219,7 +222,8 @@ class CfdiController extends Controller
         }
 
         try {
-            $factura->cancelar($cfdi->factura_uid, $request->motivo);
+            \Log::info('CFDI cancelar', ['motivo' => $request->motivo, 'folio_sustituto' => $request->folio_sustituto]);
+            $factura->cancelar($cfdi->factura_uid, $request->motivo, $request->folio_sustituto);
 
             $anterior = $cfdi->toArray();
             $cfdi->update(['estado' => 'cancelado']);
@@ -233,8 +237,156 @@ class CfdiController extends Controller
                 routeParams: $cfdi->pago_id ? [$cfdi->pago_id] : []
             );
         } catch (\Throwable $e) {
-            return $this->respuestaError('Error al cancelar CFDI: '.$e->getMessage());
+            return $this->respuestaError($e->getMessage());
         }
+    }
+
+    /**
+     * GET /cfdis/{cfdi}/form-sustituto (AJAX)
+     * Devuelve las razones sociales disponibles para emitir el CFDI sustituto.
+     */
+    public function formSustituto(int $cfdiId): JsonResponse
+    {
+        $cfdi = Cfdi::with([
+            'pago.detalles.cargo.inscripcion.alumno',
+        ])->findOrFail($cfdiId);
+
+        $alumnoIds = $cfdi->pago->detalles
+            ->map(fn ($d) => $d->cargo?->inscripcion?->alumno_id)
+            ->filter()->unique()->values();
+
+        $razones = RazonSocialContacto::query()
+            ->where('activo', true)
+            ->whereHas('contacto.alumnos', fn ($q) => $q->whereIn('alumno.id', $alumnoIds))
+            ->with('contacto')
+            ->get()
+            ->map(fn ($rs) => [
+                'id'            => $rs->id,
+                'rfc'           => $rs->rfc,
+                'razon_social'  => $rs->razon_social,
+                'regimen_fiscal'=> $rs->regimen_fiscal,
+                'uso_cfdi'      => $rs->uso_cfdi_default ?? 'D10',
+                'contacto'      => $rs->contacto?->nombre_completo,
+            ]);
+
+        $formaPagoActual = self::FORMAS_PAGO_SAT[$cfdi->pago->forma_pago] ?? '99';
+
+        return response()->json([
+            'cfdi_id'       => $cfdi->id,
+            'folio'         => $cfdi->folio,
+            'pago_id'       => $cfdi->pago_id,
+            'razones'       => $razones,
+            'forma_pago_sat'=> $formaPagoActual,
+        ]);
+    }
+
+    /**
+     * POST /cfdis/{cfdi}/emitir-sustituto (AJAX)
+     * Emite un nuevo CFDI para el mismo pago que el CFDI original.
+     * A diferencia de emitir(), permite hacerlo aunque ya exista un CFDI vigente,
+     * porque el objetivo es obtener el UUID del sustituto antes de cancelar el original.
+     */
+    public function emitirSustituto(Request $request, int $cfdiId, FacturaComService $factura): JsonResponse
+    {
+        $request->validate([
+            'razon_social_id' => ['nullable', 'exists:razon_social_contacto,id'],
+            'uso_cfdi'        => ['required', 'string', 'max:10'],
+            'forma_pago_sat'  => ['nullable', 'string', 'size:2'],
+        ]);
+
+        $cfdi = Cfdi::with([
+            'pago.detalles.cargo.concepto',
+            'pago.detalles.cargo.inscripcion.alumno',
+            'pago.detalles.cargo.inscripcion.ciclo',
+            'pago.detalles.cargo.inscripcion.grupo.grado.nivel',
+        ])->findOrFail($cfdiId);
+
+        $pago = $cfdi->pago;
+
+        if ($cfdi->estado === 'cancelado') {
+            return response()->json(['message' => 'El CFDI original ya está cancelado. Emite el nuevo desde el pago directamente.'], 422);
+        }
+
+        $config = ConfigFiscal::first();
+        if (! $config) {
+            return response()->json(['message' => 'No hay configuración fiscal registrada.'], 422);
+        }
+
+        $razonSocialId = $request->filled('razon_social_id') ? (int) $request->razon_social_id : null;
+
+        if ($razonSocialId) {
+            $rs = RazonSocialContacto::with('contacto')->findOrFail($razonSocialId);
+            $receptor = $this->receptorDesdeRazonSocial($rs, $factura);
+        } else {
+            $receptor = $this->receptorPublicoGeneral($config, $factura);
+        }
+
+        $formaPagoSat  = $request->filled('forma_pago_sat') ? $request->forma_pago_sat : null;
+        $uuidOriginal  = $cfdi->uuid_sat;   // UUID del CFDI que se cancela — requerido por SAT motivo 01
+
+        try {
+            $resultado = DB::transaction(function () use ($pago, $config, $receptor, $request, $razonSocialId, $factura, $formaPagoSat, $uuidOriginal): array {
+                $folio = $config->siguienteFolio();
+                $payload = $this->construirPayload($pago, $config, $receptor, $folio, $request->uso_cfdi, $razonSocialId === null);
+
+                if ($formaPagoSat !== null) {
+                    $payload['FormaPago'] = $formaPagoSat;
+                }
+
+                // SAT: el CFDI sustituto debe declarar relación tipo 04 con el UUID del original
+                if ($uuidOriginal) {
+                    $payload['CfdiRelacionados'] = [
+                        'TipoRelacion'      => '04',
+                        'CfdisRelacionados' => [strtoupper($uuidOriginal)],
+                    ];
+                }
+
+                $respuesta = $factura->emitir($payload);
+
+                $nuevoCfdi = Cfdi::create([
+                    'pago_id'          => $pago->id,
+                    'config_fiscal_id' => $config->id,
+                    'razon_social_id'  => $razonSocialId,
+                    'uso_cfdi'         => $request->uso_cfdi,
+                    'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
+                    'factura_uid'      => $respuesta['UID'] ?? null,
+                    'folio'            => $folio,
+                    'fecha_timbrado'   => now(),
+                    'estado'           => 'vigente',
+                ]);
+
+                Auditoria::registrar('cfdi', $nuevoCfdi->id, 'insert', null, [
+                    'pago_id'        => $pago->id,
+                    'folio'          => $folio,
+                    'factura_uid'    => $nuevoCfdi->factura_uid,
+                    'uuid_sat'       => $nuevoCfdi->uuid_sat,
+                    'forma_pago_sat' => $formaPagoSat,
+                    'origen'         => 'sustituto_de_cfdi_'.$nuevoCfdi->id,
+                ]);
+
+                return ['cfdi' => $nuevoCfdi, 'folio' => $folio];
+            });
+        } catch (\Throwable $e) {
+            if ($this->esErrorReceptorInvalido($e->getMessage())) {
+                if ($razonSocialId === null) {
+                    $config->update(['publico_general_uid' => null]);
+                } else {
+                    RazonSocialContacto::where('id', $razonSocialId)->update(['factura_uid' => null]);
+                }
+
+                return response()->json([
+                    'message' => 'El cliente receptor estaba desactualizado. Vuelve a intentarlo.',
+                ], 422);
+            }
+
+            return response()->json(['message' => 'Error al emitir CFDI sustituto: '.$e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'folio'    => $resultado['folio'],
+            'uuid_sat' => $resultado['cfdi']->uuid_sat,
+            'cfdi_id'  => $resultado['cfdi']->id,
+        ]);
     }
 
     /**
