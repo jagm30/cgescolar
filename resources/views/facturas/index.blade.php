@@ -297,6 +297,7 @@
                             class="btn btn-xs btn-flat btn-cancelar-cfdi"
                             style="background:#fff8e1;color:#92400e;border:1px solid #fde68a;border-radius:5px;"
                             data-cfdi-id="{{ $cfdi->id }}"
+                            data-pago-id="{{ $cfdi->pago_id }}"
                             data-folio="{{ $cfdi->folio }}"
                             title="Cancelar CFDI">
                         <i class="fa fa-ban"></i>
@@ -521,16 +522,37 @@
                 </p>
                 <form id="form-cancelar-cfdi" method="POST">
                     @csrf
+                    {{-- Campo oculto fuera del wrapper: siempre serializable independiente de display:none --}}
+                    <input type="hidden" name="folio_sustituto" id="mc-folio-sustituto-hidden">
                     <div style="margin-bottom:14px;">
                         <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
                             Motivo SAT
                         </label>
-                        <select name="motivo" class="form-control input-sm" style="border-radius:5px;">
+                        <select name="motivo" id="mc-motivo" class="form-control input-sm" style="border-radius:5px;">
                             <option value="02">02 — Comprobante emitido con errores sin relación</option>
                             <option value="01">01 — Comprobante emitido con errores con relación</option>
                             <option value="03">03 — No se llevó a cabo la operación</option>
                             <option value="04">04 — Operación nominativa relacionada en factura global</option>
                         </select>
+                    </div>
+                    <div id="mc-folio-sustituto-wrap" style="display:none;margin-bottom:14px;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                            UUID del CFDI sustituto <span style="color:#b91c1c;">*</span>
+                        </label>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            {{-- Campo visual (sin name): sincroniza con el hidden al escribir --}}
+                            <input type="text" id="mc-folio-sustituto"
+                                   class="form-control input-sm" style="border-radius:5px;flex:1;"
+                                   placeholder="Ej: A1B2C3D4-…">
+                            <button type="button" id="btn-emitir-sustituto"
+                                    class="btn btn-xs btn-flat"
+                                    style="background:#7b2d8b;color:#fff;border-radius:5px;white-space:nowrap;flex-shrink:0;">
+                                <i class="fa fa-file-text-o"></i> Emitir sustituto
+                            </button>
+                        </div>
+                        <span style="font-size:10px;color:#718096;">
+                            Escribe el UUID del CFDI sustituto, o usa el botón para emitirlo desde aquí.
+                        </span>
                     </div>
                     <div id="mc-error"
                          style="display:none;background:#fdecea;color:#b91c1c;
@@ -545,51 +567,271 @@
     </div>
 </div>
 
+{{-- ── Modal: Emitir CFDI sustituto ── --}}
+<div class="modal fade" id="modalEmitirSustituto" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document" style="max-width:440px;">
+        <div class="modal-content" style="border-radius:10px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#5b21b6 0%,#7c3aed 100%);border-bottom:none;padding:16px 20px;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:.8;"><span>&times;</span></button>
+                <h4 class="modal-title" style="color:#fff;font-size:15px;font-weight:700;">
+                    <i class="fa fa-file-text-o"></i> Emitir CFDI sustituto
+                </h4>
+            </div>
+            <div class="modal-body" style="padding:20px;">
+                <p style="font-size:12px;color:#4a5568;margin-bottom:14px;">
+                    Se emitirá un nuevo CFDI para el mismo pago. Su UUID se copiará automáticamente al campo del sustituto.
+                </p>
+                <form id="form-emitir-sustituto">
+                    @csrf
+                    {{-- Razones sociales (se llenan vía AJAX) --}}
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:6px;">
+                            RFC del receptor
+                        </label>
+                        <div id="mes-razones-wrap">
+                            <p style="font-size:12px;color:#8a9ab0;"><i class="fa fa-spinner fa-spin"></i> Cargando…</p>
+                        </div>
+                    </div>
+                    {{-- Forma de pago --}}
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                            Forma de pago
+                        </label>
+                        <select name="forma_pago_sat" id="mes-forma-pago" class="form-control input-sm" style="border-radius:5px;">
+                            <option value="01">01 — Efectivo</option>
+                            <option value="02">02 — Cheque nominativo</option>
+                            <option value="03">03 — Transferencia electrónica</option>
+                            <option value="04">04 — Tarjeta de crédito</option>
+                            <option value="05">05 — Monedero electrónico</option>
+                            <option value="06">06 — Dinero electrónico</option>
+                            <option value="28">28 — Tarjeta de débito</option>
+                            <option value="29">29 — Tarjeta de servicios</option>
+                            <option value="99">99 — Por definir</option>
+                        </select>
+                    </div>
+                    {{-- Uso CFDI --}}
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;display:block;margin-bottom:4px;">
+                            Uso CFDI
+                        </label>
+                        <select name="uso_cfdi" id="mes-uso-cfdi" class="form-control input-sm" style="border-radius:5px;">
+                            <option value="D10">D10 — Pagos por servicios educativos</option>
+                            <option value="D08">D08 — Transportación escolar obligatoria</option>
+                            <option value="G03">G03 — Gastos en general</option>
+                            <option value="G01">G01 — Adquisición de mercancias</option>
+                            <option value="CP01">CP01 — Pagos</option>
+                            <option value="S01">S01 — Sin efectos fiscales</option>
+                        </select>
+                    </div>
+                    <div id="mes-error"
+                         style="display:none;background:#fdecea;color:#b91c1c;
+                                padding:9px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;"></div>
+                    <button type="submit" id="mes-submit"
+                            class="btn btn-sm btn-flat btn-block"
+                            style="background:#7b2d8b;color:#fff;border-radius:6px;font-weight:600;">
+                        <i class="fa fa-file-text-o"></i> Timbrar CFDI sustituto
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (function () {
-    var cancelarBase = '{{ route('cfdis.cancelar', '__ID__') }}';
+    var cancelarBase        = '{{ route('cfdis.cancelar', '__ID__') }}';
+    var formSustitutoBase   = '{{ route('cfdis.form-sustituto', '__ID__') }}';
+    var emitirSustitutoBase = '{{ route('cfdis.emitir-sustituto', '__ID__') }}';
+    var currentCfdiId       = null;
+    var sustitutoUuid       = '';   // fuente de verdad compartida por todos los handlers
 
+    // ── Abrir modal de cancelación ───────────────────────────────────────────
     $(document).on('click', '.btn-cancelar-cfdi', function () {
-        var cfdiId = $(this).data('cfdi-id');
-        var folio  = $(this).data('folio');
-        $('#mc-folio').text(folio || 'CFDI #' + cfdiId);
+        var $btn = $(this);
+        currentCfdiId = $btn.data('cfdi-id');
+        sustitutoUuid = '';
+
+        $('#mc-folio').text($btn.data('folio') || '');
+        $('#mc-motivo').val('02').trigger('change');
+        $('#mc-folio-sustituto').val('');
+        $('#mc-folio-sustituto-hidden').val('');
         $('#mc-error').hide().text('');
         $('#mc-submit').prop('disabled', false).html('<i class="fa fa-ban"></i> Confirmar cancelación');
-        $('#form-cancelar-cfdi').attr('action', cancelarBase.replace('__ID__', cfdiId));
+        $('#mc-sustituto-ok').remove();
+
         $('#modalCancelarCfdi').modal('show');
     });
 
-    $('#form-cancelar-cfdi').on('submit', function (e) {
+    // ── Mostrar/ocultar campo sustituto según motivo ─────────────────────────
+    $('#mc-motivo').on('change', function () {
+        if ($(this).val() === '01') {
+            $('#mc-folio-sustituto-wrap').slideDown(150);
+        } else {
+            $('#mc-folio-sustituto-wrap').slideUp(150);
+            sustitutoUuid = '';
+            $('#mc-folio-sustituto').val('');
+            $('#mc-folio-sustituto-hidden').val('');
+        }
+    });
+
+    // ── Sincronizar campo visual → variable + campo oculto ───────────────────
+    $('#mc-folio-sustituto').on('input', function () {
+        sustitutoUuid = $.trim($(this).val());
+        $('#mc-folio-sustituto-hidden').val(sustitutoUuid);
+    });
+
+    // ── Enviar cancelación ───────────────────────────────────────────────────
+    // .off() primero: elimina cualquier handler previo que haya quedado en caché
+    $('#form-cancelar-cfdi').off('submit').on('submit', function (e) {
         e.preventDefault();
+
+        var motivo = $('#mc-motivo').val();
+
+        // Leer UUID de tres fuentes: variable en memoria, campo oculto y campo visual
+        var folioSustituto = '';
+        if (motivo === '01') {
+            folioSustituto = sustitutoUuid
+                || $.trim($('#mc-folio-sustituto-hidden').val())
+                || $.trim($('#mc-folio-sustituto').val());
+        }
+
+        console.log('[cancelar] motivo:', motivo, '| sustitutoUuid var:', sustitutoUuid,
+                    '| hidden val:', $('#mc-folio-sustituto-hidden').val(),
+                    '| visual val:', $('#mc-folio-sustituto').val(),
+                    '| final folioSustituto:', folioSustituto);
+
+        if (motivo === '01' && ! folioSustituto) {
+            $('#mc-error').text('Debes ingresar o emitir el UUID del CFDI sustituto.').show();
+            return;
+        }
+
         var $btn = $('#mc-submit');
         $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Cancelando…');
         $('#mc-error').hide().text('');
 
+        var payload = {
+            _token:          $('input[name="_token"]', this).val(),
+            motivo:          motivo,
+            folio_sustituto: folioSustituto
+        };
+
         $.ajax({
-            url: $(this).attr('action'),
-            method: 'POST',
-            data: $(this).serialize(),
+            url:     cancelarBase.replace('__ID__', currentCfdiId),
+            method:  'POST',
+            data:    payload,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .done(function (resp) {
+        .done(function () {
             $('#modalCancelarCfdi').modal('hide');
-            $('<div class="alert alert-success alert-dismissible" style="border-radius:8px;margin-bottom:16px;">' +
-              '<button type="button" class="close" data-dismiss="alert">&times;</button>' +
-              '<i class="fa fa-check-circle"></i> ' + (resp.message || 'CFDI cancelado correctamente.') +
-              '</div>').prependTo('.content').hide().slideDown(200);
-            setTimeout(function () { location.reload(); }, 2000);
+            location.reload();
         })
         .fail(function (xhr) {
             var msg = 'Error al cancelar.';
-            try { msg = JSON.parse(xhr.responseText).message || msg; } catch (ex) {}
+            try {
+                var resp = JSON.parse(xhr.responseText);
+                msg = resp.message || (resp.errors ? Object.values(resp.errors).flat().join(' ') : msg);
+            } catch (ex) {}
             $('#mc-error').text(msg).show();
             $btn.prop('disabled', false).html('<i class="fa fa-ban"></i> Confirmar cancelación');
         });
     });
+
+    // ── Abrir modal sustituto ────────────────────────────────────────────────
+    $('#btn-emitir-sustituto').on('click', function () {
+        if (! currentCfdiId) { return; }
+
+        $('#mes-razones-wrap').html('<p style="font-size:12px;color:#8a9ab0;"><i class="fa fa-spinner fa-spin"></i> Cargando…</p>');
+        $('#mes-error').hide().text('');
+        $('#mes-submit').prop('disabled', false).html('<i class="fa fa-file-text-o"></i> Timbrar CFDI sustituto');
+        $('#modalEmitirSustituto').modal('show');
+
+        $.getJSON(formSustitutoBase.replace('__ID__', currentCfdiId))
+            .done(function (data) {
+                var html = '';
+                if (data.razones && data.razones.length) {
+                    data.razones.forEach(function (rs, i) {
+                        html += '<label style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;' +
+                                'border:1px solid #e0e7ef;border-radius:6px;margin-bottom:4px;cursor:pointer;' +
+                                'font-weight:400;background:#fafbfc;">' +
+                                '<input type="radio" name="razon_social_id" value="' + rs.id + '"' +
+                                (i === 0 ? ' checked' : '') + ' data-uso="' + (rs.uso_cfdi || 'D10') + '" style="margin-top:3px;flex-shrink:0;">' +
+                                '<span>' +
+                                '<span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">' + rs.rfc + '</span>' +
+                                '<span style="display:block;font-size:11px;color:#4a5568;">' + rs.razon_social + '</span>' +
+                                '<span style="display:block;font-size:10px;color:#b0bec5;">' + (rs.contacto || '') + '</span>' +
+                                '</span></label>';
+                    });
+                }
+                // Público en general
+                html += '<label style="display:flex;align-items:center;gap:8px;padding:7px 9px;' +
+                        'border:1px solid #e0e7ef;border-radius:6px;cursor:pointer;font-weight:400;background:#fafbfc;">' +
+                        '<input type="radio" name="razon_social_id" value=""' +
+                        (data.razones && data.razones.length ? '' : ' checked') + ' data-uso="S01">' +
+                        '<span><span style="display:block;font-size:12px;font-weight:700;color:#1a2634;">XAXX010101000</span>' +
+                        '<span style="display:block;font-size:11px;color:#8a9ab0;">Público en general · Régimen 616</span></span></label>';
+
+                $('#mes-razones-wrap').html(html);
+
+                if (data.forma_pago_sat) {
+                    $('#mes-forma-pago').val(data.forma_pago_sat);
+                }
+
+                var defecto = $('#mes-razones-wrap input[type=radio]:checked').data('uso');
+                if (defecto) { $('#mes-uso-cfdi').val(defecto); }
+
+                $('#mes-razones-wrap').on('change', 'input[type=radio]', function () {
+                    var uso = $(this).data('uso');
+                    if (uso) { $('#mes-uso-cfdi').val(uso); }
+                });
+            })
+            .fail(function () {
+                $('#mes-razones-wrap').html('<p style="color:#b91c1c;font-size:12px;">Error al cargar los datos del pago.</p>');
+            });
+    });
+
+    // ── Timbrar CFDI sustituto ───────────────────────────────────────────────
+    $('#form-emitir-sustituto').on('submit', function (e) {
+        e.preventDefault();
+        var $btn = $('#mes-submit');
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Timbrando…');
+        $('#mes-error').hide().text('');
+
+        $.ajax({
+            url:     emitirSustitutoBase.replace('__ID__', currentCfdiId),
+            method:  'POST',
+            data:    $(this).serialize(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .done(function (resp) {
+            sustitutoUuid = resp.uuid_sat || '';
+            $('#mc-folio-sustituto').val(sustitutoUuid);
+            $('#mc-folio-sustituto-hidden').val(sustitutoUuid);
+            $('#modalEmitirSustituto').modal('hide');
+
+            var info = '<div id="mc-sustituto-ok" style="background:#f0fdf4;color:#166534;padding:8px 10px;border-radius:6px;' +
+                       'font-size:12px;margin-bottom:10px;">' +
+                       '<i class="fa fa-check-circle"></i> CFDI sustituto emitido: <strong>' +
+                       (resp.folio || '') + '</strong><br>' +
+                       '<small style="color:#4ade80;">' + sustitutoUuid + '</small></div>';
+            $('#mc-folio-sustituto-wrap').after(info);
+        })
+        .fail(function (xhr) {
+            var msg = 'Error al timbrar.';
+            try { msg = JSON.parse(xhr.responseText).message || msg; } catch (ex) {}
+            $('#mes-error').text(msg).show();
+            $btn.prop('disabled', false).html('<i class="fa fa-file-text-o"></i> Timbrar CFDI sustituto');
+        });
+    });
+
+    // ── Reset al abrir el modal de cancelación de nuevo ─────────────────────
+    $('#modalCancelarCfdi').on('show.bs.modal', function () {
+        $('#mc-sustituto-ok').remove();
+    });
 }());
 </script>
 @endpush
+
 @endif
 
 @endsection

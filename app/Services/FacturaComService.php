@@ -70,7 +70,14 @@ class FacturaComService
      */
     private function extraerMensaje(mixed $raw): string
     {
-        $texto = is_array($raw) ? implode(' | ', $raw) : (string) $raw;
+        if (is_array($raw)) {
+            $texto = implode(' | ', array_map(
+                fn ($v) => is_array($v) ? json_encode($v, JSON_UNESCAPED_UNICODE) : (string) $v,
+                array_values($raw)
+            ));
+        } else {
+            $texto = (string) $raw;
+        }
 
         // Eliminar bloques <style> y <script> completos (con su contenido)
         $texto = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $texto);
@@ -142,6 +149,11 @@ class FacturaComService
      */
     public function emitir(array $payload): array
     {
+        \Log::info('FacturaCom emitir payload', [
+            'CfdiRelacionados' => $payload['CfdiRelacionados'] ?? 'none',
+            'full_json'        => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+        ]);
+
         $response = Http::withHeaders($this->headers())
             ->post($this->url('/v4/cfdi40/create'), $payload);
 
@@ -181,17 +193,28 @@ class FacturaComService
      *
      * @throws \RuntimeException Si la cancelación falla
      */
-    public function cancelar(string $uid, string $motivo = '02'): void
+    public function cancelar(string $uid, string $motivo = '02', ?string $folioSustituto = null): void
     {
+        $payload = ['motivo' => $motivo];
+
+        if ($motivo === '01' && ! empty($folioSustituto)) {
+            $payload['folioSustituto'] = trim($folioSustituto);
+        }
+
+        \Log::info('FacturaCom cancelar payload', ['uid' => $uid, 'payload' => $payload]);
         $response = Http::withHeaders($this->headers())
-            ->post($this->url("/v4/cfdi40/{$uid}/cancel"), [
-                'motivo' => $motivo,
-            ]);
+            ->post($this->url("/v4/cfdi40/{$uid}/cancel"), $payload);
 
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw     = $json['message'] ?? $json['error'] ?? $response->body();
+            // La API puede responder con un array de errores sin clave 'message'
+            // ej: ["El campo X es requerido..."] — lo detectamos por índice numérico
+            if (is_array($json) && array_key_exists(0, $json)) {
+                $raw = $json;
+            } else {
+                $raw = $json['message'] ?? $json['error'] ?? $response->body();
+            }
             $mensaje = $this->extraerMensaje($raw);
             throw new \RuntimeException("Error al cancelar CFDI: {$mensaje}", $response->status());
         }
@@ -237,12 +260,22 @@ class FacturaComService
 
         $json = $response->json();
 
+        // El endpoint /v1/series no existe en el sandbox de factura.com (devuelve 404).
+        // En ese caso retornamos array vacío para no bloquear la UI de configuración.
+        if ($response->status() === 404) {
+            return [];
+        }
+
         if ($this->esError($response, $json)) {
-            $raw     = $json['message'] ?? $json['error'] ?? $response->body();
+            if (is_array($json) && array_key_exists(0, $json)) {
+                $raw = $json;
+            } else {
+                $raw = $json['message'] ?? $json['error'] ?? $response->body();
+            }
             $mensaje = $this->extraerMensaje($raw);
             $status  = $response->status();
             throw new \RuntimeException(
-                "No se pudo conectar con factura.com [HTTP {$status} — {$endpoint}]: {$mensaje}"
+                "No se pudo conectar con factura.com [HTTP {$status}]: {$mensaje}"
             );
         }
 
