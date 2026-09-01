@@ -44,7 +44,7 @@ class Pago extends Model
 
     public function scopeDelDia($query, string $fecha = null)
     {
-        return $query->where('fecha_pago', $fecha ?? now()->toDateString());
+        return $query->whereDate('fecha_pago', $fecha ?? now()->toDateString());
     }
 
     // ── Helpers ──────────────────────────────────────────

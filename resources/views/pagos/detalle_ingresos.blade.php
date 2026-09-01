@@ -182,8 +182,11 @@
                         <select name="forma_pago" class="form-control input-sm" style="border-radius:6px;border-color:#dde4eb;">
                             <option value="">Todas las formas</option>
                             <option value="efectivo"      {{ request('forma_pago') === 'efectivo'      ? 'selected' : '' }}>Efectivo</option>
-                            <option value="transferencia" {{ request('forma_pago') === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
-                            <option value="tarjeta"       {{ request('forma_pago') === 'tarjeta'       ? 'selected' : '' }}>Tarjeta</option>
+                            <option value="transferencia"  {{ request('forma_pago') === 'transferencia'  ? 'selected' : '' }}>Transferencia</option>
+                            <option value="deposito"        {{ request('forma_pago') === 'deposito'        ? 'selected' : '' }}>Depósito</option>
+                            <option value="tarjeta_credito" {{ request('forma_pago') === 'tarjeta_credito' ? 'selected' : '' }}>T. Crédito</option>
+                            <option value="tarjeta_debito"  {{ request('forma_pago') === 'tarjeta_debito'  ? 'selected' : '' }}>T. Débito</option>
+                            <option value="tarjeta"         {{ request('forma_pago') === 'tarjeta'         ? 'selected' : '' }}>Tarjeta (anterior)</option>
                             <option value="cheque"        {{ request('forma_pago') === 'cheque'        ? 'selected' : '' }}>Cheque</option>
                         </select>
                     </div>
@@ -468,9 +471,12 @@
             @php
                 $formaConfig = [
                     'efectivo'      => ['icon'=>'fa-money',       'bg'=>'#e8f8f0','color'=>'#00875a','label'=>'Efectivo'],
-                    'transferencia' => ['icon'=>'fa-exchange',    'bg'=>'#e8f0fb','color'=>'#3c8dbc','label'=>'Transferencia'],
-                    'tarjeta'       => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed','label'=>'Tarjeta'],
-                    'cheque'        => ['icon'=>'fa-file-text-o', 'bg'=>'#fff8e1','color'=>'#b45309','label'=>'Cheque'],
+                    'transferencia'   => ['icon'=>'fa-exchange',    'bg'=>'#e8f0fb','color'=>'#3c8dbc','label'=>'Transferencia'],
+                    'deposito'        => ['icon'=>'fa-university',  'bg'=>'#e0f5f7','color'=>'#00838f','label'=>'Depósito'],
+                    'tarjeta_credito' => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed','label'=>'T. Crédito'],
+                    'tarjeta_debito'  => ['icon'=>'fa-credit-card', 'bg'=>'#ede8fd','color'=>'#5b21b6','label'=>'T. Débito'],
+                    'tarjeta'         => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed','label'=>'Tarjeta'],
+                    'cheque'          => ['icon'=>'fa-file-text-o', 'bg'=>'#fff8e1','color'=>'#b45309','label'=>'Cheque'],
                 ];
             @endphp
             @foreach($pagosUnicos as $pago)

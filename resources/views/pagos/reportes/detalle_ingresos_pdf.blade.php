@@ -16,10 +16,13 @@
         ];
 
         $formaLabels = [
-            'efectivo'      => 'Efectivo',
-            'transferencia' => 'Transferencia',
-            'tarjeta'       => 'Tarjeta',
-            'cheque'        => 'Cheque',
+            'efectivo'        => 'Efectivo',
+            'transferencia'   => 'Transferencia',
+            'deposito'        => 'Depósito',
+            'tarjeta_credito' => 'T. Crédito',
+            'tarjeta_debito'  => 'T. Débito',
+            'tarjeta'         => 'Tarjeta',
+            'cheque'          => 'Cheque',
         ];
     @endphp
 

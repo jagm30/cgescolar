@@ -13,9 +13,10 @@ use Illuminate\Support\Facades\DB;
 class CfdiService
 {
     private const FORMAS_PAGO_SAT = [
-        'efectivo' => '01',
-        'cheque' => '02',
-        'transferencia' => '03',
+        'efectivo'        => '01',
+        'cheque'          => '02',
+        'transferencia'   => '03',
+        'deposito'        => '03',
         'tarjeta_credito' => '04',
         'tarjeta_debito' => '28',
     ];

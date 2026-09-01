@@ -17,7 +17,7 @@ class StorePagoRequest extends FormRequest
     {
         return [
             // Encabezado del pago (un solo movimiento de caja)
-            'forma_pago' => ['required', 'in:efectivo,transferencia,tarjeta,cheque'],
+            'forma_pago' => ['required', 'in:efectivo,transferencia,deposito,tarjeta_credito,tarjeta_debito,cheque'],
             'referencia' => ['required_if:forma_pago,transferencia', 'nullable', 'string', 'max:100'],
             'fecha_pago' => ['required', 'date'],
 
@@ -85,7 +85,7 @@ class StorePagoRequest extends FormRequest
     {
         return [
             'forma_pago.required' => 'Debe seleccionar la forma de pago.',
-            'forma_pago.in' => 'La forma de pago debe ser: efectivo, transferencia, tarjeta o cheque.',
+            'forma_pago.in' => 'La forma de pago debe ser: efectivo, transferencia, depósito, tarjeta de crédito, tarjeta de débito o cheque.',
             'referencia.required_if' => 'El folio de referencia es obligatorio para pagos por transferencia.',
             'fecha_pago.required' => 'La fecha de pago es obligatoria.',
             'detalles.required' => 'Debe incluir al menos un cargo en el pago.',
