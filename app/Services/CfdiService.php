@@ -13,10 +13,10 @@ use Illuminate\Support\Facades\DB;
 class CfdiService
 {
     private const FORMAS_PAGO_SAT = [
-        'efectivo'        => '01',
-        'cheque'          => '02',
-        'transferencia'   => '03',
-        'deposito'        => '03',
+        'efectivo' => '01',
+        'cheque' => '02',
+        'transferencia' => '03',
+        'deposito' => '03',
         'tarjeta_credito' => '04',
         'tarjeta_debito' => '28',
     ];
@@ -90,6 +90,15 @@ class CfdiService
                 return ['cfdi' => $cfdi, 'folio' => $folio];
             });
         } catch (\Throwable $e) {
+            // El Uso CFDI no es compatible con el régimen fiscal del receptor: es un error de
+            // datos, no de caché — reintentar con el mismo régimen/uso fallará siempre igual.
+            if ($this->esErrorUsoCfdiIncompatible($e->getMessage())) {
+                throw new \RuntimeException(
+                    'El Uso CFDI "'.$usoCfdi.'" no es compatible con el régimen fiscal registrado para este receptor. '.
+                    'Corrige el régimen fiscal o elige otro Uso de CFDI (p. ej. G03) en los datos de facturación del contacto — reintentar no lo resolverá.'
+                );
+            }
+
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
                 // Limpiar UID en caché para que el siguiente intento lo recree
                 $razonSocialId === null
@@ -146,15 +155,21 @@ class CfdiService
         return ['UID' => $config->publico_general_uid, 'RegimenFiscalR' => '616'];
     }
 
-    public function esErrorReceptorInvalido(string $mensaje): bool
+    /**
+     * Detecta si el error de factura.com indica que el Uso CFDI es incompatible con el
+     * régimen fiscal del receptor (CFDI40161/CFDI40154). Es un error de datos permanente:
+     * recrear el cliente en factura.com con el mismo régimen/uso fallará de nuevo.
+     */
+    public function esErrorUsoCfdiIncompatible(string $mensaje): bool
     {
         $m = strtolower($mensaje);
 
-        // CFDI40161: UsoCFDI incompatible con régimen — el cliente fue creado en factura.com
-        // con un régimen distinto al actual; hay que eliminarlo del caché para recrearlo.
-        if (str_contains($m, 'cfdi40161') || str_contains($m, 'usocfdi')) {
-            return true;
-        }
+        return str_contains($m, 'cfdi40161') || str_contains($m, 'cfdi40154') || str_contains($m, 'usocfdi');
+    }
+
+    public function esErrorReceptorInvalido(string $mensaje): bool
+    {
+        $m = strtolower($mensaje);
 
         // CFDI40145: el "Nombre" (razón social) registrado en factura.com para este RFC
         // no coincide con el que valida el SAT — hay que recrear el cliente con el nombre correcto.

@@ -388,15 +388,15 @@ class PortalPadreController extends Controller
             $facturableMap = $this->construirMapaFacturable($pagos);
 
             $pagos = $pagos->map(fn (Pago $pago) => [
-                'id'                => $pago->id,
-                'folio_recibo'      => $pago->folio_recibo,
-                'conceptos'         => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
-                'monto_total'       => $pago->monto_total,
-                'fecha_pago'        => $pago->fecha_pago,
-                'forma_pago'        => $pago->forma_pago,
-                'tiene_factura'     => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
-                'cfdi_id'           => $pago->cfdis->where('estado', 'vigente')->first()?->id,
-                'puede_facturar'    => $this->pagoPuedeFacturarse($pago),
+                'id' => $pago->id,
+                'folio_recibo' => $pago->folio_recibo,
+                'conceptos' => $pago->detalles->map(fn ($d) => $d->cargo->etiqueta)->join(', '),
+                'monto_total' => $pago->monto_total,
+                'fecha_pago' => $pago->fecha_pago,
+                'forma_pago' => $pago->forma_pago,
+                'tiene_factura' => $pago->cfdis->where('estado', 'vigente')->isNotEmpty(),
+                'cfdi_id' => $pago->cfdis->where('estado', 'vigente')->first()?->id,
+                'puede_facturar' => $this->pagoPuedeFacturarse($pago),
                 'todos_facturables' => $this->todosFacturables($pago, $facturableMap),
             ]);
 
@@ -626,6 +626,13 @@ class PortalPadreController extends Controller
             return response()->json(['status' => 'error', 'mensaje' => 'Este RFC ya está registrado en tu cuenta.'], 422);
         }
 
+        if (! RazonSocialContacto::usoCfdiCompatibleConRegimen($data['regimen_fiscal'], $data['uso_cfdi_default'])) {
+            return response()->json([
+                'status' => 'error',
+                'mensaje' => 'El régimen fiscal '.$data['regimen_fiscal'].' no admite deducciones personales (D01–D10). Elige otro Uso de CFDI, como G03.',
+            ], 422);
+        }
+
         $esPrincipal = $request->boolean('es_principal', false);
         if ($esPrincipal) {
             RazonSocialContacto::where('contacto_id', $contacto->id)->update(['es_principal' => false]);
@@ -663,6 +670,13 @@ class PortalPadreController extends Controller
             'domicilio_fiscal.regex' => 'El código postal debe contener solo números.',
             'uso_cfdi_default.required' => 'El uso de CFDI es obligatorio.',
         ]);
+
+        if (! RazonSocialContacto::usoCfdiCompatibleConRegimen($data['regimen_fiscal'], $data['uso_cfdi_default'])) {
+            return response()->json([
+                'status' => 'error',
+                'mensaje' => 'El régimen fiscal '.$data['regimen_fiscal'].' no admite deducciones personales (D01–D10). Elige otro Uso de CFDI, como G03.',
+            ], 422);
+        }
 
         $esPrincipal = $request->boolean('es_principal', false);
         if ($esPrincipal) {
@@ -819,7 +833,7 @@ class PortalPadreController extends Controller
         $mapaFacturable = $this->construirMapaFacturable(collect([$pago]));
         if (! $this->todosFacturables($pago, $mapaFacturable)) {
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'mensaje' => 'Este pago contiene conceptos marcados como no facturables por el administrador.',
             ], 422);
         }
@@ -998,7 +1012,7 @@ class PortalPadreController extends Controller
     private function construirMapaFacturable(Collection $pagos): Collection
     {
         $pares = $pagos->flatMap(fn ($p) => $p->detalles->map(fn ($d) => [
-            'plan_id'     => $d->cargo?->asignacion?->plan_id,
+            'plan_id' => $d->cargo?->asignacion?->plan_id,
             'concepto_id' => $d->cargo?->concepto_id,
         ]))->filter(fn ($par) => $par['plan_id'] && $par['concepto_id']);
 
@@ -1020,7 +1034,7 @@ class PortalPadreController extends Controller
     private function todosFacturables(Pago $pago, Collection $facturableMap): bool
     {
         return $pago->detalles->every(function ($d) use ($facturableMap) {
-            $planId     = $d->cargo?->asignacion?->plan_id;
+            $planId = $d->cargo?->asignacion?->plan_id;
             $conceptoId = $d->cargo?->concepto_id;
 
             if (! $planId || ! $conceptoId) {
