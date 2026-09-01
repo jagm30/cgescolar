@@ -133,8 +133,11 @@
                 style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:130px;">
             <option value="">Todas las formas</option>
             <option value="efectivo"      {{ request('forma_pago') === 'efectivo'      ? 'selected' : '' }}>Efectivo</option>
-            <option value="transferencia" {{ request('forma_pago') === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
-            <option value="tarjeta"       {{ request('forma_pago') === 'tarjeta'       ? 'selected' : '' }}>Tarjeta</option>
+            <option value="transferencia"  {{ request('forma_pago') === 'transferencia'  ? 'selected' : '' }}>Transferencia</option>
+            <option value="deposito"        {{ request('forma_pago') === 'deposito'        ? 'selected' : '' }}>Depósito</option>
+            <option value="tarjeta_credito" {{ request('forma_pago') === 'tarjeta_credito' ? 'selected' : '' }}>T. Crédito</option>
+            <option value="tarjeta_debito"  {{ request('forma_pago') === 'tarjeta_debito'  ? 'selected' : '' }}>T. Débito</option>
+            <option value="tarjeta"         {{ request('forma_pago') === 'tarjeta'         ? 'selected' : '' }}>Tarjeta (anterior)</option>
             <option value="cheque"        {{ request('forma_pago') === 'cheque'        ? 'selected' : '' }}>Cheque</option>
         </select>
 
@@ -203,9 +206,12 @@
                     ->values();
                 $formaIconos = [
                     'efectivo'      => ['icon'=>'fa-money',       'bg'=>'#e8f8f0','color'=>'#00875a'],
-                    'transferencia' => ['icon'=>'fa-exchange',    'bg'=>'#e8f0fb','color'=>'#3c8dbc'],
-                    'tarjeta'       => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed'],
-                    'cheque'        => ['icon'=>'fa-file-text-o', 'bg'=>'#fff8e1','color'=>'#b45309'],
+                    'transferencia'   => ['icon'=>'fa-exchange',    'bg'=>'#e8f0fb','color'=>'#3c8dbc'],
+                    'deposito'        => ['icon'=>'fa-university',  'bg'=>'#e0f5f7','color'=>'#00838f'],
+                    'tarjeta_credito' => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed'],
+                    'tarjeta_debito'  => ['icon'=>'fa-credit-card', 'bg'=>'#ede8fd','color'=>'#5b21b6'],
+                    'tarjeta'         => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed'],
+                    'cheque'          => ['icon'=>'fa-file-text-o', 'bg'=>'#fff8e1','color'=>'#b45309'],
                 ];
                 $fi = $formaIconos[$pago->forma_pago] ?? ['icon'=>'fa-question','bg'=>'#f0f3f7','color'=>'#6b7a8d'];
             @endphp

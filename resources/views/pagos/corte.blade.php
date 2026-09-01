@@ -194,9 +194,12 @@
 @php
     $formaConfig = [
         'efectivo'      => ['icon'=>'fa-money',       'bg'=>'#e8f8f0','color'=>'#00875a','label'=>'Efectivo'],
-        'transferencia' => ['icon'=>'fa-exchange',    'bg'=>'#e8f0fb','color'=>'#3c8dbc','label'=>'Transferencia'],
-        'tarjeta'       => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed','label'=>'Tarjeta'],
-        'cheque'        => ['icon'=>'fa-file-text-o', 'bg'=>'#fff8e1','color'=>'#b45309','label'=>'Cheque'],
+        'transferencia'   => ['icon'=>'fa-exchange',    'bg'=>'#e8f0fb','color'=>'#3c8dbc','label'=>'Transferencia'],
+        'deposito'        => ['icon'=>'fa-university',  'bg'=>'#e0f5f7','color'=>'#00838f','label'=>'Depósito'],
+        'tarjeta_credito' => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed','label'=>'T. Crédito'],
+        'tarjeta_debito'  => ['icon'=>'fa-credit-card', 'bg'=>'#ede8fd','color'=>'#5b21b6','label'=>'T. Débito'],
+        'tarjeta'         => ['icon'=>'fa-credit-card', 'bg'=>'#f3e8fd','color'=>'#7c3aed','label'=>'Tarjeta'],
+        'cheque'          => ['icon'=>'fa-file-text-o', 'bg'=>'#fff8e1','color'=>'#b45309','label'=>'Cheque'],
     ];
 @endphp
 <div class="fp-cards no-print">

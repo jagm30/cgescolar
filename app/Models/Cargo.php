@@ -69,10 +69,7 @@ class Cargo extends Model
             return '';
         }
 
-        // Se fija el día en 1: createFromFormat('Y-m', ...) hereda el día actual y,
-        // si el mes destino tiene menos días que hoy (p.ej. hoy 31 y periodo 09),
-        // Carbon desborda al mes siguiente (muestra "Octubre" en vez de "Septiembre").
-        $fecha = Carbon::createFromFormat('Y-m-d', substr($this->periodo, 0, 7).'-01')->locale('es');
+        $fecha = Carbon::parse(substr($this->periodo, 0, 7).'-01')->locale('es');
 
         return ucfirst($fecha->monthName).' '.$fecha->year;
     }
@@ -89,7 +86,7 @@ class Cargo extends Model
             return $nombre;
         }
 
-        $fecha = Carbon::createFromFormat('Y-m-d', substr($this->periodo, 0, 7).'-01')->locale('es');
+        $fecha = Carbon::parse(substr($this->periodo, 0, 7).'-01')->locale('es');
 
         return $nombre.' '.ucfirst($fecha->monthName).' '.$fecha->year;
     }

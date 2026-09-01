@@ -709,22 +709,27 @@
             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:8px;">
                 Forma de pago <span class="text-red">*</span>
             </label>
-            <div class="row" style="margin:0;gap:0;">
-                @foreach(['efectivo'=>['fa-money','#27ae60'],'transferencia'=>['fa-exchange','#3c8dbc'],'tarjeta'=>['fa-credit-card','#9c27b0'],'cheque'=>['fa-bank','#607d8b']] as $forma=>[$icon,$color])
-                <div class="col-xs-6" style="padding:3px;">
-                    <label style="display:block;margin:0;">
-                        <input type="radio" name="forma_pago" value="{{ $forma }}"
-                               class="forma-radio" style="display:none;">
-                        <div class="forma-btn" data-forma="{{ $forma }}" style="
-                            border:2px solid #e0e0e0;border-radius:6px;padding:8px 4px;
-                            text-align:center;cursor:pointer;transition:all .15s;
-                            font-size:11px;color:#666;
-                        ">
-                            <i class="fa {{ $icon }}" style="font-size:16px;display:block;margin-bottom:2px;color:#bbb;"></i>
-                            {{ ucfirst($forma) }}
-                        </div>
-                    </label>
-                </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                @foreach([
+                    'efectivo'        => ['fa-money',       '#27ae60', 'Efectivo'],
+                    'transferencia'   => ['fa-exchange',    '#3c8dbc', 'Transferencia'],
+                    'deposito'        => ['fa-university',  '#00838f', 'Depósito'],
+                    'tarjeta_credito' => ['fa-credit-card', '#9c27b0', 'T. Crédito'],
+                    'tarjeta_debito'  => ['fa-credit-card', '#7b1fa2', 'T. Débito'],
+                    'cheque'          => ['fa-bank',        '#607d8b', 'Cheque'],
+                ] as $forma => [$icon, $color, $label])
+                <label style="flex:1;min-width:80px;margin:0;">
+                    <input type="radio" name="forma_pago" value="{{ $forma }}"
+                           class="forma-radio" style="display:none;">
+                    <div class="forma-btn" data-forma="{{ $forma }}" style="
+                        border:2px solid #e0e0e0;border-radius:6px;padding:8px 4px;
+                        text-align:center;cursor:pointer;transition:all .15s;
+                        font-size:11px;color:#666;
+                    ">
+                        <i class="fa {{ $icon }}" style="font-size:16px;display:block;margin-bottom:2px;color:#bbb;"></i>
+                        {{ $label }}
+                    </div>
+                </label>
                 @endforeach
             </div>
 
@@ -882,12 +887,14 @@
                     <td>
                         @if($pago)
                             @php
-                                $iconos = ['efectivo'=>'fa-money','transferencia'=>'fa-exchange','tarjeta'=>'fa-credit-card','cheque'=>'fa-bank'];
-                                $icono  = $iconos[$pago->forma_pago] ?? 'fa-question';
+                                $iconos  = ['efectivo'=>'fa-money','transferencia'=>'fa-exchange','deposito'=>'fa-university','tarjeta_credito'=>'fa-credit-card','tarjeta_debito'=>'fa-credit-card','tarjeta'=>'fa-credit-card','cheque'=>'fa-bank'];
+                                $labels  = ['efectivo'=>'Efectivo','transferencia'=>'Transferencia','deposito'=>'Depósito','tarjeta_credito'=>'T. Crédito','tarjeta_debito'=>'T. Débito','tarjeta'=>'Tarjeta','cheque'=>'Cheque'];
+                                $icono   = $iconos[$pago->forma_pago] ?? 'fa-question';
+                                $label   = $labels[$pago->forma_pago] ?? ucfirst($pago->forma_pago);
                             @endphp
                             <span style="font-size:11px;">
                                 <i class="fa {{ $icono }}"></i>
-                                {{ ucfirst($pago->forma_pago) }}
+                                {{ $label }}
                             </span>
                         @else
                             <span style="color:#ccc;">—</span>

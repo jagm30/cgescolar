@@ -288,7 +288,7 @@ class PagoController extends Controller
         $esAdmin = $usuario->esAdministrador();
 
         $baseVigente = Pago::query()
-            ->where('fecha_pago', $fecha)
+            ->whereDate('fecha_pago', $fecha)
             ->where('estado', 'vigente')
             ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
             ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id));
@@ -299,7 +299,7 @@ class PagoController extends Controller
             ->get();
 
         $totalAnulados = Pago::query()
-            ->where('fecha_pago', $fecha)
+            ->whereDate('fecha_pago', $fecha)
             ->where('estado', 'anulado')
             ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
             ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id))
@@ -346,7 +346,7 @@ class PagoController extends Controller
         $esAdmin = $usuario->esAdministrador();
 
         $baseVigente = Pago::query()
-            ->where('fecha_pago', $fecha)
+            ->whereDate('fecha_pago', $fecha)
             ->where('estado', 'vigente')
             ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
             ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id));
@@ -357,7 +357,7 @@ class PagoController extends Controller
             ->get();
 
         $totalAnulados = Pago::query()
-            ->where('fecha_pago', $fecha)
+            ->whereDate('fecha_pago', $fecha)
             ->where('estado', 'anulado')
             ->when(! $esAdmin, fn ($q) => $q->where('cajero_id', $usuario->id))
             ->when($esAdmin && $request->filled('cajero_id'), fn ($q) => $q->where('cajero_id', $request->cajero_id))

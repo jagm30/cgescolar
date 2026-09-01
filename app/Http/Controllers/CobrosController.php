@@ -187,7 +187,7 @@ class CobrosController extends Controller
     {
         $request->validate([
             'alumno_id' => ['required', 'integer', 'exists:alumno,id'],
-            'forma_pago' => ['required', 'in:efectivo,transferencia,tarjeta,cheque'],
+            'forma_pago' => ['required', 'in:efectivo,transferencia,deposito,tarjeta_credito,tarjeta_debito,cheque'],
             'referencia' => ['nullable', 'string', 'max:100'],
             'fecha_pago' => ['required', 'date'],
             'items' => ['required', 'array', 'min:1'],
