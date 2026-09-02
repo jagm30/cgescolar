@@ -319,7 +319,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('pagos.exportar');
 
     Route::post('/pagos/{id}/anular', [PagoController::class, 'anular'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,caja')
         ->name('pagos.anular');
 
     Route::get('/pagos/{pago}/form-factura', [PagoController::class, 'formFactura'])
