@@ -352,8 +352,8 @@
         @endif
     </div>
 
-    {{-- Anular (solo admin, pago vigente) --}}
-    @if(auth()->user()->esAdministrador() && !$esAnulado)
+    {{-- Anular (admin o caja, pago vigente) --}}
+    @if((auth()->user()->esAdministrador() || auth()->user()->esCajero()) && !$esAnulado)
     <div class="recibo-card" style="border-color:{{ $tieneFactura ? '#e0c97a' : '#fca5a5' }};">
         <div class="recibo-card-header" style="background:{{ $tieneFactura ? '#fefce8' : '#fdecea' }};">
             <i class="fa fa-ban" style="color:{{ $tieneFactura ? '#92400e' : '#b91c1c' }};"></i>

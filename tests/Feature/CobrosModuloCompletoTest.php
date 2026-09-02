@@ -1238,3 +1238,82 @@ describe('Formas de pago tarjeta y deposito', function () {
         expect(Pago::count())->toBe(0);
     });
 });
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 8. ANULACIÓN DE PAGOS: PERMISOS Y VALIDACIONES
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe('Anulación de pagos: permisos y validaciones', function () {
+    test('el rol caja puede anular un pago vigente', function () {
+        $ctx   = crearContextoCobros();
+        $cargo = crearCargo($ctx);
+
+        $cajero = Usuario::create([
+            'nombre'        => 'Cajero Uno',
+            'email'         => fake()->unique()->safeEmail(),
+            'password_hash' => bcrypt('password'),
+            'rol'           => 'caja',
+            'activo'        => true,
+        ]);
+
+        $this->actingAs($cajero)
+            ->post(route('cobros.registrar'), datosRegistrarPago($ctx, $cargo))
+            ->assertRedirect();
+
+        $pago = Pago::first();
+
+        $this->actingAs($cajero)
+            ->post(route('pagos.anular', $pago->id), [
+                'motivo' => 'Error de captura detectado por caja',
+            ])->assertRedirect();
+
+        expect($pago->fresh()->estado)->toBe('anulado');
+    });
+
+    test('un rol sin permiso no puede anular un pago', function () {
+        $ctx   = crearContextoCobros();
+        $cargo = crearCargo($ctx);
+
+        $this->actingAs($ctx['admin'])
+            ->post(route('cobros.registrar'), datosRegistrarPago($ctx, $cargo))
+            ->assertRedirect();
+
+        $pago = Pago::first();
+
+        $recepcion = Usuario::create([
+            'nombre'        => 'Recepción Uno',
+            'email'         => fake()->unique()->safeEmail(),
+            'password_hash' => bcrypt('password'),
+            'rol'           => 'recepcion',
+            'activo'        => true,
+        ]);
+
+        $this->actingAs($recepcion)
+            ->post(route('pagos.anular', $pago->id), [
+                'motivo' => 'Intento no autorizado de anulación',
+            ])->assertForbidden();
+
+        expect($pago->fresh()->estado)->toBe('vigente');
+    });
+
+    test('no se puede anular un pago que ya fue anulado', function () {
+        $ctx   = crearContextoCobros();
+        $cargo = crearCargo($ctx);
+
+        $this->actingAs($ctx['admin'])
+            ->post(route('cobros.registrar'), datosRegistrarPago($ctx, $cargo))
+            ->assertRedirect();
+
+        $pago = Pago::first();
+
+        $this->actingAs($ctx['admin'])
+            ->post(route('pagos.anular', $pago->id), [
+                'motivo' => 'Primera anulación de este pago',
+            ])->assertRedirect();
+
+        $this->actingAs($ctx['admin'])
+            ->post(route('pagos.anular', $pago->id), [
+                'motivo' => 'Segundo intento de anulación',
+            ])->assertSessionHasErrors('pago');
+    });
+});

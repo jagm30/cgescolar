@@ -2,14 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Pago;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AnularPagoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Solo el administrador puede anular pagos
-        return auth()->user()->rol === 'administrador';
+        // Solo administrador y caja pueden anular pagos
+        return in_array(auth()->user()->rol, ['administrador', 'caja'], true);
     }
 
     public function rules(): array
@@ -22,9 +23,11 @@ class AnularPagoRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $pago = \App\Models\Pago::find($this->route('pago'));
+            $pago = Pago::find($this->route('id'));
 
-            if (!$pago) return;
+            if (! $pago) {
+                return;
+            }
 
             if ($pago->estado === 'anulado') {
                 $validator->errors()->add('pago', 'Este pago ya fue anulado anteriormente.');
@@ -42,7 +45,7 @@ class AnularPagoRequest extends FormRequest
     {
         return [
             'motivo.required' => 'El motivo de anulación es obligatorio.',
-            'motivo.min'      => 'El motivo debe tener al menos 10 caracteres.',
+            'motivo.min' => 'El motivo debe tener al menos 10 caracteres.',
         ];
     }
 }
