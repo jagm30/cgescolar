@@ -22,7 +22,10 @@ class PersonalController extends Controller
     /** GET /personal */
     public function index(Request $request)
     {
+        $soloDocentes = auth()->user()->esDirectorSeccion();
+
         $query = Personal::query()
+            ->when($soloDocentes, fn ($q) => $q->docentes())
             ->when(
                 $request->filled('buscar'),
                 fn ($q) => $q->buscar($request->buscar)
@@ -32,7 +35,7 @@ class PersonalController extends Controller
                 fn ($q) => $q->where('activo', $request->boolean('activo'))
             )
             ->when(
-                $request->filled('tipo'),
+                !$soloDocentes && $request->filled('tipo'),
                 fn ($q) => $q->where('tipo', $request->tipo)
             );
 
@@ -51,23 +54,33 @@ class PersonalController extends Controller
         }
 
         return view('personal.index', [
-            'empleados' => $empleados,
-            'totales'   => $totales,
-            'tipos'     => TipoPersonal::cases(),
+            'empleados'    => $empleados,
+            'totales'      => $totales,
+            'tipos'        => $soloDocentes ? [TipoPersonal::Docente] : TipoPersonal::cases(),
+            'soloDocentes' => $soloDocentes,
         ]);
     }
 
     /** GET /personal/create */
     public function create()
     {
-        return view('personal.create', ['tipos' => TipoPersonal::cases()]);
+        $soloDocentes = auth()->user()->esDirectorSeccion();
+
+        return view('personal.create', [
+            'tipos'        => $soloDocentes ? [TipoPersonal::Docente] : TipoPersonal::cases(),
+            'soloDocentes' => $soloDocentes,
+        ]);
     }
 
     /** POST /personal */
     public function store(StorePersonalRequest $request)
     {
         $datos = $request->validated();
-        
+
+        if (auth()->user()->esDirectorSeccion() && ($datos['tipo'] ?? null) !== TipoPersonal::Docente->value) {
+            abort(403, 'Solo puedes registrar personal de tipo docente.');
+        }
+
         // Establecemos si tendrá acceso al sistema (va a la cola de pendientes)
         $datos['tiene_acceso_sistema'] = $request->boolean('tiene_acceso_sistema');
         
@@ -85,21 +98,29 @@ class PersonalController extends Controller
     /** GET /personal/{personal} */
     public function show(Personal $personal)
     {
+        $this->autorizarAcceso($personal);
+
         return view('personal.show', ['empleado' => $personal]);
     }
 
     /** GET /personal/{personal}/edit */
     public function edit(Personal $personal)
     {
+        $this->autorizarAcceso($personal);
+
+        $soloDocentes = auth()->user()->esDirectorSeccion();
+
         return view('personal.edit', [
-            'empleado' => $personal,
-            'tipos'    => TipoPersonal::cases(),
+            'empleado'     => $personal,
+            'tipos'        => $soloDocentes ? [TipoPersonal::Docente] : TipoPersonal::cases(),
+            'soloDocentes' => $soloDocentes,
         ]);
     }
 
     /** PUT /personal/{personal} */
     public function update(UpdatePersonalRequest $request, Personal $personal)
     {
+        $this->autorizarAcceso($personal);
         $datos = $request->validated();
         
         $tieneAcceso = $request->boolean('tiene_acceso_sistema');
@@ -184,9 +205,19 @@ class PersonalController extends Controller
         );
     }
 
+    /** Aborta 403 si el director de sección intenta acceder a personal que no es docente. */
+    private function autorizarAcceso(Personal $personal): void
+    {
+        if (auth()->user()->esDirectorSeccion() && $personal->tipo !== TipoPersonal::Docente) {
+            abort(403, 'Solo puedes acceder a personal de tipo docente.');
+        }
+    }
+
     /** DELETE /personal/{personal} */
     public function destroy(Personal $personal)
     {
+        $this->autorizarAcceso($personal);
+
         $nombre = $personal->nombre_completo;
 
         if ($personal->usuario_id) {

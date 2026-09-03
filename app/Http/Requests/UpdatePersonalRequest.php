@@ -11,7 +11,7 @@ class UpdatePersonalRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->user()->rol === 'administrador';
+        return auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion();
     }
 
     public function rules(): array

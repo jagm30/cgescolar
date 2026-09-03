@@ -415,7 +415,7 @@
             @endif
 
             {{-- ── SECCIÓN: Administración ──────────────── --}}
-            @if (auth()->user()->esAdministrador())
+            @if (auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion())
                 <li class="header">ADMINISTRACIÓN</li>
 
                 <li class="{{ request()->routeIs('personal.*') ? 'active' : '' }}">

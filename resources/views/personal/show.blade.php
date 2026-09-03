@@ -66,7 +66,7 @@
                     </span>
                 </div>
 
-                @if (auth()->user()->esAdministrador())
+                @if (auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion())
                     <div style="margin-top:18px;display:flex;flex-direction:column;gap:6px;">
                         <a href="{{ route('personal.edit', $empleado) }}" class="btn btn-primary btn-sm btn-flat btn-block">
                             <i class="fa fa-pencil"></i> Editar
