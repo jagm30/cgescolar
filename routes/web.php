@@ -391,44 +391,44 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     // ── Prospectos ───────────────────────────────────────
     Route::get('/prospectos/metricas', [ProspectoController::class, 'metricas'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.metricas');
 
     Route::get('/prospectos/metricas/imprimir', [ProspectoController::class, 'metricasImprimir'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.metricas.imprimir');
 
     Route::post('/prospectos/metricas/pdf', [ProspectoController::class, 'metricasPdf'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.metricas.pdf');
 
     Route::get('/prospectos/{id}/pdf', [ProspectoController::class, 'exportarPdf'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.pdf');
 
     Route::post('/prospectos/{id}/familia', [ProspectoController::class, 'vincularFamilia'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.familia');
 
     Route::post('/prospectos/{id}/etapa', [ProspectoController::class, 'cambiarEtapa'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.etapa');
 
     Route::post('/prospectos/{id}/seguimiento', [ProspectoController::class, 'agregarSeguimiento'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.seguimiento');
 
     Route::post('/prospectos/{id}/documentos', [ProspectoController::class, 'agregarDocumento'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.documentos.store');
 
     Route::get('/prospectos/{id}/documentos/{documentoId}/archivo', [ProspectoController::class, 'descargarDocumento'])
-        ->middleware('rol:administrador,recepcion,admisiones')
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion')
         ->name('prospectos.documentos.archivo');
 
     Route::resource('prospectos', ProspectoController::class)
-        ->only(['index', 'show', 'create', 'store', 'edit', 'update'])
-        ->middleware('rol:administrador,recepcion,admisiones');
+        ->only(['index', 'show', 'create', 'store', 'edit', 'update', 'destroy'])
+        ->middleware('rol:administrador,recepcion,admisiones,director_seccion');
 
     // ── Usuarios ─────────────────────────────────────────
     Route::post('usuarios/generar-masivos', [UsuarioController::class, 'generarUsuariosMasivos'])

@@ -337,6 +337,17 @@
             <a href="{{ route('prospectos.pdf', $prospecto->id) }}" class="btn btn-default btn-sm" target="_blank">
                 <i class="fa fa-file-pdf-o"></i> Exportar PDF
             </a>
+            @if ($puedeEliminar)
+                <form action="{{ route('prospectos.destroy', $prospecto->id) }}" method="POST"
+                      style="display:inline;"
+                      onsubmit="return confirm('¿Eliminar al prospecto {{ $prospecto->nombre_completo }}? Esta acción no se puede deshacer.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="fa fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            @endif
             <a href="{{ route('prospectos.index') }}" class="btn btn-default btn-sm">
                 <i class="fa fa-arrow-left"></i> Admisiones
             </a>

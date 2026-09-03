@@ -174,6 +174,23 @@ class CfdiController extends Controller
                 );
             }
 
+            // El nombre del receptor no coincide con el que el SAT tiene registrado para ese
+            // RFC: es un error de datos permanente — hay que corregir la razón social capturada,
+            // reintentar sin corregirla fallará de nuevo.
+            if ($this->esErrorNombreReceptorNoCoincide($e->getMessage())) {
+                if ($razonSocialId === null) {
+                    $config->update(['publico_general_uid' => null]);
+                } else {
+                    RazonSocialContacto::where('id', $razonSocialId)->update(['factura_uid' => null]);
+                }
+
+                return $this->respuestaError(
+                    'El SAT rechazó el nombre del receptor: no coincide con el registrado para ese RFC (CFDI40145). '.
+                    'Verifica la Constancia de Situación Fiscal del contacto y corrige la razón social capturada en el '.
+                    'sistema (acentos y apellidos exactos) antes de volver a intentar — reintentar sin corregirla fallará de nuevo.'
+                );
+            }
+
             // Si el receptor está desactualizado en factura.com, limpiamos el UID en caché
             // para que el siguiente intento lo recree automáticamente.
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
@@ -380,6 +397,20 @@ class CfdiController extends Controller
                 return ['cfdi' => $nuevoCfdi, 'folio' => $folio];
             });
         } catch (\Throwable $e) {
+            if ($this->esErrorNombreReceptorNoCoincide($e->getMessage())) {
+                if ($razonSocialId === null) {
+                    $config->update(['publico_general_uid' => null]);
+                } else {
+                    RazonSocialContacto::where('id', $razonSocialId)->update(['factura_uid' => null]);
+                }
+
+                return response()->json([
+                    'message' => 'El SAT rechazó el nombre del receptor: no coincide con el registrado para ese RFC '.
+                        '(CFDI40145). Verifica la Constancia de Situación Fiscal del contacto y corrige la razón social '.
+                        'antes de volver a intentar.',
+                ], 422);
+            }
+
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
                 if ($razonSocialId === null) {
                     $config->update(['publico_general_uid' => null]);
@@ -622,6 +653,15 @@ class CfdiController extends Controller
                 return ['cfdi' => $cfdi, 'folio' => $folio];
             });
         } catch (\Throwable $e) {
+            if ($this->esErrorNombreReceptorNoCoincide($e->getMessage())) {
+                $config->update(['publico_general_uid' => null]);
+
+                return $this->respuestaError(
+                    'El SAT rechazó el nombre del receptor "Público en General": no coincide con el registrado para '.
+                    'ese RFC (CFDI40145). Verifica los datos del emisor en Configuración antes de volver a intentar.'
+                );
+            }
+
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
                 $config->update(['publico_general_uid' => null]);
 
@@ -851,6 +891,18 @@ class CfdiController extends Controller
     }
 
     /**
+     * Detecta si el error de factura.com es CFDI40145: el nombre del receptor capturado
+     * no coincide con el que el SAT tiene registrado para ese RFC. Es un error de datos
+     * permanente — recrear el cliente con el mismo nombre fallará siempre igual.
+     */
+    private function esErrorNombreReceptorNoCoincide(string $mensaje): bool
+    {
+        $m = strtolower($mensaje);
+
+        return str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor');
+    }
+
+    /**
      * Detecta si el error de factura.com indica que el receptor tiene datos inválidos
      * por desactualización (no por incompatibilidad de datos). En ese caso conviene
      * limpiar el UID en caché y recrear el cliente en el siguiente intento.
@@ -858,12 +910,6 @@ class CfdiController extends Controller
     private function esErrorReceptorInvalido(string $mensaje): bool
     {
         $m = strtolower($mensaje);
-
-        // CFDI40145: el "Nombre" (razón social) registrado en factura.com para este RFC
-        // no coincide con el que valida el SAT — hay que recrear el cliente con el nombre correcto.
-        if (str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor')) {
-            return true;
-        }
 
         return str_contains($m, 'receptor') && (
             str_contains($m, 'catálogo') ||
