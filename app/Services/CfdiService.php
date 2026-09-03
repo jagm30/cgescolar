@@ -99,6 +99,21 @@ class CfdiService
                 );
             }
 
+            // El nombre del receptor no coincide con el que el SAT tiene registrado para ese
+            // RFC: es un error de datos permanente — hay que corregir la razón social capturada,
+            // reintentar sin corregirla fallará de nuevo.
+            if ($this->esErrorNombreReceptorNoCoincide($e->getMessage())) {
+                $razonSocialId === null
+                    ? $config->update(['publico_general_uid' => null])
+                    : $rs?->update(['factura_uid' => null]);
+
+                throw new \RuntimeException(
+                    'El SAT rechazó el nombre del receptor: no coincide con el registrado para ese RFC (CFDI40145). '.
+                    'Verifica la Constancia de Situación Fiscal del contacto y corrige la razón social capturada en el '.
+                    'sistema (acentos y apellidos exactos) antes de volver a intentar — reintentar sin corregirla fallará de nuevo.'
+                );
+            }
+
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
                 // Limpiar UID en caché para que el siguiente intento lo recree
                 $razonSocialId === null
@@ -167,15 +182,21 @@ class CfdiService
         return str_contains($m, 'cfdi40161') || str_contains($m, 'cfdi40154') || str_contains($m, 'usocfdi');
     }
 
-    public function esErrorReceptorInvalido(string $mensaje): bool
+    /**
+     * Detecta si el error de factura.com es CFDI40145: el nombre del receptor capturado
+     * no coincide con el que el SAT tiene registrado para ese RFC. Es un error de datos
+     * permanente — recrear el cliente con el mismo nombre fallará siempre igual.
+     */
+    public function esErrorNombreReceptorNoCoincide(string $mensaje): bool
     {
         $m = strtolower($mensaje);
 
-        // CFDI40145: el "Nombre" (razón social) registrado en factura.com para este RFC
-        // no coincide con el que valida el SAT — hay que recrear el cliente con el nombre correcto.
-        if (str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor')) {
-            return true;
-        }
+        return str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor');
+    }
+
+    public function esErrorReceptorInvalido(string $mensaje): bool
+    {
+        $m = strtolower($mensaje);
 
         return str_contains($m, 'receptor') && (
             str_contains($m, 'catálogo') ||

@@ -114,6 +114,7 @@
 .pro-etapa-aceptado     { background:#e8f8f0;color:#00875a;border:1px solid #b3e8d0; }
 .pro-etapa-inscrito     { background:#ede7f6;color:#4527a0;border:1px solid #d1c4e9; }
 .pro-etapa-no_concretado{ background:#fdecea;color:#b91c1c;border:1px solid #fca5a5; }
+.pro-etapa-no_aceptado  { background:#fdecea;color:#b91c1c;border:1px solid #fca5a5; }
 
 /* Footer */
 .pro-footer {
@@ -148,6 +149,7 @@
         'aceptado'       => 'Aceptado',
         'inscrito'       => 'Inscrito',
         'no_concretado'  => 'No concretado',
+        'no_aceptado'    => 'No aceptado',
     ];
 @endphp
 
@@ -377,6 +379,15 @@
                                         data-motivo="{{ $prospecto->motivo_no_concrecion }}">
                                     <i class="fa fa-exchange text-orange"></i>
                                 </button>
+                                @if ($prospecto->seguimientos_manuales_count === 0)
+                                    <button type="button" class="btn btn-default btn-xs btn-flat btn-prospecto-eliminar"
+                                            style="border-radius:4px;" title="Eliminar"
+                                            onclick="event.stopPropagation();"
+                                            data-id="{{ $prospecto->id }}"
+                                            data-nombre="{{ $prospecto->nombre_completo }}">
+                                        <i class="fa fa-trash text-red"></i>
+                                    </button>
+                                @endif
                             </div>
                         </td>
 
@@ -466,6 +477,12 @@
     </div>
 </div>
 
+{{-- Formulario oculto para eliminar prospecto --}}
+<form method="POST" id="formEliminarProspecto" style="display:none;">
+    @csrf
+    @method('DELETE')
+</form>
+
 @endsection
 
 @push('scripts')
@@ -504,6 +521,19 @@ $(function () {
         toggleMotivo();
         $('#modalEtapa').modal('show');
     };
+
+    $(document).on('click', '.btn-prospecto-eliminar', function () {
+        var id     = $(this).data('id');
+        var nombre = $(this).data('nombre');
+
+        if (!confirm('¿Eliminar al prospecto ' + nombre + '? Esta acción no se puede deshacer.')) {
+            return;
+        }
+
+        $('#formEliminarProspecto')
+            .attr('action', '{{ url('prospectos') }}/' + id)
+            .trigger('submit');
+    });
 });
 </script>
 @endpush

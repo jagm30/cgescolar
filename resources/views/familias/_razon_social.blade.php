@@ -309,7 +309,7 @@ $usosCfdi = [
                                 <select class="form-control input-sm ers-regimen">
                                     @foreach($regimenesFiscales as $codigo => $nombre)
                                     <option value="{{ $codigo }}"
-                                        {{ $rs->regimen_fiscal === $codigo ? 'selected' : '' }}>
+                                        {{ $rs->regimen_fiscal === (string) $codigo ? 'selected' : '' }}>
                                         {{ $nombre }}
                                     </option>
                                     @endforeach
@@ -330,7 +330,7 @@ $usosCfdi = [
                                 <select class="form-control input-sm ers-uso-cfdi">
                                     @foreach($usosCfdi as $codigo => $nombre)
                                     <option value="{{ $codigo }}"
-                                        {{ $rs->uso_cfdi_default === $codigo ? 'selected' : '' }}>
+                                        {{ $rs->uso_cfdi_default === (string) $codigo ? 'selected' : '' }}>
                                         {{ $nombre }}
                                     </option>
                                     @endforeach

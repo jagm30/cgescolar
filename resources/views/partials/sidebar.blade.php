@@ -464,6 +464,14 @@
 
             {{-- ── SECCIÓN: Padres (rol director_seccion) ── --}}
             @if (auth()->user()->esDirectorSeccion())
+                <li class="header">ADMISIONES</li>
+
+                <li class="{{ request()->routeIs('prospectos.*') ? 'active' : '' }}">
+                    <a href="{{ route('prospectos.index') }}">
+                        <i class="fa fa-user-plus"></i> <span>Prospectos</span>
+                    </a>
+                </li>
+
                 <li class="header">ADMINISTRACIÓN</li>
 
                 <li class="treeview {{ request()->routeIs(['usuarios.*']) ? 'active menu-open' : '' }}">

@@ -11,17 +11,18 @@ use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\Prospecto;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function admin()
     {
-        $usuario   = auth()->user();
-        $cicloId   = $usuario->ciclo_seleccionado_id
+        $usuario = auth()->user();
+        $cicloId = $usuario->ciclo_seleccionado_id
                      ?? CicloEscolar::activo()->value('id');
 
         // ── Alumnos ─────────────────────────────────────────
-        $totalAlumnos   = Alumno::count();
+        $totalAlumnos = Alumno::count();
         $alumnosActivos = Alumno::activo()->count();
 
         // ── Inscritos activos en el ciclo actual, agrupados por nivel ──
@@ -57,7 +58,7 @@ class DashboardController extends Controller
 
         // ── Cargos pendientes ─────────────────────────────────
         $cargosPendientes = Cargo::conDeuda()->count();
-        $montoPendiente   = Cargo::conDeuda()->sum('monto_original');
+        $montoPendiente = Cargo::conDeuda()->sum('monto_original');
 
         $cargosVencidos = Cargo::conDeuda()
             ->where('fecha_vencimiento', '<', now()->toDateString())
@@ -73,7 +74,7 @@ class DashboardController extends Controller
 
         // ── Prospectos activos ────────────────────────────────
         $prospectosPorEtapa = Prospecto::where('ciclo_id', $cicloId)
-            ->whereNotIn('etapa', ['inscrito', 'no_concretado'])
+            ->enProceso()
             ->select('etapa', DB::raw('COUNT(*) as total'))
             ->groupBy('etapa')
             ->pluck('total', 'etapa');
@@ -98,7 +99,7 @@ class DashboardController extends Controller
         ));
     }
 
-    public function recepcion(): \Illuminate\View\View
+    public function recepcion(): View
     {
         $usuario = auth()->user();
         $cicloId = $usuario->ciclo_seleccionado_id
@@ -126,7 +127,7 @@ class DashboardController extends Controller
 
         // ── Prospectos activos ────────────────────────────────
         $prospectosPorEtapa = Prospecto::where('ciclo_id', $cicloId)
-            ->whereNotIn('etapa', ['inscrito', 'no_concretado'])
+            ->enProceso()
             ->select('etapa', DB::raw('COUNT(*) as total'))
             ->groupBy('etapa')
             ->pluck('total', 'etapa');
@@ -135,10 +136,10 @@ class DashboardController extends Controller
 
         // ── Últimos alumnos registrados ───────────────────────
         $ultimosAlumnos = Alumno::with(['inscripciones' => fn ($q) => $q
-                ->where('activo', true)
-                ->where('ciclo_id', $cicloId)
-                ->with('grupo.grado.nivel'),
-            ])
+            ->where('activo', true)
+            ->where('ciclo_id', $cicloId)
+            ->with('grupo.grado.nivel'),
+        ])
             ->orderByDesc('id')
             ->limit(8)
             ->get();
@@ -156,15 +157,15 @@ class DashboardController extends Controller
 
     public function caja()
     {
-        $hoy  = now()->toDateString();
-        $mes  = now()->month;
+        $hoy = now()->toDateString();
+        $mes = now()->month;
         $anio = now()->year;
 
         // ── Cobros del día ────────────────────────────────────
-        $cobradoHoy   = Pago::vigente()->delDia()->sum('monto_total');
-        $pagosHoy     = Pago::vigente()->delDia()->count();
-        $cobradoAyer  = Pago::vigente()->delDia(now()->subDay()->toDateString())->sum('monto_total');
-        $cobradoMes   = Pago::vigente()->whereYear('fecha_pago', $anio)->whereMonth('fecha_pago', $mes)->sum('monto_total');
+        $cobradoHoy = Pago::vigente()->delDia()->sum('monto_total');
+        $pagosHoy = Pago::vigente()->delDia()->count();
+        $cobradoAyer = Pago::vigente()->delDia(now()->subDay()->toDateString())->sum('monto_total');
+        $cobradoMes = Pago::vigente()->whereYear('fecha_pago', $anio)->whereMonth('fecha_pago', $mes)->sum('monto_total');
 
         // Desglose por forma de pago del día
         $porFormaPago = Pago::vigente()
@@ -176,17 +177,17 @@ class DashboardController extends Controller
 
         // ── Cargos ────────────────────────────────────────────
         $cargosPendientes = Cargo::conDeuda()->count();
-        $montoPendiente   = Cargo::conDeuda()->sum('monto_original');
+        $montoPendiente = Cargo::conDeuda()->sum('monto_original');
 
-        $cargosVencidos   = Cargo::conDeuda()
+        $cargosVencidos = Cargo::conDeuda()
             ->where('fecha_vencimiento', '<', $hoy)
             ->count();
-        $montoVencido     = Cargo::conDeuda()
+        $montoVencido = Cargo::conDeuda()
             ->where('fecha_vencimiento', '<', $hoy)
             ->sum('monto_original');
 
         // ── Facturas (CFDIs) ──────────────────────────────────
-        $cfdisMes        = Cfdi::vigente()
+        $cfdisMes = Cfdi::vigente()
             ->whereYear('fecha_timbrado', $anio)
             ->whereMonth('fecha_timbrado', $mes)
             ->count();

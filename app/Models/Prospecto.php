@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Prospecto extends Model
 {
+    /** Nota que store() crea automáticamente al registrar el prospecto — no cuenta como seguimiento manual. */
+    public const NOTA_REGISTRO_INICIAL = 'Registro inicial del prospecto.';
+
     protected $table = 'prospecto';
 
     public $timestamps = false;
@@ -46,7 +50,7 @@ class Prospecto extends Model
 
     public function scopeEnProceso($query)
     {
-        return $query->whereNotIn('etapa', ['inscrito', 'no_concretado']);
+        return $query->whereNotIn('etapa', ['inscrito', 'no_concretado', 'no_aceptado']);
     }
 
     public function scopePorEtapa($query, string $etapa)
@@ -55,6 +59,21 @@ class Prospecto extends Model
     }
 
     // ── Helpers ──────────────────────────────────────────
+
+    /** Filtra seguimientos que no sean la nota automática de registro inicial. */
+    public static function filtroSeguimientoManual(Builder $query): Builder
+    {
+        return $query->where('tipo_accion', '!=', 'nota')
+            ->orWhere('notas', '!=', self::NOTA_REGISTRO_INICIAL);
+    }
+
+    /** True si el prospecto tiene algún seguimiento además de la nota automática de registro. */
+    public function tieneSeguimientosManuales(): bool
+    {
+        return $this->seguimientos()
+            ->where(fn (Builder $q) => self::filtroSeguimientoManual($q))
+            ->exists();
+    }
 
     public function estaInscrito(): bool
     {
@@ -91,7 +110,7 @@ class Prospecto extends Model
 
     public function gradoInteres(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Grado::class, 'grado_interes_id');
+        return $this->belongsTo(Grado::class, 'grado_interes_id');
     }
 
     public function responsable(): BelongsTo

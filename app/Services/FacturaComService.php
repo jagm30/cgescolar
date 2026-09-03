@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -22,9 +23,9 @@ class FacturaComService
     private function authHeaders(): array
     {
         return [
-            'F-Api-Key'    => config('factura.api_key'),
+            'F-Api-Key' => config('factura.api_key'),
             'F-Secret-Key' => config('factura.secret_key'),
-            'F-PLUGIN'     => config('factura.plugin'),
+            'F-PLUGIN' => config('factura.plugin'),
         ];
     }
 
@@ -40,7 +41,7 @@ class FacturaComService
 
     private function url(string $path): string
     {
-        return rtrim(config('factura.url'), '/') . '/' . ltrim($path, '/');
+        return rtrim(config('factura.url'), '/').'/'.ltrim($path, '/');
     }
 
     // ── Helpers ──────────────────────────────────────────
@@ -51,7 +52,7 @@ class FacturaComService
      * La API usa 'status' o 'response' con valor 'error' para indicar falla.
      * Si el HTTP es 2xx y ninguno de esos campos dice 'error', se considera éxito.
      */
-    private function esError(\Illuminate\Http\Client\Response $response, ?array $json): bool
+    private function esError(Response $response, ?array $json): bool
     {
         if ($response->failed()) {
             return true;
@@ -112,19 +113,20 @@ class FacturaComService
     ): string {
         $response = Http::withHeaders($this->headers())
             ->post($this->url('/v1/clients/create'), [
-                'rfc'    => strtoupper($rfc),
+                'rfc' => strtoupper($rfc),
                 'razons' => strtoupper($razonSocial),
                 'codpos' => $codigoPostal,
                 'regimen' => $regimenFiscal,
-                'email'  => $email,
-                'pais'   => 'MEX',
+                'email' => $email,
+                'pais' => 'MEX',
             ]);
 
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw     = $json['message'] ?? $json['error'] ?? $response->body();
+            $raw = $json['message'] ?? $json['error'] ?? $response->body();
             $mensaje = $this->extraerMensaje($raw);
+            \Log::error('FacturaCom crearCliente error', ['status' => $response->status(), 'body' => $response->body()]);
             throw new \RuntimeException("Error al registrar cliente en factura.com: {$mensaje}");
         }
 
@@ -143,7 +145,7 @@ class FacturaComService
      * Emite un CFDI 4.0.
      *
      * @param  array  $payload  Estructura del CFDI según la API de factura.com
-     * @return array            Datos de la respuesta (contiene 'UID', etc.)
+     * @return array Datos de la respuesta (contiene 'UID', etc.)
      *
      * @throws \RuntimeException Si la API devuelve error
      */
@@ -151,7 +153,7 @@ class FacturaComService
     {
         \Log::info('FacturaCom emitir payload', [
             'CfdiRelacionados' => $payload['CfdiRelacionados'] ?? 'none',
-            'full_json'        => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
+            'full_json' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
         ]);
 
         $response = Http::withHeaders($this->headers())
@@ -160,8 +162,10 @@ class FacturaComService
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw     = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
+            $raw = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
             $mensaje = $this->extraerMensaje($raw);
+
+            \Log::error('FacturaCom emitir error', ['status' => $response->status(), 'body' => $response->body()]);
 
             throw new \RuntimeException("factura.com: {$mensaje}", $response->status());
         }
@@ -236,7 +240,7 @@ class FacturaComService
         $json = $response->json();
 
         if ($this->esError($response, $json)) {
-            $raw     = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
+            $raw = $json['message'] ?? $json['error'] ?? $json['response'] ?? $response->body();
             $mensaje = $this->extraerMensaje($raw);
             throw new \RuntimeException($mensaje);
         }
@@ -248,7 +252,7 @@ class FacturaComService
      * Llama a GET /v1/series para listar las series configuradas en la cuenta.
      * Útil para confirmar que las credenciales son válidas y que la serie configurada existe.
      *
-     * @return array  Arreglo de series: [['id' => int, 'nombre' => string], ...]
+     * @return array Arreglo de series: [['id' => int, 'nombre' => string], ...]
      *
      * @throws \RuntimeException Si las credenciales son inválidas o la API falla
      */
@@ -273,7 +277,7 @@ class FacturaComService
                 $raw = $json['message'] ?? $json['error'] ?? $response->body();
             }
             $mensaje = $this->extraerMensaje($raw);
-            $status  = $response->status();
+            $status = $response->status();
             throw new \RuntimeException(
                 "No se pudo conectar con factura.com [HTTP {$status}]: {$mensaje}"
             );
@@ -289,19 +293,19 @@ class FacturaComService
         // Normalizar a [['id' => ..., 'nombre' => ...], ...]
         // Los campos varían entre versiones de la API de factura.com — se prueban todas las variantes conocidas.
         return collect($lista)->map(fn ($s) => [
-            'id'     => $s['SerieID']   ?? $s['serieID']   ?? $s['serie_id'] ?? $s['id'] ?? $s['Id'] ?? null,
-            'nombre' => $s['Serie']     ?? $s['serie']      ?? $s['Name']    ?? $s['name'] ?? $s['Nombre'] ?? $s['nombre'] ?? null,
-            'folio'  => $s['Folio']     ?? $s['folio']      ?? $s['FolioActual'] ?? null,
-            '_raw'   => $s,  // campo de diagnóstico: se pasa al frontend para mostrar claves reales
+            'id' => $s['SerieID'] ?? $s['serieID'] ?? $s['serie_id'] ?? $s['id'] ?? $s['Id'] ?? null,
+            'nombre' => $s['Serie'] ?? $s['serie'] ?? $s['Name'] ?? $s['name'] ?? $s['Nombre'] ?? $s['nombre'] ?? null,
+            'folio' => $s['Folio'] ?? $s['folio'] ?? $s['FolioActual'] ?? null,
+            '_raw' => $s,  // campo de diagnóstico: se pasa al frontend para mostrar claves reales
         ])->filter(fn ($s) => $s['id'] !== null)->values()->toArray();
     }
 
     /**
      * Descarga un CFDI en formato PDF o XML.
      *
-     * @param  string  $uid      UID interno de factura.com
+     * @param  string  $uid  UID interno de factura.com
      * @param  string  $formato  'pdf' o 'xml'
-     * @return string            Contenido binario del archivo
+     * @return string Contenido binario del archivo
      *
      * @throws \RuntimeException Si la descarga falla
      */
