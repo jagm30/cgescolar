@@ -27,6 +27,7 @@ use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\ReinscripcionController;
 use App\Http\Controllers\ReporteDeudoresController;
+use App\Http\Controllers\ReporteDirectorioController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -710,6 +711,10 @@ Route::get('/reportes/deudores/pdf', [ReporteDeudoresController::class, 'pdf'])
 Route::get('/reportes/deudores/pdf-detalle', [ReporteDeudoresController::class, 'pdfDetalle'])
     ->middleware(['auth', 'rol:administrador,caja'])
     ->name('reportes.deudores.pdf-detalle');
+
+Route::get('/reportes/directorio-familiar/pdf', [ReporteDirectorioController::class, 'pdf'])
+    ->middleware(['auth', 'rol:administrador'])
+    ->name('reportes.directorio-familiar.pdf');
 
 // Configuración fiscal (datos del emisor para CFDI)
 Route::post('/fiscal', [SettingController::class, 'updateFiscal'])
