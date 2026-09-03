@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ConceptoCobro extends Model
 {
     protected $table = 'concepto_cobro';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -20,13 +21,15 @@ class ConceptoCobro extends Model
         'clave_sat',
         'activo',
         'monto',
+        'facturable',
     ];
 
     protected $casts = [
-        'aplica_beca'    => 'boolean',
+        'aplica_beca' => 'boolean',
         'aplica_recargo' => 'boolean',
-        'activo'         => 'boolean',
-        'monto'          => 'decimal:2',
+        'activo' => 'boolean',
+        'monto' => 'decimal:2',
+        'facturable' => 'boolean',
     ];
 
     // ── Scopes ──────────────────────────────────────────

@@ -18,15 +18,15 @@ class ConceptoCobroController extends Controller
         // 1. Armamos la consulta base con sus filtros (sin el get ni el orden)
         $query = ConceptoCobro::when(
             $request->filled('tipo'),
-            fn($q) => $q->where('tipo', $request->tipo)
+            fn ($q) => $q->where('tipo', $request->tipo)
         )
             ->when(
                 $request->filled('activo'),
-                fn($q) => $q->where('activo', $request->boolean('activo'))
+                fn ($q) => $q->where('activo', $request->boolean('activo'))
             )
             ->when(
                 $request->filled('buscar'),
-                fn($q) => $q->where('nombre', 'like', "%{$request->buscar}%")
+                fn ($q) => $q->where('nombre', 'like', "%{$request->buscar}%")
             );
 
         // 2. TRUCO DE INGENIERO: Clonamos la consulta y sacamos TODO para las estadísticas
@@ -67,26 +67,28 @@ class ConceptoCobroController extends Controller
     public function store(Request $request)
     {
         $request->merge([
-            'aplica_beca'    => $request->has('aplica_beca') ? 1 : 0,
+            'aplica_beca' => $request->has('aplica_beca') ? 1 : 0,
             'aplica_recargo' => $request->has('aplica_recargo') ? 1 : 0,
-            'activo'         => $request->has('activo') ? 1 : 0,
+            'activo' => $request->has('activo') ? 1 : 0,
+            'facturable' => $request->has('facturable') ? 1 : 0,
         ]);
 
         $data = $request->validate([
-            'nombre'        => ['required', 'string', 'max:200', 'unique:concepto_cobro,nombre'],
-            'descripcion'   => ['nullable', 'string', 'max:500'],
-            'tipo'          => ['required', 'in:colegiatura,inscripcion,cargo_unico,cargo_recurrente'],
-            'aplica_beca'   => ['boolean'],
+            'nombre' => ['required', 'string', 'max:200', 'unique:concepto_cobro,nombre'],
+            'descripcion' => ['nullable', 'string', 'max:500'],
+            'tipo' => ['required', 'in:colegiatura,inscripcion,cargo_unico,cargo_recurrente'],
+            'aplica_beca' => ['boolean'],
             'aplica_recargo' => ['boolean'],
-            'clave_sat'     => ['nullable', 'string', 'max:20'],
-            'activo'        => ['boolean'],
-            'monto'         => ['nullable', 'numeric', 'min:0'], // <--- NUEVO
+            'clave_sat' => ['nullable', 'string', 'max:20'],
+            'activo' => ['boolean'],
+            'monto' => ['nullable', 'numeric', 'min:0'],
+            'facturable' => ['boolean'],
         ], [
             'nombre.required' => 'El nombre del concepto es obligatorio.',
-            'nombre.unique'   => 'Ya existe un concepto con este nombre.',
-            'tipo.required'   => 'Debe seleccionar el tipo de concepto.',
-            'tipo.in'         => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
-            'monto.numeric'   => 'El monto debe ser un valor numérico.',
+            'nombre.unique' => 'Ya existe un concepto con este nombre.',
+            'tipo.required' => 'Debe seleccionar el tipo de concepto.',
+            'tipo.in' => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
+            'monto.numeric' => 'El monto debe ser un valor numérico.',
         ]);
 
         // Reglas de negocio
@@ -95,7 +97,7 @@ class ConceptoCobroController extends Controller
         }
 
         // Si no es cargo recurrente o único, limpiamos el monto
-        if (!in_array($data['tipo'], ['cargo_unico', 'cargo_recurrente'])) {
+        if (! in_array($data['tipo'], ['cargo_unico', 'cargo_recurrente'])) {
             $data['monto'] = null;
         }
 
@@ -118,32 +120,34 @@ class ConceptoCobroController extends Controller
         $anterior = $concepto->toArray();
 
         $request->merge([
-            'aplica_beca'    => $request->has('aplica_beca') ? 1 : 0,
+            'aplica_beca' => $request->has('aplica_beca') ? 1 : 0,
             'aplica_recargo' => $request->has('aplica_recargo') ? 1 : 0,
-            'activo'         => $request->has('activo') ? 1 : 0,
+            'activo' => $request->has('activo') ? 1 : 0,
+            'facturable' => $request->has('facturable') ? 1 : 0,
         ]);
 
         $data = $request->validate([
-            'nombre'        => [
+            'nombre' => [
                 'sometimes',
                 'required',
                 'string',
                 'max:200',
-                Rule::unique('concepto_cobro', 'nombre')->ignore($id)
+                Rule::unique('concepto_cobro', 'nombre')->ignore($id),
             ],
-            'descripcion'   => ['nullable', 'string', 'max:500'],
-            'tipo'          => ['sometimes', 'required', 'in:colegiatura,inscripcion,cargo_unico,cargo_recurrente'],
-            'aplica_beca'   => ['boolean'],
+            'descripcion' => ['nullable', 'string', 'max:500'],
+            'tipo' => ['sometimes', 'required', 'in:colegiatura,inscripcion,cargo_unico,cargo_recurrente'],
+            'aplica_beca' => ['boolean'],
             'aplica_recargo' => ['boolean'],
-            'clave_sat'     => ['nullable', 'string', 'max:20'],
-            'activo'        => ['boolean'],
-            'monto'         => ['nullable', 'numeric', 'min:0'], // <--- NUEVO
+            'clave_sat' => ['nullable', 'string', 'max:20'],
+            'activo' => ['boolean'],
+            'monto' => ['nullable', 'numeric', 'min:0'],
+            'facturable' => ['boolean'],
         ], [
             'nombre.unique' => 'Ya existe otro concepto con este nombre.',
-            'tipo.in'       => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
+            'tipo.in' => 'El tipo debe ser: colegiatura, inscripción, cargo único o cargo recurrente.',
         ]);
 
-        if (!$data['aplica_beca']) {
+        if (! $data['aplica_beca']) {
             $tieneBecas = $concepto->becasAlumno()->where('activo', true)->exists();
             if ($tieneBecas) {
                 return $this->respuestaError(
@@ -158,7 +162,7 @@ class ConceptoCobroController extends Controller
         }
 
         // Si cambia de tipo, procesamos el monto
-        if (!in_array($tipoFinal, ['cargo_unico', 'cargo_recurrente'])) {
+        if (! in_array($tipoFinal, ['cargo_unico', 'cargo_recurrente'])) {
             $data['monto'] = null;
         }
 
@@ -172,6 +176,7 @@ class ConceptoCobroController extends Controller
             mensaje: "Concepto '{$concepto->nombre}' actualizado correctamente."
         );
     }
+
     /** DELETE /conceptos/{id} — desactiva, no elimina */
     public function destroy(int $id)
     {

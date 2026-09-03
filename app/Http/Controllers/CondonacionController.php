@@ -9,6 +9,7 @@ use App\Models\CicloEscolar;
 use App\Models\Condonacion;
 use App\Models\DescuentoCargo;
 use App\Models\PlanPago;
+use App\Services\CondonacionesExcelExport;
 use App\Services\CondonacionService;
 use App\Traits\RespondsWithJson;
 use Illuminate\Http\JsonResponse;
@@ -31,16 +32,32 @@ class CondonacionController extends Controller
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('alumno_id'), fn ($q) => $q->where('alumno_id', $request->alumno_id))
             ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->when($request->filled('plan_id'), fn ($q) => $q->whereHas(
+                'detalles.cargo.asignacion', fn ($q) => $q->where('plan_id', $request->plan_id)
+            ))
             ->orderByDesc('creado_at');
 
         $condonaciones = $query->paginate((int) $request->get('per_page', 20));
 
         $alumnos = Alumno::query()
             ->whereHas('inscripciones', fn ($q) => $q->where('ciclo_id', $cicloId)->where('activo', true))
-            ->orderBy('ap_paterno')->orderBy('nombre')
+            ->orderBy('ap_paterno')->orderBy('ap_materno')->orderBy('nombre')
             ->get();
 
-        return view('condonaciones.index', compact('condonaciones', 'alumnos', 'cicloId'));
+        $planes = PlanPago::where('ciclo_id', $cicloId)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre']);
+
+        return view('condonaciones.index', compact('condonaciones', 'alumnos', 'planes', 'cicloId'));
+    }
+
+    /** GET /condonaciones/exportar */
+    public function exportarExcel(Request $request, CondonacionesExcelExport $export)
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        return $export->descargar($request, $cicloId);
     }
 
     /** GET /condonaciones/crear */
@@ -145,8 +162,8 @@ class CondonacionController extends Controller
         }
 
         $resultado = $this->service->crearMasiva($data);
-        $creadas   = $resultado['creadas'];
-        $omitidos  = $resultado['omitidos'];
+        $creadas = $resultado['creadas'];
+        $omitidos = $resultado['omitidos'];
 
         // Cargar nombres de los omitidos (aplica tanto si hubo éxitos como si no)
         $nombresOmitidos = [];
@@ -166,7 +183,7 @@ class CondonacionController extends Controller
 
             if (request()->ajax()) {
                 return response()->json([
-                    'message'  => $avisoMensaje,
+                    'message' => $avisoMensaje,
                     'omitidos' => $nombresOmitidos,
                 ], 422);
             }
@@ -180,15 +197,49 @@ class CondonacionController extends Controller
 
         if (request()->ajax()) {
             return response()->json([
-                'message'               => $mensaje,
+                'message' => $mensaje,
                 'condonaciones_creadas' => $creadas,
-                'omitidos'              => $nombresOmitidos,
+                'omitidos' => $nombresOmitidos,
             ]);
         }
 
         return redirect()->route('condonaciones.index')
             ->with('success', $mensaje)
             ->with('omitidos_masiva', $nombresOmitidos);
+    }
+
+    /**
+     * GET /pagos/condonaciones-100
+     * Alumnos que tienen al menos un cargo con estado 'condonado' en el ciclo activo.
+     */
+    public function reporte100(Request $request)
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        $baseQuery = fn () => Alumno::query()
+            ->whereHas('inscripciones', fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->whereHas('cargos', fn ($q) => $q->where('estado', 'condonado'))
+            );
+
+        $opciones = $baseQuery()
+            ->orderBy('ap_paterno')->orderBy('ap_materno')->orderBy('nombre')
+            ->get(['id', 'nombre', 'ap_paterno', 'ap_materno']);
+
+        $alumnos = $baseQuery()
+            ->with(['inscripciones' => fn ($q) => $q
+                ->where('ciclo_id', $cicloId)
+                ->with([
+                    'grupo.grado',
+                    'cargos' => fn ($q) => $q->where('estado', 'condonado')->with('concepto'),
+                ]),
+            ])
+            ->when($request->filled('alumno_id'), fn ($q) => $q->where('id', $request->alumno_id))
+            ->orderBy('ap_paterno')->orderBy('ap_materno')->orderBy('nombre')
+            ->get();
+
+        return view('pagos.condonaciones_100', compact('alumnos', 'opciones', 'cicloId'));
     }
 
     /**

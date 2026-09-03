@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\ValidaFacturabilidadConcepto;
 use App\Models\Auditoria;
 use App\Models\Cfdi;
 use App\Models\ConfigFiscal;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
 
 class CfdiController extends Controller
 {
-    use RespondsWithJson;
+    use RespondsWithJson, ValidaFacturabilidadConcepto;
 
     /** Mapeo de forma_pago del sistema → clave SAT */
     private const FORMAS_PAGO_SAT = [
@@ -100,6 +101,12 @@ class CfdiController extends Controller
 
         if ($pago->cfdis->isNotEmpty()) {
             return $this->respuestaError('Este pago ya tiene un CFDI vigente.');
+        }
+
+        if ($this->tieneConceptosNoFacturables($pago)) {
+            return $this->respuestaError(
+                'Este pago contiene uno o más conceptos marcados como no facturables. No se puede emitir el CFDI.'
+            );
         }
 
         $config = ConfigFiscal::first();
@@ -207,7 +214,7 @@ class CfdiController extends Controller
         \Log::info('CFDI cancelar input', $request->all());
 
         $request->validate([
-            'motivo'          => ['required', 'string', 'in:01,02,03,04'],
+            'motivo' => ['required', 'string', 'in:01,02,03,04'],
             'folio_sustituto' => ['required_if:motivo,01', 'nullable', 'string', 'max:50'],
         ]);
 
@@ -261,22 +268,22 @@ class CfdiController extends Controller
             ->with('contacto')
             ->get()
             ->map(fn ($rs) => [
-                'id'            => $rs->id,
-                'rfc'           => $rs->rfc,
-                'razon_social'  => $rs->razon_social,
-                'regimen_fiscal'=> $rs->regimen_fiscal,
-                'uso_cfdi'      => $rs->uso_cfdi_default ?? 'D10',
-                'contacto'      => $rs->contacto?->nombre_completo,
+                'id' => $rs->id,
+                'rfc' => $rs->rfc,
+                'razon_social' => $rs->razon_social,
+                'regimen_fiscal' => $rs->regimen_fiscal,
+                'uso_cfdi' => $rs->uso_cfdi_default ?? 'D10',
+                'contacto' => $rs->contacto?->nombre_completo,
             ]);
 
         $formaPagoActual = self::FORMAS_PAGO_SAT[$cfdi->pago->forma_pago] ?? '99';
 
         return response()->json([
-            'cfdi_id'       => $cfdi->id,
-            'folio'         => $cfdi->folio,
-            'pago_id'       => $cfdi->pago_id,
-            'razones'       => $razones,
-            'forma_pago_sat'=> $formaPagoActual,
+            'cfdi_id' => $cfdi->id,
+            'folio' => $cfdi->folio,
+            'pago_id' => $cfdi->pago_id,
+            'razones' => $razones,
+            'forma_pago_sat' => $formaPagoActual,
         ]);
     }
 
@@ -290,8 +297,8 @@ class CfdiController extends Controller
     {
         $request->validate([
             'razon_social_id' => ['nullable', 'exists:razon_social_contacto,id'],
-            'uso_cfdi'        => ['required', 'string', 'max:10'],
-            'forma_pago_sat'  => ['nullable', 'string', 'size:2'],
+            'uso_cfdi' => ['required', 'string', 'max:10'],
+            'forma_pago_sat' => ['nullable', 'string', 'size:2'],
         ]);
 
         $cfdi = Cfdi::with([
@@ -305,6 +312,12 @@ class CfdiController extends Controller
 
         if ($cfdi->estado === 'cancelado') {
             return response()->json(['message' => 'El CFDI original ya está cancelado. Emite el nuevo desde el pago directamente.'], 422);
+        }
+
+        if ($this->tieneConceptosNoFacturables($pago)) {
+            return response()->json([
+                'message' => 'Este pago contiene uno o más conceptos marcados como no facturables. No se puede emitir el CFDI sustituto.',
+            ], 422);
         }
 
         $config = ConfigFiscal::first();
@@ -321,8 +334,8 @@ class CfdiController extends Controller
             $receptor = $this->receptorPublicoGeneral($config, $factura);
         }
 
-        $formaPagoSat  = $request->filled('forma_pago_sat') ? $request->forma_pago_sat : null;
-        $uuidOriginal  = $cfdi->uuid_sat;   // UUID del CFDI que se cancela — requerido por SAT motivo 01
+        $formaPagoSat = $request->filled('forma_pago_sat') ? $request->forma_pago_sat : null;
+        $uuidOriginal = $cfdi->uuid_sat;   // UUID del CFDI que se cancela — requerido por SAT motivo 01
 
         try {
             $resultado = DB::transaction(function () use ($pago, $config, $receptor, $request, $razonSocialId, $factura, $formaPagoSat, $uuidOriginal): array {
@@ -336,7 +349,7 @@ class CfdiController extends Controller
                 // SAT: el CFDI sustituto debe declarar relación tipo 04 con el UUID del original
                 if ($uuidOriginal) {
                     $payload['CfdiRelacionados'] = [
-                        'TipoRelacion'      => '04',
+                        'TipoRelacion' => '04',
                         'CfdisRelacionados' => [strtoupper($uuidOriginal)],
                     ];
                 }
@@ -344,24 +357,24 @@ class CfdiController extends Controller
                 $respuesta = $factura->emitir($payload);
 
                 $nuevoCfdi = Cfdi::create([
-                    'pago_id'          => $pago->id,
+                    'pago_id' => $pago->id,
                     'config_fiscal_id' => $config->id,
-                    'razon_social_id'  => $razonSocialId,
-                    'uso_cfdi'         => $request->uso_cfdi,
-                    'uuid_sat'         => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
-                    'factura_uid'      => $respuesta['UID'] ?? null,
-                    'folio'            => $folio,
-                    'fecha_timbrado'   => now(),
-                    'estado'           => 'vigente',
+                    'razon_social_id' => $razonSocialId,
+                    'uso_cfdi' => $request->uso_cfdi,
+                    'uuid_sat' => $respuesta['UUID'] ?? $respuesta['Uuid'] ?? null,
+                    'factura_uid' => $respuesta['UID'] ?? null,
+                    'folio' => $folio,
+                    'fecha_timbrado' => now(),
+                    'estado' => 'vigente',
                 ]);
 
                 Auditoria::registrar('cfdi', $nuevoCfdi->id, 'insert', null, [
-                    'pago_id'        => $pago->id,
-                    'folio'          => $folio,
-                    'factura_uid'    => $nuevoCfdi->factura_uid,
-                    'uuid_sat'       => $nuevoCfdi->uuid_sat,
+                    'pago_id' => $pago->id,
+                    'folio' => $folio,
+                    'factura_uid' => $nuevoCfdi->factura_uid,
+                    'uuid_sat' => $nuevoCfdi->uuid_sat,
                     'forma_pago_sat' => $formaPagoSat,
-                    'origen'         => 'sustituto_de_cfdi_'.$nuevoCfdi->id,
+                    'origen' => 'sustituto_de_cfdi_'.$nuevoCfdi->id,
                 ]);
 
                 return ['cfdi' => $nuevoCfdi, 'folio' => $folio];
@@ -383,9 +396,9 @@ class CfdiController extends Controller
         }
 
         return response()->json([
-            'folio'    => $resultado['folio'],
+            'folio' => $resultado['folio'],
             'uuid_sat' => $resultado['cfdi']->uuid_sat,
-            'cfdi_id'  => $resultado['cfdi']->id,
+            'cfdi_id' => $resultado['cfdi']->id,
         ]);
     }
 
@@ -780,7 +793,9 @@ class CfdiController extends Controller
         return $payload;
     }
 
-    /** Pagos vigentes sin CFDI vigente dentro del rango de fechas dado. */
+    /** Pagos vigentes sin CFDI vigente dentro del rango de fechas dado.
+     *  Excluye automáticamente los pagos que contengan conceptos no facturables.
+     */
     private function pagosParaFacturaGlobal(string $fechaDesde, string $fechaHasta): Collection
     {
         return Pago::with([
@@ -790,7 +805,9 @@ class CfdiController extends Controller
             ->where('estado', 'vigente')
             ->whereBetween('fecha_pago', [$fechaDesde, $fechaHasta])
             ->whereDoesntHave('cfdis', fn ($q) => $q->where('estado', 'vigente'))
-            ->get();
+            ->get()
+            ->reject(fn (Pago $p) => $this->tieneConceptosNoFacturables($p))
+            ->values();
     }
 
     /**
