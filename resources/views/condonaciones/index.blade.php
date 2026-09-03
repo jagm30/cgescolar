@@ -8,6 +8,8 @@
 @endsection
 
 @push('styles')
+    <link rel="stylesheet" href="{{ asset('bower_components/select2/dist/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('dist/css/alt/AdminLTE-select2.min.css') }}">
     <style>
         .con-toolbar {
             display: flex;
@@ -109,10 +111,20 @@
                 <i class="fa fa-list"></i> {{ $condonaciones->total() }} registros
             </span>
         </div>
-        <a href="{{ route('condonaciones.create') }}" class="btn btn-success btn-sm btn-flat"
-           style="border-radius:20px;white-space:nowrap;">
-            <i class="fa fa-plus"></i> Nueva condonación
-        </a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ route('pagos.condonaciones-100') }}" class="btn btn-default btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;">
+                <i class="fa fa-ban"></i> Condonaciones al 100%
+            </a>
+            <a href="{{ route('condonaciones.exportar', request()->query()) }}" class="btn btn-warning btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;">
+                <i class="fa fa-file-excel-o"></i> Exportar Excel
+            </a>
+            <a href="{{ route('condonaciones.create') }}" class="btn btn-success btn-sm btn-flat"
+               style="border-radius:20px;white-space:nowrap;">
+                <i class="fa fa-plus"></i> Nueva condonación
+            </a>
+        </div>
     </div>
 
     <div class="box" style="border-radius:8px;border:1px solid #e0e7ef;box-shadow:0 2px 10px rgba(0,0,0,.05);overflow:hidden;">
@@ -120,11 +132,21 @@
         {{-- Filtros --}}
         <form method="GET" action="{{ route('condonaciones.index') }}">
             <div class="con-toolbar">
-                <select name="alumno_id" class="con-select" onchange="this.form.submit()" title="Filtrar por alumno">
+                <select name="alumno_id" class="form-control select2-alumno" style="min-width:360px;"
+                        data-placeholder="Todos los alumnos">
                     <option value="">Todos los alumnos</option>
                     @foreach ($alumnos as $alumno)
                         <option value="{{ $alumno->id }}" {{ request('alumno_id') == $alumno->id ? 'selected' : '' }}>
-                            {{ $alumno->nombre_completo }}
+                            {{ trim("{$alumno->ap_paterno} {$alumno->ap_materno} {$alumno->nombre}") }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="plan_id" class="con-select" onchange="this.form.submit()" title="Filtrar por plan de pagos">
+                    <option value="">Todos los planes</option>
+                    @foreach ($planes as $plan)
+                        <option value="{{ $plan->id }}" {{ request('plan_id') == $plan->id ? 'selected' : '' }}>
+                            {{ $plan->nombre }}
                         </option>
                     @endforeach
                 </select>
@@ -135,7 +157,7 @@
                     <option value="cancelada" {{ request('estado') === 'cancelada' ? 'selected' : '' }}>Canceladas</option>
                 </select>
 
-                @if (request()->anyFilled(['alumno_id', 'estado']))
+                @if (request()->anyFilled(['alumno_id', 'plan_id', 'estado']))
                     <a href="{{ route('condonaciones.index') }}" class="btn btn-default btn-flat btn-sm"
                        style="border-radius:20px;padding:5px 14px;" title="Quitar filtros">
                         <i class="fa fa-times"></i>
@@ -242,3 +264,18 @@
     </div>
 
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('bower_components/select2/dist/js/select2.full.min.js') }}"></script>
+    <script>
+        $(function () {
+            $('.select2-alumno').select2({
+                allowClear: true,
+                width: '360px',
+                placeholder: 'Todos los alumnos',
+            }).on('change', function () {
+                $(this).closest('form').trigger('submit');
+            });
+        });
+    </script>
+@endpush

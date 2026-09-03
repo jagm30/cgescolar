@@ -460,17 +460,6 @@
 
         @push('scripts')
             <script>
-                // ── BÚSQUEDA EN TIEMPO REAL ──
-                (function () {
-                    var timer;
-                    document.querySelector('input[name="buscar"]').addEventListener('input', function () {
-                        clearTimeout(timer);
-                        timer = setTimeout(function () {
-                            document.getElementById('form-filtros').submit();
-                        }, 400);
-                    });
-                })();
-
                 // ── REPORTE CUMPLEAÑEROS: actualizar mes en la URL ──
                 var urlBaseCumple = '{{ route('alumnos.reporte-cumpleaneros', request()->only(['buscar','nivel_id','grupo_id','estado'])) }}';
 

@@ -326,6 +326,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,caja')
         ->name('pagos.form-factura');
 
+    Route::get('/pagos/condonaciones-100', [CondonacionController::class, 'reporte100'])
+        ->middleware('rol:administrador,caja')
+        ->name('pagos.condonaciones-100');
+
     Route::resource('pagos', PagoController::class)
         ->only(['index', 'show', 'create', 'store'])
         ->middleware('rol:administrador,caja');
@@ -375,6 +379,10 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('/condonaciones/crear', [CondonacionController::class, 'create'])
         ->middleware('rol:administrador,caja')
         ->name('condonaciones.create');
+
+    Route::get('/condonaciones/exportar', [CondonacionController::class, 'exportarExcel'])
+        ->middleware('rol:administrador,caja')
+        ->name('condonaciones.exportar');
 
     Route::resource('condonaciones', CondonacionController::class)
         ->only(['index', 'store', 'show', 'destroy'])

@@ -370,13 +370,14 @@
             <table class="con-table">
                 <thead>
                     <tr>
-                        <th style="width:30%;">Concepto</th>
-                        <th style="width:12%; text-align:right;">Monto base</th>
-                        <th style="width:13%;">Tipo</th>
-                        <th style="width:8%; text-align:center;">Beca</th>
-                        <th style="width:8%; text-align:center;">Recargo</th>
-                        <th style="width:10%;">Clave SAT</th>
-                        <th style="width:8%;">Estatus</th>
+                        <th style="width:28%;">Concepto</th>
+                        <th style="width:11%; text-align:right;">Monto base</th>
+                        <th style="width:12%;">Tipo</th>
+                        <th style="width:7%; text-align:center;">Beca</th>
+                        <th style="width:7%; text-align:center;">Recargo</th>
+                        <th style="width:8%; text-align:center;">Facturable</th>
+                        <th style="width:9%;">Clave SAT</th>
+                        <th style="width:7%;">Estatus</th>
                         <th style="width:11%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -420,6 +421,15 @@
                                     <i class="fa fa-check-circle con-bool-yes" title="Aplica recargo"></i>
                                 @else
                                     <i class="fa fa-times-circle con-bool-no" title="No aplica recargo"></i>
+                                @endif
+                            </td>
+
+                            {{-- FACTURABLE --}}
+                            <td class="text-center">
+                                @if ($concepto->facturable)
+                                    <i class="fa fa-check-circle con-bool-yes" title="Facturable"></i>
+                                @else
+                                    <span class="label label-danger" style="font-size:10px;">No facturable</span>
                                 @endif
                             </td>
 
@@ -480,7 +490,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="con-empty">
                                     <i class="fa fa-tags"></i>
                                     @if (request()->anyFilled(['buscar', 'tipo', 'activo']))
@@ -606,6 +616,14 @@
                                 <span class="label label-success">Estatus Activo</span>
                             </label>
                         </div>
+
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" name="facturable" checked>
+                                <span class="text-danger"><i class="fa fa-file-text-o"></i> Facturable</span>
+                            </label>
+                            <small class="text-muted" style="margin-left:20px;">Si no aplica, el concepto no podrá ser facturado.</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -704,6 +722,14 @@
                                         Estatus {{ $concepto->activo ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </label>
+                            </div>
+
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" name="facturable" {{ $concepto->facturable ? 'checked' : '' }}>
+                                    <span class="text-danger"><i class="fa fa-file-text-o"></i> Facturable</span>
+                                </label>
+                                <small class="text-muted" style="margin-left:20px;">Si no aplica, el concepto no podrá ser facturado.</small>
                             </div>
                         </div>
                     </div>

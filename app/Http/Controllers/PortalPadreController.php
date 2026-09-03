@@ -1029,11 +1029,19 @@ class PortalPadreController extends Controller
 
     /**
      * Devuelve true si todos los cargos del pago están marcados como facturables.
-     * Los cargos sin asignación de plan se consideran facturables por defecto.
+     * Verifica dos niveles:
+     *   1. concepto_cobro.facturable — el concepto en sí está habilitado para facturar.
+     *   2. plan_pago_concepto.facturable — el par plan/concepto está habilitado.
+     * Los cargos sin asignación de plan pasan solo la validación del concepto.
      */
     private function todosFacturables(Pago $pago, Collection $facturableMap): bool
     {
         return $pago->detalles->every(function ($d) use ($facturableMap) {
+            // 1. El concepto mismo debe estar marcado como facturable en concepto_cobro
+            if ($d->cargo?->concepto && ! $d->cargo->concepto->facturable) {
+                return false;
+            }
+
             $planId = $d->cargo?->asignacion?->plan_id;
             $conceptoId = $d->cargo?->concepto_id;
 
@@ -1041,6 +1049,7 @@ class PortalPadreController extends Controller
                 return true;
             }
 
+            // 2. El par plan/concepto también debe estar habilitado en plan_pago_concepto
             return $facturableMap->get("{$planId}-{$conceptoId}", true);
         });
     }
