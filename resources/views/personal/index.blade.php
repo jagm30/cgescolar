@@ -137,7 +137,7 @@
                 </span>
             </div>
         </div>
-        @if (auth()->user()->esAdministrador())
+        @if (auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion())
             <a href="{{ route('personal.create') }}" class="btn btn-success btn-sm btn-flat"
                style="border-radius:20px;white-space:nowrap;flex-shrink:0;">
                 <i class="fa fa-plus"></i> Nuevo empleado
@@ -264,7 +264,7 @@
                                        class="btn btn-info btn-xs btn-flat" style="border-radius:4px;" title="Ver">
                                         <i class="fa fa-eye"></i>
                                     </a>
-                                    @if (auth()->user()->esAdministrador())
+                                    @if (auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion())
                                         <a href="{{ route('personal.edit', $empleado) }}"
                                            class="btn btn-primary btn-xs btn-flat" style="border-radius:4px;" title="Editar">
                                             <i class="fa fa-pencil"></i>
@@ -297,7 +297,7 @@
                                     @else
                                         <h4>No hay empleados registrados</h4>
                                         <p>Registra el primer empleado del plantel.</p>
-                                        @if (auth()->user()->esAdministrador())
+                                        @if (auth()->user()->esAdministrador() || auth()->user()->esDirectorSeccion())
                                             <a href="{{ route('personal.create') }}" class="btn btn-success btn-sm" style="border-radius:20px;">
                                                 <i class="fa fa-plus"></i> Nuevo empleado
                                             </a>

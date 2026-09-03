@@ -142,7 +142,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,director_seccion,caja')
         ->name('alumnos.exportar-excel');
     Route::get('/alumnos/reporte-cumpleaneros', [AlumnoController::class, 'reporteCumpleaneros'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,director_seccion')
         ->name('alumnos.reporte-cumpleaneros');
     Route::get('/alumnos/verificar-curp', [AlumnoController::class, 'verificarCurp'])
         ->middleware('rol:administrador,recepcion,caja,admisiones,informacion_admisiones,director_seccion')
@@ -456,13 +456,13 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->middleware('rol:administrador,director_seccion');
 
     // ── Personal ─────────────────────────────────────────
-    // Recepción puede consultar, solo administrador gestiona
+    // Administrador y director de sección gestionan docentes
     Route::get('/personal', [PersonalController::class, 'index'])
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,director_seccion')
         ->name('personal.index');
 
     Route::resource('personal', PersonalController::class)
-        ->middleware('rol:administrador')
+        ->middleware('rol:administrador,director_seccion')
         ->except(['index']);
 
     // ── Manuales descargables ────────────────────────────
