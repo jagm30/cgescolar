@@ -379,15 +379,13 @@
                                         data-motivo="{{ $prospecto->motivo_no_concrecion }}">
                                     <i class="fa fa-exchange text-orange"></i>
                                 </button>
-                                @if ($prospecto->seguimientos_manuales_count === 0)
-                                    <button type="button" class="btn btn-default btn-xs btn-flat btn-prospecto-eliminar"
-                                            style="border-radius:4px;" title="Eliminar"
-                                            onclick="event.stopPropagation();"
-                                            data-id="{{ $prospecto->id }}"
-                                            data-nombre="{{ $prospecto->nombre_completo }}">
-                                        <i class="fa fa-trash text-red"></i>
-                                    </button>
-                                @endif
+                                <button type="button" class="btn btn-default btn-xs btn-flat btn-prospecto-eliminar"
+                                        style="border-radius:4px;" title="Eliminar"
+                                        onclick="event.stopPropagation();"
+                                        data-id="{{ $prospecto->id }}"
+                                        data-nombre="{{ $prospecto->nombre_completo }}">
+                                    <i class="fa fa-trash text-red"></i>
+                                </button>
                             </div>
                         </td>
 

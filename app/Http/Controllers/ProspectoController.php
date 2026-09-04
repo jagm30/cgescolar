@@ -33,7 +33,6 @@ class ProspectoController extends Controller
             ?? CicloEscolar::activo()->value('id');
 
         $prospectos = Prospecto::with(['ciclo', 'nivelInteres', 'gradoInteres', 'responsable', 'alumno'])
-            ->withCount(['seguimientos as seguimientos_manuales_count' => fn ($q) => Prospecto::filtroSeguimientoManual($q)])
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('etapa'), fn ($q) => $q->where('etapa', $request->etapa))
             ->when($request->filled('en_proceso'), fn ($q) => $q->enProceso())
@@ -87,21 +86,14 @@ class ProspectoController extends Controller
         }
 
         $familias = Familia::orderBy('apellido_familia')->get(['id', 'apellido_familia']);
-        $puedeEliminar = ! $prospecto->tieneSeguimientosManuales();
 
-        return view('prospectos.show', compact('prospecto', 'tiposDocumento', 'familias', 'puedeEliminar'));
+        return view('prospectos.show', compact('prospecto', 'tiposDocumento', 'familias'));
     }
 
-    /** DELETE /prospectos/{id} — Solo si no tiene seguimientos manuales registrados. */
+    /** DELETE /prospectos/{id} */
     public function destroy(int $id)
     {
         $prospecto = Prospecto::findOrFail($id);
-
-        if ($prospecto->tieneSeguimientosManuales()) {
-            return $this->respuestaError(
-                'No se puede eliminar: el prospecto ya tiene seguimientos registrados.'
-            );
-        }
 
         $anterior = $prospecto->toArray();
         $nombreCompleto = $prospecto->nombre_completo;
