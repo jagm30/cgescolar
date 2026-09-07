@@ -238,6 +238,14 @@
         </a>
     </li>
     <li>
+        <a href="#tab-parciales" data-toggle="tab" style="font-weight:700;font-size:13px;">
+            <i class="fa fa-adjust" style="color:#b45309;"></i> Pago parcial
+            @if($cargosParciales->count())
+                <span class="badge" style="background:#b45309;color:#fff;margin-left:4px;">{{ $cargosParciales->count() }}</span>
+            @endif
+        </a>
+    </li>
+    <li>
         <a href="#tab-pagados" data-toggle="tab" style="font-weight:700;font-size:13px;">
             <i class="fa fa-check-circle text-success"></i> Pagados
             @if($cargosPagados->count())
@@ -842,6 +850,107 @@
 
 </div>{{-- /tab-pane#tab-cobro --}}
 
+{{-- ════ TAB: PAGO PARCIAL ════ --}}
+<div class="tab-pane" id="tab-parciales">
+
+@if($cargosParciales->isEmpty())
+    <div style="text-align:center;padding:50px 20px;color:#bbb;">
+        <i class="fa fa-adjust" style="font-size:42px;display:block;margin-bottom:12px;"></i>
+        <p style="font-size:14px;margin:0;">Este alumno no tiene cargos con pago parcial.</p>
+    </div>
+@else
+    <div style="overflow-x:auto;">
+        <table class="table table-hover" style="font-size:13px;margin-bottom:0;">
+            <thead>
+                <tr style="background:#f4f6f8;color:#6b7a8d;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">
+                    <th>Concepto</th>
+                    <th>Plan de pago</th>
+                    <th>Ciclo</th>
+                    <th class="text-right">Monto original</th>
+                    <th class="text-right">Abonado</th>
+                    <th class="text-right">Pendiente</th>
+                    <th>Vence</th>
+                    <th class="text-center">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($cargosParciales as $cpar)
+                <tr>
+                    <td>
+                        <div style="font-weight:700;color:#1a2634;">
+                            {{ $cpar->concepto->nombre }}
+                        </div>
+                        @if($cpar->periodo_label)
+                            <div style="font-size:11px;color:#aab;">{{ $cpar->periodo_label }}</div>
+                        @endif
+                    </td>
+                    <td>
+                        @if($cpar->asignacion?->plan)
+                            <span style="background:#eaf3fb;color:#2c6fad;border:1px solid #b3d4f5;
+                                         border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">
+                                {{ $cpar->asignacion->plan->nombre }}
+                            </span>
+                        @else
+                            <span style="color:#ccc;font-size:11px;">—</span>
+                        @endif
+                    </td>
+                    <td style="color:#888;font-size:12px;">
+                        {{ $cpar->inscripcion->ciclo->nombre ?? '—' }}
+                    </td>
+                    <td class="text-right" style="color:#555;">
+                        ${{ number_format((float) $cpar->monto_original, 2) }}
+                    </td>
+                    <td class="text-right">
+                        <span style="font-weight:700;color:#1a6b2e;">
+                            ${{ number_format($cpar->abonado, 2) }}
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        <span style="font-weight:700;color:#b45309;">
+                            ${{ number_format($cpar->pendiente, 2) }}
+                        </span>
+                    </td>
+                    <td style="color:#555;font-size:12px;white-space:nowrap;">
+                        {{ $cpar->fecha_vencimiento->format('d/m/Y') }}
+                        @if($cpar->vencido)
+                            <span style="color:#e74c3c;font-weight:600;"><i class="fa fa-exclamation-triangle"></i></span>
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        <button type="button"
+                                class="btn btn-xs btn-flat"
+                                style="background:#fff8e1;color:#b45309;border:1px solid #fde68a;border-radius:4px;"
+                                title="Ir a cobrar el saldo pendiente"
+                                onclick="irACobrarParcial({{ $cpar->id }}, {{ $cpar->monto_a_pagar_hoy }})">
+                            <i class="fa fa-money"></i> Cobrar
+                        </button>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background:#f9fafb;font-weight:700;">
+                    <td colspan="3" style="font-size:13px;color:#555;">
+                        {{ $cargosParciales->count() }} cargo(s) con pago parcial
+                    </td>
+                    <td class="text-right" style="color:#555;">
+                        ${{ number_format($cargosParciales->sum('monto_original'), 2) }}
+                    </td>
+                    <td class="text-right" style="color:#1a6b2e;">
+                        ${{ number_format($cargosParciales->sum('abonado'), 2) }}
+                    </td>
+                    <td class="text-right" style="color:#b45309;">
+                        ${{ number_format($cargosParciales->sum('pendiente'), 2) }}
+                    </td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+@endif
+
+</div>{{-- /tab-pane#tab-parciales --}}
+
 {{-- ════ TAB: PAGADOS ════ --}}
 <div class="tab-pane" id="tab-pagados">
 
@@ -1153,6 +1262,21 @@ $(function() {
 
         actualizarResumen();
         actualizarBtnCobrar();
+    };
+
+    // ══════════════════════════════════════════════════
+    // IR A COBRAR (desde la pestaña "Pago parcial")
+    // ══════════════════════════════════════════════════
+    window.irACobrarParcial = function(cargoId, pagarHoy) {
+        $('#cobro-tabs a[href="#tab-cobro"]').tab('show');
+        setTimeout(function() {
+            var $card = $('#cargo-card-' + cargoId);
+            if (! $card.length) return;
+            if (! $card.hasClass('seleccionado')) {
+                toggleCargo(cargoId, pagarHoy);
+            }
+            $card[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
     };
 
     // NO usamos disabled — en su lugar controlamos via reindexado en submit

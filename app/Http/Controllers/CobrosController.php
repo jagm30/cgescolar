@@ -6,8 +6,8 @@ use App\Models\Alumno;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
-use App\Models\ConfigFiscal;
 use App\Models\ConceptoCobro;
+use App\Models\ConfigFiscal;
 use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
@@ -100,6 +100,8 @@ class CobrosController extends Controller
             ->get()
             ->map(fn ($cargo) => $this->enriquecerCargo($cargo, $hoy, $hoyFecha, $becasPorPlan, $becasPorConcepto));
 
+        $cargosParciales = $cargos->where('estado', 'parcial')->values();
+
         $conceptos = ConceptoCobro::where('activo', true)
             ->whereIn('tipo', ['cargo_unico', 'cargo_recurrente'])
             ->orderBy('tipo')
@@ -134,6 +136,7 @@ class CobrosController extends Controller
             'inscripcionActual',
             'inscripcionParaCobro',
             'cargos',
+            'cargosParciales',
             'conceptos',
             'cargosPagados',
             'cargosCondonados'
@@ -413,11 +416,11 @@ class CobrosController extends Controller
         $plan = $cargo->asignacion->plan;
 
         if ($vencido) {
-            $mesesRetraso   = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
-            $pr             = $plan->politicasRecargo->firstWhere('activo', true);
+            $mesesRetraso = (int) $cargo->fecha_vencimiento->diffInMonths($hoyFecha) + 1;
+            $pr = $plan->politicasRecargo->firstWhere('activo', true);
             $mesVencimiento = $cargo->fecha_vencimiento->month;
-            $mesExento      = $pr && ! $pr->aplicaEnMes($mesVencimiento);
-            $recargo        = ($pr && ! $mesExento)
+            $mesExento = $pr && ! $pr->aplicaEnMes($mesVencimiento);
+            $recargo = ($pr && ! $mesExento)
                 ? $pr->calcular($pendiente, $mesesRetraso)
                 : 0.0;
 
