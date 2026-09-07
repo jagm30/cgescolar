@@ -79,13 +79,13 @@
 
 /* Campo monto editable */
 .monto-input {
-    font-size: 20px;
+    font-size: 26px;
     font-weight: 700;
-    height: 46px;
+    height: 52px;
     text-align: right;
     border-radius: 6px;
     border: 2px solid #3c8dbc;
-    padding-right: 12px;
+    padding-right: 14px;
 }
 .monto-input:focus { border-color: #1e6fa8; box-shadow: none; }
 
@@ -551,12 +551,12 @@
 
                     <div class="row">
                         {{-- Monto a abonar --}}
-                        <div class="col-md-2">
+                        <div class="col-md-6">
                             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
                                 Monto a cobrar
                             </label>
                             <div class="input-group">
-                                <span class="input-group-addon" style="background:#3c8dbc;color:#fff;font-weight:700;border:2px solid #3c8dbc;border-right:none;">$</span>
+                                <span class="input-group-addon" style="background:#3c8dbc;color:#fff;font-weight:700;font-size:22px;border:2px solid #3c8dbc;border-right:none;">$</span>
                                 <input type="number"
                                        class="form-control monto-input item-monto"
                                        value="{{ $cargo->monto_a_pagar_hoy }}"
@@ -574,8 +574,19 @@
                             </div>
                         </div>
 
+                        {{-- Total del ítem --}}
+                        <div class="col-md-6" style="text-align:right;">
+                            <div style="font-size:12px;color:#aaa;font-weight:600;margin-bottom:4px;">Total ítem</div>
+                            <div style="font-size:32px;line-height:46px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
+                                 id="total-item-{{ $i }}">
+                                ${{ number_format($cargo->monto_a_pagar_hoy, 2) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:14px;">
                         {{-- Etiqueta: Descuento beca --}}
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div style="font-size:12px;font-weight:600;margin-bottom:6px;
                                         color:{{ $tieneBeca ? '#3c763d' : '#aaa' }};">
                                 <i class="fa fa-graduation-cap"></i> Desc. beca
@@ -590,7 +601,7 @@
                         </div>
 
                         {{-- Etiqueta: Descuento pronto pago --}}
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <div style="font-size:12px;font-weight:600;margin-bottom:6px;
                                         color:{{ $tieneDescuento ? '#27ae60' : '#aaa' }};">
                                 <i class="fa fa-tag"></i> Pronto pago
@@ -606,7 +617,7 @@
                         </div>
 
                         {{-- Descuento adicional (editable, a criterio del cajero) --}}
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:#8e44ad;">
                                 <i class="fa fa-percent"></i> Desc. adicional
                             </label>
@@ -626,7 +637,7 @@
                         </div>
 
                         {{-- Recargo por mora (editable, bloqueado en meses exentos) --}}
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;
                                         color:{{ $tieneRecargo ? '#c0392b' : ($mesExento ? '#2e7d32' : '#aaa') }};">
                                 <i class="fa {{ $mesExento ? 'fa-ban' : 'fa-exclamation-triangle' }}"></i>
@@ -648,15 +659,6 @@
                             @if($mesExento)
                             <div style="font-size:10px;color:#2e7d32;margin-top:3px;">Mes exento</div>
                             @endif
-                        </div>
-
-                        {{-- Total del ítem --}}
-                        <div class="col-md-2" style="text-align:right;padding-top:20px;">
-                            <div style="font-size:11px;color:#aaa;margin-bottom:2px;">Total ítem</div>
-                            <div style="font-size:18px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
-                                 id="total-item-{{ $i }}">
-                                ${{ number_format($cargo->monto_a_pagar_hoy, 2) }}
-                            </div>
                         </div>
                     </div>
                 </div>
