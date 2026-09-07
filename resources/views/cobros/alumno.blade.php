@@ -548,11 +548,10 @@
                     {{-- Valores ocultos para el form (calculados automáticamente) --}}
                     <input type="hidden" name="items[{{ $i }}][descuento_beca]"        value="{{ $becaDescuento }}">
                     <input type="hidden" name="items[{{ $i }}][descuento_pronto_pago]" value="{{ $cargo->descuento_calc }}">
-                    <input type="hidden" name="items[{{ $i }}][descuento_otros]"       value="0" class="item-desc" data-idx="{{ $i }}">
 
                     <div class="row">
                         {{-- Monto a abonar --}}
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label style="font-size:12px;color:#555;font-weight:600;display:block;margin-bottom:4px;">
                                 Monto a cobrar
                             </label>
@@ -606,6 +605,26 @@
                             @endif
                         </div>
 
+                        {{-- Descuento adicional (editable, a criterio del cajero) --}}
+                        <div class="col-md-2">
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;color:#8e44ad;">
+                                <i class="fa fa-percent"></i> Desc. adicional
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-addon"
+                                      style="background:#8e44ad;color:#fff;font-weight:700;
+                                             border:2px solid #8e44ad;border-right:none;font-size:12px;">$</span>
+                                <input type="number"
+                                       class="form-control input-sm item-desc item-descuento-adicional"
+                                       name="items[{{ $i }}][descuento_otros]"
+                                       value="0"
+                                       min="0"
+                                       step="0.01"
+                                       data-idx="{{ $i }}"
+                                       title="Descuento adicional a criterio del cajero">
+                            </div>
+                        </div>
+
                         {{-- Recargo por mora (editable, bloqueado en meses exentos) --}}
                         <div class="col-md-2">
                             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;
@@ -632,7 +651,7 @@
                         </div>
 
                         {{-- Total del ítem --}}
-                        <div class="col-md-3" style="text-align:right;padding-top:20px;">
+                        <div class="col-md-2" style="text-align:right;padding-top:20px;">
                             <div style="font-size:11px;color:#aaa;margin-bottom:2px;">Total ítem</div>
                             <div style="font-size:18px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
                                  id="total-item-{{ $i }}">
@@ -1185,7 +1204,7 @@ $(function() {
 
     /**
      * Recalcula el campo oculto monto_abonado (base para el estado del cargo) a partir
-     * del monto visible ingresado por el cajero. Fórmula: base = visible + beca + pp - recargo
+     * del monto visible ingresado por el cajero. Fórmula: base = visible + beca + pp + otros - recargo
      * Esto garantiza que al restar los descuentos y sumar el recargo en el backend
      * se obtenga exactamente el monto visible como monto_final.
      */
@@ -1195,9 +1214,10 @@ $(function() {
         var visible    = parseFloat($det.find('.item-monto').val()) || 0;
         var dBeca      = parseFloat($det.find('input[name*="[descuento_beca]"]').val())        || 0;
         var dPP        = parseFloat($det.find('input[name*="[descuento_pronto_pago]"]').val()) || 0;
+        var dOtros     = parseFloat($det.find('input[name*="[descuento_otros]"]').val())        || 0;
         var dCond      = parseFloat($det.closest('.cargo-item').data('condonacion'))            || 0;
         var recarg     = parseFloat($det.find('input[name*="[recargo]"]').val())                || 0;
-        $det.find('.item-monto-oculto').val(Math.max(0.01, visible + dBeca + dPP + dCond - recarg).toFixed(2));
+        $det.find('.item-monto-oculto').val(Math.max(0.01, visible + dBeca + dPP + dOtros + dCond - recarg).toFixed(2));
     }
 
     function recalcularItem(idx) {

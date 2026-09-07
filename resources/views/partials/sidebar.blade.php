@@ -376,7 +376,7 @@
                 </li>
 
                 <li
-                    class="treeview {{ request()->routeIs(['pagos.*', 'reportes.deudores']) ? 'active menu-open' : '' }}">
+                    class="treeview {{ request()->routeIs(['pagos.*', 'reportes.deudores', 'reportes.colegiaturas-faltantes']) ? 'active menu-open' : '' }}">
                     <a href="#">
                         <i class="fa fa-credit-card"></i>
                         <span>Pagos</span>
@@ -403,6 +403,11 @@
                         <li class="{{ request()->routeIs('reportes.deudores') ? 'active' : '' }}">
                             <a href="{{ route('reportes.deudores') }}">
                                 <i class="fa fa-circle-o"></i> Reporte de deudores
+                            </a>
+                        </li>
+                        <li class="{{ request()->routeIs('reportes.colegiaturas-faltantes') ? 'active' : '' }}">
+                            <a href="{{ route('reportes.colegiaturas-faltantes') }}">
+                                <i class="fa fa-circle-o"></i> Colegiaturas faltantes
                             </a>
                         </li>
                     </ul>

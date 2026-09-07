@@ -26,6 +26,7 @@ use App\Http\Controllers\PortalPadreController;
 use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\ReinscripcionController;
+use App\Http\Controllers\ReporteColegiaturasFaltantesController;
 use App\Http\Controllers\ReporteDeudoresController;
 use App\Http\Controllers\ReporteDirectorioController;
 use App\Http\Controllers\SettingController;
@@ -715,6 +716,10 @@ Route::get('/reportes/deudores/pdf-detalle', [ReporteDeudoresController::class, 
 Route::get('/reportes/directorio-familiar/pdf', [ReporteDirectorioController::class, 'pdf'])
     ->middleware(['auth', 'rol:administrador'])
     ->name('reportes.directorio-familiar.pdf');
+
+Route::get('/reportes/colegiaturas-faltantes', [ReporteColegiaturasFaltantesController::class, 'index'])
+    ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador,caja'])
+    ->name('reportes.colegiaturas-faltantes');
 
 // Configuración fiscal (datos del emisor para CFDI)
 Route::post('/fiscal', [SettingController::class, 'updateFiscal'])
