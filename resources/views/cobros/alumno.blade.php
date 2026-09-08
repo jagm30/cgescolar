@@ -79,13 +79,13 @@
 
 /* Campo monto editable */
 .monto-input {
-    font-size: 26px;
+    font-size: 18px;
     font-weight: 700;
-    height: 52px;
+    height: 38px;
     text-align: right;
     border-radius: 6px;
     border: 2px solid #3c8dbc;
-    padding-right: 14px;
+    padding-right: 10px;
 }
 .monto-input:focus { border-color: #1e6fa8; box-shadow: none; }
 
@@ -150,6 +150,34 @@
     border-color: #27ae60;
     color: #fff;
 }
+
+/* ── Tablas pagados/condonados: encabezados ordenables ──── */
+#tabla-pagados th.sortable,
+#tabla-condonados th.sortable {
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+#tabla-pagados th.sortable:hover,
+#tabla-condonados th.sortable:hover { background: #e8edf4; }
+#tabla-pagados th.sortable .sort-icon,
+#tabla-condonados th.sortable .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    opacity: .35;
+    font-size: 10px;
+    vertical-align: middle;
+}
+#tabla-pagados th.sort-asc  .sort-icon,
+#tabla-pagados th.sort-desc .sort-icon,
+#tabla-condonados th.sort-asc  .sort-icon,
+#tabla-condonados th.sort-desc .sort-icon { opacity: 1; color: #3c8dbc; }
+#tabla-pagados th.sort-asc  .sort-icon::after,
+#tabla-condonados th.sort-asc  .sort-icon::after { content: ' ▲'; }
+#tabla-pagados th.sort-desc .sort-icon::after,
+#tabla-condonados th.sort-desc .sort-icon::after { content: ' ▼'; }
+#tabla-pagados th.sortable:not(.sort-asc):not(.sort-desc) .sort-icon::after,
+#tabla-condonados th.sortable:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: ' ⇅'; }
 </style>
 @endpush
 
@@ -513,46 +541,6 @@
                     <input type="hidden" name="items[{{ $i }}][tipo]" value="cargo">
                     <input type="hidden" name="items[{{ $i }}][cargo_id]" value="{{ $cargo->id }}">
 
-                    @if($tieneCondonacion || $tieneBeca || $tieneRecargo || $tieneDescuento)
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-                        @if($tieneCondonacion)
-                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
-                                     padding:3px 9px;border-radius:10px;background:#f3e8fd;color:#5b1d9a;border:1px solid #d8b4fe;">
-                            <i class="fa fa-scissors"></i>
-                            Condonación: -${{ number_format($montoCondonacion, 2) }}
-                        </span>
-                        @endif
-                        @if($tieneBeca)
-                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
-                                     padding:3px 9px;border-radius:10px;background:#dff0d8;color:#2d6a2d;border:1px solid #b2dfb2;">
-                            <i class="fa fa-graduation-cap"></i>
-                            Beca: -${{ number_format($becaDescuento, 2) }}@if($becaPorcentaje !== null) ({{ number_format($becaPorcentaje, 0) }}%)@endif
-                        </span>
-                        @endif
-                        @if($tieneDescuento)
-                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
-                                     padding:3px 9px;border-radius:10px;background:#eafaf1;color:#1e8449;border:1px solid #c3e6cb;">
-                            <i class="fa fa-tag"></i>
-                            Pronto pago: -${{ number_format($cargo->descuento_calc, 2) }}
-                        </span>
-                        @endif
-                        @if($tieneRecargo)
-                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
-                                     padding:3px 9px;border-radius:10px;background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;">
-                            <i class="fa fa-exclamation-triangle"></i>
-                            Recargo mora: +${{ number_format($cargo->recargo_calc, 2) }}
-                            ({{ number_format($cargo->dias_atraso, 0) }} días · {{ $cargo->meses_retraso }} {{ $cargo->meses_retraso === 1 ? 'mes' : 'meses' }})
-                        </span>
-                        @elseif($mesExento && $cargo->vencido)
-                        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
-                                     padding:3px 9px;border-radius:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;">
-                            <i class="fa fa-ban"></i>
-                            Mes exento — sin recargo por mora
-                        </span>
-                        @endif
-                    </div>
-                    @endif
-
                     {{-- Valores ocultos para el form (calculados automáticamente) --}}
                     <input type="hidden" name="items[{{ $i }}][descuento_beca]"        value="{{ $becaDescuento }}">
                     <input type="hidden" name="items[{{ $i }}][descuento_pronto_pago]" value="{{ $cargo->descuento_calc }}">
@@ -564,7 +552,7 @@
                                 Monto a cobrar
                             </label>
                             <div class="input-group">
-                                <span class="input-group-addon" style="background:#3c8dbc;color:#fff;font-weight:700;font-size:22px;border:2px solid #3c8dbc;border-right:none;">$</span>
+                                <span class="input-group-addon" style="background:#3c8dbc;color:#fff;font-weight:700;font-size:16px;border:2px solid #3c8dbc;border-right:none;">$</span>
                                 <input type="number"
                                        class="form-control monto-input item-monto"
                                        value="{{ $cargo->monto_a_pagar_hoy }}"
@@ -585,7 +573,7 @@
                         {{-- Total del ítem --}}
                         <div class="col-md-6" style="text-align:right;">
                             <div style="font-size:12px;color:#aaa;font-weight:600;margin-bottom:4px;">Total ítem</div>
-                            <div style="font-size:32px;line-height:46px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
+                            <div style="font-size:22px;line-height:36px;font-weight:700;color:{{ $tieneRecargo ? '#e74c3c' : ($tieneAjuste ? '#27ae60' : '#3c8dbc') }};"
                                  id="total-item-{{ $i }}">
                                 ${{ number_format($cargo->monto_a_pagar_hoy, 2) }}
                             </div>
@@ -961,16 +949,16 @@
     </div>
 @else
     <div style="overflow-x:auto;">
-        <table class="table table-hover" style="font-size:13px;margin-bottom:0;">
+        <table id="tabla-pagados" class="table table-hover" style="font-size:13px;margin-bottom:0;">
             <thead>
                 <tr style="background:#f4f6f8;color:#6b7a8d;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">
-                    <th>Concepto</th>
-                    <th>Plan de pago</th>
-                    <th>Ciclo</th>
-                    <th class="text-right">Monto original</th>
-                    <th class="text-right">Pagado</th>
-                    <th>Fecha pago</th>
-                    <th>Forma</th>
+                    <th class="sortable" data-col="0" data-type="text">Concepto<span class="sort-icon"></span></th>
+                    <th class="sortable" data-col="1" data-type="text">Plan de pago<span class="sort-icon"></span></th>
+                    <th class="sortable" data-col="2" data-type="text">Ciclo<span class="sort-icon"></span></th>
+                    <th class="sortable text-right" data-col="3" data-type="number">Monto original<span class="sort-icon"></span></th>
+                    <th class="sortable text-right" data-col="4" data-type="number">Pagado<span class="sort-icon"></span></th>
+                    <th class="sortable sort-desc" data-col="5" data-type="date">Fecha pago<span class="sort-icon"></span></th>
+                    <th class="sortable" data-col="6" data-type="text">Forma<span class="sort-icon"></span></th>
                     <th class="text-center">Recibo</th>
                 </tr>
             </thead>
@@ -982,15 +970,22 @@
                     $totalPag  = $cp->detallesPagosVigentes->sum('monto_abonado');
                 @endphp
                 <tr>
-                    <td>
+                    <td data-val="{{ $cp->concepto->nombre }} {{ $cp->periodo_label }}">
                         <div style="font-weight:700;color:#1a2634;">
                             {{ $cp->concepto->nombre }}
                         </div>
                         @if($cp->periodo_label)
-                            <div style="font-size:11px;color:#aab;">{{ $cp->periodo_label }}</div>
+                            <div style="margin-top:3px;">
+                                <span style="display:inline-block;background:#e0f2f1;color:#00695c;
+                                             font-size:11px;font-weight:700;border-radius:8px;
+                                             padding:2px 8px;border:1px solid #b2dfdb;">
+                                    <i class="fa fa-calendar" style="font-size:10px;"></i>
+                                    {{ $cp->periodo_label }}
+                                </span>
+                            </div>
                         @endif
                     </td>
-                    <td>
+                    <td data-val="{{ $cp->asignacion?->plan?->nombre ?? '' }}">
                         @if($cp->asignacion?->plan)
                             <span style="background:#eaf3fb;color:#2c6fad;border:1px solid #b3d4f5;
                                          border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">
@@ -1000,21 +995,21 @@
                             <span style="color:#ccc;font-size:11px;">—</span>
                         @endif
                     </td>
-                    <td style="color:#888;font-size:12px;">
+                    <td data-val="{{ $cp->inscripcion->ciclo->nombre ?? '' }}" style="color:#888;font-size:12px;">
                         {{ $cp->inscripcion->ciclo->nombre ?? '—' }}
                     </td>
-                    <td class="text-right" style="color:#555;">
+                    <td data-val="{{ (float) $cp->monto_original }}" class="text-right" style="color:#555;">
                         ${{ number_format((float) $cp->monto_original, 2) }}
                     </td>
-                    <td class="text-right">
+                    <td data-val="{{ $totalPag }}" class="text-right">
                         <span style="font-weight:700;color:#1a6b2e;">
                             ${{ number_format($totalPag, 2) }}
                         </span>
                     </td>
-                    <td style="color:#555;">
+                    <td data-val="{{ $pago?->fecha_pago?->format('Y-m-d') ?? '' }}" style="color:#555;">
                         {{ $pago?->fecha_pago?->format('d/m/Y') ?? '—' }}
                     </td>
-                    <td>
+                    <td data-val="{{ $pago?->forma_pago ?? '' }}">
                         @if($pago)
                             @php
                                 $iconos  = ['efectivo'=>'fa-money','transferencia'=>'fa-exchange','deposito'=>'fa-university','tarjeta_credito'=>'fa-credit-card','tarjeta_debito'=>'fa-credit-card','tarjeta'=>'fa-credit-card','cheque'=>'fa-bank'];
@@ -1073,16 +1068,16 @@
     </div>
 @else
     <div style="overflow-x:auto;">
-        <table class="table table-hover" style="font-size:13px;margin-bottom:0;">
+        <table id="tabla-condonados" class="table table-hover" style="font-size:13px;margin-bottom:0;">
             <thead>
                 <tr style="background:#f4f6f8;color:#6b7a8d;font-size:11px;text-transform:uppercase;letter-spacing:.05em;">
-                    <th>Concepto</th>
-                    <th>Plan de pago</th>
-                    <th>Ciclo</th>
-                    <th class="text-right">Monto original</th>
-                    <th class="text-right">Condonado</th>
-                    <th>Motivo</th>
-                    <th>Fecha</th>
+                    <th class="sortable" data-col="0" data-type="text">Concepto<span class="sort-icon"></span></th>
+                    <th class="sortable" data-col="1" data-type="text">Plan de pago<span class="sort-icon"></span></th>
+                    <th class="sortable" data-col="2" data-type="text">Ciclo<span class="sort-icon"></span></th>
+                    <th class="sortable text-right" data-col="3" data-type="number">Monto original<span class="sort-icon"></span></th>
+                    <th class="sortable text-right" data-col="4" data-type="number">Condonado<span class="sort-icon"></span></th>
+                    <th class="sortable" data-col="5" data-type="text">Motivo<span class="sort-icon"></span></th>
+                    <th class="sortable sort-desc" data-col="6" data-type="date">Fecha<span class="sort-icon"></span></th>
                     <th class="text-center">Detalle</th>
                 </tr>
             </thead>
@@ -1094,15 +1089,22 @@
                     $montoCondon  = $cc->descuentos->sum('monto_aplicado');
                 @endphp
                 <tr>
-                    <td>
+                    <td data-val="{{ $cc->concepto->nombre }} {{ $cc->periodo_label }}">
                         <div style="font-weight:700;color:#1a2634;">
                             {{ $cc->concepto->nombre }}
                         </div>
                         @if($cc->periodo_label)
-                            <div style="font-size:11px;color:#aab;">{{ $cc->periodo_label }}</div>
+                            <div style="margin-top:3px;">
+                                <span style="display:inline-block;background:#f3e8fd;color:#6b21a8;
+                                             font-size:11px;font-weight:700;border-radius:8px;
+                                             padding:2px 8px;border:1px solid #d8b4fe;">
+                                    <i class="fa fa-calendar" style="font-size:10px;"></i>
+                                    {{ $cc->periodo_label }}
+                                </span>
+                            </div>
                         @endif
                     </td>
-                    <td>
+                    <td data-val="{{ $cc->asignacion?->plan?->nombre ?? '' }}">
                         @if($cc->asignacion?->plan)
                             <span style="background:#eaf3fb;color:#2c6fad;border:1px solid #b3d4f5;
                                          border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">
@@ -1112,18 +1114,18 @@
                             <span style="color:#ccc;font-size:11px;">—</span>
                         @endif
                     </td>
-                    <td style="color:#888;font-size:12px;">
+                    <td data-val="{{ $cc->inscripcion->ciclo->nombre ?? '' }}" style="color:#888;font-size:12px;">
                         {{ $cc->inscripcion->ciclo->nombre ?? '—' }}
                     </td>
-                    <td class="text-right" style="color:#555;">
+                    <td data-val="{{ (float) $cc->monto_original }}" class="text-right" style="color:#555;">
                         ${{ number_format((float) $cc->monto_original, 2) }}
                     </td>
-                    <td class="text-right">
+                    <td data-val="{{ $montoCondon }}" class="text-right">
                         <span style="font-weight:700;color:#6b21a8;">
                             ${{ number_format($montoCondon, 2) }}
                         </span>
                     </td>
-                    <td style="max-width:220px;">
+                    <td data-val="{{ $condonacion?->motivo ?? '' }}" style="max-width:220px;">
                         @if($condonacion?->motivo)
                             <span style="font-size:12px;color:#555;"
                                   title="{{ $condonacion->motivo }}">
@@ -1133,7 +1135,7 @@
                             <span style="color:#ccc;font-size:11px;">—</span>
                         @endif
                     </td>
-                    <td style="color:#555;font-size:12px;white-space:nowrap;">
+                    <td data-val="{{ $condonacion?->creado_at?->format('Y-m-d') ?? '' }}" style="color:#555;font-size:12px;white-space:nowrap;">
                         {{ $condonacion?->creado_at?->format('d/m/Y') ?? '—' }}
                     </td>
                     <td class="text-center">
@@ -1663,6 +1665,56 @@ $(function() {
         $body.slideToggle(180);
         $icon.css('transform', visible ? 'rotate(-90deg)' : 'rotate(0deg)');
     };
+
+    // ══════════════════════════════════════════════════
+    // TABLAS PAGADOS / CONDONADOS — ordenación por columna
+    // ══════════════════════════════════════════════════
+    function iniciarTablaOrdenable(tableId, defaultCol, defaultDir) {
+        var sortCol = defaultCol, sortDir = defaultDir;
+
+        function cellVal(tr, col) {
+            return $(tr).find('td').eq(col).attr('data-val') || '';
+        }
+
+        function compare(a, b, type) {
+            if (type === 'number') {
+                return (parseFloat(a) || 0) - (parseFloat(b) || 0);
+            }
+            if (type === 'date') {
+                return a < b ? -1 : a > b ? 1 : 0;
+            }
+            return a.localeCompare(b, 'es', { sensitivity: 'base' });
+        }
+
+        $('#' + tableId + ' thead').on('click', '.sortable', function () {
+            var col  = parseInt($(this).data('col'));
+            var type = $(this).data('type');
+
+            if (sortCol === col) {
+                sortDir *= -1;
+            } else {
+                sortCol = col;
+                sortDir = 1;
+            }
+
+            $('#' + tableId + ' th.sortable').removeClass('sort-asc sort-desc');
+            $(this).addClass(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+            var $tbody = $('#' + tableId + ' tbody');
+            var rows   = $tbody.find('tr').toArray();
+
+            rows.sort(function (a, b) {
+                var va = cellVal(a, col);
+                var vb = cellVal(b, col);
+                return compare(va, vb, type) * sortDir;
+            });
+
+            $.each(rows, function (i, row) { $tbody.append(row); });
+        });
+    }
+
+    iniciarTablaOrdenable('tabla-pagados',    5, -1); // fecha pago desc
+    iniciarTablaOrdenable('tabla-condonados', 6, -1); // fecha condonación desc
 
 });
 </script>
