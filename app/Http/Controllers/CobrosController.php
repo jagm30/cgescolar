@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TipoInscripcion;
 use App\Models\Alumno;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
 use App\Models\ConceptoCobro;
 use App\Models\ConfigFiscal;
+use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\Pago;
 use App\Models\PagoDetalle;
@@ -291,12 +293,14 @@ class CobrosController extends Controller
     {
         $pago = $this->cargarPago($pagoId);
         $alumno = $this->alumnoDelPago($pago);
+        $cargoPrincipal = $pago->detalles->first()?->cargo;
+        $grupo = $cargoPrincipal ? $this->grupoParaRecibo($cargoPrincipal) : null;
 
         if (ob_get_length()) {
             ob_end_clean();
         }
 
-        $pdf = Pdf::loadView('cobros.reportes.recibo_pdf', compact('pago', 'alumno'));
+        $pdf = Pdf::loadView('cobros.reportes.recibo_pdf', compact('pago', 'alumno', 'grupo'));
         $pdf->setPaper('letter', 'portrait');
 
         return $pdf->stream("Recibo_Folio_{$pago->folio_recibo}.pdf");
@@ -314,6 +318,8 @@ class CobrosController extends Controller
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
             'detalles.cargo.inscripcion.grupo.grado',
+            'detalles.cargo.asignacion.grupo.grado',
+            'detalles.cargo.asignacion.plan',
             'cajero',
         ])->findOrFail($pagoId);
     }
@@ -322,6 +328,46 @@ class CobrosController extends Controller
     private function alumnoDelPago(Pago $pago): ?Alumno
     {
         return $pago->detalles->first()?->cargo?->inscripcion?->alumno;
+    }
+
+    /**
+     * Grado y grupo que corresponden al ciclo escolar del plan de pagos del cargo.
+     * La inscripción ligada al cargo puede ser una anticipada sin grupo asignado aún
+     * (p. ej. preinscripción), así que se busca la inscripción del alumno en ese mismo
+     * ciclo que sí tenga grupo, priorizando la de tipo regular.
+     */
+    private function grupoParaRecibo(Cargo $cargo): ?Grupo
+    {
+        if ($cargo->asignacion?->grupo) {
+            return $cargo->asignacion->grupo;
+        }
+
+        if ($cargo->inscripcion?->grupo) {
+            return $cargo->inscripcion->grupo;
+        }
+
+        $cicloId = $cargo->asignacion?->plan?->ciclo_id ?? $cargo->inscripcion?->ciclo_id;
+        $alumnoId = $cargo->inscripcion?->alumno_id;
+
+        if (! $cicloId || ! $alumnoId) {
+            return null;
+        }
+
+        $inscripcion = Inscripcion::with('grupo.grado')
+            ->where('alumno_id', $alumnoId)
+            ->where('ciclo_id', $cicloId)
+            ->whereNotNull('grupo_id')
+            ->where('tipo', TipoInscripcion::Regular)
+            ->latest('id')
+            ->first()
+            ?? Inscripcion::with('grupo.grado')
+                ->where('alumno_id', $alumnoId)
+                ->where('ciclo_id', $cicloId)
+                ->whereNotNull('grupo_id')
+                ->latest('id')
+                ->first();
+
+        return $inscripcion?->grupo;
     }
 
     /**
