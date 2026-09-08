@@ -11,8 +11,8 @@ use App\Models\AsignacionPlanConcepto;
 use App\Models\Auditoria;
 use App\Models\Cargo;
 use App\Models\CicloEscolar;
-use App\Models\CondonacionDetalle;
 use App\Models\ConceptoCobro;
+use App\Models\CondonacionDetalle;
 use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\NivelEscolar;
@@ -588,17 +588,17 @@ class PlanPagoController extends Controller
                 $detalle = $baseQuery()->with('condonacion')->orderByDesc('id')->first();
                 if ($detalle?->condonacion) {
                     $ultimaCondonacion = [
-                        'id'    => $detalle->condonacion->id,
+                        'id' => $detalle->condonacion->id,
                         'fecha' => $detalle->condonacion->creado_at?->format('d/m/Y'),
                     ];
                 }
             }
 
             return [
-                'concepto_id'        => $c->concepto_id,
-                'nombre'             => $c->concepto->nombre,
-                'monto'              => (float) $c->monto,
-                'ya_condonado'       => $yaCondonado,
+                'concepto_id' => $c->concepto_id,
+                'nombre' => $c->concepto->nombre,
+                'monto' => (float) $c->monto,
+                'ya_condonado' => $yaCondonado,
                 'ultima_condonacion' => $ultimaCondonacion,
             ];
         });
@@ -805,19 +805,17 @@ class PlanPagoController extends Controller
     {
         $cicloId = $asignacion->plan->ciclo_id;
 
-        // Para asignaciones individuales en ciclos en configuración:
-        // si el alumno aún no tiene inscripción en ese ciclo, crear una
-        // inscripción anticipada automáticamente para que el cargo quede
-        // correctamente vinculado al nuevo ciclo.
+        // Para asignaciones individuales: si el alumno aún no tiene inscripción
+        // activa en el ciclo del plan, crear una inscripción anticipada
+        // automáticamente para que el cargo quede correctamente vinculado al
+        // ciclo (la asignación no requiere que el alumno ya esté inscrito).
         if ($asignacion->origen === 'individual') {
-            $asignacion->plan->loadMissing('ciclo');
-
             $tieneInscripcion = Inscripcion::where('alumno_id', $asignacion->alumno_id)
                 ->where('ciclo_id', $cicloId)
                 ->where('activo', true)
                 ->exists();
 
-            if (! $tieneInscripcion && $asignacion->plan->ciclo?->estado === 'configuracion') {
+            if (! $tieneInscripcion) {
                 Inscripcion::create([
                     'alumno_id' => $asignacion->alumno_id,
                     'ciclo_id' => $cicloId,

@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use App\Models\Cargo;
 use App\Models\Grupo;
-use App\Models\Inscripcion;
 use App\Models\PlanPago;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -56,35 +55,10 @@ class StoreAsignacionPlanRequest extends FormRequest
                 $validator->errors()->add('origen', 'Para asignación por nivel solo debe especificar nivel_id.');
             }
 
-            if ($origen === 'individual') {
-                // Inscripción en el ciclo exacto del plan (caso normal o anticipada con grupo).
-                $inscripcionEnCiclo = Inscripcion::with('grupo.grado')
-                    ->where('alumno_id', $alumnoId)
-                    ->where('ciclo_id', $plan->ciclo_id)
-                    ->where('activo', true)
-                    ->first();
-
-                $inscripcion = $inscripcionEnCiclo;
-
-                // Ciclo en configuración: reinscripción anticipada.
-                // Si no existe inscripción en el nuevo ciclo (o existe sin grupo asignado),
-                // aceptar al alumno si tiene inscripción activa en el ciclo vigente.
-                // En ambos casos se omite la validación de nivel porque el alumno puede
-                // estar cambiando de nivel (ej. 6° Primaria → 1° Secundaria).
-                if (! $inscripcion && $plan->ciclo?->estado === 'configuracion') {
-                    $inscripcion = Inscripcion::with('grupo.grado')
-                        ->where('alumno_id', $alumnoId)
-                        ->where('activo', true)
-                        ->whereHas('ciclo', fn ($q) => $q->where('estado', 'activo'))
-                        ->first();
-                }
-
-                if (! $inscripcion) {
-                    $validator->errors()->add('alumno_id', 'El alumno no tiene inscripción activa en el ciclo del plan.');
-
-                    return;
-                }
-            }
+            // Nota: la asignación individual NO requiere que el alumno tenga ya una
+            // inscripción activa en el ciclo del plan. Si no la tiene, se le crea
+            // automáticamente una inscripción anticipada al generar los cargos
+            // (ver PlanPagoController::obtenerInscripcionesParaAsignacion).
 
             if ($origen === 'grupo') {
                 $grupo = Grupo::with('grado')->find($grupoId);
