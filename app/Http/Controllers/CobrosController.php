@@ -116,8 +116,12 @@ class CobrosController extends Controller
         ])
             ->whereHas('inscripcion', fn ($q) => $q->where('alumno_id', $alumnoId))
             ->where('estado', 'pagado')
-            ->orderByDesc('fecha_vencimiento')
-            ->get();
+            ->get()
+            ->sortByDesc(fn ($c) => $c->detallesPagosVigentes
+                ->sortByDesc(fn ($d) => $d->pago?->fecha_pago)
+                ->first()?->pago?->fecha_pago
+            )
+            ->values();
 
         $cargosCondonados = Cargo::with([
             'concepto',
