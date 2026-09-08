@@ -858,11 +858,17 @@
                     <th class="text-right">Abonado</th>
                     <th class="text-right">Pendiente</th>
                     <th>Vence</th>
+                    <th class="text-center">Recibo</th>
                     <th class="text-center">Acción</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($cargosParciales as $cpar)
+                @php
+                    $ultimoPagoParcial = $cpar->detallesPagosVigentes
+                        ->sortByDesc(fn ($d) => $d->pago?->fecha_pago)
+                        ->first()?->pago;
+                @endphp
                 <tr>
                     <td>
                         <div style="font-weight:700;color:#1a2634;">
@@ -905,6 +911,18 @@
                         @endif
                     </td>
                     <td class="text-center">
+                        @if($ultimoPagoParcial)
+                            <a href="{{ route('cobros.recibo', $ultimoPagoParcial->id) }}"
+                               target="_blank"
+                               class="btn btn-default btn-xs btn-flat"
+                               style="border-radius:4px;" title="Ver recibo">
+                                <i class="fa fa-file-text-o"></i>
+                            </a>
+                        @else
+                            <span style="color:#ccc;">—</span>
+                        @endif
+                    </td>
+                    <td class="text-center">
                         <button type="button"
                                 class="btn btn-xs btn-flat"
                                 style="background:#fff8e1;color:#b45309;border:1px solid #fde68a;border-radius:4px;"
@@ -930,7 +948,7 @@
                     <td class="text-right" style="color:#b45309;">
                         ${{ number_format($cargosParciales->sum('pendiente'), 2) }}
                     </td>
-                    <td colspan="2"></td>
+                    <td colspan="3"></td>
                 </tr>
             </tfoot>
         </table>
