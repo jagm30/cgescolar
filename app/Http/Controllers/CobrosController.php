@@ -85,7 +85,7 @@ class CobrosController extends Controller
 
         $cargos = Cargo::with([
             'concepto',
-            'detallesPagosVigentes',
+            'detallesPagosVigentes.pago',
             'inscripcion.ciclo',
             'asignacion.plan.politicasDescuentoActivas',
             'asignacion.plan.politicasRecargo',
