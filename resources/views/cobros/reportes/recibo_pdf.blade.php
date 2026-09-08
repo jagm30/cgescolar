@@ -17,9 +17,9 @@
                 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
             ];
 
-            $inscripcion = $pago->detalles->first()?->cargo?->inscripcion;
-            $grupo       = $inscripcion?->grupo;
-            $grado       = $grupo?->grado;
+            // $grupo llega calculado desde el controlador (CobrosController::grupoParaRecibo),
+            // que resuelve el grado/grupo según el ciclo escolar del plan de pagos.
+            $grado = $grupo?->grado ?? null;
         @endphp
 
         <title>Recibo de Pago - Folio {{ $pago->folio_recibo }}</title>
