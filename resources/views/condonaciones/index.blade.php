@@ -153,11 +153,11 @@
 
                 <select name="estado" class="con-select" onchange="this.form.submit()" title="Filtrar por estado">
                     <option value="">Todos los estados</option>
-                    <option value="activa"    {{ request('estado') === 'activa'    ? 'selected' : '' }}>Activas</option>
+                    <option value="activa"    {{ request('estado', 'activa') === 'activa'    ? 'selected' : '' }}>Activas</option>
                     <option value="cancelada" {{ request('estado') === 'cancelada' ? 'selected' : '' }}>Canceladas</option>
                 </select>
 
-                @if (request()->anyFilled(['alumno_id', 'plan_id', 'estado']))
+                @if (request()->anyFilled(['alumno_id', 'plan_id']) || request('estado', 'activa') !== 'activa')
                     <a href="{{ route('condonaciones.index') }}" class="btn btn-default btn-flat btn-sm"
                        style="border-radius:20px;padding:5px 14px;" title="Quitar filtros">
                         <i class="fa fa-times"></i>
@@ -174,7 +174,6 @@
                         <th style="width:5%;">#</th>
                         <th style="width:20%;">Alumno</th>
                         <th style="width:18%;">Plan de pagos</th>
-                        <th style="width:24%;">Motivo</th>
                         <th style="width:10%;">Monto total</th>
                         <th style="width:8%;">Estado</th>
                         <th style="width:9%;">Registrado</th>
@@ -208,9 +207,6 @@
                                     <span style="color:#bbb;font-size:11px;">—</span>
                                 @endforelse
                             </td>
-                            <td style="font-size:13px;color:#444;">
-                                {{ Str::limit($cond->motivo, 60) }}
-                            </td>
                             <td>
                                 <span class="con-monto">${{ number_format((float) $cond->monto_total, 2) }}</span>
                             </td>
@@ -224,16 +220,28 @@
                                 {{ $cond->creado_at?->format('d/m/Y') }}<br>
                                 <span style="color:#aab;">{{ $cond->creadoPor?->nombre ?? '—' }}</span>
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" style="white-space:nowrap;">
                                 <a href="{{ route('condonaciones.show', $cond->id) }}"
                                    class="btn btn-info btn-xs btn-flat" style="border-radius:4px;" title="Ver detalle">
                                     <i class="fa fa-eye"></i>
                                 </a>
+                                @if($cond->estado === 'activa')
+                                <form method="POST" action="{{ route('condonaciones.destroy', $cond->id) }}"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('¿Cancelar la condonación de {{ addslashes($cond->alumno->nombre_completo) }}?\nEsta acción revertirá los descuentos aplicados.')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-xs btn-flat"
+                                            style="border-radius:4px;" title="Cancelar condonación">
+                                        <i class="fa fa-ban"></i>
+                                    </button>
+                                </form>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8">
+                            <td colspan="7">
                                 <div class="con-empty">
                                     <i class="fa fa-scissors"></i>
                                     <h4>Sin condonaciones</h4>

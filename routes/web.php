@@ -93,6 +93,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
     Route::get('descargar-expediente-medico/{id}', [GrupoController::class, 'reporteExpedienteMedico'])->name('grupos.reporte-medico');
     Route::get('album-fotografico/{id}', [GrupoController::class, 'albumFotografico'])->name('grupos.album-fotografico');
     Route::get('reporte-contactos/{id}', [GrupoController::class, 'reporteContactos'])->name('grupos.reporte-contactos');
+    Route::get('grupos/{id}/lista-excel', [GrupoController::class, 'listaExcel'])->name('grupos.lista-excel');
 
     // Recepción, caja, admisiones e información y admisiones pueden consultar grupos (solo lectura)
     Route::get('/grupos', [GrupoController::class, 'index'])

@@ -31,7 +31,7 @@ class CondonacionController extends Controller
         $query = Condonacion::with(['alumno', 'ciclo', 'creadoPor', 'detalles.cargo.asignacion.plan:id,nombre'])
             ->where('ciclo_id', $cicloId)
             ->when($request->filled('alumno_id'), fn ($q) => $q->where('alumno_id', $request->alumno_id))
-            ->when($request->filled('estado'), fn ($q) => $q->where('estado', $request->estado))
+            ->where('estado', $request->get('estado', 'activa'))
             ->when($request->filled('plan_id'), fn ($q) => $q->whereHas(
                 'detalles.cargo.asignacion', fn ($q) => $q->where('plan_id', $request->plan_id)
             ))

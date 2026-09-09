@@ -304,6 +304,11 @@
                                     <li><a href="{{ route('grupos.reporte-contactos', $grupo->id) }}" target="_blank"><i
                                                 class="fa fa-address-book text-primary"></i> Contactos Familiares</a>
                                     </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-header">Excel</li>
+                                    <li><a href="#" data-toggle="modal" data-target="#modalListaExcel"><i
+                                                class="fa fa-file-excel-o text-success"></i> Lista de Asistencia</a>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -347,7 +352,6 @@
                                                     @if ($inscripcion->alumno->estado === 'activo')
                                                         {{-- Lógica para deducir si fue promoción --}}
                                                         @php
-                                                            // Buscamos si el alumno tiene alguna inscripción activa en un ciclo diferente al actual
                                                             $tieneInscripcionNueva = $inscripcion->alumno->inscripciones
                                                                 ->where('activo', true)
                                                                 ->where('ciclo_id', '!=', $grupo->ciclo_id)
@@ -359,7 +363,7 @@
                                                                 style="background-color: #2ecc71; color: white; font-size: 9px; padding: 2px 6px; border-radius: 3px;">
                                                                 <i class="fa fa-arrow-up"></i> PROMOCIONADO
                                                             </small>
-                                                        @else
+                                                        @elseif (!$inscripcion->alumno->inscripciones->where('activo', true)->where('ciclo_id', $grupo->ciclo_id)->first())
                                                             <small class="label"
                                                                 style="background-color: #f39c12; color: white; font-size: 9px; padding: 2px 6px; border-radius: 3px;">
                                                                 <i class="fa fa-exchange"></i> QUITADO DEL GRUPO / CAMBIO
@@ -484,6 +488,50 @@
             </form>
         @endif
     @endforeach
+
+    {{-- MODAL LISTA DE ASISTENCIA EXCEL --}}
+    <div class="modal fade" id="modalListaExcel" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm" role="document" style="width:320px;margin-top:18vh;">
+            <div class="modal-content" style="border-radius:10px;border:none;box-shadow:0 10px 30px rgba(0,0,0,.15);">
+                <div class="modal-header" style="background:#1E3A5F;border-radius:10px 10px 0 0;padding:14px 20px;">
+                    <button type="button" class="close" data-dismiss="modal" style="color:#fff;opacity:1;">&times;</button>
+                    <h4 class="modal-title" style="color:#fff;font-size:14px;font-weight:700;">
+                        <i class="fa fa-file-excel-o"></i> Lista de Asistencia
+                    </h4>
+                </div>
+                <div class="modal-body" style="padding:20px;">
+                    <p style="font-size:12px;color:#718096;margin-bottom:14px;">
+                        Selecciona el mes y año para generar la lista.
+                    </p>
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;text-transform:uppercase;">Mes</label>
+                        <select id="excel-mes" class="form-control input-sm" style="border-radius:5px;">
+                            @foreach(['1'=>'Enero','2'=>'Febrero','3'=>'Marzo','4'=>'Abril','5'=>'Mayo','6'=>'Junio','7'=>'Julio','8'=>'Agosto','9'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'] as $num => $nombre)
+                                <option value="{{ $num }}" {{ $num == now()->month ? 'selected' : '' }}>{{ $nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px;font-weight:700;color:#4a5568;text-transform:uppercase;">Año</label>
+                        <select id="excel-anio" class="form-control input-sm" style="border-radius:5px;">
+                            @for($y = now()->year - 1; $y <= now()->year + 1; $y++)
+                                <option value="{{ $y }}" {{ $y == now()->year ? 'selected' : '' }}>{{ $y }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border:none;padding:0 20px 18px;display:flex;gap:10px;">
+                    <button type="button" class="btn btn-default btn-sm btn-flat" data-dismiss="modal"
+                            style="flex:1;border-radius:6px;">Cancelar</button>
+                    <button type="button" id="btn-descargar-excel"
+                            class="btn btn-sm btn-flat"
+                            style="flex:1;background:#1E3A5F;color:#fff;border-radius:6px;">
+                        <i class="fa fa-download"></i> Descargar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {{-- MODAL DE CONFIRMACIÓN ESTILIZADO --}}
     <div class="modal fade" id="modalConfirmacion" tabindex="-1" role="dialog">
@@ -895,6 +943,16 @@
 
             $(document).on('click', function() {
                 $('.dropdown').removeClass('open');
+            });
+
+            // ── MODAL LISTA EXCEL ──
+            var baseUrlExcel = '{{ route('grupos.lista-excel', $grupo->id) }}';
+
+            $('#btn-descargar-excel').on('click', function () {
+                var mes  = $('#excel-mes').val();
+                var anio = $('#excel-anio').val();
+                $('#modalListaExcel').modal('hide');
+                window.location.href = baseUrlExcel + '?mes=' + mes + '&anio=' + anio;
             });
         });
     </script>
