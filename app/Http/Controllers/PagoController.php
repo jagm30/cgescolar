@@ -72,6 +72,7 @@ class PagoController extends Controller
             'cajero', 'autorizadoPor',
             'detalles.cargo.concepto',
             'detalles.cargo.inscripcion.alumno',
+            'detalles.cargo.condonacionDetalles' => fn ($q) => $q->whereHas('condonacion', fn ($q) => $q->where('estado', 'activa')),
             'cfdis.razonSocial',
             'cfdiGlobal',
         ])->findOrFail($id);

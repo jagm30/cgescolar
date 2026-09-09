@@ -76,6 +76,7 @@
     $cfdiGlobal     = $pago->cfdiGlobal->where('estado', 'vigente')->first();
     $tieneFactura   = $cfdiVigente || $cfdiGlobal;
     $totalDesc      = $pago->detalles->sum(fn($d) => (float)$d->descuento_beca + (float)$d->descuento_pronto_pago + (float)$d->descuento_otros);
+    $totalCondon    = $pago->detalles->sum(fn($d) => $d->cargo?->condonacionDetalles->sum(fn($cd) => (float)$cd->monto_aplicado));
     $totalRecarg    = $pago->detalles->sum(fn($d) => (float)$d->recargo_aplicado);
     $alumnos        = $pago->detalles
         ->map(fn($d) => $d->cargo?->inscripcion?->alumno)
@@ -181,16 +182,17 @@
             </span>
         </div>
         <div style="overflow-x:auto;">
-            <table class="det-table">
+            <table class="det-table" id="tabla-conceptos">
                 <thead>
                     <tr>
-                        <th>Concepto</th>
-                        <th>Alumno</th>
-                        <th style="text-align:right;">Monto orig.</th>
-                        <th style="text-align:right;">Dto. beca</th>
-                        <th style="text-align:right;">Dto. otros</th>
-                        <th style="text-align:right;">Recargo</th>
-                        <th style="text-align:right;">Abonado</th>
+                        <th class="sortable" data-col="0" style="cursor:pointer;user-select:none;">Concepto <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="1" style="cursor:pointer;user-select:none;">Alumno <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="2" style="text-align:right;cursor:pointer;user-select:none;">Monto orig. <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="3" style="text-align:right;cursor:pointer;user-select:none;">Dto. beca <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="4" style="text-align:right;cursor:pointer;user-select:none;">Dto. otros <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="5" style="text-align:right;cursor:pointer;user-select:none;">Condonación <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="6" style="text-align:right;cursor:pointer;user-select:none;">Recargo <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-col="7" style="text-align:right;cursor:pointer;user-select:none;">Abonado <span class="sort-icon">⇅</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -242,6 +244,16 @@
                         @endif
                     </td>
                     <td style="text-align:right;">
+                        @php $montoCondon = $detalle->cargo?->condonacionDetalles->sum(fn($cd) => (float)$cd->monto_aplicado); @endphp
+                        @if($montoCondon > 0)
+                            <span style="color:#7b2d8b;font-weight:600;">
+                                -${{ number_format($montoCondon, 2) }}
+                            </span>
+                        @else
+                            <span style="color:#dde4eb;">—</span>
+                        @endif
+                    </td>
+                    <td style="text-align:right;">
                         @if((float)$detalle->recargo_aplicado > 0)
                             <span style="color:#b91c1c;font-weight:600;">
                                 +${{ number_format($detalle->recargo_aplicado, 2) }}
@@ -259,22 +271,30 @@
                 <tfoot>
                     @if($totalDesc > 0)
                     <tr>
-                        <td colspan="5" style="text-align:right;color:#8a9ab0;font-size:12px;">Descuentos aplicados</td>
+                        <td colspan="6" style="text-align:right;color:#8a9ab0;font-size:12px;">Descuentos aplicados</td>
                         <td colspan="2" style="text-align:right;color:#00875a;font-weight:700;">
                             -${{ number_format($totalDesc, 2) }}
                         </td>
                     </tr>
                     @endif
+                    @if($totalCondon > 0)
+                    <tr>
+                        <td colspan="6" style="text-align:right;color:#8a9ab0;font-size:12px;">Condonaciones aplicadas</td>
+                        <td colspan="2" style="text-align:right;color:#7b2d8b;font-weight:700;">
+                            -${{ number_format($totalCondon, 2) }}
+                        </td>
+                    </tr>
+                    @endif
                     @if($totalRecarg > 0)
                     <tr>
-                        <td colspan="5" style="text-align:right;color:#8a9ab0;font-size:12px;">Recargos aplicados</td>
+                        <td colspan="6" style="text-align:right;color:#8a9ab0;font-size:12px;">Recargos aplicados</td>
                         <td colspan="2" style="text-align:right;color:#b91c1c;font-weight:700;">
                             +${{ number_format($totalRecarg, 2) }}
                         </td>
                     </tr>
                     @endif
                     <tr>
-                        <td colspan="5" style="text-align:right;font-weight:700;color:#1a2634;">Total cobrado</td>
+                        <td colspan="6" style="text-align:right;font-weight:700;color:#1a2634;">Total cobrado</td>
                         <td colspan="2" style="text-align:right;font-weight:800;color:#1a2634;font-size:15px;">
                             ${{ number_format($pago->monto_total, 2) }}
                         </td>
@@ -748,4 +768,58 @@
 </div>{{-- /col-md-4 --}}
 
 </div>{{-- /row --}}
+
+@push('scripts')
+<script>
+(function () {
+    var tabla    = document.getElementById('tabla-conceptos');
+    var tbody    = tabla.querySelector('tbody');
+    var headers  = tabla.querySelectorAll('th.sortable');
+    var sortCol  = -1;
+    var sortAsc  = true;
+
+    function valorCelda(fila, col) {
+        var celda = fila.cells[col];
+        if (!celda) return '';
+        // Extraer texto limpio (sin íconos ni etiquetas HTML secundarias)
+        var texto = (celda.innerText || celda.textContent || '').trim().replace(/^[-+$\s]+/, '');
+        var num   = parseFloat(texto.replace(/,/g, ''));
+        return isNaN(num) ? texto.toLowerCase() : num;
+    }
+
+    function actualizarIconos(colActiva, asc) {
+        headers.forEach(function (th) {
+            var icon = th.querySelector('.sort-icon');
+            var esActiva = parseInt(th.dataset.col) === colActiva;
+            icon.textContent = esActiva ? (asc ? '↑' : '↓') : '⇅';
+            icon.style.color = esActiva ? '#27a05a' : '#b0bec5';
+        });
+    }
+
+    headers.forEach(function (th) {
+        th.addEventListener('click', function () {
+            var col = parseInt(th.dataset.col);
+            if (sortCol === col) {
+                sortAsc = !sortAsc;
+            } else {
+                sortCol = col;
+                sortAsc = true;
+            }
+
+            var filas = Array.from(tbody.querySelectorAll('tr'));
+            filas.sort(function (a, b) {
+                var va = valorCelda(a, col);
+                var vb = valorCelda(b, col);
+                if (va < vb) return sortAsc ? -1 : 1;
+                if (va > vb) return sortAsc ?  1 : -1;
+                return 0;
+            });
+            filas.forEach(function (fila) { tbody.appendChild(fila); });
+
+            actualizarIconos(col, sortAsc);
+        });
+    });
+}());
+</script>
+@endpush
 @endsection

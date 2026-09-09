@@ -372,7 +372,7 @@
                                 @if (!request('nivel_id') || $g->nivel_id == request('nivel_id'))
                                     <option value="{{ $g->id }}"
                                         {{ request('grado_id') == $g->id ? 'selected' : '' }}>
-                                        {{ $g->numero }}°
+                                        {{ $g->nivel->nombre }} — {{ $g->numero }}°
                                     </option>
                                 @endif
                             @endforeach

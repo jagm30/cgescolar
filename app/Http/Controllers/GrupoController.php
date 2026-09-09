@@ -585,6 +585,24 @@ class GrupoController extends Controller
         return $pdf->stream("ContactosFamiliares_{$grupo->grado->nivel->nombre}_{$grupo->nombre}.pdf");
     }
 
+    /** GET /grupos/{id}/lista-excel */
+    public function listaExcel(int $id, Request $request, \App\Services\GrupoListaExcelExport $export)
+    {
+        $grupo = Grupo::with([
+            'grado.nivel',
+            'ciclo',
+            'docente',
+            'inscripciones' => fn ($q) => $q
+                ->where('activo', true)
+                ->with('alumno'),
+        ])->findOrFail($id);
+
+        $mes  = (int) $request->get('mes',  now()->month);
+        $anio = (int) $request->get('anio', now()->year);
+
+        return $export->descargar($grupo, $mes, $anio);
+    }
+
     public function migrarEstructura(Request $request)
     {
         // Corregimos el nombre de la tabla a 'ciclo_escolar'
