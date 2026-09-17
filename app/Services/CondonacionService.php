@@ -87,22 +87,24 @@ class CondonacionService
      * y aplica el monto configurado (respetando el saldo pendiente de cada cargo).
      *
      * @return array{creadas: int, omitidos: list<int>}
-     *   - creadas:  número de condonaciones registradas
-     *   - omitidos: IDs de alumnos sin cargos aplicables para los conceptos indicados
+     *                                                  - creadas:  número de condonaciones registradas
+     *                                                  - omitidos: IDs de alumnos sin cargos aplicables para los conceptos indicados
      */
     public function crearMasiva(array $data): array
     {
-        $count    = 0;
+        $count = 0;
         $omitidos = [];
 
         foreach ($data['alumno_ids'] as $alumnoId) {
             $inscripcion = Inscripcion::where('alumno_id', $alumnoId)
                 ->where('ciclo_id', $data['ciclo_id'])
+                ->activa()
                 ->orderByRaw('grupo_id IS NULL')
                 ->first();
 
             if (! $inscripcion) {
                 $omitidos[] = (int) $alumnoId;
+
                 continue;
             }
 
@@ -110,6 +112,7 @@ class CondonacionService
 
             if (empty($detalles)) {
                 $omitidos[] = (int) $alumnoId;
+
                 continue;
             }
 
