@@ -276,9 +276,9 @@
                                         <input type="text" id="foto-nombre" class="form-control"
                                             placeholder="Sin archivo" readonly>
                                     </div>
-                                    <input type="file" name="foto" id="foto"
+                                    <input type="file" name="foto" id="foto" data-recorte
                                         accept="image/jpeg,image/png,image/webp" style="display:none">
-                                    <span class="help-block">JPG, PNG o WEBP. Máx. 2 MB.</span>
+                                    <span class="help-block">JPG, PNG o WEBP. Máx. 2 MB. Podrás recortarla antes de guardar.</span>
                                     @error('foto')
                                         <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
                                             {{ $message }}</span>
@@ -833,8 +833,8 @@
                                     placeholder="Sin archivo" readonly>
                             </div>
                             <input type="file" name="fotos_contacto[__INDEX__]" id="foto_contacto___INDEX__"
-                                accept="image/jpeg,image/png,image/webp" style="display:none">
-                            <span class="help-block">JPG, PNG o WEBP. Máx. 2 MB.</span>
+                                data-recorte accept="image/jpeg,image/png,image/webp" style="display:none">
+                            <span class="help-block">JPG, PNG o WEBP. Máx. 2 MB. Podrás recortarla antes de guardar.</span>
                         </div>
                     </div>
                 </div>
@@ -940,6 +940,8 @@
             </div>{{-- /.contacto-item-body --}}
         </div>{{-- /.contacto-item --}}
     </div>{{-- /#template-contacto-existente --}}
+
+    @include('partials.recorte-foto')
 
 @endsection
 

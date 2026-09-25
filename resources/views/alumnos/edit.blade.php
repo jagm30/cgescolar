@@ -348,7 +348,7 @@
                                     <i class="fa fa-hand-pointer-o"></i> Click para cambiar
                                 </small>
                             </div>
-                            <input type="file" name="foto" id="foto"
+                            <input type="file" name="foto" id="foto" data-recorte
                                 accept="image/jpeg,image/png,image/webp" style="display:none">
                             <div class="input-group">
                                 <span class="input-group-btn">
@@ -361,7 +361,7 @@
                                 <input type="text" id="foto-nombre" class="form-control input-sm"
                                     placeholder="Sin cambios" readonly>
                             </div>
-                            <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB.</span>
+                            <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB · podrás recortarla.</span>
                             @error('foto')
                                 <span class="help-block text-red"><i class="fa fa-exclamation-circle"></i>
                                     {{ $message }}</span>
@@ -932,7 +932,7 @@
                                     </div>
                                     <input type="file" id="foto-ctc-{{ $contacto->id }}"
                                         name="fotos_contacto[{{ $contacto->id }}]"
-                                        class="ctc-foto-input" data-id="{{ $contacto->id }}"
+                                        class="ctc-foto-input" data-id="{{ $contacto->id }}" data-recorte
                                         accept="image/jpeg,image/png,image/webp" style="display:none">
                                     <small class="text-muted" style="font-size:10px;">JPG, PNG o WEBP · Máx. 2 MB.</small>
                                 </div>
@@ -1127,8 +1127,8 @@
                                         </span>
                                         <input type="text" id="nctc-foto-nombre" class="form-control input-sm" placeholder="Sin foto" readonly>
                                     </div>
-                                    <input type="file" id="nctc-foto" accept="image/jpeg,image/png,image/webp" style="display:none">
-                                    <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB.</span>
+                                    <input type="file" id="nctc-foto" data-recorte accept="image/jpeg,image/png,image/webp" style="display:none">
+                                    <span class="help-block" style="font-size:11px;">JPG, PNG o WEBP · Máx. 2 MB · podrás recortarla.</span>
                                 </div>
                             </div>
                         </div>
@@ -1252,6 +1252,8 @@
 </div>{{-- /.row --}}
 
 </form>
+
+@include('partials.recorte-foto')
 
 @endsection
 
@@ -1930,7 +1932,7 @@
                         '<span class="input-group-btn"><label class="btn btn-default btn-xs btn-flat" for="foto-ctc-' + c.id + '" style="margin:0;cursor:pointer;"><i class="fa fa-camera"></i> ' + (c.foto_url ? 'Cambiar' : 'Subir foto') + '</label></span>' +
                         '<input type="text" class="form-control input-xs ctc-foto-nombre" placeholder="Sin foto" readonly style="font-size:11px;">' +
                         '</div>' +
-                        '<input type="file" id="foto-ctc-' + c.id + '" name="fotos_contacto[' + c.id + ']" class="ctc-foto-input" data-id="' + c.id + '" accept="image/jpeg,image/png,image/webp" style="display:none">' +
+                        '<input type="file" id="foto-ctc-' + c.id + '" name="fotos_contacto[' + c.id + ']" class="ctc-foto-input" data-id="' + c.id + '" data-recorte accept="image/jpeg,image/png,image/webp" style="display:none">' +
                         '<small class="text-muted" style="font-size:10px;">JPG, PNG o WEBP · Máx. 2 MB.</small>' +
                         '</div>' +
                         '</div>' +
