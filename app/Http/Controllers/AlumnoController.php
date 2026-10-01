@@ -540,26 +540,27 @@ class AlumnoController extends Controller
     public function darBaja(Request $request, int $id): RedirectResponse
     {
         $request->validate([
-            'tipo_baja' => 'required|in:baja_temporal,baja_definitiva',
+            'tipo_baja'        => 'required|in:baja_temporal,baja_definitiva',
             'motivo_categoria' => 'required|in:cambio_escuela,traslado,economico,familiar,salud,conducta,rendimiento,otro',
-            'motivo_detalle' => 'nullable|string|max:1000',
+            'motivo_detalle'   => 'nullable|string|max:1000',
+            'fecha_baja'       => 'required|date|before_or_equal:today',
         ]);
 
         $alumno = Alumno::findOrFail($id);
         $cicloActual = CicloEscolar::where('estado', 'activo')->first();
 
         DB::transaction(function () use ($request, $alumno, $cicloActual) {
-            $alumno->update(['estado' => $request->tipo_baja, 'fecha_baja' => today()]);
+            $alumno->update(['estado' => $request->tipo_baja, 'fecha_baja' => $request->fecha_baja]);
             $alumno->inscripciones()->where('activo', true)->update(['activo' => false]);
 
             HistorialBaja::create([
-                'alumno_id' => $alumno->id,
-                'ciclo_id' => $cicloActual?->id,
-                'registrado_por' => auth()->id(),
-                'tipo' => $request->tipo_baja,
+                'alumno_id'        => $alumno->id,
+                'ciclo_id'         => $cicloActual?->id,
+                'registrado_por'   => auth()->id(),
+                'tipo'             => $request->tipo_baja,
                 'motivo_categoria' => $request->motivo_categoria,
-                'motivo_detalle' => $request->motivo_detalle,
-                'fecha_baja' => today(),
+                'motivo_detalle'   => $request->motivo_detalle,
+                'fecha_baja'       => $request->fecha_baja,
             ]);
         });
 
