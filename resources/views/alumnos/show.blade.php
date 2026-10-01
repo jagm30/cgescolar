@@ -1478,7 +1478,7 @@
                         </button>
                     @endif
 
-                    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) && $alumno->estado === 'activo')
+                    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion()) && $alumno->estado === 'activo')
                         <button type="button" class="accion-btn" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;"
                                 data-toggle="modal" data-target="#modalBaja">
                             <div class="accion-icon" style="background:#fdecea;">
@@ -1544,7 +1544,7 @@
     </div>{{-- /row --}}
 
     {{-- ══ MODAL DAR DE BAJA ══ --}}
-    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion()) && $alumno->estado === 'activo')
+    @if ((auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esDirectorSeccion()) && $alumno->estado === 'activo')
     <div class="modal fade" id="modalBaja" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -1586,6 +1586,13 @@
                                 <option value="rendimiento">Bajo rendimiento académico</option>
                                 <option value="otro">Otro motivo</option>
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size:12px;font-weight:700;color:#555;">Fecha de baja <span style="color:#e74c3c;">*</span></label>
+                            <input type="date" name="fecha_baja" class="form-control"
+                                   value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                            <span class="help-block" style="font-size:11px;">Por defecto se usa la fecha de hoy.</span>
                         </div>
 
                         <div class="form-group">

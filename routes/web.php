@@ -171,7 +171,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
 
     Route::delete('/inscripciones/{id}', [AlumnoController::class, 'quitarDelGrupo'])->name('inscripciones.destroy');
     Route::patch('/alumnos/{id}/dar-baja', [AlumnoController::class, 'darBaja'])
-        ->middleware('rol:administrador,recepcion')
+        ->middleware('rol:administrador,recepcion,director_seccion')
         ->name('alumnos.darBaja');
 
     // ── Expediente médico ────────────────────────────────
@@ -192,7 +192,7 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('medicamentos-autorizados.destroy');
     Route::get('alumnos/{id}/reporte', [AlumnoController::class, 'reporteAlumno'])->name('alumnos.reporte');
     Route::get('/alumnos-bajas', [AlumnoController::class, 'reporteBajas'])
-        ->middleware('rol:administrador,recepcion,caja')
+        ->middleware('rol:administrador,recepcion,caja,director_seccion')
         ->name('alumnos.bajas');
     Route::post('/alumnos/{id}/inscripcion-anticipada', [AlumnoController::class, 'registrarAnticipada'])
         ->middleware('rol:administrador,recepcion,director_seccion')
