@@ -92,12 +92,7 @@ class RazonSocialController extends Controller
                 ->update(['es_principal' => false]);
         }
 
-        // Si el RFC cambió, el cliente registrado en factura.com quedó obsoleto:
-        // se limpia el UID en caché para que se recree con el RFC correcto en la próxima emisión.
-        if ($data['rfc'] !== $rs->rfc) {
-            $data['factura_uid'] = null;
-        }
-
+        // Si cambian los datos fiscales, el modelo limpia el UID de factura.com en caché.
         $rs->update($data);
 
         return $this->respuestaExito(

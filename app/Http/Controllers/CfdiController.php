@@ -10,6 +10,7 @@ use App\Models\ContactoFamiliar;
 use App\Models\Pago;
 use App\Models\RazonSocialContacto;
 use App\Models\Setting;
+use App\Services\CfdiService;
 use App\Services\FacturaComService;
 use App\Traits\RespondsWithJson;
 use Carbon\Carbon;
@@ -189,6 +190,16 @@ class CfdiController extends Controller
                     'Verifica la Constancia de Situación Fiscal del contacto y corrige la razón social capturada en el '.
                     'sistema (acentos y apellidos exactos) antes de volver a intentar — reintentar sin corregirla fallará de nuevo.'
                 );
+            }
+
+            if ($this->esErrorDomicilioReceptorNoCoincide($e->getMessage())) {
+                if ($razonSocialId === null) {
+                    $config->update(['publico_general_uid' => null]);
+                } else {
+                    RazonSocialContacto::where('id', $razonSocialId)->update(['factura_uid' => null]);
+                }
+
+                return $this->respuestaError(CfdiService::MENSAJE_DOMICILIO_NO_COINCIDE);
             }
 
             // Si el receptor está desactualizado en factura.com, limpiamos el UID en caché
@@ -409,6 +420,16 @@ class CfdiController extends Controller
                         '(CFDI40145). Verifica la Constancia de Situación Fiscal del contacto y corrige la razón social '.
                         'antes de volver a intentar.',
                 ], 422);
+            }
+
+            if ($this->esErrorDomicilioReceptorNoCoincide($e->getMessage())) {
+                if ($razonSocialId === null) {
+                    $config->update(['publico_general_uid' => null]);
+                } else {
+                    RazonSocialContacto::where('id', $razonSocialId)->update(['factura_uid' => null]);
+                }
+
+                return response()->json(['message' => CfdiService::MENSAJE_DOMICILIO_NO_COINCIDE], 422);
             }
 
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
@@ -900,6 +921,17 @@ class CfdiController extends Controller
         $m = strtolower($mensaje);
 
         return str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor');
+    }
+
+    /**
+     * Detecta si el error de factura.com es CFDI40147: el código postal del receptor
+     * no coincide con el registrado en el SAT para ese RFC (solo se valida en producción).
+     */
+    private function esErrorDomicilioReceptorNoCoincide(string $mensaje): bool
+    {
+        $m = strtolower($mensaje);
+
+        return str_contains($m, 'cfdi40147') || str_contains($m, 'domiciliofiscalreceptor');
     }
 
     /**

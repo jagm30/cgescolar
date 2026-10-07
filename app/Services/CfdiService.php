@@ -23,6 +23,11 @@ class CfdiService
 
     private const CLAVE_PROD_SERV_DEFAULT = '86101500';
 
+    public const MENSAJE_DOMICILIO_NO_COINCIDE =
+        'El SAT rechazó el código postal del receptor: no coincide con el domicilio fiscal registrado para ese RFC (CFDI40147). '.
+        'Verifica el C.P. en la Constancia de Situación Fiscal del contacto y corrígelo en sus datos de facturación '.
+        'antes de volver a intentar — reintentar sin corregirlo fallará de nuevo.';
+
     public function __construct(private FacturaComService $factura) {}
 
     /**
@@ -114,6 +119,14 @@ class CfdiService
                 );
             }
 
+            if ($this->esErrorDomicilioReceptorNoCoincide($e->getMessage())) {
+                $razonSocialId === null
+                    ? $config->update(['publico_general_uid' => null])
+                    : $rs?->update(['factura_uid' => null]);
+
+                throw new \RuntimeException(self::MENSAJE_DOMICILIO_NO_COINCIDE);
+            }
+
             if ($this->esErrorReceptorInvalido($e->getMessage())) {
                 // Limpiar UID en caché para que el siguiente intento lo recree
                 $razonSocialId === null
@@ -192,6 +205,18 @@ class CfdiService
         $m = strtolower($mensaje);
 
         return str_contains($m, 'cfdi40145') || str_contains($m, 'nombre del receptor');
+    }
+
+    /**
+     * Detecta si el error de factura.com es CFDI40147: el código postal (DomicilioFiscalReceptor)
+     * no coincide con el registrado en el SAT para ese RFC. El sandbox no valida contra el padrón
+     * del SAT, por eso este error solo aparece en producción. Es un error de datos permanente.
+     */
+    public function esErrorDomicilioReceptorNoCoincide(string $mensaje): bool
+    {
+        $m = strtolower($mensaje);
+
+        return str_contains($m, 'cfdi40147') || str_contains($m, 'domiciliofiscalreceptor');
     }
 
     public function esErrorReceptorInvalido(string $mensaje): bool

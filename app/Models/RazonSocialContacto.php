@@ -19,6 +19,26 @@ class RazonSocialContacto extends Model
      */
     public const REGIMENES_SIN_DEDUCCIONES_PERSONALES = ['626'];
 
+    /**
+     * Campos con los que se registra el cliente en factura.com. Si cambia cualquiera,
+     * el cliente remoto queda obsoleto (factura.com timbra con los datos del cliente
+     * guardado, no con los de este registro).
+     */
+    public const CAMPOS_CLIENTE_FACTURA = ['rfc', 'razon_social', 'regimen_fiscal', 'domicilio_fiscal'];
+
+    /**
+     * Limpia el UID de factura.com en caché cuando cambian los datos fiscales,
+     * para que la siguiente emisión recree el cliente con los datos corregidos.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $rs): void {
+            if ($rs->isDirty(self::CAMPOS_CLIENTE_FACTURA) && ! $rs->isDirty('factura_uid')) {
+                $rs->factura_uid = null;
+            }
+        });
+    }
+
     protected $fillable = [
         'contacto_id',
         'rfc',
