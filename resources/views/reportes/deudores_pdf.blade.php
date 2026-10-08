@@ -198,6 +198,12 @@
         @foreach($estados as $e)
             {{ $etiquetasEstado[$e] ?? $e }}{{ !$loop->last ? ',' : '' }}
         @endforeach
+        @if($buscar !== '')
+            &nbsp;·&nbsp; Búsqueda: «{{ $buscar }}»
+        @endif
+        @if($concepto)
+            &nbsp;·&nbsp; Concepto: {{ $concepto->nombre }}
+        @endif
     </div>
 
     {{-- ── Tabla de deudores ── --}}

@@ -706,6 +706,11 @@ Route::get('/reportes/deudores', [ReporteDeudoresController::class, 'index'])
     ->middleware(['auth', 'force.json.on.ajax', 'rol:administrador,caja'])
     ->name('reportes.deudores');
 
+Route::get('/reportes/deudores/{inscripcion}/cargos', [ReporteDeudoresController::class, 'cargos'])
+    ->whereNumber('inscripcion')
+    ->middleware(['auth', 'rol:administrador,caja'])
+    ->name('reportes.deudores.cargos');
+
 Route::get('/reportes/deudores/pdf', [ReporteDeudoresController::class, 'pdf'])
     ->middleware(['auth', 'rol:administrador,caja'])
     ->name('reportes.deudores.pdf');
