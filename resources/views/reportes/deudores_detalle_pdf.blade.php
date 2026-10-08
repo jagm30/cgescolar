@@ -137,6 +137,12 @@
                 <div class="report-title-main">Adeudos Detallados</div>
                 <div class="report-title-sub">
                     Ciclo: {{ $ciclo?->nombre ?? '—' }}<br>
+                    @if($buscar !== '')
+                        Búsqueda: «{{ $buscar }}»<br>
+                    @endif
+                    @if($concepto)
+                        Concepto: {{ $concepto->nombre }}<br>
+                    @endif
                     Generado: {{ now()->format('d/m/Y H:i') }}
                 </div>
             </td>
@@ -192,7 +198,7 @@
                 @foreach($d['cargos'] as $cargo)
                 <tr>
                     <td style="font-weight:600;">{{ $cargo['concepto'] }}</td>
-                    <td class="text-center">{{ $cargo['periodo_label'] }}</td>
+                    <td class="text-center">{{ $cargo['mes'] }}</td>
                     <td class="text-center">{{ $cargo['fecha_vencimiento']->format('d/m/Y') }}</td>
                     <td class="text-center">
                         @if($cargo['estado'] === 'vencido')

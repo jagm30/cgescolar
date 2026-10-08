@@ -450,13 +450,14 @@
         <table class="main-table">
             <thead>
                 <tr>
-                    <th style="width:22%;">Nombre</th>
-                    <th style="width:12%;">Parentesco</th>
-                    <th style="width:12%;">Tipo</th>
-                    <th style="width:14%;">Celular</th>
-                    <th style="width:18%;">Correo</th>
-                    <th style="width:13%;">Permisos</th>
-                    <th style="width:9%; text-align:center;">Orden</th>
+                    <th style="width:20%;">Nombre</th>
+                    <th style="width:10%;">Parentesco</th>
+                    <th style="width:10%;">Tipo</th>
+                    <th style="width:12%;">Celular</th>
+                    <th style="width:17%;">Correo</th>
+                    <th style="width:14%;">Nacimiento</th>
+                    <th style="width:10%;">Permisos</th>
+                    <th style="width:7%; text-align:center;">Orden</th>
                 </tr>
             </thead>
             <tbody>
@@ -468,6 +469,14 @@
                         <td>{{ $contacto->telefono_celular ?? '—' }}</td>
                         <td style="font-size:9px;">{{ $contacto->email ?? '—' }}</td>
                         <td style="font-size:9px;">
+                            @if ($contacto->fecha_nacimiento)
+                                {{ $contacto->fecha_nacimiento->format('d/m/Y') }}
+                                <br><span class="text-muted">Cumple: {{ $contacto->fecha_nacimiento->day }} de {{ $contacto->fecha_nacimiento->translatedFormat('F') }}</span>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td style="font-size:9px;">
                             @if ($contacto->pivot->autorizado_recoger) Recoger<br> @endif
                             @if ($contacto->pivot->es_responsable_pago) Pagos @endif
                             @if (!$contacto->pivot->autorizado_recoger && !$contacto->pivot->es_responsable_pago) — @endif
@@ -476,7 +485,7 @@
                     </tr>
                     @if ($contacto->profesion || $contacto->lugar_trabajo || $contacto->telefono_2)
                     <tr>
-                        <td colspan="7" style="font-size:9px;color:#5a6a7e;padding:3px 8px 5px 16px;">
+                        <td colspan="8" style="font-size:9px;color:#5a6a7e;padding:3px 8px 5px 16px;">
                             @if ($contacto->profesion) Profesión: {{ $contacto->profesion }} @endif
                             @if ($contacto->lugar_trabajo) &nbsp;·&nbsp; Trabajo: {{ $contacto->lugar_trabajo }}{{ $contacto->puesto ? ' ('.$contacto->puesto.')' : '' }} @endif
                             @if ($contacto->telefono_2) &nbsp;·&nbsp; Tel. 2: {{ $contacto->telefono_2 }} @endif

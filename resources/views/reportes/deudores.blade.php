@@ -34,6 +34,28 @@
 .deu-vencido   { background:#fdecea; color:#b91c1c; border:1px solid #fca5a5; }
 .deu-parcial   { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
 
+.deu-mes {
+    display:inline-block; margin:1px 2px; padding:1px 7px;
+    border-radius:10px; font-size:11px; font-weight:600;
+    background:#fdecea; color:#b91c1c; border:1px solid #fca5a5; white-space:nowrap;
+}
+
+.deu-table tbody tr.deu-detalle:hover td { background:transparent; }
+.deu-detalle > td { padding:0 12px 10px 42px; border-bottom:1px solid #e4eaf0; }
+.deu-cargos { width:100%; border-collapse:collapse; background:#fafbfc; border:1px solid #eef1f5; border-radius:6px; }
+.deu-cargos th {
+    font-size:10px; font-weight:700; text-transform:uppercase; color:#94a3b8;
+    padding:5px 10px; border-bottom:1px solid #eef1f5; text-align:left;
+}
+.deu-cargos td { font-size:12px; padding:5px 10px; border-bottom:1px solid #f3f5f8; color:#4a5568; }
+.deu-cargos tr:last-child td { border-bottom:none; }
+.deu-cargos tr.es-vencido td { color:#b91c1c; }
+
+.deu-toggle { font-weight:700; color:#1a2634; }
+.deu-toggle:hover, .deu-toggle:focus { color:#2980b9; text-decoration:none; }
+.deu-caret { font-size:10px; color:#94a3b8; width:12px; transition:transform .15s; }
+.deu-toggle.abierto .deu-caret { transform:rotate(90deg); color:#2980b9; }
+
 @media print {
     .sidebar, .main-header, .content-header, .no-print { display:none !important; }
     .content-wrapper { margin-left:0 !important; }
@@ -76,13 +98,14 @@
                 style="border-radius:20px;">
             <i class="fa fa-print"></i> Imprimir
         </button>
-        <a href="{{ route('reportes.deudores.pdf') }}?ciclo_id={{ $cicloId }}&{{ collect($estados)->map(fn($e) => 'estados[]='.$e)->implode('&') }}"
+        @php($filtrosPdf = ['ciclo_id' => $cicloId, 'estados' => $estados, 'buscar' => $buscar ?: null, 'concepto_id' => $conceptoId])
+        <a href="{{ route('reportes.deudores.pdf', $filtrosPdf) }}"
            target="_blank"
            class="btn btn-danger btn-sm btn-flat"
            style="border-radius:20px;">
             <i class="fa fa-file-pdf-o"></i> PDF
         </a>
-        <a href="{{ route('reportes.deudores.pdf-detalle') }}?ciclo_id={{ $cicloId }}&{{ collect($estados)->map(fn($e) => 'estados[]='.$e)->implode('&') }}"
+        <a href="{{ route('reportes.deudores.pdf-detalle', $filtrosPdf) }}"
            target="_blank"
            class="btn btn-warning btn-sm btn-flat"
            style="border-radius:20px;">
@@ -107,6 +130,21 @@
             @foreach($ciclos as $ciclo)
                 <option value="{{ $ciclo->id }}" {{ $ciclo->id == $cicloId ? 'selected' : '' }}>
                     {{ $ciclo->nombre }}
+                </option>
+            @endforeach
+        </select>
+
+        <input type="text" name="buscar" value="{{ $buscar }}"
+               class="form-control input-sm"
+               placeholder="Buscar por apellido paterno, materno o nombre(s)"
+               style="border-radius:6px;border-color:#dde4eb;height:32px;min-width:260px;max-width:320px;">
+
+        <select name="concepto_id" class="form-control input-sm" title="Filtrar por concepto"
+                style="border-radius:6px;border-color:#dde4eb;height:32px;max-width:240px;">
+            <option value="">Todos los conceptos</option>
+            @foreach($conceptos as $concepto)
+                <option value="{{ $concepto->id }}" {{ $concepto->id === $conceptoId ? 'selected' : '' }}>
+                    {{ $concepto->nombre }}
                 </option>
             @endforeach
         </select>
@@ -147,6 +185,14 @@
             <i class="fa fa-search"></i> Consultar
         </button>
 
+        @if($buscar !== '' || $conceptoId)
+            <a href="{{ route('reportes.deudores', ['ciclo_id' => $cicloId, 'estados' => $estados]) }}"
+               class="btn btn-default btn-sm btn-flat"
+               style="border-radius:20px;padding:4px 12px;height:32px;" title="Quitar búsqueda y concepto">
+                <i class="fa fa-times"></i> Limpiar
+            </a>
+        @endif
+
         <span style="background:#fdecea;color:#b91c1c;font-size:12px;font-weight:600;
                      padding:3px 12px;border-radius:12px;white-space:nowrap;margin-left:auto;">
             <i class="fa fa-users"></i> {{ $deudores->count() }} deudor(es)
@@ -157,7 +203,13 @@
         @if($deudores->isEmpty())
             <div style="padding:56px 20px;text-align:center;">
                 <i class="fa fa-check-circle" style="font-size:42px;color:#27ae60;display:block;margin-bottom:12px;"></i>
-                <p style="color:#b0bec5;margin:0;font-weight:600;">No hay alumnos con adeudos en este ciclo.</p>
+                <p style="color:#b0bec5;margin:0;font-weight:600;">
+                    @if($buscar !== '' || $conceptoId)
+                        No se encontraron alumnos con adeudos para los filtros seleccionados.
+                    @else
+                        No hay alumnos con adeudos en este ciclo.
+                    @endif
+                </p>
             </div>
         @else
             <table class="deu-table">
@@ -165,11 +217,11 @@
                     <tr>
                         <th>#</th>
                         <th>Alumno</th>
-                        <th>Matrícula</th>
                         <th>Grupo / Nivel</th>
                         <th style="text-align:center;">Pendientes</th>
                         <th style="text-align:center;">Vencidos</th>
                         <th style="text-align:center;">Parciales</th>
+                        <th>Meses vencidos</th>
                         <th style="text-align:right;">Total adeudo</th>
                         <th style="text-align:center;width:120px;"></th>
                     </tr>
@@ -179,17 +231,15 @@
                     <tr>
                         <td style="color:#94a3b8;font-size:12px;">{{ $i + 1 }}</td>
                         <td>
-                            <span style="font-weight:700;color:#1a2634;">
+                            <a href="#" class="deu-toggle"
+                               data-url="{{ route('reportes.deudores.cargos', ['inscripcion' => $d['inscripcion_id'], 'estados' => $estados, 'concepto_id' => $conceptoId]) }}"
+                               title="Ver desglose de cargos">
+                                <i class="fa fa-chevron-right deu-caret"></i>
                                 {{ $d['alumno']->ap_paterno }}
                                 {{ $d['alumno']->ap_materno }},
                                 {{ $d['alumno']->nombre }}
-                            </span>
-                        </td>
-                        <td>
-                            <code style="font-size:12px;background:#f0f3f7;padding:2px 7px;
-                                         border-radius:4px;color:#4a5568;">
-                                {{ $d['alumno']->matricula ?? '—' }}
-                            </code>
+                            </a>
+                            <span style="font-size:11px;color:#94a3b8;">({{ $d['total_cargos'] }} cargo{{ $d['total_cargos'] === 1 ? '' : 's' }})</span>
                         </td>
                         <td style="color:#4a5568;">
                             @if($d['grupo'])
@@ -222,6 +272,13 @@
                                 <span style="color:#b0bec5;">—</span>
                             @endif
                         </td>
+                        <td>
+                            @forelse($d['meses_vencidos'] as $mes)
+                                <span class="deu-mes">{{ $mes }}</span>
+                            @empty
+                                <span style="color:#b0bec5;">—</span>
+                            @endforelse
+                        </td>
                         <td style="text-align:right;font-weight:700;color:#b91c1c;font-size:14px;">
                             ${{ number_format($d['total_adeudo'], 2) }}
                         </td>
@@ -233,6 +290,9 @@
                                 <i class="fa fa-eye"></i> Estado de cuenta
                             </a>
                         </td>
+                    </tr>
+                    <tr class="deu-detalle" style="display:none;">
+                        <td colspan="9"></td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -252,3 +312,43 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+/**
+ * Despliega el desglose de cargos de un alumno. Se pide al servidor solo la
+ * primera vez que se abre; después solo se muestra/oculta.
+ */
+$(document).on('click', '.deu-toggle', function (e) {
+    e.preventDefault();
+
+    const $link    = $(this);
+    const $detalle = $link.closest('tr').next('.deu-detalle');
+    const $celda   = $detalle.children('td');
+
+    if ($link.hasClass('abierto')) {
+        $link.removeClass('abierto');
+        $detalle.hide();
+        return;
+    }
+
+    $link.addClass('abierto');
+    $detalle.show();
+
+    if ($detalle.data('cargado')) {
+        return;
+    }
+
+    $celda.html('<span style="color:#94a3b8;font-size:12px;"><i class="fa fa-spinner fa-spin"></i> Cargando cargos…</span>');
+
+    $.get($link.data('url'))
+        .done(function (html) {
+            $celda.html(html);
+            $detalle.data('cargado', true);
+        })
+        .fail(function () {
+            $celda.html('<span style="color:#b91c1c;font-size:12px;"><i class="fa fa-exclamation-circle"></i> No se pudo cargar el desglose. Intenta de nuevo.</span>');
+        });
+});
+</script>
+@endpush
