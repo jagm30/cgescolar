@@ -27,6 +27,7 @@ use App\Http\Controllers\ProspectoController;
 use App\Http\Controllers\RazonSocialController;
 use App\Http\Controllers\ReinscripcionController;
 use App\Http\Controllers\ReporteColegiaturasFaltantesController;
+use App\Http\Controllers\ReporteCumpleanerosController;
 use App\Http\Controllers\ReporteDeudoresController;
 use App\Http\Controllers\ReporteDirectorioController;
 use App\Http\Controllers\SettingController;
@@ -495,6 +496,14 @@ Route::middleware(['auth', 'force.json.on.ajax'])->group(function () {
         ->name('recepcion.dashboard');
 
     Route::prefix('familias')->name('familias.')->group(function () {
+
+        // Reporte de cumpleaños de contactos familiares (mismos roles que la lista de familias)
+        Route::get('cumpleaneros', [ReporteCumpleanerosController::class, 'index'])
+            ->middleware('rol:administrador,recepcion,caja,informacion_admisiones,director_seccion')
+            ->name('cumpleaneros');
+        Route::get('cumpleaneros/pdf', [ReporteCumpleanerosController::class, 'pdf'])
+            ->middleware('rol:administrador,recepcion,caja,informacion_admisiones,director_seccion')
+            ->name('cumpleaneros.pdf');
 
         // Gestión de acceso al portal — solo administrador
         Route::post('contactos/{contactoId}/habilitar-portal', [FamiliaController::class, 'habilitarPortal'])

@@ -301,6 +301,13 @@
                                 <i class="fa fa-circle-o"></i> Lista de familias
                             </a>
                         </li>
+                        @if (auth()->user()->esAdministrador() || auth()->user()->esRecepcion() || auth()->user()->esCajero() || auth()->user()->esInformacionAdmisiones() || auth()->user()->esDirectorSeccion())
+                            <li class="{{ request()->routeIs('familias.cumpleaneros*') ? 'active' : '' }}">
+                                <a href="{{ route('familias.cumpleaneros') }}">
+                                    <i class="fa fa-circle-o"></i> Cumpleañeros
+                                </a>
+                            </li>
+                        @endif
                         @if (auth()->user()->esAdministrador())
                             <li class="{{ request()->routeIs('familias.create') ? 'active' : '' }}">
                                 <a href="{{ route('familias.create') }}">

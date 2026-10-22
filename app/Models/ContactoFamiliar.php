@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -40,6 +41,20 @@ class ContactoFamiliar extends Model
         'fecha_nacimiento' => 'date',
         'creado_at' => 'datetime',
     ];
+
+    // ── Scopes ──────────────────────────────────────────
+
+    /**
+     * Contactos vivos con fecha de nacimiento registrada.
+     * Si se indica $mes (1-12), solo los que cumplen años en ese mes.
+     */
+    public function scopeCumpleanerosDelMes(Builder $query, ?int $mes = null): Builder
+    {
+        return $query
+            ->whereNotNull('contacto_familiar.fecha_nacimiento')
+            ->where(fn (Builder $q) => $q->whereNull('contacto_familiar.vive')->orWhere('contacto_familiar.vive', true))
+            ->when($mes, fn (Builder $q) => $q->whereMonth('contacto_familiar.fecha_nacimiento', $mes));
+    }
 
     // ── Helpers ──────────────────────────────────────────
 
