@@ -7,6 +7,7 @@ use App\Models\Alumno;
 use App\Models\Auditoria;
 use App\Models\BecaAlumno;
 use App\Models\Cargo;
+use App\Models\CicloEscolar;
 use App\Models\ConceptoCobro;
 use App\Models\ConfigFiscal;
 use App\Models\Grupo;
@@ -63,9 +64,12 @@ class CobrosController extends Controller
         ])->findOrFail($alumnoId);
 
         $inscripcionActual = $alumno->inscripciones->first();
+        $inscripcionDelCiclo = $this->inscripcionDelCicloSeleccionado($alumno);
 
-        // Fallback: si no hay inscripción activa, usar la más reciente de cualquier ciclo
-        $inscripcionParaCobro = $inscripcionActual
+        // Los conceptos nuevos se cargan al ciclo seleccionado; si el alumno no tiene
+        // inscripción activa en él, a la activa más reciente y, si no hay, a la más reciente de cualquier ciclo
+        $inscripcionParaCobro = $inscripcionDelCiclo
+            ?? $inscripcionActual
             ?? Inscripcion::with('grupo.grado.nivel', 'ciclo')
                 ->where('alumno_id', $alumnoId)
                 ->orderByDesc('id')
@@ -140,6 +144,7 @@ class CobrosController extends Controller
         return view('cobros.alumno', compact(
             'alumno',
             'inscripcionActual',
+            'inscripcionDelCiclo',
             'inscripcionParaCobro',
             'cargos',
             'cargosParciales',
@@ -147,6 +152,22 @@ class CobrosController extends Controller
             'cargosPagados',
             'cargosCondonados'
         ));
+    }
+
+    /**
+     * Inscripción activa del alumno en el ciclo seleccionado por el usuario
+     * (o el ciclo activo). Prioriza la regular sobre la anticipada.
+     * Usa las inscripciones activas ya cargadas en $alumno.
+     */
+    private function inscripcionDelCicloSeleccionado(Alumno $alumno): ?Inscripcion
+    {
+        $cicloId = auth()->user()->ciclo_seleccionado_id
+            ?? CicloEscolar::activo()->value('id');
+
+        return $alumno->inscripciones
+            ->where('ciclo_id', $cicloId)
+            ->sortBy(fn (Inscripcion $inscripcion) => $inscripcion->tipo === TipoInscripcion::Anticipada)
+            ->first();
     }
 
     /** GET /cobros/buscar-alumno (AJAX) — Búsqueda rápida para autocomplete */
@@ -181,7 +202,7 @@ class CobrosController extends Controller
                     'matricula' => $a->matricula,
                     'grupo' => trim(
                         ($insc?->grupo?->grado?->nivel?->nombre ?? '').' '.
-                        ($insc?->grupo?->grado?->nombre ?? '').'° '.
+                        ($insc?->grupo?->grado?->numero ?? '').'° '.
                         ($insc?->grupo?->nombre ?? '')
                     ),
                     'url' => route('cobros.alumno', $a->id),
