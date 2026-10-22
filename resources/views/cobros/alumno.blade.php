@@ -230,13 +230,18 @@
                           padding:1px 7px;border-radius:10px;font-size:11px;">
                 {{ $alumno->matricula }}
             </code>
-            @if($inscripcionActual)
+            @if($inscripcionDelCiclo ?? $inscripcionActual)
+                @php $inscripcionMostrada = $inscripcionDelCiclo ?? $inscripcionActual; @endphp
                 &nbsp;·&nbsp;
-                {{ $inscripcionActual->grupo?->grado?->nivel?->nombre ?? '' }}
-                {{ $inscripcionActual->grupo?->grado?->nombre }}°
-                {{ $inscripcionActual->grupo?->nombre ?? 'Sin grupo' }}
+                {{ $inscripcionMostrada->grupo?->grado?->nivel?->nombre ?? '' }}
+                @if($inscripcionMostrada->grupo)
+                    {{ $inscripcionMostrada->grupo->grado?->numero }}°
+                    {{ $inscripcionMostrada->grupo->nombre }}
+                @else
+                    Sin grupo
+                @endif
                 &nbsp;·&nbsp;
-                {{ $inscripcionActual->ciclo->nombre ?? '' }}
+                {{ $inscripcionMostrada->ciclo->nombre ?? '' }}
             @elseif($inscripcionParaCobro)
                 &nbsp;·&nbsp;
                 <span style="background:rgba(255,193,7,.25);color:rgba(255,255,255,.9);
@@ -681,12 +686,29 @@
             </div>
         </div>
         <div class="box-body" id="contenedor-nuevos">
-            @if(! $inscripcionActual && $inscripcionParaCobro)
-            <div class="alert alert-warning" style="font-size:12px;margin-bottom:10px;padding:8px 12px;">
-                <i class="fa fa-exclamation-triangle"></i>
-                <strong>Sin inscripción activa.</strong>
-                El nuevo concepto se asociará al ciclo más reciente:
-                <strong>{{ $inscripcionParaCobro->ciclo?->nombre ?? 'desconocido' }}</strong>.
+            @if($inscripcionParaCobro)
+            @php
+                $destinoCobro = collect([
+                    $inscripcionParaCobro->ciclo?->nombre ?? 'Ciclo desconocido',
+                    $inscripcionParaCobro->grupo
+                        ? trim(($inscripcionParaCobro->grupo->grado?->nivel?->nombre ?? '').' '.$inscripcionParaCobro->grupo->grado?->numero.'° '.$inscripcionParaCobro->grupo->nombre)
+                        : 'Sin grupo',
+                ])->implode(' · ');
+            @endphp
+            <div class="alert {{ $inscripcionDelCiclo ? 'alert-info' : 'alert-warning' }}"
+                 style="font-size:12px;margin-bottom:10px;padding:8px 12px;">
+                @if($inscripcionDelCiclo)
+                    <i class="fa fa-info-circle"></i>
+                    Los conceptos nuevos se registrarán en: <strong>{{ $destinoCobro }}</strong>
+                @else
+                    <i class="fa fa-exclamation-triangle"></i>
+                    @if($inscripcionActual)
+                        <strong>Sin inscripción activa en el ciclo seleccionado{{ $cicloActual ? ' ('.$cicloActual->nombre.')' : '' }}.</strong>
+                    @else
+                        <strong>Sin inscripción activa.</strong>
+                    @endif
+                    Los conceptos nuevos se registrarán en: <strong>{{ $destinoCobro }}</strong>
+                @endif
             </div>
             @endif
             <p class="text-muted" style="font-size:13px;margin:0;" id="txt-sin-nuevos">
